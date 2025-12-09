@@ -8,10 +8,10 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { DarkVeil } from "@/components/DarkVeil";
 import { DarkModeWrapper } from "@/components/dark-mode-wrapper";
 import { LandingFooter } from "@/components/landing-footer";
 import { LandingHeader } from "@/components/landing-header";
+import { LaserFlowBg } from "@/components/laser-flow-bg";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -74,12 +74,12 @@ export default async function HomePage() {
   return (
     <DarkModeWrapper>
       <div className="flex min-h-screen flex-col relative">
-        <DarkVeil />
         <LandingHeader />
 
         {/* Hero Section */}
         <section className="flex flex-col items-center justify-center gap-8 px-4 py-20 md:py-32 relative z-10">
-          <div className="flex flex-col items-center gap-6 text-center max-w-3xl">
+          <LaserFlowBg />
+          <div className="flex flex-col items-center gap-6 text-center max-w-3xl relative z-10">
             <h1 className="text-5xl font-bold tracking-tight md:text-6xl lg:text-7xl">
               TOM
             </h1>

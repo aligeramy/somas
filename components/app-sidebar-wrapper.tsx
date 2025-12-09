@@ -1,10 +1,58 @@
+import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { db } from "@/lib/db";
 import { users, gyms } from "@/drizzle/schema";
 import { eq } from "drizzle-orm";
 import { AppSidebar } from "./app-sidebar";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+} from "@/components/ui/sidebar";
 
-export async function AppSidebarWrapper() {
+function SidebarSkeleton() {
+  return (
+    <Sidebar collapsible="offcanvas" variant="floating">
+      <SidebarHeader>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton className="h-auto p-2">
+              <Skeleton className="h-9 w-9 rounded-xl" />
+              <Skeleton className="h-5 w-24 ml-3" />
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarHeader>
+      <SidebarContent>
+        <div className="p-2 space-y-2">
+          {[1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} className="h-10 w-full rounded-md" />
+          ))}
+        </div>
+      </SidebarContent>
+      <SidebarFooter>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton size="lg" disabled>
+              <Skeleton className="h-8 w-8 rounded-lg" />
+              <div className="flex-1 space-y-1">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-3 w-32" />
+              </div>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
+    </Sidebar>
+  );
+}
+
+async function AppSidebarContent() {
   const supabase = await createClient();
   const {
     data: { user: authUser },
@@ -42,6 +90,14 @@ export async function AppSidebarWrapper() {
       gymName={gymName}
       gymLogo={gymLogo}
     />
+  );
+}
+
+export function AppSidebarWrapper() {
+  return (
+    <Suspense fallback={<SidebarSkeleton />}>
+      <AppSidebarContent />
+    </Suspense>
   );
 }
 

@@ -11,6 +11,7 @@ import {
 import { useRouter } from "next/navigation"
 import { useTheme } from "next-themes"
 import Link from "next/link"
+import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 
 import {
@@ -49,6 +50,11 @@ export function NavUser({
   const { isMobile } = useSidebar()
   const router = useRouter()
   const { theme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const getInitials = (name?: string, email?: string) => {
     if (name) {
@@ -75,12 +81,13 @@ export function NavUser({
   return (
     <SidebarMenu>
       <SidebarMenuItem>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <SidebarMenuButton
-              size="lg"
-              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-            >
+        {mounted ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <SidebarMenuButton
+                size="lg"
+                className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+              >
               <Avatar className="h-8 w-8 rounded-lg">
                 <AvatarImage src={user.avatar} alt={user.name || user.email} />
                 <AvatarFallback className="rounded-lg">
@@ -164,6 +171,29 @@ export function NavUser({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        ) : (
+          <SidebarMenuButton
+            size="lg"
+            className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+            disabled
+          >
+            <Avatar className="h-8 w-8 rounded-lg">
+              <AvatarImage src={user.avatar} alt={user.name || user.email} />
+              <AvatarFallback className="rounded-lg">
+                {getInitials(user.name, user.email)}
+              </AvatarFallback>
+            </Avatar>
+            <div className="grid flex-1 text-left text-sm leading-tight">
+              <span className="truncate font-medium">
+                {user.name || "User"}
+              </span>
+              <span className="text-muted-foreground truncate text-xs">
+                {user.email}
+              </span>
+            </div>
+            <IconDotsVertical className="ml-auto size-4" />
+          </SidebarMenuButton>
+        )}
       </SidebarMenuItem>
     </SidebarMenu>
   )

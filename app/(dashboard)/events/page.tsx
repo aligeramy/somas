@@ -18,8 +18,9 @@ import {
 } from "@tabler/icons-react";
 import { format } from "date-fns";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
-import { EventCalendar } from "@/components/event-calendar";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { CustomEventCalendar } from "@/components/custom-event-calendar";
 import { PageHeader } from "@/components/page-header";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -42,6 +43,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface EventOccurrence {
@@ -80,9 +82,10 @@ interface GymMember {
 }
 
 export default function EventsPage() {
+  const searchParams = useSearchParams();
   const [events, setEvents] = useState<Event[]>([]);
   const [gymMembers, setGymMembers] = useState<GymMember[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [selectedOccurrence, setSelectedOccurrence] =
     useState<EventOccurrence | null>(null);
@@ -91,6 +94,7 @@ export default function EventsPage() {
   const [showPastEvents, setShowPastEvents] = useState(false);
   const [sendingReminder, setSendingReminder] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
+  const isInitialMount = useRef(true);
 
   // Cancel dialog state
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
@@ -106,22 +110,70 @@ export default function EventsPage() {
   const [customDate, setCustomDate] = useState<Date | null>(null);
   const [addingDate, setAddingDate] = useState(false);
 
-  const loadEvents = useCallback(async () => {
+  const loadEvents = useCallback(async (isInitial = false) => {
     try {
-      setLoading(true);
+      if (isInitial) {
+        setInitialLoading(true);
+      }
       const response = await fetch("/api/events");
       if (!response.ok) throw new Error("Failed to load events");
       const data = await response.json();
-      setEvents(data.events || []);
-      if (data.events?.length > 0 && !selectedEvent) {
-        setSelectedEvent(data.events[0]);
+      const newEvents = data.events || [];
+      setEvents(newEvents);
+      
+      // Check URL parameters for eventId and occurrenceId
+      const eventIdParam = searchParams.get("eventId");
+      const occurrenceIdParam = searchParams.get("occurrenceId");
+      
+      if (newEvents.length > 0) {
+        let eventToSelect: Event | null = null;
+        let occurrenceToSelect: EventOccurrence | null = null;
+        
+        // If URL params exist, try to select that event/occurrence
+        if (eventIdParam) {
+          eventToSelect = newEvents.find((e: Event) => e.id === eventIdParam) || null;
+          if (eventToSelect && occurrenceIdParam) {
+            occurrenceToSelect = eventToSelect.occurrences.find(
+              (o: EventOccurrence) => o.id === occurrenceIdParam
+            ) || null;
+          }
+        }
+        
+        // If no URL params or not found, use default selection logic
+        if (!eventToSelect) {
+          if (!selectedEvent) {
+            eventToSelect = newEvents[0];
+          } else {
+            // Check if current selected event still exists
+            const stillExists = newEvents.find((e: Event) => e.id === selectedEvent.id);
+            if (!stillExists) {
+              eventToSelect = newEvents[0];
+            } else {
+              eventToSelect = selectedEvent;
+            }
+          }
+        }
+        
+        setSelectedEvent(eventToSelect);
+        setSelectedOccurrence(occurrenceToSelect);
+        
+        // Load RSVPs if occurrence is selected (will be handled by useEffect)
+        if (!occurrenceToSelect) {
+          setOccurrenceRsvps([]);
+        }
+      } else {
+        setSelectedEvent(null);
+        setSelectedOccurrence(null);
+        setOccurrenceRsvps([]);
       }
     } catch (err) {
       console.error(err);
     } finally {
-      setLoading(false);
+      if (isInitial) {
+        setInitialLoading(false);
+      }
     }
-  }, [selectedEvent]);
+  }, [selectedEvent, searchParams]);
 
   const loadGymMembers = useCallback(async () => {
     try {
@@ -136,12 +188,7 @@ export default function EventsPage() {
     }
   }, []);
 
-  useEffect(() => {
-    loadEvents();
-    loadGymMembers();
-  }, [loadEvents, loadGymMembers]);
-
-  async function loadOccurrenceRsvps(occurrenceId: string) {
+  const loadOccurrenceRsvps = useCallback(async (occurrenceId: string) => {
     try {
       setRsvpLoading(true);
       const response = await fetch(`/api/rsvp?occurrenceId=${occurrenceId}`);
@@ -171,7 +218,22 @@ export default function EventsPage() {
     } finally {
       setRsvpLoading(false);
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      loadEvents(true);
+      loadGymMembers();
+    }
+  }, [loadEvents, loadGymMembers]);
+
+  // Load RSVPs when occurrence is selected from URL params
+  useEffect(() => {
+    if (selectedOccurrence) {
+      loadOccurrenceRsvps(selectedOccurrence.id);
+    }
+  }, [selectedOccurrence, loadOccurrenceRsvps]);
 
   async function handleCancelWithNotify() {
     if (!selectedOccurrence) return;
@@ -426,20 +488,9 @@ export default function EventsPage() {
   const respondedIds = new Set(occurrenceRsvps.map((r) => r.id));
   const notAnsweredUsers = gymMembers.filter((m) => !respondedIds.has(m.id));
 
-  if (loading) {
-    return (
-      <div className="flex flex-1 flex-col">
-        <PageHeader title="Events" />
-        <div className="flex flex-1 items-center justify-center">
-          <div className="animate-pulse text-muted-foreground">Loading...</div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="flex flex-1 flex-col h-[calc(100vh-var(--header-height))]">
-      <PageHeader title="Events" description="Manage training sessions">
+    <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
+      <PageHeader title="Events">
         <div className="flex items-center gap-2">
           <div className="flex rounded-xl border p-1">
             <Button
@@ -468,12 +519,18 @@ export default function EventsPage() {
         </div>
       </PageHeader>
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden gap-4 min-h-0 h-0">
         {/* Events Sidebar */}
-        <div className="w-64 border-r flex flex-col bg-muted/30">
-          <ScrollArea className="flex-1">
+        <div className="w-64 flex flex-col bg-card border rounded-xl shadow-sm overflow-hidden min-h-0 h-full">
+          <ScrollArea className="h-full">
             <div className="p-2">
-              {events.length === 0 ? (
+              {initialLoading ? (
+                <div className="space-y-2">
+                  {[1, 2, 3].map((i) => (
+                    <Skeleton key={i} className="h-20 w-full rounded-xl" />
+                  ))}
+                </div>
+              ) : events.length === 0 ? (
                 <div className="p-4 text-center text-sm text-muted-foreground">
                   No events yet
                 </div>
@@ -551,10 +608,10 @@ export default function EventsPage() {
 
         {/* Main Content */}
         {viewMode === "calendar" ? (
-          <div className="flex-1 p-4 overflow-auto">
+          <div className="flex-1 overflow-auto min-h-0 h-full">
             {selectedEvent ? (
-              <div className="max-w-3xl mx-auto">
-                <div className="mb-4">
+              <div className="h-full flex flex-col p-4">
+                <div className="mb-4 shrink-0">
                   <h2 className="text-xl font-semibold">
                     {selectedEvent.title}
                   </h2>
@@ -563,18 +620,20 @@ export default function EventsPage() {
                     {formatTime(selectedEvent.endTime)}
                   </p>
                 </div>
-                <EventCalendar
-                  occurrences={selectedEvent.occurrences.map((o) => ({
-                    ...o,
-                    isCustom:
-                      (o as EventOccurrence & { isCustom?: boolean })
-                        .isCustom || false,
-                  }))}
-                  eventTitle={selectedEvent.title}
-                  onToggleDate={handleToggleOccurrence}
-                  onAddCustomDate={handleAddCustomDate}
-                  onRemoveDate={handleRemoveCustomDate}
-                />
+                <div className="flex-1 min-h-0">
+                  <CustomEventCalendar
+                    occurrences={selectedEvent.occurrences.map((o) => ({
+                      ...o,
+                      isCustom:
+                        (o as EventOccurrence & { isCustom?: boolean })
+                          .isCustom || false,
+                    }))}
+                    eventTitle={selectedEvent.title}
+                    onToggleDate={handleToggleOccurrence}
+                    onAddCustomDate={handleAddCustomDate}
+                    onRemoveDate={handleRemoveCustomDate}
+                  />
+                </div>
               </div>
             ) : (
               <div className="flex items-center justify-center h-full text-muted-foreground">
@@ -585,19 +644,20 @@ export default function EventsPage() {
         ) : (
           <>
             {/* Occurrences List */}
-            <div className="w-72 border-r flex flex-col">
-              {selectedEvent ? (
+            <div className="w-72 flex flex-col bg-card border rounded-xl shadow-sm overflow-hidden min-h-0 h-full">
+              {initialLoading ? (
                 <>
-                  <div className="p-4 border-b">
-                    <h3 className="font-semibold text-sm">
-                      {selectedEvent.title}
-                    </h3>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {formatTime(selectedEvent.startTime)} -{" "}
-                      {formatTime(selectedEvent.endTime)}
-                    </p>
-                  </div>
-                  <ScrollArea className="flex-1">
+                  <ScrollArea className="h-full">
+                    <div className="p-2 space-y-2">
+                      {[1, 2, 3].map((i) => (
+                        <Skeleton key={i} className="h-20 w-full rounded-xl" />
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </>
+              ) : selectedEvent ? (
+                <>
+                  <ScrollArea className="h-full">
                     <div className="p-2">
                       {displayedOccurrences.length === 0 ? (
                         <div className="p-4 text-center text-sm text-muted-foreground">
@@ -687,10 +747,10 @@ export default function EventsPage() {
             </div>
 
             {/* RSVP Detail */}
-            <div className="flex-1 flex flex-col">
+            <div className="flex-1 flex flex-col bg-card border rounded-xl shadow-sm overflow-hidden min-h-0">
               {selectedOccurrence ? (
                 <>
-                  <div className="p-4 border-b flex items-center justify-between">
+                  <div className="p-4 border-b flex items-center justify-between shrink-0">
                     <div>
                       <h3 className="font-semibold">{selectedEvent?.title}</h3>
                       <p className="text-sm text-muted-foreground">
@@ -731,12 +791,24 @@ export default function EventsPage() {
                   </div>
                   <div className="flex-1 overflow-hidden">
                     {rsvpLoading ? (
-                      <div className="flex items-center justify-center h-full text-muted-foreground">
-                        Loading...
+                      <div className="flex flex-col h-full p-4">
+                        <Skeleton className="h-10 w-full mb-4 rounded-xl" />
+                        <div className="space-y-3">
+                          {[1, 2, 3, 4, 5].map((i) => (
+                            <div key={i} className="flex items-center gap-3 p-3 rounded-xl">
+                              <Skeleton className="h-10 w-10 rounded-xl" />
+                              <div className="flex-1 space-y-2">
+                                <Skeleton className="h-4 w-32" />
+                                <Skeleton className="h-3 w-48" />
+                              </div>
+                              <Skeleton className="h-6 w-16 rounded-full" />
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     ) : (
-                      <Tabs defaultValue="all" className="h-full flex flex-col">
-                        <div className="px-4 pt-4">
+                      <Tabs defaultValue="all" className="h-full flex flex-col min-h-0">
+                        <div className="px-4 pt-4 shrink-0">
                           <TabsList className="w-full grid grid-cols-4 h-10 rounded-xl">
                             <TabsTrigger
                               value="all"
@@ -766,7 +838,7 @@ export default function EventsPage() {
                         </div>
                         <TabsContent
                           value="all"
-                          className="flex-1 overflow-auto mt-0 p-4"
+                          className="flex-1 overflow-auto mt-0 p-4 min-h-0"
                         >
                           <UserList
                             users={gymMembers.map((m) => ({
@@ -835,7 +907,7 @@ export default function EventsPage() {
 
       {/* Cancel Dialog */}
       <Dialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
-        <DialogContent className="rounded-2xl">
+        <DialogContent className="rounded-xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <IconAlertTriangle className="h-5 w-5 text-destructive" />
@@ -901,7 +973,7 @@ export default function EventsPage() {
 
       {/* Delete Event Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="rounded-2xl">
+        <DialogContent className="rounded-xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-destructive">
               <IconTrash className="h-5 w-5" />
@@ -934,7 +1006,7 @@ export default function EventsPage() {
 
       {/* Add Custom Date Dialog */}
       <Dialog open={addDateDialogOpen} onOpenChange={setAddDateDialogOpen}>
-        <DialogContent className="rounded-2xl">
+        <DialogContent className="rounded-xl">
           <DialogHeader>
             <DialogTitle>Add Custom Session</DialogTitle>
             <DialogDescription>

@@ -48,7 +48,7 @@ export function AppSidebar({ user, gymName, gymLogo, ...props }: AppSidebarProps
       icon: IconCalendar,
     },
     {
-      title: "Roster",
+      title: "Members",
       url: "/roster",
       icon: IconUsers,
     },
@@ -78,7 +78,7 @@ export function AppSidebar({ user, gymName, gymLogo, ...props }: AppSidebarProps
   }
 
   return (
-    <Sidebar collapsible="offcanvas" {...props}>
+    <Sidebar collapsible="offcanvas" variant="floating" {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>

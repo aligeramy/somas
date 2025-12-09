@@ -41,6 +41,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
   SelectContent,
@@ -290,7 +291,7 @@ export default function RosterPage() {
               <IconUpload className="mr-2 h-4 w-4" /> Import
             </Button>
           </DialogTrigger>
-          <DialogContent className="rounded-2xl">
+          <DialogContent className="rounded-xl">
             <DialogHeader>
               <DialogTitle>Import Roster</DialogTitle>
               <DialogDescription>
@@ -342,7 +343,7 @@ export default function RosterPage() {
               <IconPlus className="mr-2 h-4 w-4" /> Add Member
             </Button>
           </DialogTrigger>
-          <DialogContent className="rounded-2xl">
+          <DialogContent className="rounded-xl">
             <DialogHeader>
               <DialogTitle>Add New Member</DialogTitle>
               <DialogDescription>
@@ -401,19 +402,46 @@ export default function RosterPage() {
         </Dialog>
       </PageHeader>
 
-      <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6 px-4 lg:px-6 space-y-6">
+      <div className="flex flex-col gap-4 md:gap-6 space-y-6">
         {loading && roster.length === 0 ? (
-          <div className="text-center text-muted-foreground">
-            Loading roster...
-          </div>
+          <Card className="rounded-xl">
+            <CardHeader>
+              <Skeleton className="h-6 w-48 mb-2" />
+              <Skeleton className="h-4 w-64" />
+            </CardHeader>
+            <CardContent>
+              <ScrollArea className="h-[500px]">
+                <div className="space-y-2">
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <div
+                      key={i}
+                      className="flex items-center justify-between p-3 rounded-xl"
+                    >
+                      <div className="flex items-center gap-3">
+                        <Skeleton className="h-12 w-12 rounded-xl" />
+                        <div className="space-y-2">
+                          <Skeleton className="h-4 w-32" />
+                          <Skeleton className="h-3 w-48" />
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Skeleton className="h-6 w-16 rounded-lg" />
+                        <Skeleton className="h-8 w-8 rounded-lg" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            </CardContent>
+          </Card>
         ) : roster.length === 0 ? (
-          <Card className="rounded-2xl">
+          <Card className="rounded-xl">
             <CardContent className="pt-6 text-center text-muted-foreground">
               No members in your gym yet. Add one to get started!
             </CardContent>
           </Card>
         ) : (
-          <Card className="rounded-2xl">
+          <Card className="rounded-xl">
             <CardHeader>
               <CardTitle>Current Members</CardTitle>
               <CardDescription>
@@ -531,7 +559,7 @@ export default function RosterPage() {
 
       {/* Edit Member Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="rounded-2xl">
+        <DialogContent className="rounded-xl">
           <DialogHeader>
             <DialogTitle>Edit Member</DialogTitle>
             <DialogDescription>
@@ -618,7 +646,7 @@ export default function RosterPage() {
 
       {/* Delete Member Dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent className="rounded-2xl">
+        <DialogContent className="rounded-xl">
           <DialogHeader>
             <DialogTitle className="text-destructive">
               Remove Member

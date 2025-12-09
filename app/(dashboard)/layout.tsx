@@ -42,6 +42,7 @@ export default async function DashboardLayout({
 
   return (
     <SidebarProvider
+      className="p-4 lg:p-6 xl:p-4 h-[100dvh] overflow-hidden"
       style={
         {
           "--sidebar-width": "calc(var(--spacing) * 64)",
@@ -51,7 +52,7 @@ export default async function DashboardLayout({
     >
       <AppSidebarWrapper />
       <SidebarInset>
-        <div className="flex flex-1 flex-col">
+        <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
           {children}
         </div>
       </SidebarInset>

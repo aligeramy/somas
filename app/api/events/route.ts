@@ -29,7 +29,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const { title, startTime, endTime, recurrenceRule } = await request.json();
+    const { title, startTime, endTime, recurrenceRule, recurrenceEndDate, recurrenceCount } = await request.json();
 
     if (!title || !startTime || !endTime) {
       return NextResponse.json(
@@ -47,8 +47,8 @@ export async function POST(request: Request) {
       recurrenceRule: recurrenceRule || null,
     }).returning();
 
-    // Generate occurrences for the next 3 months
-    await generateEventOccurrences(event.id, recurrenceRule, startTime);
+    // Generate occurrences
+    await generateEventOccurrences(event.id, recurrenceRule, startTime, recurrenceEndDate, recurrenceCount);
 
     return NextResponse.json({ success: true, event });
   } catch (error) {
@@ -64,11 +64,25 @@ async function generateEventOccurrences(
   eventId: string,
   recurrenceRule: string | null,
   startTime: string,
+  recurrenceEndDate?: string | null,
+  recurrenceCount?: number | null,
 ) {
   const occurrences = [];
   const now = new Date();
-  const endDate = new Date();
-  endDate.setMonth(endDate.getMonth() + 3); // Generate for 3 months
+  let endDate = new Date();
+  
+  // Determine end date based on recurrence settings
+  if (recurrenceEndDate) {
+    // Specific end date provided
+    endDate = new Date(recurrenceEndDate);
+  } else if (recurrenceCount) {
+    // Count-based: will be handled in the loop
+    endDate = new Date();
+    endDate.setFullYear(endDate.getFullYear() + 2); // Set a far future date, loop will stop at count
+  } else {
+    // Forever: generate at least 1 year
+    endDate.setFullYear(endDate.getFullYear() + 1);
+  }
 
   if (!recurrenceRule) {
     return; // No recurrence, no occurrences
@@ -116,7 +130,13 @@ async function generateEventOccurrences(
   }
 
   // Generate occurrences
+  let occurrenceCount = 0;
   while (currentDate <= endDate) {
+    // Stop if we've reached the count limit
+    if (recurrenceCount && occurrenceCount >= recurrenceCount) {
+      break;
+    }
+
     const [hours, minutes] = startTime.split(":").map(Number);
     const occurrenceDate = new Date(currentDate);
     occurrenceDate.setHours(hours, minutes, 0, 0);
@@ -127,6 +147,7 @@ async function generateEventOccurrences(
         date: occurrenceDate,
         status: "scheduled" as const,
       });
+      occurrenceCount++;
     }
 
     // Move to next occurrence

@@ -87,7 +87,7 @@ export function AthleteDashboard({ userName, occurrences }: AthleteDashboardProp
       <div className="flex-1 overflow-auto">
         <div className="p-4 lg:p-6 space-y-6 max-w-2xl mx-auto">
           {occurrences.length === 0 ? (
-            <Card className="rounded-2xl border-dashed">
+            <Card className="rounded-xl border-dashed">
               <CardContent className="py-16 text-center">
                 <IconCalendar className="h-12 w-12 mx-auto mb-4 text-muted-foreground/30" />
                 <p className="text-muted-foreground">No upcoming events</p>
@@ -98,7 +98,7 @@ export function AthleteDashboard({ userName, occurrences }: AthleteDashboardProp
             <>
               {/* Featured Next Event */}
               {nextEvent && (
-                <Card className={`rounded-2xl overflow-hidden ${
+                <Card className={`rounded-xl overflow-hidden ${
                   rsvpStates[nextEvent.id] === "going"
                     ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800"
                     : rsvpStates[nextEvent.id] === "not_going"
@@ -108,7 +108,7 @@ export function AthleteDashboard({ userName, occurrences }: AthleteDashboardProp
                   <CardContent className="p-6">
                     <div className="flex items-start gap-4">
                       {/* Big Date */}
-                      <div className={`h-20 w-20 rounded-2xl flex flex-col items-center justify-center shrink-0 ${
+                      <div className={`h-20 w-20 rounded-xl flex flex-col items-center justify-center shrink-0 ${
                         rsvpStates[nextEvent.id] === "going"
                           ? "bg-emerald-500 text-white"
                           : rsvpStates[nextEvent.id] === "not_going"
@@ -180,7 +180,7 @@ export function AthleteDashboard({ userName, occurrences }: AthleteDashboardProp
                     const isLoading = loading === occ.id;
 
                     return (
-                      <Card key={occ.id} className="rounded-2xl">
+                      <Card key={occ.id} className="rounded-xl">
                         <CardContent className="p-4">
                           <div className="flex items-center gap-4">
                             {/* Date */}

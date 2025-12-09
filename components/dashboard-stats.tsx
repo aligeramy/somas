@@ -33,7 +33,7 @@ export function DashboardStats({ totalAthletes, totalEvents, upcomingRsvps }: Da
       {stats.map((stat) => (
         <div
           key={stat.label}
-          className="rounded-2xl border bg-card p-5 transition-shadow hover:shadow-md"
+          className="rounded-xl border bg-card p-5 transition-shadow hover:shadow-md"
         >
           <div className={`inline-flex items-center justify-center h-10 w-10 rounded-xl ${stat.color} mb-3`}>
             <stat.icon className="h-5 w-5" />

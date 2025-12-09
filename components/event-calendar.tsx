@@ -129,10 +129,10 @@ export function EventCalendar({
   const selectedOccurrence = selectedDate ? getOccurrenceForDate(selectedDate) : null;
 
   return (
-    <div className={className}>
+    <div className={`flex flex-col h-full ${className || ""}`}>
       <Popover open={!!selectedDate && !readOnly} onOpenChange={(open) => !open && setSelectedDate(null)}>
         <PopoverTrigger asChild>
-          <div>
+          <div className="flex-1 flex items-center justify-center p-6">
             <Calendar
               mode="single"
               month={month}
@@ -141,10 +141,15 @@ export function EventCalendar({
               onSelect={(date) => date && handleDayClick(date)}
               modifiers={modifiers}
               modifiersStyles={modifiersStyles}
-              className="rounded-xl border p-3"
+              className="rounded-xl border p-8 w-full max-w-5xl"
               classNames={{
+                root: "w-full",
+                months: "w-full",
+                month: "w-full",
+                month_caption: "text-2xl font-semibold mb-6",
+                weekday: "text-sm font-medium",
+                day: "h-14 w-14 rounded-lg text-base hover:bg-muted transition-colors",
                 day_selected: "!bg-primary/20 !text-primary font-semibold",
-                day: "h-9 w-9 rounded-lg text-sm hover:bg-muted transition-colors",
               }}
             />
           </div>
@@ -222,7 +227,7 @@ export function EventCalendar({
       </Popover>
 
       {/* Legend */}
-      <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
+      <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground shrink-0 justify-center">
         <div className="flex items-center gap-1.5">
           <div className="h-3 w-3 rounded bg-primary" />
           <span>Scheduled</span>

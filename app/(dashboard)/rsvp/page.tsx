@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface EventOccurrence {
   id: string;
@@ -186,11 +187,42 @@ export default function RSVPPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-1 flex-col">
+      <div className="flex flex-1 flex-col h-[calc(100vh-var(--header-height))]">
         <PageHeader title={isOwnerOrCoach ? "Attendance" : "My Schedule"} />
-        <div className="flex flex-1 items-center justify-center">
-          <div className="animate-pulse text-muted-foreground">Loading...</div>
-        </div>
+        <ScrollArea className="flex-1">
+          <div className="space-y-2">
+            {[1, 2, 3, 4].map((i) => (
+              <div
+                key={i}
+                className="p-4 rounded-xl border bg-card space-y-3"
+              >
+                <div className="flex items-center gap-3">
+                  <Skeleton className="h-16 w-16 rounded-xl" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-5 w-48" />
+                    <Skeleton className="h-4 w-32" />
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Skeleton className="h-8 w-24 rounded-lg" />
+                  <Skeleton className="h-8 w-24 rounded-lg" />
+                </div>
+                <div className="space-y-2 pt-2">
+                  {[1, 2].map((j) => (
+                    <div key={j} className="flex items-center gap-2">
+                      <Skeleton className="h-10 w-10 rounded-xl" />
+                      <div className="flex-1 space-y-1">
+                        <Skeleton className="h-4 w-32" />
+                        <Skeleton className="h-3 w-48" />
+                      </div>
+                      <Skeleton className="h-6 w-16 rounded-full" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </ScrollArea>
       </div>
     );
   }
@@ -199,7 +231,7 @@ export default function RSVPPage() {
     return (
       <div className="flex flex-1 flex-col">
         <PageHeader title="Attendance" />
-        <div className="p-6">
+        <div>
           <div className="bg-destructive/10 text-destructive rounded-xl p-4">
             {error}
           </div>
@@ -229,7 +261,7 @@ export default function RSVPPage() {
           description="Track who's coming to each session"
         />
         <ScrollArea className="flex-1">
-          <div className="p-4 lg:px-6 space-y-2">
+          <div className="space-y-2">
             {events.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
                 <p>No upcoming events</p>
@@ -247,7 +279,7 @@ export default function RSVPPage() {
                 return (
                   <div
                     key={occ.id}
-                    className={`flex items-center gap-4 p-4 rounded-2xl border hover:bg-muted/30 transition-colors ${
+                    className={`flex items-center gap-4 p-4 rounded-xl border hover:bg-muted/30 transition-colors ${
                       isCanceled ? "opacity-50" : ""
                     }`}
                   >
@@ -338,7 +370,7 @@ export default function RSVPPage() {
     <div className="flex flex-1 flex-col h-[calc(100vh-var(--header-height))]">
       <PageHeader title="My Schedule" description="RSVP to upcoming sessions" />
       <ScrollArea className="flex-1">
-        <div className="p-4 lg:px-6 space-y-2">
+        <div className="space-y-2">
           {events.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <p>No upcoming events</p>
@@ -353,7 +385,7 @@ export default function RSVPPage() {
               return (
                 <div
                   key={occ.id}
-                  className={`flex items-center gap-4 p-4 rounded-2xl border transition-colors ${
+                  className={`flex items-center gap-4 p-4 rounded-xl border transition-colors ${
                     isCanceled ? "opacity-50" : "hover:bg-muted/30"
                   }`}
                 >

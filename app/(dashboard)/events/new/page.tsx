@@ -156,7 +156,7 @@ export default function NewEventPage() {
   };
 
   return (
-    <div className="flex flex-1 flex-col">
+    <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
       <PageHeader title="Create Event" description="Set up a new training session">
         <Button variant="ghost" size="sm" asChild className="gap-2 rounded-xl">
           <Link href="/events">
@@ -166,8 +166,8 @@ export default function NewEventPage() {
         </Button>
       </PageHeader>
 
-      <div className="flex-1 overflow-auto">
-        <div className="max-w-4xl mx-auto p-4 lg:p-6">
+      <div className="flex-1 overflow-auto min-h-0">
+        <div className="max-w-4xl mx-auto p-4">
           <form onSubmit={handleSubmit}>
             {error && (
               <div className="bg-destructive/10 text-destructive rounded-xl p-4 text-sm mb-6">
@@ -189,7 +189,7 @@ export default function NewEventPage() {
 
               <TabsContent value="details" className="space-y-6 mt-6">
                 {/* Basic Info */}
-                <Card className="rounded-2xl">
+                <Card className="rounded-xl">
                   <CardHeader>
                     <CardTitle className="text-base flex items-center gap-2">
                       <IconCalendar className="h-5 w-5" />
@@ -240,7 +240,7 @@ export default function NewEventPage() {
                 </Card>
 
                 {/* Time */}
-                <Card className="rounded-2xl">
+                <Card className="rounded-xl">
                   <CardHeader>
                     <CardTitle className="text-base flex items-center gap-2">
                       <IconClock className="h-5 w-5" />
@@ -374,7 +374,7 @@ export default function NewEventPage() {
                 </Card>
 
                 {/* Reminders */}
-                <Card className="rounded-2xl">
+                <Card className="rounded-xl">
                   <CardHeader>
                     <CardTitle className="text-base flex items-center gap-2">
                       <IconBell className="h-5 w-5" />
@@ -412,7 +412,7 @@ export default function NewEventPage() {
               </TabsContent>
 
               <TabsContent value="calendar" className="mt-6">
-                <Card className="rounded-2xl">
+                <Card className="rounded-xl">
                   <CardHeader>
                     <CardTitle className="text-base">Calendar Preview</CardTitle>
                     <CardDescription>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { loginAction } from "@/app/(auth)/login/actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -130,12 +131,16 @@ export function LoginForm({
               </FieldDescription>
             </FieldGroup>
           </form>
-          <div className="bg-muted relative hidden md:block">
-            <div
-              className="absolute inset-0 h-full w-full bg-muted dark:brightness-[0.2] dark:grayscale"
-              role="img"
-              aria-label="Decorative background"
+          <div className="bg-muted relative hidden md:block overflow-hidden aspect-[3/4]">
+            <Image
+              src="/portrait.png"
+              alt="Gym background"
+              fill
+              className="object-cover object-center"
+              sizes="(max-width: 768px) 0vw, 50vw"
+              priority
             />
+            <div className="absolute inset-0" />
           </div>
         </CardContent>
       </Card>

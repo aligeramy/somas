@@ -141,7 +141,7 @@ export default function ProfilePage() {
       </PageHeader>
 
       <div className="flex-1 overflow-auto">
-        <div className="max-w-2xl mx-auto p-4 lg:p-6 space-y-6">
+        <div className="max-w-2xl mx-auto space-y-6">
           {error && (
             <div className="bg-destructive/10 text-destructive rounded-xl p-4 text-sm">
               {error}
@@ -149,7 +149,7 @@ export default function ProfilePage() {
           )}
 
           {/* Avatar Section */}
-          <Card className="rounded-2xl">
+          <Card className="rounded-xl">
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
                 <div className="relative">
@@ -173,7 +173,7 @@ export default function ProfilePage() {
           </Card>
 
           {/* Personal Information */}
-          <Card className="rounded-2xl">
+          <Card className="rounded-xl">
             <CardHeader>
               <CardTitle className="text-base">Personal Information</CardTitle>
               <CardDescription>Update your personal details</CardDescription>
@@ -224,7 +224,7 @@ export default function ProfilePage() {
           </Card>
 
           {/* Notification Preferences */}
-          <Card className="rounded-2xl">
+          <Card className="rounded-xl">
             <CardHeader>
               <CardTitle className="text-base">Notifications</CardTitle>
               <CardDescription>Choose how you want to be notified</CardDescription>
