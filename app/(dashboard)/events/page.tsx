@@ -81,10 +81,29 @@ interface GymMember {
   role: string;
 }
 
+// Custom hook for events page breakpoint (1200px)
+function useIsEventsMobile() {
+  const [isEventsMobile, setIsEventsMobile] = useState<boolean | undefined>(undefined);
+
+  useEffect(() => {
+    const checkWidth = () => {
+      setIsEventsMobile(window.innerWidth < 1200);
+    };
+    
+    checkWidth();
+    window.addEventListener("resize", checkWidth);
+    return () => window.removeEventListener("resize", checkWidth);
+  }, []);
+
+  return !!isEventsMobile;
+}
+
 export default function EventsPage() {
   const searchParams = useSearchParams();
+  const isEventsMobile = useIsEventsMobile();
   const [events, setEvents] = useState<Event[]>([]);
   const [gymMembers, setGymMembers] = useState<GymMember[]>([]);
+  const [gymMembersLoading, setGymMembersLoading] = useState(true);
   const [initialLoading, setInitialLoading] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [selectedOccurrence, setSelectedOccurrence] =
@@ -94,6 +113,7 @@ export default function EventsPage() {
   const [showPastEvents, setShowPastEvents] = useState(false);
   const [sendingReminder, setSendingReminder] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
+  const [mobileView, setMobileView] = useState<"events" | "occurrences" | "details">("events");
   const isInitialMount = useRef(true);
 
   // Cancel dialog state
@@ -157,6 +177,17 @@ export default function EventsPage() {
         setSelectedEvent(eventToSelect);
         setSelectedOccurrence(occurrenceToSelect);
         
+        // Set mobile view based on selection
+        if (isEventsMobile) {
+          if (occurrenceToSelect) {
+            setMobileView("details");
+          } else if (eventToSelect) {
+            setMobileView("occurrences");
+          } else {
+            setMobileView("events");
+          }
+        }
+        
         // Load RSVPs if occurrence is selected (will be handled by useEffect)
         if (!occurrenceToSelect) {
           setOccurrenceRsvps([]);
@@ -165,6 +196,9 @@ export default function EventsPage() {
         setSelectedEvent(null);
         setSelectedOccurrence(null);
         setOccurrenceRsvps([]);
+        if (isEventsMobile) {
+          setMobileView("events");
+        }
       }
     } catch (err) {
       console.error(err);
@@ -173,18 +207,26 @@ export default function EventsPage() {
         setInitialLoading(false);
       }
     }
-  }, [selectedEvent, searchParams]);
+  }, [selectedEvent, searchParams, isEventsMobile]);
 
   const loadGymMembers = useCallback(async () => {
     try {
+      setGymMembersLoading(true);
       const response = await fetch("/api/roster");
-      if (!response.ok) return;
+      if (!response.ok) {
+        console.error("Failed to fetch roster:", response.statusText);
+        setGymMembers([]);
+        return;
+      }
       const data = await response.json();
-      setGymMembers(
-        (data.roster || []).filter((m: GymMember) => m.role === "athlete"),
-      );
+      // Filter to only athletes for RSVP purposes
+      const athletes = (data.roster || []).filter((m: GymMember) => m.role === "athlete");
+      setGymMembers(athletes);
     } catch (err) {
-      console.error(err);
+      console.error("Failed to load gym members:", err);
+      setGymMembers([]);
+    } finally {
+      setGymMembersLoading(false);
     }
   }, []);
 
@@ -419,11 +461,17 @@ export default function EventsPage() {
     setSelectedEvent(event);
     setSelectedOccurrence(null);
     setOccurrenceRsvps([]);
+    if (isEventsMobile && event) {
+      setMobileView("occurrences");
+    }
   }
 
   function selectOccurrence(occurrence: EventOccurrence) {
     setSelectedOccurrence(occurrence);
     loadOccurrenceRsvps(occurrence.id);
+    if (isEventsMobile && occurrence) {
+      setMobileView("details");
+    }
   }
 
   function formatDate(dateValue: string | Date | undefined | null) {
@@ -488,6 +536,373 @@ export default function EventsPage() {
   const respondedIds = new Set(occurrenceRsvps.map((r) => r.id));
   const notAnsweredUsers = gymMembers.filter((m) => !respondedIds.has(m.id));
 
+  // Mobile fullscreen tabs experience (for screens < 1200px)
+  if (isEventsMobile) {
+    return (
+      <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
+        <PageHeader title="Events">
+          <Button size="sm" className="gap-2 rounded-xl" asChild>
+            <Link href="/events/new">
+              <IconPlus className="h-4 w-4" />
+              New Event
+            </Link>
+          </Button>
+        </PageHeader>
+
+        <Tabs value={mobileView} onValueChange={(value) => setMobileView(value as typeof mobileView)} className="flex-1 flex flex-col min-h-0 overflow-hidden">
+          {/* Mobile Tab Navigation */}
+          <div className="px-4 shrink-0">
+            <TabsList className="w-full grid grid-cols-3 h-12">
+              <TabsTrigger value="events" className="text-sm">
+                Events
+              </TabsTrigger>
+              <TabsTrigger value="occurrences" className="text-sm" disabled={!selectedEvent}>
+                Sessions
+              </TabsTrigger>
+              <TabsTrigger value="details" className="text-sm" disabled={!selectedOccurrence}>
+                Details
+              </TabsTrigger>
+            </TabsList>
+          </div>
+
+          {/* Events Tab - Fullscreen */}
+          <TabsContent value="events" className="flex-1 flex flex-col min-h-0 m-0 overflow-hidden">
+            <ScrollArea className="flex-1">
+              <div className="p-4">
+                {initialLoading ? (
+                  <div className="space-y-3">
+                    {[1, 2, 3, 4].map((i) => (
+                      <Skeleton key={i} className="h-24 w-full rounded-xl" />
+                    ))}
+                  </div>
+                ) : events.length === 0 ? (
+                  <div className="p-8 text-center text-muted-foreground">
+                    <IconCalendar className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                    <p className="text-sm">No events yet</p>
+                    <Button className="mt-4" asChild>
+                      <Link href="/events/new">Create your first event</Link>
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {events.map((event) => (
+                      <div key={event.id} className="relative">
+                        <button
+                          type="button"
+                          onClick={() => selectEvent(event)}
+                          className={`w-full text-left p-4 rounded-xl transition-all ${
+                            selectedEvent?.id === event.id
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-card hover:bg-muted/50"
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex-1 min-w-0">
+                              <p className="font-semibold text-base mb-2">
+                                {event.title}
+                              </p>
+                              <div className="flex flex-wrap items-center gap-3 text-sm opacity-80">
+                                <div className="flex items-center gap-1.5">
+                                  <IconClock className="h-4 w-4" />
+                                  {formatTime(event.startTime)}
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                  <IconRepeat className="h-4 w-4" />
+                                  {getRecurrenceLabel(event.recurrenceRule)}
+                                </div>
+                              </div>
+                            </div>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 shrink-0"
+                                >
+                                  <IconDotsVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="rounded-xl">
+                                <DropdownMenuItem asChild className="gap-2">
+                                  <Link href={`/events/${event.id}/edit`}>
+                                    <IconEdit className="h-4 w-4" />
+                                    Edit Event
+                                  </Link>
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  className="gap-2 text-destructive focus:text-destructive"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedEvent(event);
+                                    setDeleteDialogOpen(true);
+                                  }}
+                                >
+                                  <IconTrash className="h-4 w-4" />
+                                  Delete Event
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </ScrollArea>
+          </TabsContent>
+
+          {/* Occurrences Tab - Fullscreen */}
+          <TabsContent value="occurrences" className="flex-1 flex flex-col min-h-0 m-0 overflow-hidden">
+            {selectedEvent ? (
+              <>
+                <div className="p-4 shrink-0">
+                  <h2 className="font-semibold text-lg">{selectedEvent.title}</h2>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {formatTime(selectedEvent.startTime)} - {formatTime(selectedEvent.endTime)}
+                  </p>
+                </div>
+                <ScrollArea className="flex-1">
+                  <div className="p-4">
+                    {displayedOccurrences.length === 0 ? (
+                      <div className="p-8 text-center text-muted-foreground">
+                        <IconCalendar className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                        <p className="text-sm">No upcoming sessions</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {displayedOccurrences.map((occ) => {
+                          const isPast = isPastDate(occ.date);
+                          const dateInfo = formatDate(occ.date);
+                          return (
+                            <button
+                              key={occ.id}
+                              type="button"
+                              onClick={() => selectOccurrence(occ)}
+                              className={`w-full text-left p-4 rounded-xl transition-all ${
+                                selectedOccurrence?.id === occ.id
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-card hover:bg-muted/50"
+                              } ${isPast ? "opacity-60" : ""} ${occ.status === "canceled" ? "opacity-40" : ""}`}
+                            >
+                              <div className="flex items-center gap-4">
+                                <div
+                                  className={`h-16 w-16 rounded-xl flex flex-col items-center justify-center shrink-0 ${
+                                    selectedOccurrence?.id === occ.id
+                                      ? "bg-primary-foreground/20"
+                                      : "bg-muted"
+                                  }`}
+                                >
+                                  <span className="text-2xl font-bold leading-none">
+                                    {dateInfo.day}
+                                  </span>
+                                  <span className="text-xs font-medium opacity-70 mt-1">
+                                    {dateInfo.month}
+                                  </span>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-semibold text-base mb-1">
+                                    {dateInfo.weekday}
+                                  </p>
+                                  <p className="text-sm opacity-80">
+                                    {formatTime(selectedEvent.startTime)}
+                                  </p>
+                                </div>
+                                <div className="flex flex-col items-end gap-1 shrink-0">
+                                  {occ.status === "canceled" && (
+                                    <Badge variant="destructive" className="text-xs">
+                                      Canceled
+                                    </Badge>
+                                  )}
+                                  {(
+                                    occ as EventOccurrence & { isCustom?: boolean }
+                                  ).isCustom && (
+                                    <Badge variant="outline" className="text-xs">
+                                      Custom
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                    {pastOccurrences.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setShowPastEvents(!showPastEvents)}
+                        className="w-full mt-4 p-3 text-sm text-muted-foreground hover:text-foreground flex items-center justify-center gap-2 rounded-xl"
+                      >
+                        <IconHistory className="h-4 w-4" />
+                        {showPastEvents ? "Hide" : "Show"} past sessions ({pastOccurrences.length})
+                      </button>
+                    )}
+                  </div>
+                </ScrollArea>
+              </>
+            ) : (
+              <div className="flex-1 flex items-center justify-center text-muted-foreground">
+                <div className="text-center">
+                  <IconCalendar className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                  <p className="text-sm">Select an event first</p>
+                </div>
+              </div>
+            )}
+          </TabsContent>
+
+          {/* Details Tab - Fullscreen */}
+          <TabsContent value="details" className="flex-1 flex flex-col min-h-0 m-0 overflow-hidden">
+            {selectedOccurrence ? (
+              <>
+                <div className="p-4 shrink-0">
+                  <h2 className="font-semibold text-lg">{selectedEvent?.title}</h2>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {formatDate(selectedOccurrence.date).weekday},{" "}
+                    {formatDate(selectedOccurrence.date).month}{" "}
+                    {formatDate(selectedOccurrence.date).day} •{" "}
+                    {formatTime(selectedEvent?.startTime)}
+                  </p>
+                  <div className="flex flex-col gap-2 mt-4">
+                    {notAnsweredUsers.length > 0 &&
+                      selectedOccurrence.status !== "canceled" && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleSendReminders}
+                          disabled={sendingReminder}
+                          className="w-full gap-2 rounded-xl"
+                        >
+                          <IconBell className="h-4 w-4" />
+                          {sendingReminder
+                            ? "Sending..."
+                            : `Send Reminders (${notAnsweredUsers.length})`}
+                        </Button>
+                      )}
+                    {selectedOccurrence.status !== "canceled" && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCancelDialogOpen(true)}
+                        className="w-full text-destructive hover:text-destructive rounded-xl"
+                      >
+                        <IconX className="h-4 w-4 mr-2" />
+                        Cancel Session
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                <div className="flex-1 overflow-hidden">
+                  {rsvpLoading ? (
+                    <div className="flex flex-col h-full p-4">
+                      <Skeleton className="h-12 w-full mb-4 rounded-xl" />
+                      <div className="space-y-3">
+                        {[1, 2, 3, 4, 5].map((i) => (
+                          <div key={i} className="flex items-center gap-3 p-3 rounded-xl">
+                            <Skeleton className="h-12 w-12 rounded-xl" />
+                            <div className="flex-1 space-y-2">
+                              <Skeleton className="h-4 w-32" />
+                              <Skeleton className="h-3 w-48" />
+                            </div>
+                            <Skeleton className="h-6 w-20 rounded-full" />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <Tabs defaultValue="all" className="h-full flex flex-col min-h-0">
+                      <div className="px-4 pt-4 shrink-0">
+                        <TabsList className="w-full grid grid-cols-4 h-10 rounded-xl">
+                          <TabsTrigger value="all" className="text-xs rounded-lg">
+                            All ({gymMembers.length})
+                          </TabsTrigger>
+                          <TabsTrigger value="going" className="text-xs rounded-lg">
+                            Going ({goingUsers.length})
+                          </TabsTrigger>
+                          <TabsTrigger value="not_going" className="text-xs rounded-lg">
+                            Can't ({notGoingUsers.length})
+                          </TabsTrigger>
+                          <TabsTrigger value="pending" className="text-xs rounded-lg">
+                            Pending ({notAnsweredUsers.length})
+                          </TabsTrigger>
+                        </TabsList>
+                      </div>
+                      <TabsContent value="all" className="flex-1 overflow-auto mt-0 p-4 min-h-0">
+                        {gymMembersLoading ? (
+                          <div className="space-y-3">
+                            {[1, 2, 3].map((i) => (
+                              <div key={i} className="flex items-center gap-3 p-3 rounded-xl">
+                                <Skeleton className="h-10 w-10 rounded-xl" />
+                                <div className="flex-1 space-y-2">
+                                  <Skeleton className="h-4 w-32" />
+                                  <Skeleton className="h-3 w-48" />
+                                </div>
+                                <Skeleton className="h-6 w-16 rounded-full" />
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <UserList
+                            users={gymMembers.map((m) => ({
+                              ...m,
+                              status:
+                                occurrenceRsvps.find((r) => r.id === m.id)?.status || null,
+                            }))}
+                            getInitials={getInitials}
+                            onEditRsvp={handleEditRsvp}
+                          />
+                        )}
+                      </TabsContent>
+                      <TabsContent value="going" className="flex-1 overflow-auto mt-0 p-4">
+                        <UserList
+                          users={goingUsers.map((u) => ({
+                            ...u,
+                            status: "going",
+                          }))}
+                          getInitials={getInitials}
+                          onEditRsvp={handleEditRsvp}
+                        />
+                      </TabsContent>
+                      <TabsContent value="not_going" className="flex-1 overflow-auto mt-0 p-4">
+                        <UserList
+                          users={notGoingUsers.map((u) => ({
+                            ...u,
+                            status: "not_going",
+                          }))}
+                          getInitials={getInitials}
+                          onEditRsvp={handleEditRsvp}
+                        />
+                      </TabsContent>
+                      <TabsContent value="pending" className="flex-1 overflow-auto mt-0 p-4">
+                        <UserList
+                          users={notAnsweredUsers.map((u) => ({
+                            ...u,
+                            status: null,
+                          }))}
+                          getInitials={getInitials}
+                          onEditRsvp={handleEditRsvp}
+                        />
+                      </TabsContent>
+                    </Tabs>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div className="flex-1 flex items-center justify-center text-muted-foreground">
+                <div className="text-center">
+                  <IconUsers className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                  <p className="text-sm">Select a session to view details</p>
+                </div>
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+      </div>
+    );
+  }
+
+  // Desktop layout (unchanged)
   return (
     <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
       <PageHeader title="Events">
@@ -589,8 +1004,9 @@ export default function EventsPage() {
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                           className="gap-2 text-destructive focus:text-destructive"
-                          onClick={() => {
-                            selectEvent(event);
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedEvent(event);
                             setDeleteDialogOpen(true);
                           }}
                         >
@@ -840,16 +1256,31 @@ export default function EventsPage() {
                           value="all"
                           className="flex-1 overflow-auto mt-0 p-4 min-h-0"
                         >
-                          <UserList
-                            users={gymMembers.map((m) => ({
-                              ...m,
-                              status:
-                                occurrenceRsvps.find((r) => r.id === m.id)
-                                  ?.status || null,
-                            }))}
-                            getInitials={getInitials}
-                            onEditRsvp={handleEditRsvp}
-                          />
+                          {gymMembersLoading ? (
+                            <div className="space-y-3">
+                              {[1, 2, 3].map((i) => (
+                                <div key={i} className="flex items-center gap-3 p-3 rounded-xl">
+                                  <Skeleton className="h-10 w-10 rounded-xl" />
+                                  <div className="flex-1 space-y-2">
+                                    <Skeleton className="h-4 w-32" />
+                                    <Skeleton className="h-3 w-48" />
+                                  </div>
+                                  <Skeleton className="h-6 w-16 rounded-full" />
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <UserList
+                              users={gymMembers.map((m) => ({
+                                ...m,
+                                status:
+                                  occurrenceRsvps.find((r) => r.id === m.id)
+                                    ?.status || null,
+                              }))}
+                              getInitials={getInitials}
+                              onEditRsvp={handleEditRsvp}
+                            />
+                          )}
                         </TabsContent>
                         <TabsContent
                           value="going"
@@ -973,22 +1404,22 @@ export default function EventsPage() {
 
       {/* Delete Event Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="rounded-xl">
-          <DialogHeader>
+        <DialogContent className="rounded-xl max-w-[calc(100vw-2rem)] sm:max-w-lg">
+          <DialogHeader className="text-left">
             <DialogTitle className="flex items-center gap-2 text-destructive">
               <IconTrash className="h-5 w-5" />
               Delete Event
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-left">
               This will permanently delete "{selectedEvent?.title}" and all its
               sessions. This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter>
+          <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
             <Button
               variant="outline"
               onClick={() => setDeleteDialogOpen(false)}
-              className="rounded-xl"
+              className="rounded-xl w-full sm:w-auto"
             >
               Cancel
             </Button>
@@ -996,7 +1427,7 @@ export default function EventsPage() {
               variant="destructive"
               onClick={handleDeleteEvent}
               disabled={deleting}
-              className="rounded-xl"
+              className="rounded-xl w-full sm:w-auto"
             >
               {deleting ? "Deleting..." : "Delete Event"}
             </Button>
