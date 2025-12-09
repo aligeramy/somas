@@ -75,7 +75,8 @@ export default function EventsPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="flex flex-1 flex-col gap-2">
+      <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6 px-4 lg:px-6 space-y-6">
       <div>
         <h1 className="text-3xl font-bold">Event Management</h1>
         <p className="text-muted-foreground">
@@ -182,7 +183,9 @@ export default function EventsPage() {
           </form>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }
+
 

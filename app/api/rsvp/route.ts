@@ -108,6 +108,12 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const [dbUser] = await db.select().from(users).where(eq(users.id, user.id)).limit(1);
+
+    if (!dbUser) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
     const { searchParams } = new URL(request.url);
     const occurrenceId = searchParams.get("occurrenceId");
 
@@ -134,7 +140,45 @@ export async function GET(request: Request) {
       return NextResponse.json({ rsvps: formattedRsvps });
     }
 
-    // Get user's RSVPs
+    // If owner or coach, get all RSVPs for their gym
+    // Otherwise, get only user's RSVPs
+    if (dbUser.role === "owner" || dbUser.role === "coach") {
+      if (!dbUser.gymId) {
+        return NextResponse.json({ error: "User must belong to a gym" }, { status: 400 });
+      }
+
+      // Get all RSVPs for events in this gym
+      const rsvpsList = await db.select({
+        rsvp: rsvps,
+        user: {
+          id: users.id,
+          name: users.name,
+          email: users.email,
+          avatarUrl: users.avatarUrl,
+        },
+        occurrence: eventOccurrences,
+        event: events,
+      })
+        .from(rsvps)
+        .innerJoin(users, eq(rsvps.userId, users.id))
+        .innerJoin(eventOccurrences, eq(rsvps.occurrenceId, eventOccurrences.id))
+        .innerJoin(events, eq(eventOccurrences.eventId, events.id))
+        .where(eq(events.gymId, dbUser.gymId))
+        .orderBy(asc(eventOccurrences.date));
+
+      const formattedRsvps = rsvpsList.map(({ rsvp, user, occurrence, event }) => ({
+        ...rsvp,
+        user,
+        occurrence: {
+          ...occurrence,
+          event,
+        },
+      }));
+
+      return NextResponse.json({ rsvps: formattedRsvps });
+    }
+
+    // Get user's RSVPs (for athletes)
     const rsvpsList = await db.select({
       rsvp: rsvps,
       occurrence: eventOccurrences,
