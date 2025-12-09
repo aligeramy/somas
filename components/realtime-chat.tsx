@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useRealtimeChat, type ChatMessage } from "@/hooks/use-realtime-chat";
 import { useChatScroll } from "@/hooks/use-chat-scroll";
 import { ChatMessageItem } from "@/components/chat-message";
@@ -35,12 +35,15 @@ export function RealtimeChat({
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
 
+  // Memoize the onMessage callback to prevent infinite loops
+  const handleMessage = useCallback((msgs: ChatMessage[]) => {
+    setLoading(false);
+    if (onMessage) onMessage(msgs);
+  }, [onMessage]);
+
   const { messages, sendMessage } = useRealtimeChat({
     channelId,
-    onMessage: (msgs) => {
-      setLoading(false);
-      if (onMessage) onMessage(msgs);
-    },
+    onMessage: handleMessage,
     initialMessages,
   });
 
