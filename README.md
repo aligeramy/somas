@@ -1,36 +1,24 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# TOM — Gym Management & Athlete Coordination Platform
 
-## Getting Started
+TOM is a modern, mobile‑first gym management system designed for private gyms, coaches, and athletes.  
+It includes:
 
-First, run the development server:
+- Expo mobile app for athletes (RSVP, chat, notifications)
+- Next.js web admin dashboard for gym owners & coaches
+- Supabase backend (Auth, DB, RLS, Realtime, Storage)
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Core Features
+- Invite‑only user onboarding
+- Gym creation & logo upload
+- Athlete directory management
+- Recurring event scheduling
+- Google Calendar sync
+- RSVP tracking & attendance history
+- Global, group, and direct messaging
+- Push + email notifications
+- Coach announcements feed
+- Profile editing with notification preferences
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+See `technical.md` for full system architecture.
+# tom
