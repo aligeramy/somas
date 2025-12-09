@@ -24,8 +24,39 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
-  // Check if user exists in our database
-  const [dbUser] = await db.select().from(users).where(eq(users.id, user.id)).limit(1);
+  // Check if user exists in our database with retry logic
+  let dbUser;
+  let retries = 3;
+  let lastError: any = null;
+  
+  while (retries > 0) {
+    try {
+      const result = await db.select().from(users).where(eq(users.id, user.id)).limit(1);
+      dbUser = result[0];
+      break;
+    } catch (error: any) {
+      lastError = error;
+      retries--;
+      
+      // Check if it's a retryable error
+      const isRetryable = 
+        error?.code === 'ECONNRESET' || 
+        error?.code === 'ETIMEDOUT' ||
+        error?.code === 'ECONNREFUSED' ||
+        error?.message?.includes('timeout') ||
+        error?.message?.includes('connection') ||
+        error?.message?.includes('ECONN');
+      
+      if (!isRetryable || retries === 0) {
+        console.error("Database query error in dashboard layout:", error);
+        // If it's the last retry or not retryable, throw the error
+        throw error;
+      }
+      
+      // Wait before retrying (exponential backoff)
+      await new Promise(resolve => setTimeout(resolve, 1000 * (4 - retries)));
+    }
+  }
 
   // If user doesn't exist in DB, create them
   if (!dbUser) {
