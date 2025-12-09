@@ -59,11 +59,20 @@ export function useRealtimeChat({
         }
       } catch (error) {
         console.error("Error loading messages:", error);
+        // Still call onMessage with empty array to signal loading is done
+        if (onMessage) {
+          onMessage([]);
+        }
       }
     }
 
     if (channelId) {
       loadMessages();
+    } else {
+      // If no channelId, signal loading is done
+      if (onMessage) {
+        onMessage([]);
+      }
     }
   }, [channelId, onMessage]);
 

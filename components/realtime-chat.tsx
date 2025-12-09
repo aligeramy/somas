@@ -7,6 +7,7 @@ import { ChatMessageItem } from "@/components/chat-message";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Skeleton } from "@/components/ui/skeleton";
 import { IconSend, IconPhoto, IconX } from "@tabler/icons-react";
 import { createClient } from "@/lib/supabase/client";
 import { useDropzone } from "react-dropzone";
@@ -31,13 +32,22 @@ export function RealtimeChat({
   const [uploading, setUploading] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [loading, setLoading] = useState(true);
   const supabase = createClient();
 
   const { messages, sendMessage } = useRealtimeChat({
     channelId,
-    onMessage,
+    onMessage: (msgs) => {
+      setLoading(false);
+      if (onMessage) onMessage(msgs);
+    },
     initialMessages,
   });
+
+  // Reset loading when channel changes
+  useEffect(() => {
+    setLoading(true);
+  }, [channelId]);
 
   const scrollRef = useChatScroll(messages);
 
@@ -130,22 +140,44 @@ export function RealtimeChat({
   return (
     <div className="flex flex-col h-full">
       {/* Chat Header */}
-      <div className="border-b p-4 bg-background">
+      <div className="border-b p-4">
         <h2 className="font-semibold text-lg">{roomName}</h2>
       </div>
 
       {/* Messages Area */}
       <ScrollArea className="flex-1 p-4" ref={scrollRef}>
-        <div className="space-y-1">
-          {groupedMessages.map((message) => (
-            <ChatMessageItem
-              key={message.id}
-              message={message}
-              isOwnMessage={message.user.name === username}
-              showHeader={message.showHeader}
-            />
-          ))}
-        </div>
+        {loading ? (
+          <div className="flex flex-col gap-4">
+            {/* Skeleton messages */}
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="flex gap-3">
+                <Skeleton className="h-10 w-10 rounded-full" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-16 w-3/4 rounded-2xl" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : groupedMessages.length === 0 ? (
+          <div className="flex flex-1 items-center justify-center h-full">
+            <div className="text-center text-muted-foreground">
+              <p>No messages yet</p>
+              <p className="text-sm mt-2">Start the conversation!</p>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-1">
+            {groupedMessages.map((message) => (
+              <ChatMessageItem
+                key={message.id}
+                message={message}
+                isOwnMessage={message.user.name === username}
+                showHeader={message.showHeader}
+              />
+            ))}
+          </div>
+        )}
       </ScrollArea>
 
       {/* Image Preview */}
