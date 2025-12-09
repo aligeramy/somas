@@ -33,6 +33,7 @@ export const gyms = pgTable("Gym", {
   name: varchar("name", { length: 255 }).notNull(),
   logoUrl: varchar("logoUrl", { length: 500 }),
   createdById: uuid("createdById").notNull().unique(),
+  emailSettings: jsonb("emailSettings").default({ enabled: true, reminderEnabled: true, announcementEnabled: true }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().notNull(),
 }, (table) => ({
@@ -44,9 +45,12 @@ export const events = pgTable("Event", {
   id: uuid("id").primaryKey().defaultRandom(),
   gymId: uuid("gymId").notNull(),
   title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  location: varchar("location", { length: 255 }),
   recurrenceRule: text("recurrenceRule"),
   startTime: varchar("startTime", { length: 10 }).notNull(),
   endTime: varchar("endTime", { length: 10 }).notNull(),
+  reminderDays: jsonb("reminderDays").default([7, 1, 0.02]), // 7 days, 1 day, 30 min (0.02 = 30min/1440min)
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().notNull(),
 }, (table) => ({
@@ -73,6 +77,7 @@ export const rsvps = pgTable("RSVP", {
   userId: uuid("userId").notNull(),
   occurrenceId: uuid("occurrenceId").notNull(),
   status: rsvpStatusEnum("status").default("going").notNull(),
+  updatedBy: uuid("updatedBy"), // Track who updated (for coach edits)
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().notNull(),
 }, (table) => ({
@@ -142,6 +147,19 @@ export const messages = pgTable("Message", {
   createdAtIdx: index("Message_createdAt_idx").on(table.createdAt),
 }));
 
+// ReminderLog table
+export const reminderLogs = pgTable("ReminderLog", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  occurrenceId: uuid("occurrenceId").notNull(),
+  userId: uuid("userId").notNull(),
+  reminderType: varchar("reminderType", { length: 50 }).notNull(),
+  sentAt: timestamp("sentAt").defaultNow().notNull(),
+}, (table) => ({
+  occurrenceIdIdx: index("ReminderLog_occurrenceId_idx").on(table.occurrenceId),
+  userIdIdx: index("ReminderLog_userId_idx").on(table.userId),
+  uniqueReminderLog: unique("ReminderLog_unique").on(table.occurrenceId, table.userId, table.reminderType),
+}));
+
 // Relations
 export const usersRelations = relations(users, ({ one, many }) => ({
   gym: one(gyms, {
@@ -157,6 +175,7 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   invitations: many(invitations),
   sentMessages: many(messages, { relationName: "MessageSender" }),
   announcements: many(announcements),
+  reminderLogs: many(reminderLogs),
 }));
 
 export const gymsRelations = relations(gyms, ({ one, many }) => ({
@@ -187,6 +206,7 @@ export const eventOccurrencesRelations = relations(eventOccurrences, ({ one, man
     references: [events.id],
   }),
   rsvps: many(rsvps),
+  reminderLogs: many(reminderLogs),
 }));
 
 export const rsvpsRelations = relations(rsvps, ({ one }) => ({
@@ -197,6 +217,11 @@ export const rsvpsRelations = relations(rsvps, ({ one }) => ({
   occurrence: one(eventOccurrences, {
     fields: [rsvps.occurrenceId],
     references: [eventOccurrences.id],
+  }),
+  updatedByUser: one(users, {
+    fields: [rsvps.updatedBy],
+    references: [users.id],
+    relationName: "RsvpUpdater",
   }),
 }));
 
@@ -246,4 +271,13 @@ export const messagesRelations = relations(messages, ({ one }) => ({
   }),
 }));
 
-
+export const reminderLogsRelations = relations(reminderLogs, ({ one }) => ({
+  occurrence: one(eventOccurrences, {
+    fields: [reminderLogs.occurrenceId],
+    references: [eventOccurrences.id],
+  }),
+  user: one(users, {
+    fields: [reminderLogs.userId],
+    references: [users.id],
+  }),
+}));
