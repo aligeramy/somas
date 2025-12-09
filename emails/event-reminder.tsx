@@ -85,13 +85,15 @@ export function EventReminderEmail({
 function getReminderText(type: string): string {
   switch (type) {
     case "7_day":
-      return "1 Week Away! 📅";
+      return "1 Week Away!";
     case "3_day":
-      return "3 Days to Go! 🗓️";
+      return "3 Days to Go!";
     case "1_day":
-      return "Tomorrow! ⏰";
+      return "Tomorrow!";
     case "30_min":
-      return "Starting Soon! 🏃";
+      return "Starting Soon!";
+    case "canceled":
+      return "Session Canceled";
     default:
       return "Reminder";
   }

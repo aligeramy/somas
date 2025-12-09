@@ -7,12 +7,25 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { PageHeader } from "@/components/page-header";
+import { EventCalendar } from "@/components/event-calendar";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   IconPlus,
   IconClock,
@@ -24,18 +37,27 @@ import {
   IconBell,
   IconEdit,
   IconDotsVertical,
+  IconTrash,
+  IconCalendar,
+  IconList,
+  IconAlertTriangle,
 } from "@tabler/icons-react";
 import Link from "next/link";
+import { format, parseISO } from "date-fns";
 
 interface EventOccurrence {
   id: string;
   date: string;
   status: string;
+  isCustom?: boolean;
+  note?: string;
 }
 
 interface Event {
   id: string;
   title: string;
+  description?: string;
+  location?: string;
   startTime: string;
   endTime: string;
   recurrenceRule: string | null;
@@ -69,6 +91,21 @@ export default function EventsPage() {
   const [showPastEvents, setShowPastEvents] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sendingReminder, setSendingReminder] = useState(false);
+  const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
+  
+  // Cancel dialog state
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [notifyOnCancel, setNotifyOnCancel] = useState(true);
+  const [canceling, setCanceling] = useState(false);
+  
+  // Delete event dialog
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  
+  // Add custom date dialog
+  const [addDateDialogOpen, setAddDateDialogOpen] = useState(false);
+  const [customDate, setCustomDate] = useState<Date | null>(null);
+  const [addingDate, setAddingDate] = useState(false);
 
   useEffect(() => {
     loadEvents();
@@ -125,22 +162,132 @@ export default function EventsPage() {
     }
   }
 
-  async function handleCancelOccurrence(occurrenceId: string) {
+  async function handleCancelWithNotify() {
+    if (!selectedOccurrence) return;
+    setCanceling(true);
     try {
-      const occurrence = selectedEvent?.occurrences.find((o) => o.id === occurrenceId);
-      if (!occurrence) return;
-
-      const response = await fetch(`/api/events/${selectedEvent?.id}/cancel`, {
+      const response = await fetch(`/api/events/${selectedEvent?.id}/cancel-notify`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ occurrenceId, date: occurrence.date }),
+        body: JSON.stringify({
+          occurrenceId: selectedOccurrence.id,
+          notifyUsers: notifyOnCancel,
+        }),
       });
-
-      if (!response.ok) throw new Error("Failed to cancel occurrence");
+      if (!response.ok) throw new Error("Failed to cancel");
+      const data = await response.json();
+      
+      setCancelDialogOpen(false);
       await loadEvents();
       setSelectedOccurrence(null);
+      
+      if (notifyOnCancel && data.notified > 0) {
+        alert(`Session canceled. ${data.notified} user(s) notified.`);
+      }
     } catch (err) {
       console.error(err);
+      alert("Failed to cancel session");
+    } finally {
+      setCanceling(false);
+    }
+  }
+
+  async function handleDeleteEvent() {
+    if (!selectedEvent) return;
+    setDeleting(true);
+    try {
+      const response = await fetch(`/api/events/${selectedEvent.id}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) throw new Error("Failed to delete");
+      
+      setDeleteDialogOpen(false);
+      setSelectedEvent(null);
+      setSelectedOccurrence(null);
+      await loadEvents();
+    } catch (err) {
+      console.error(err);
+      alert("Failed to delete event");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  async function handleToggleOccurrence(date: Date, currentStatus: string | null) {
+    if (!selectedEvent) return;
+    
+    const occurrence = selectedEvent.occurrences.find((occ) => {
+      const occDate = new Date(occ.date);
+      return occDate.toDateString() === date.toDateString();
+    });
+
+    if (!occurrence) return;
+
+    if (currentStatus === "scheduled") {
+      setSelectedOccurrence(occurrence);
+      setCancelDialogOpen(true);
+    } else if (currentStatus === "canceled") {
+      // Restore the occurrence
+      try {
+        const response = await fetch(`/api/events/${selectedEvent.id}/cancel`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            occurrenceId: occurrence.id,
+            date: occurrence.date,
+            restore: true,
+          }),
+        });
+        if (response.ok) {
+          await loadEvents();
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  }
+
+  async function handleAddCustomDate(date: Date) {
+    setCustomDate(date);
+    setAddDateDialogOpen(true);
+  }
+
+  async function confirmAddCustomDate() {
+    if (!selectedEvent || !customDate) return;
+    setAddingDate(true);
+    try {
+      const response = await fetch(`/api/events/${selectedEvent.id}/occurrences`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ date: customDate.toISOString() }),
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to add date");
+      }
+      setAddDateDialogOpen(false);
+      setCustomDate(null);
+      await loadEvents();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to add date");
+    } finally {
+      setAddingDate(false);
+    }
+  }
+
+  async function handleRemoveCustomDate(occurrenceId: string) {
+    if (!selectedEvent) return;
+    try {
+      const response = await fetch(`/api/events/${selectedEvent.id}/occurrences`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ occurrenceId }),
+      });
+      if (!response.ok) throw new Error("Failed to remove");
+      await loadEvents();
+    } catch (err) {
+      console.error(err);
+      alert("Failed to remove custom date");
     }
   }
 
@@ -258,12 +405,32 @@ export default function EventsPage() {
   return (
     <div className="flex flex-1 flex-col h-[calc(100vh-var(--header-height))]">
       <PageHeader title="Events" description="Manage training sessions">
-        <Button size="sm" className="gap-2 rounded-xl" asChild>
-          <Link href="/events/new">
-            <IconPlus className="h-4 w-4" />
-            New Event
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <div className="flex rounded-xl border p-1">
+            <Button
+              variant={viewMode === "list" ? "secondary" : "ghost"}
+              size="sm"
+              className="h-8 rounded-lg"
+              onClick={() => setViewMode("list")}
+            >
+              <IconList className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === "calendar" ? "secondary" : "ghost"}
+              size="sm"
+              className="h-8 rounded-lg"
+              onClick={() => setViewMode("calendar")}
+            >
+              <IconCalendar className="h-4 w-4" />
+            </Button>
+          </div>
+          <Button size="sm" className="gap-2 rounded-xl" asChild>
+            <Link href="/events/new">
+              <IconPlus className="h-4 w-4" />
+              New Event
+            </Link>
+          </Button>
+        </div>
       </PageHeader>
 
       <div className="flex flex-1 overflow-hidden">
@@ -277,193 +444,361 @@ export default function EventsPage() {
                 </div>
               ) : (
                 events.map((event) => (
-                  <button
-                    key={event.id}
-                    onClick={() => selectEvent(event)}
-                    className={`w-full text-left p-3 rounded-xl mb-1 transition-all ${
-                      selectedEvent?.id === event.id
-                        ? "bg-primary text-primary-foreground"
-                        : "hover:bg-muted"
-                    }`}
-                  >
-                    <p className="font-medium truncate text-sm">{event.title}</p>
-                    <div className={`flex items-center gap-2 mt-1.5 text-xs ${
-                      selectedEvent?.id === event.id ? "text-primary-foreground/70" : "text-muted-foreground"
-                    }`}>
-                      <IconClock className="h-3 w-3" />
-                      {formatTime(event.startTime)}
-                      <span className="opacity-50">•</span>
-                      <IconRepeat className="h-3 w-3" />
-                      {getRecurrenceLabel(event.recurrenceRule)}
-                    </div>
-                  </button>
+                  <div key={event.id} className="relative group">
+                    <button
+                      onClick={() => selectEvent(event)}
+                      className={`w-full text-left p-3 rounded-xl mb-1 transition-all ${
+                        selectedEvent?.id === event.id
+                          ? "bg-primary text-primary-foreground"
+                          : "hover:bg-muted"
+                      }`}
+                    >
+                      <p className="font-medium truncate text-sm pr-6">{event.title}</p>
+                      <div className={`flex items-center gap-2 mt-1.5 text-xs ${
+                        selectedEvent?.id === event.id ? "text-primary-foreground/70" : "text-muted-foreground"
+                      }`}>
+                        <IconClock className="h-3 w-3" />
+                        {formatTime(event.startTime)}
+                        <span className="opacity-50">•</span>
+                        <IconRepeat className="h-3 w-3" />
+                        {getRecurrenceLabel(event.recurrenceRule)}
+                      </div>
+                    </button>
+                    
+                    {/* Event Actions */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className={`absolute right-2 top-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity ${
+                            selectedEvent?.id === event.id ? "text-primary-foreground hover:bg-primary-foreground/20" : ""
+                          }`}
+                        >
+                          <IconDotsVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="rounded-xl">
+                        <DropdownMenuItem asChild className="gap-2">
+                          <Link href={`/events/${event.id}/edit`}>
+                            <IconEdit className="h-4 w-4" />
+                            Edit Event
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          className="gap-2 text-destructive focus:text-destructive"
+                          onClick={() => {
+                            selectEvent(event);
+                            setDeleteDialogOpen(true);
+                          }}
+                        >
+                          <IconTrash className="h-4 w-4" />
+                          Delete Event
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 ))
               )}
             </div>
           </ScrollArea>
         </div>
 
-        {/* Occurrences List */}
-        <div className="w-72 border-r flex flex-col">
-          {selectedEvent ? (
-            <>
-              <div className="p-4 border-b">
-                <h3 className="font-semibold text-sm">{selectedEvent.title}</h3>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {formatTime(selectedEvent.startTime)} - {formatTime(selectedEvent.endTime)}
-                </p>
-              </div>
-              <ScrollArea className="flex-1">
-                <div className="p-2">
-                  {displayedOccurrences.length === 0 ? (
-                    <div className="p-4 text-center text-sm text-muted-foreground">
-                      No upcoming sessions
-                    </div>
-                  ) : (
-                    displayedOccurrences.map((occ) => {
-                      const isPast = isPastDate(occ.date);
-                      const dateInfo = formatDate(occ.date);
-                      return (
-                        <button
-                          key={occ.id}
-                          onClick={() => selectOccurrence(occ)}
-                          className={`w-full text-left p-3 rounded-xl mb-1 transition-all flex items-center gap-3 ${
-                            selectedOccurrence?.id === occ.id
-                              ? "bg-primary/10 ring-1 ring-primary"
-                              : "hover:bg-muted"
-                          } ${isPast ? "opacity-50" : ""} ${occ.status === "canceled" ? "opacity-40" : ""}`}
-                        >
-                          <div className={`h-14 w-14 rounded-xl flex flex-col items-center justify-center shrink-0 ${
-                            selectedOccurrence?.id === occ.id 
-                              ? "bg-primary text-primary-foreground" 
-                              : "bg-muted"
-                          }`}>
-                            <span className="text-xl font-bold leading-none">{dateInfo.day}</span>
-                            <span className="text-[10px] font-medium opacity-70 mt-0.5">{dateInfo.month}</span>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-sm whitespace-nowrap">{dateInfo.weekday}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {formatTime(selectedEvent.startTime)}
-                            </p>
-                          </div>
-                          {occ.status === "canceled" && (
-                            <Badge variant="destructive" className="text-[10px]">Canceled</Badge>
-                          )}
-                        </button>
-                      );
-                    })
-                  )}
-                  {pastOccurrences.length > 0 && (
-                    <button
-                      onClick={() => setShowPastEvents(!showPastEvents)}
-                      className="w-full p-3 text-xs text-muted-foreground hover:text-foreground flex items-center justify-center gap-2"
-                    >
-                      <IconHistory className="h-4 w-4" />
-                      {showPastEvents ? "Hide" : "Show"} past sessions
-                    </button>
-                  )}
-                </div>
-              </ScrollArea>
-            </>
-          ) : (
-            <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground">
-              Select an event
-            </div>
-          )}
-        </div>
-
-        {/* RSVP Detail */}
-        <div className="flex-1 flex flex-col">
-          {selectedOccurrence ? (
-            <>
-              <div className="p-4 border-b flex items-center justify-between">
-                <div>
-                  <h3 className="font-semibold">{selectedEvent?.title}</h3>
+        {/* Main Content */}
+        {viewMode === "calendar" ? (
+          <div className="flex-1 p-4 overflow-auto">
+            {selectedEvent ? (
+              <div className="max-w-3xl mx-auto">
+                <div className="mb-4">
+                  <h2 className="text-xl font-semibold">{selectedEvent.title}</h2>
                   <p className="text-sm text-muted-foreground">
-                    {formatDate(selectedOccurrence.date).weekday}, {formatDate(selectedOccurrence.date).month} {formatDate(selectedOccurrence.date).day} • {formatTime(selectedEvent?.startTime)}
+                    {formatTime(selectedEvent.startTime)} - {formatTime(selectedEvent.endTime)}
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
-                  {notAnsweredUsers.length > 0 && selectedOccurrence.status !== "canceled" && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleSendReminders}
-                      disabled={sendingReminder}
-                      className="gap-2 rounded-xl"
-                    >
-                      <IconBell className="h-4 w-4" />
-                      {sendingReminder ? "Sending..." : `Remind (${notAnsweredUsers.length})`}
-                    </Button>
-                  )}
-                  {selectedOccurrence.status !== "canceled" && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleCancelOccurrence(selectedOccurrence.id)}
-                      className="text-destructive hover:text-destructive rounded-xl"
-                    >
-                      <IconX className="h-4 w-4 mr-1" />
-                      Cancel
-                    </Button>
-                  )}
-                </div>
+                <EventCalendar
+                  occurrences={selectedEvent.occurrences.map((o) => ({
+                    ...o,
+                    isCustom: (o as any).isCustom || false,
+                  }))}
+                  eventTitle={selectedEvent.title}
+                  onToggleDate={handleToggleOccurrence}
+                  onAddCustomDate={handleAddCustomDate}
+                  onRemoveDate={handleRemoveCustomDate}
+                />
               </div>
-              <div className="flex-1 overflow-hidden">
-                {rsvpLoading ? (
-                  <div className="flex items-center justify-center h-full text-muted-foreground">
-                    Loading...
+            ) : (
+              <div className="flex items-center justify-center h-full text-muted-foreground">
+                Select an event to view calendar
+              </div>
+            )}
+          </div>
+        ) : (
+          <>
+            {/* Occurrences List */}
+            <div className="w-72 border-r flex flex-col">
+              {selectedEvent ? (
+                <>
+                  <div className="p-4 border-b">
+                    <h3 className="font-semibold text-sm">{selectedEvent.title}</h3>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {formatTime(selectedEvent.startTime)} - {formatTime(selectedEvent.endTime)}
+                    </p>
                   </div>
-                ) : (
-                  <Tabs defaultValue="all" className="h-full flex flex-col">
-                    <div className="px-4 pt-4">
-                      <TabsList className="w-full grid grid-cols-4 h-10 rounded-xl">
-                        <TabsTrigger value="all" className="text-xs rounded-lg">
-                          All ({gymMembers.length})
-                        </TabsTrigger>
-                        <TabsTrigger value="going" className="text-xs rounded-lg">
-                          Going ({goingUsers.length})
-                        </TabsTrigger>
-                        <TabsTrigger value="not_going" className="text-xs rounded-lg">
-                          Can't ({notGoingUsers.length})
-                        </TabsTrigger>
-                        <TabsTrigger value="pending" className="text-xs rounded-lg">
-                          Pending ({notAnsweredUsers.length})
-                        </TabsTrigger>
-                      </TabsList>
+                  <ScrollArea className="flex-1">
+                    <div className="p-2">
+                      {displayedOccurrences.length === 0 ? (
+                        <div className="p-4 text-center text-sm text-muted-foreground">
+                          No upcoming sessions
+                        </div>
+                      ) : (
+                        displayedOccurrences.map((occ) => {
+                          const isPast = isPastDate(occ.date);
+                          const dateInfo = formatDate(occ.date);
+                          return (
+                            <button
+                              key={occ.id}
+                              onClick={() => selectOccurrence(occ)}
+                              className={`w-full text-left p-3 rounded-xl mb-1 transition-all flex items-center gap-3 ${
+                                selectedOccurrence?.id === occ.id
+                                  ? "bg-primary/10 ring-1 ring-primary"
+                                  : "hover:bg-muted"
+                              } ${isPast ? "opacity-50" : ""} ${occ.status === "canceled" ? "opacity-40" : ""}`}
+                            >
+                              <div className={`h-14 w-14 rounded-xl flex flex-col items-center justify-center shrink-0 ${
+                                selectedOccurrence?.id === occ.id 
+                                  ? "bg-primary text-primary-foreground" 
+                                  : "bg-muted"
+                              }`}>
+                                <span className="text-xl font-bold leading-none">{dateInfo.day}</span>
+                                <span className="text-[10px] font-medium opacity-70 mt-0.5">{dateInfo.month}</span>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium text-sm whitespace-nowrap">{dateInfo.weekday}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {formatTime(selectedEvent.startTime)}
+                                </p>
+                              </div>
+                              <div className="flex flex-col items-end gap-1">
+                                {occ.status === "canceled" && (
+                                  <Badge variant="destructive" className="text-[10px]">Canceled</Badge>
+                                )}
+                                {(occ as any).isCustom && (
+                                  <Badge variant="outline" className="text-[10px]">Custom</Badge>
+                                )}
+                              </div>
+                            </button>
+                          );
+                        })
+                      )}
+                      {pastOccurrences.length > 0 && (
+                        <button
+                          onClick={() => setShowPastEvents(!showPastEvents)}
+                          className="w-full p-3 text-xs text-muted-foreground hover:text-foreground flex items-center justify-center gap-2"
+                        >
+                          <IconHistory className="h-4 w-4" />
+                          {showPastEvents ? "Hide" : "Show"} past sessions
+                        </button>
+                      )}
                     </div>
-                    <TabsContent value="all" className="flex-1 overflow-auto mt-0 p-4">
-                      <UserList
-                        users={gymMembers.map((m) => ({
-                          ...m,
-                          status: occurrenceRsvps.find((r) => r.id === m.id)?.status || null,
-                        }))}
-                        getInitials={getInitials}
-                        onEditRsvp={handleEditRsvp}
-                      />
-                    </TabsContent>
-                    <TabsContent value="going" className="flex-1 overflow-auto mt-0 p-4">
-                      <UserList users={goingUsers.map((u) => ({ ...u, status: "going" }))} getInitials={getInitials} onEditRsvp={handleEditRsvp} />
-                    </TabsContent>
-                    <TabsContent value="not_going" className="flex-1 overflow-auto mt-0 p-4">
-                      <UserList users={notGoingUsers.map((u) => ({ ...u, status: "not_going" }))} getInitials={getInitials} onEditRsvp={handleEditRsvp} />
-                    </TabsContent>
-                    <TabsContent value="pending" className="flex-1 overflow-auto mt-0 p-4">
-                      <UserList users={notAnsweredUsers.map((u) => ({ ...u, status: null }))} getInitials={getInitials} onEditRsvp={handleEditRsvp} />
-                    </TabsContent>
-                  </Tabs>
-                )}
-              </div>
-            </>
-          ) : (
-            <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground">
-              <IconUsers className="h-12 w-12 mb-3 opacity-20" />
-              <p className="text-sm">Select a session to view attendance</p>
+                  </ScrollArea>
+                </>
+              ) : (
+                <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground">
+                  Select an event
+                </div>
+              )}
             </div>
-          )}
-        </div>
+
+            {/* RSVP Detail */}
+            <div className="flex-1 flex flex-col">
+              {selectedOccurrence ? (
+                <>
+                  <div className="p-4 border-b flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold">{selectedEvent?.title}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {formatDate(selectedOccurrence.date).weekday}, {formatDate(selectedOccurrence.date).month} {formatDate(selectedOccurrence.date).day} • {formatTime(selectedEvent?.startTime)}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {notAnsweredUsers.length > 0 && selectedOccurrence.status !== "canceled" && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleSendReminders}
+                          disabled={sendingReminder}
+                          className="gap-2 rounded-xl"
+                        >
+                          <IconBell className="h-4 w-4" />
+                          {sendingReminder ? "Sending..." : `Remind (${notAnsweredUsers.length})`}
+                        </Button>
+                      )}
+                      {selectedOccurrence.status !== "canceled" && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCancelDialogOpen(true)}
+                          className="text-destructive hover:text-destructive rounded-xl"
+                        >
+                          <IconX className="h-4 w-4 mr-1" />
+                          Cancel
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex-1 overflow-hidden">
+                    {rsvpLoading ? (
+                      <div className="flex items-center justify-center h-full text-muted-foreground">
+                        Loading...
+                      </div>
+                    ) : (
+                      <Tabs defaultValue="all" className="h-full flex flex-col">
+                        <div className="px-4 pt-4">
+                          <TabsList className="w-full grid grid-cols-4 h-10 rounded-xl">
+                            <TabsTrigger value="all" className="text-xs rounded-lg">
+                              All ({gymMembers.length})
+                            </TabsTrigger>
+                            <TabsTrigger value="going" className="text-xs rounded-lg">
+                              Going ({goingUsers.length})
+                            </TabsTrigger>
+                            <TabsTrigger value="not_going" className="text-xs rounded-lg">
+                              Can't ({notGoingUsers.length})
+                            </TabsTrigger>
+                            <TabsTrigger value="pending" className="text-xs rounded-lg">
+                              Pending ({notAnsweredUsers.length})
+                            </TabsTrigger>
+                          </TabsList>
+                        </div>
+                        <TabsContent value="all" className="flex-1 overflow-auto mt-0 p-4">
+                          <UserList
+                            users={gymMembers.map((m) => ({
+                              ...m,
+                              status: occurrenceRsvps.find((r) => r.id === m.id)?.status || null,
+                            }))}
+                            getInitials={getInitials}
+                            onEditRsvp={handleEditRsvp}
+                          />
+                        </TabsContent>
+                        <TabsContent value="going" className="flex-1 overflow-auto mt-0 p-4">
+                          <UserList users={goingUsers.map((u) => ({ ...u, status: "going" }))} getInitials={getInitials} onEditRsvp={handleEditRsvp} />
+                        </TabsContent>
+                        <TabsContent value="not_going" className="flex-1 overflow-auto mt-0 p-4">
+                          <UserList users={notGoingUsers.map((u) => ({ ...u, status: "not_going" }))} getInitials={getInitials} onEditRsvp={handleEditRsvp} />
+                        </TabsContent>
+                        <TabsContent value="pending" className="flex-1 overflow-auto mt-0 p-4">
+                          <UserList users={notAnsweredUsers.map((u) => ({ ...u, status: null }))} getInitials={getInitials} onEditRsvp={handleEditRsvp} />
+                        </TabsContent>
+                      </Tabs>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground">
+                  <IconUsers className="h-12 w-12 mb-3 opacity-20" />
+                  <p className="text-sm">Select a session to view attendance</p>
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
+
+      {/* Cancel Dialog */}
+      <Dialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+        <DialogContent className="rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <IconAlertTriangle className="h-5 w-5 text-destructive" />
+              Cancel Session
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to cancel this session?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="p-3 rounded-xl bg-muted/50 mb-4">
+              <p className="font-medium">{selectedEvent?.title}</p>
+              <p className="text-sm text-muted-foreground">
+                {selectedOccurrence && formatDate(selectedOccurrence.date).weekday}, {selectedOccurrence && formatDate(selectedOccurrence.date).month} {selectedOccurrence && formatDate(selectedOccurrence.date).day}
+              </p>
+            </div>
+            <div
+              className="flex items-center space-x-3 p-3 rounded-xl bg-muted/50 cursor-pointer"
+              onClick={() => setNotifyOnCancel(!notifyOnCancel)}
+            >
+              <Checkbox
+                checked={notifyOnCancel}
+                onCheckedChange={(checked) => setNotifyOnCancel(checked as boolean)}
+              />
+              <Label className="cursor-pointer">
+                Notify all users who RSVP'd "Going" via email
+              </Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCancelDialogOpen(false)} className="rounded-xl">
+              Keep Session
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleCancelWithNotify}
+              disabled={canceling}
+              className="rounded-xl"
+            >
+              {canceling ? "Canceling..." : "Cancel Session"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Event Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <IconTrash className="h-5 w-5" />
+              Delete Event
+            </DialogTitle>
+            <DialogDescription>
+              This will permanently delete "{selectedEvent?.title}" and all its sessions. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} className="rounded-xl">
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteEvent}
+              disabled={deleting}
+              className="rounded-xl"
+            >
+              {deleting ? "Deleting..." : "Delete Event"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Custom Date Dialog */}
+      <Dialog open={addDateDialogOpen} onOpenChange={setAddDateDialogOpen}>
+        <DialogContent className="rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Add Custom Session</DialogTitle>
+            <DialogDescription>
+              Add a one-time session for {selectedEvent?.title} on {customDate && format(customDate, "PPPP")}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddDateDialogOpen(false)} className="rounded-xl">
+              Cancel
+            </Button>
+            <Button onClick={confirmAddCustomDate} disabled={addingDate} className="rounded-xl">
+              {addingDate ? "Adding..." : "Add Session"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -529,7 +864,7 @@ function UserList({ users, getInitials, onEditRsvp }: UserListProps) {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <IconDotsVertical className="h-4 w-4" />
+                    <IconEdit className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="rounded-xl">

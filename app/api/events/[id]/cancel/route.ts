@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { db } from "@/lib/db";
 import { users, eventOccurrences, events } from "@/drizzle/schema";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 
 export async function POST(
   request: Request,
@@ -32,8 +32,16 @@ export async function POST(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const { id } = await params;
-    const occurrenceId = id;
+    const { id: eventId } = await params;
+    const body = await request.json();
+    const { occurrenceId, restore = false } = body;
+
+    if (!occurrenceId) {
+      return NextResponse.json(
+        { error: "Occurrence ID is required" },
+        { status: 400 },
+      );
+    }
 
     // Verify occurrence belongs to user's gym
     const [occurrence] = await db.select({
@@ -45,7 +53,12 @@ export async function POST(
     })
       .from(eventOccurrences)
       .innerJoin(events, eq(eventOccurrences.eventId, events.id))
-      .where(eq(eventOccurrences.id, occurrenceId))
+      .where(
+        and(
+          eq(eventOccurrences.id, occurrenceId),
+          eq(events.id, eventId)
+        )
+      )
       .limit(1);
 
     if (!occurrence) {
@@ -59,20 +72,25 @@ export async function POST(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // Cancel occurrence
+    // Toggle status based on restore flag
+    const newStatus = restore ? "scheduled" : "canceled";
+
     await db.update(eventOccurrences)
-      .set({ status: "canceled" })
+      .set({ 
+        status: newStatus,
+        updatedAt: new Date(),
+      })
       .where(eq(eventOccurrences.id, occurrenceId));
 
-    // TODO: Send notifications to RSVP'd users
-
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ 
+      success: true,
+      status: newStatus,
+    });
   } catch (error) {
     console.error("Event cancellation error:", error);
     return NextResponse.json(
-      { error: "Failed to cancel event" },
+      { error: "Failed to update event" },
       { status: 500 },
     );
   }
 }
-

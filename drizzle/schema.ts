@@ -48,6 +48,8 @@ export const events = pgTable("Event", {
   description: text("description"),
   location: varchar("location", { length: 255 }),
   recurrenceRule: text("recurrenceRule"),
+  recurrenceEndDate: timestamp("recurrenceEndDate"), // When recurrence ends
+  recurrenceCount: varchar("recurrenceCount", { length: 10 }).$type<number>(), // Number of occurrences
   startTime: varchar("startTime", { length: 10 }).notNull(),
   endTime: varchar("endTime", { length: 10 }).notNull(),
   reminderDays: jsonb("reminderDays").default([7, 1, 0.02]), // 7 days, 1 day, 30 min (0.02 = 30min/1440min)
@@ -63,6 +65,8 @@ export const eventOccurrences = pgTable("EventOccurrence", {
   eventId: uuid("eventId").notNull(),
   date: timestamp("date").notNull(),
   status: eventOccurrenceStatusEnum("status").default("scheduled").notNull(),
+  note: text("note"), // Optional note for this occurrence
+  isCustom: boolean("isCustom").default(false), // True if manually added (not from recurrence)
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().notNull(),
 }, (table) => ({

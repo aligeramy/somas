@@ -5,12 +5,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useDropzone } from "react-dropzone";
 import {
   Dialog,
   DialogContent,
@@ -18,26 +26,27 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
 } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { IconPlus, IconUpload, IconDotsVertical, IconEdit, IconTrash, IconMail, IconPhone } from "@tabler/icons-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { PageHeader } from "@/components/page-header";
-import {
-  IconPlus,
-  IconUsers,
-  IconMail,
-  IconUpload,
-  IconPhone,
-  IconSearch,
-} from "@tabler/icons-react";
-import { useDropzone } from "react-dropzone";
 
-interface RosterMember {
+interface User {
   id: string;
   email: string;
   name: string | null;
   phone: string | null;
+  address: string | null;
   role: "owner" | "coach" | "athlete";
   avatarUrl: string | null;
   onboarded: boolean;
@@ -45,82 +54,104 @@ interface RosterMember {
 }
 
 export default function RosterPage() {
-  const [roster, setRoster] = useState<RosterMember[]>([]);
-  const [filteredRoster, setFilteredRoster] = useState<RosterMember[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [roleFilter, setRoleFilter] = useState<string>("all");
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
-  const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<"coach" | "athlete">("athlete");
-  const [inviteLoading, setInviteLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [roster, setRoster] = useState<User[]>([]);
+  const [isAddMemberDialogOpen, setIsAddMemberDialogOpen] = useState(false);
+  const [isImportRosterDialogOpen, setIsImportRosterDialogOpen] = useState(false);
+  
+  // Edit member state
+  const [editingMember, setEditingMember] = useState<User | null>(null);
+  const [editForm, setEditForm] = useState({ name: "", phone: "", address: "", role: "" });
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  
+  // Delete member state
+  const [deletingMember, setDeletingMember] = useState<User | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  
+  // Current user info
+  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
 
   useEffect(() => {
-    loadRoster();
+    fetchRoster();
+    fetchCurrentUser();
   }, []);
 
-  useEffect(() => {
-    let filtered = roster;
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(
-        (m) =>
-          m.name?.toLowerCase().includes(query) ||
-          m.email.toLowerCase().includes(query)
-      );
-    }
-    if (roleFilter !== "all") {
-      filtered = filtered.filter((m) => m.role === roleFilter);
-    }
-    setFilteredRoster(filtered);
-  }, [roster, searchQuery, roleFilter]);
-
-  async function loadRoster() {
+  async function fetchCurrentUser() {
     try {
-      setLoading(true);
-      const response = await fetch("/api/roster");
-      if (!response.ok) throw new Error("Failed to load roster");
-      const data = await response.json();
-      setRoster(data.roster || []);
+      const response = await fetch("/api/user-info");
+      if (response.ok) {
+        const data = await response.json();
+        setCurrentUserRole(data.role);
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load roster");
+      console.error(err);
+    }
+  }
+
+  async function fetchRoster() {
+    setLoading(true);
+    try {
+      const response = await fetch("/api/roster");
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to fetch roster");
+      }
+      setRoster(result.roster);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred while fetching roster");
     } finally {
       setLoading(false);
     }
   }
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    accept: { "text/csv": [".csv"], "application/json": [".json"] },
+    accept: {
+      "text/csv": [".csv"],
+      "application/json": [".json"],
+    },
     maxFiles: 1,
     onDrop: async (acceptedFiles) => {
-      if (acceptedFiles.length > 0) await handleFileUpload(acceptedFiles[0]);
+      if (acceptedFiles.length > 0) {
+        await handleFileUpload(acceptedFiles[0]);
+      }
     },
   });
 
   async function handleFileUpload(file: File) {
     setError(null);
     setSuccess(null);
-    setInviteLoading(true);
+    setLoading(true);
 
     try {
       const formData = new FormData();
       formData.append("file", file);
+
       const response = await fetch("/api/roster/import", {
         method: "POST",
         body: formData,
       });
+
       const result = await response.json();
-      if (!response.ok) throw new Error(result.error || "Failed to import");
-      setSuccess(`Sent ${result.invitations} invitation(s)`);
-      setImportDialogOpen(false);
-      await loadRoster();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to import roster");
+      }
+
+      setSuccess(
+        `Successfully sent ${result.invitations} invitation(s). ${result.errors > 0 ? `${result.errors} error(s) occurred.` : ""}`,
+      );
+      setIsImportRosterDialogOpen(false);
+      fetchRoster();
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
-      setInviteLoading(false);
+      setLoading(false);
     }
   }
 
@@ -128,112 +159,371 @@ export default function RosterPage() {
     e.preventDefault();
     setError(null);
     setSuccess(null);
-    setInviteLoading(true);
+    setLoading(true);
 
     try {
       const response = await fetch("/api/invitations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ emails: [email], role }),
+        body: JSON.stringify({
+          emails: [email],
+          role,
+        }),
       });
+
       const result = await response.json();
-      if (!response.ok) throw new Error(result.error || "Failed to send invitation");
-      setSuccess("Invitation sent!");
+
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to send invitation");
+      }
+
+      setSuccess("Invitation sent successfully!");
       setEmail("");
-      setInviteDialogOpen(false);
-      await loadRoster();
+      setIsAddMemberDialogOpen(false);
+      fetchRoster();
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
-      setInviteLoading(false);
+      setLoading(false);
     }
   }
 
-  function getInitials(name: string | null, email: string) {
-    if (name) {
-      return name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
+  function openEditDialog(member: User) {
+    setEditingMember(member);
+    setEditForm({
+      name: member.name || "",
+      phone: member.phone || "",
+      address: member.address || "",
+      role: member.role,
+    });
+    setIsEditDialogOpen(true);
+  }
+
+  async function handleSaveEdit() {
+    if (!editingMember) return;
+    setSaving(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/roster/${editingMember.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editForm),
+      });
+
+      if (!response.ok) {
+        const result = await response.json();
+        throw new Error(result.error || "Failed to update member");
+      }
+
+      setIsEditDialogOpen(false);
+      setEditingMember(null);
+      fetchRoster();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred");
+    } finally {
+      setSaving(false);
     }
-    return email[0].toUpperCase();
   }
 
-  const stats = {
-    total: roster.length,
-    coaches: roster.filter((m) => m.role === "coach").length,
-    athletes: roster.filter((m) => m.role === "athlete").length,
-  };
-
-  if (loading) {
-    return (
-      <div className="flex flex-1 flex-col">
-        <PageHeader title="Roster" />
-        <div className="flex flex-1 items-center justify-center">
-          <div className="animate-pulse text-muted-foreground">Loading...</div>
-        </div>
-      </div>
-    );
+  function openDeleteDialog(member: User) {
+    setDeletingMember(member);
+    setIsDeleteDialogOpen(true);
   }
+
+  async function handleDeleteMember() {
+    if (!deletingMember) return;
+    setDeleting(true);
+
+    try {
+      const response = await fetch(`/api/roster/${deletingMember.id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const result = await response.json();
+        throw new Error(result.error || "Failed to remove member");
+      }
+
+      setIsDeleteDialogOpen(false);
+      setDeletingMember(null);
+      fetchRoster();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "An error occurred");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  const isOwner = currentUserRole === "owner";
 
   return (
-    <div className="flex flex-1 flex-col h-[calc(100vh-var(--header-height))]">
-      <PageHeader title="Roster" description={`${stats.total} members • ${stats.coaches} coaches • ${stats.athletes} athletes`}>
-        <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
-          <DialogTrigger asChild>
-            <Button variant="outline" size="sm" className="gap-2 rounded-xl">
-              <IconUpload className="h-4 w-4" />
-              Import
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="rounded-2xl">
-            <DialogHeader>
-              <DialogTitle>Import Roster</DialogTitle>
-              <DialogDescription>
-                Upload CSV or JSON with email and role columns
-              </DialogDescription>
-            </DialogHeader>
-            <div
-              {...getRootProps()}
-              className={`border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all ${
-                isDragActive ? "border-primary bg-primary/5" : "border-muted hover:border-muted-foreground/50"
-              }`}
-            >
-              <input {...getInputProps()} />
-              <IconUpload className="h-10 w-10 mx-auto mb-3 text-muted-foreground/50" />
-              <p className="text-sm text-muted-foreground">
-                {isDragActive ? "Drop file here" : "Drag & drop or click to select"}
-              </p>
-            </div>
-            {inviteLoading && <p className="text-center text-sm text-muted-foreground">Processing...</p>}
-            {error && <div className="bg-destructive/10 text-destructive rounded-xl p-3 text-sm">{error}</div>}
-          </DialogContent>
-        </Dialog>
-        <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm" className="gap-2 rounded-xl">
-              <IconPlus className="h-4 w-4" />
-              Add Member
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-md rounded-2xl">
-            <DialogHeader>
-              <DialogTitle>Invite Member</DialogTitle>
-              <DialogDescription>Send an invitation email</DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleManualInvite} className="space-y-4 pt-4">
-              {error && <div className="bg-destructive/10 text-destructive rounded-xl p-3 text-sm">{error}</div>}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Email</Label>
-                <Input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="athlete@example.com"
-                  className="h-11 rounded-xl"
-                  required
-                />
+    <div className="flex flex-1 flex-col gap-2">
+      <PageHeader
+        title="Roster Management"
+        description="Manage your gym's coaches and athletes"
+      >
+        <>
+          <Dialog open={isImportRosterDialogOpen} onOpenChange={setIsImportRosterDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="rounded-xl">
+                  <IconUpload className="mr-2 h-4 w-4" /> Import
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="rounded-2xl">
+                <DialogHeader>
+                  <DialogTitle>Import Roster</DialogTitle>
+                  <DialogDescription>
+                    Upload a CSV or JSON file to invite multiple users.
+                  </DialogDescription>
+                </DialogHeader>
+                <div
+                  {...getRootProps()}
+                  className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${
+                    isDragActive
+                      ? "border-primary bg-primary/5"
+                      : "border-muted-foreground/25 hover:border-muted-foreground/50"
+                  }`}
+                >
+                  <input {...getInputProps()} />
+                  <p className="text-sm text-muted-foreground">
+                    {isDragActive
+                      ? "Drop the file here"
+                      : "Drag & drop a CSV or JSON file here, or click to select"}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    CSV/JSON files only. Include 'email' and 'role' columns.
+                  </p>
+                </div>
+                {loading && (
+                  <div className="mt-4 text-center text-sm text-muted-foreground">
+                    Processing...
+                  </div>
+                )}
+                {error && (
+                  <div className="bg-destructive/10 text-destructive rounded-xl p-3 text-sm">
+                    {error}
+                  </div>
+                )}
+                {success && (
+                  <div className="bg-green-500/10 text-green-600 rounded-xl p-3 text-sm">
+                    {success}
+                  </div>
+                )}
+              </DialogContent>
+            </Dialog>
+
+            <Dialog open={isAddMemberDialogOpen} onOpenChange={setIsAddMemberDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="rounded-xl">
+                  <IconPlus className="mr-2 h-4 w-4" /> Add Member
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="rounded-2xl">
+                <DialogHeader>
+                  <DialogTitle>Add New Member</DialogTitle>
+                  <DialogDescription>
+                    Invite a single coach or athlete by email.
+                  </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleManualInvite} className="space-y-4">
+                  {error && (
+                    <div className="bg-destructive/10 text-destructive rounded-xl p-3 text-sm">
+                      {error}
+                    </div>
+                  )}
+                  {success && (
+                    <div className="bg-green-500/10 text-green-600 rounded-xl p-3 text-sm">
+                      {success}
+                    </div>
+                  )}
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="user@example.com"
+                      className="h-11 rounded-xl"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="role">Role</Label>
+                    <Select
+                      value={role}
+                      onValueChange={(value) =>
+                        setRole(value as "coach" | "athlete")
+                      }
+                    >
+                      <SelectTrigger className="h-11 rounded-xl">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl">
+                        <SelectItem value="athlete">Athlete</SelectItem>
+                        <SelectItem value="coach">Coach</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button type="submit" disabled={loading || !email} className="w-full h-11 rounded-xl">
+                    {loading ? "Sending..." : "Send Invitation"}
+                  </Button>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </>
+      </PageHeader>
+
+      <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6 px-4 lg:px-6 space-y-6">
+        {loading && roster.length === 0 ? (
+          <div className="text-center text-muted-foreground">Loading roster...</div>
+        ) : roster.length === 0 ? (
+          <Card className="rounded-2xl">
+            <CardContent className="pt-6 text-center text-muted-foreground">
+              No members in your gym yet. Add one to get started!
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="rounded-2xl">
+            <CardHeader>
+              <CardTitle>Current Members</CardTitle>
+              <CardDescription>
+                {roster.length} member{roster.length !== 1 ? "s" : ""} in your gym
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ScrollArea className="h-[500px]">
+                <div className="space-y-2">
+                  {roster.map((member) => (
+                    <div key={member.id} className="flex items-center justify-between p-3 rounded-xl hover:bg-muted/50 transition-colors group">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-12 w-12 rounded-xl">
+                          <AvatarImage src={member.avatarUrl || undefined} alt={member.name || member.email} />
+                          <AvatarFallback className="rounded-xl">{member.name ? member.name.charAt(0) : member.email.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-medium">{member.name || "Unnamed"}</p>
+                          <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              <IconMail className="h-3 w-3" />
+                              {member.email}
+                            </span>
+                            {member.phone && (
+                              <span className="flex items-center gap-1">
+                                <IconPhone className="h-3 w-3" />
+                                {member.phone}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge
+                          variant={
+                            member.role === "owner"
+                              ? "default"
+                              : member.role === "coach"
+                              ? "secondary"
+                              : "outline"
+                          }
+                          className="rounded-lg"
+                        >
+                          {member.role}
+                        </Badge>
+                        {!member.onboarded && <Badge variant="outline" className="rounded-lg">Pending</Badge>}
+                        
+                        {/* Actions - Only for owners, or coaches can edit athletes */}
+                        {(isOwner || (currentUserRole === "coach" && member.role === "athlete")) && member.role !== "owner" && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                <IconDotsVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="rounded-xl">
+                              <DropdownMenuItem onClick={() => openEditDialog(member)} className="gap-2">
+                                <IconEdit className="h-4 w-4" />
+                                Edit Member
+                              </DropdownMenuItem>
+                              {isOwner && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    onClick={() => openDeleteDialog(member)}
+                                    className="gap-2 text-destructive focus:text-destructive"
+                                  >
+                                    <IconTrash className="h-4 w-4" />
+                                    Remove from Gym
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      {/* Edit Member Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit Member</DialogTitle>
+            <DialogDescription>
+              Update {editingMember?.name || editingMember?.email}'s information
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {error && (
+              <div className="bg-destructive/10 text-destructive rounded-xl p-3 text-sm">
+                {error}
               </div>
+            )}
+            <div className="space-y-2">
+              <Label>Name</Label>
+              <Input
+                value={editForm.name}
+                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                placeholder="Full name"
+                className="h-11 rounded-xl"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Phone</Label>
+              <Input
+                value={editForm.phone}
+                onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                placeholder="Phone number"
+                className="h-11 rounded-xl"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Address</Label>
+              <Input
+                value={editForm.address}
+                onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
+                placeholder="Address"
+                className="h-11 rounded-xl"
+              />
+            </div>
+            {isOwner && editingMember?.role !== "owner" && (
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Role</Label>
-                <Select value={role} onValueChange={(v) => setRole(v as any)}>
+                <Label>Role</Label>
+                <Select
+                  value={editForm.role}
+                  onValueChange={(value) => setEditForm({ ...editForm, role: value })}
+                >
                   <SelectTrigger className="h-11 rounded-xl">
                     <SelectValue />
                   </SelectTrigger>
@@ -243,112 +533,39 @@ export default function RosterPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <Button type="submit" className="w-full h-11 rounded-xl" disabled={inviteLoading || !email}>
-                {inviteLoading ? "Sending..." : "Send Invitation"}
-              </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </PageHeader>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)} className="rounded-xl">
+              Cancel
+            </Button>
+            <Button onClick={handleSaveEdit} disabled={saving} className="rounded-xl">
+              {saving ? "Saving..." : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-      {/* Search & Filter */}
-      <div className="flex gap-3 p-4 lg:px-6 border-b">
-        <div className="relative flex-1 max-w-sm">
-          <IconSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 h-10 rounded-xl"
-          />
-        </div>
-        <Select value={roleFilter} onValueChange={setRoleFilter}>
-          <SelectTrigger className="w-32 h-10 rounded-xl">
-            <SelectValue placeholder="All roles" />
-          </SelectTrigger>
-          <SelectContent className="rounded-xl">
-            <SelectItem value="all">All Roles</SelectItem>
-            <SelectItem value="owner">Owners</SelectItem>
-            <SelectItem value="coach">Coaches</SelectItem>
-            <SelectItem value="athlete">Athletes</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Success Message */}
-      {success && !inviteDialogOpen && !importDialogOpen && (
-        <div className="mx-4 lg:mx-6 mt-4 bg-emerald-100 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 rounded-xl p-3 text-sm">
-          {success}
-        </div>
-      )}
-
-      {/* Roster List */}
-      <ScrollArea className="flex-1">
-        <div className="p-4 lg:px-6">
-          {filteredRoster.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-              <IconUsers className="h-12 w-12 mb-4 opacity-20" />
-              <p className="text-sm">
-                {roster.length === 0 ? "No members yet" : "No results found"}
-              </p>
-            </div>
-          ) : (
-            <div className="rounded-2xl border overflow-hidden">
-              <div className="divide-y">
-                {filteredRoster.map((member) => (
-                  <div
-                    key={member.id}
-                    className="flex items-center gap-4 p-4 hover:bg-muted/30 transition-colors"
-                  >
-                    <Avatar className="h-11 w-11 rounded-xl border-2 border-background shadow-sm">
-                      <AvatarImage src={member.avatarUrl || undefined} />
-                      <AvatarFallback className="rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 font-medium">
-                        {getInitials(member.name, member.email)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="font-medium truncate">
-                          {member.name || "Unnamed"}
-                        </p>
-                        <Badge
-                          variant={
-                            member.role === "owner"
-                              ? "default"
-                              : member.role === "coach"
-                              ? "secondary"
-                              : "outline"
-                          }
-                          className="text-[10px] px-1.5 py-0 rounded-md"
-                        >
-                          {member.role}
-                        </Badge>
-                        {!member.onboarded && (
-                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-amber-600 border-amber-300 rounded-md">
-                            Pending
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-4 mt-1">
-                        <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                          <IconMail className="h-3 w-3" />
-                          <span className="truncate">{member.email}</span>
-                        </span>
-                        {member.phone && (
-                          <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                            <IconPhone className="h-3 w-3" />
-                            <span>{member.phone}</span>
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      </ScrollArea>
+      {/* Delete Member Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-destructive">Remove Member</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to remove {deletingMember?.name || deletingMember?.email} from your gym?
+              They will no longer have access to events or team communications.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)} className="rounded-xl">
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteMember} disabled={deleting} className="rounded-xl">
+              {deleting ? "Removing..." : "Remove Member"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
