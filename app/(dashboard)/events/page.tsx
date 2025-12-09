@@ -277,16 +277,18 @@ export default function EventsPage() {
   }, [selectedOccurrence, loadOccurrenceRsvps]);
 
   async function handleCancelWithNotify() {
-    if (!selectedOccurrence) return;
+    if (!selectedOccurrence || !selectedEvent) return;
+    const occurrenceIdToCancel = selectedOccurrence.id;
+    const eventIdToKeep = selectedEvent.id;
     setCanceling(true);
     try {
       const response = await fetch(
-        `/api/events/${selectedEvent?.id}/cancel-notify`,
+        `/api/events/${selectedEvent.id}/cancel-notify`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            occurrenceId: selectedOccurrence.id,
+            occurrenceId: occurrenceIdToCancel,
             notifyUsers: notifyOnCancel,
           }),
         },
@@ -295,8 +297,43 @@ export default function EventsPage() {
       const data = await response.json();
 
       setCancelDialogOpen(false);
-      await loadEvents();
-      setSelectedOccurrence(null);
+      
+      // Reload events to get updated occurrence status
+      const eventsResponse = await fetch("/api/events");
+      if (!eventsResponse.ok) throw new Error("Failed to reload events");
+      const eventsData = await eventsResponse.json();
+      const newEvents = eventsData.events || [];
+      setEvents(newEvents);
+      
+      // Reload gym members to update counts
+      await loadGymMembers();
+      
+      // Find and update the selected event and occurrence with fresh data
+      const updatedEvent = newEvents.find((e: Event) => e.id === eventIdToKeep);
+      if (updatedEvent) {
+        setSelectedEvent(updatedEvent);
+        const updatedOccurrence = updatedEvent.occurrences.find(
+          (o: EventOccurrence) => o.id === occurrenceIdToCancel
+        );
+        if (updatedOccurrence) {
+          setSelectedOccurrence(updatedOccurrence);
+          // Reload RSVPs for the updated occurrence
+          await loadOccurrenceRsvps(updatedOccurrence.id);
+        } else {
+          setSelectedOccurrence(null);
+          setOccurrenceRsvps([]);
+        }
+      } else {
+        // Event was deleted, select first event or clear selection
+        if (newEvents.length > 0) {
+          setSelectedEvent(newEvents[0]);
+          setSelectedOccurrence(null);
+        } else {
+          setSelectedEvent(null);
+          setSelectedOccurrence(null);
+        }
+        setOccurrenceRsvps([]);
+      }
 
       if (notifyOnCancel && data.notified > 0) {
         alert(`Session canceled. ${data.notified} user(s) notified.`);
@@ -348,18 +385,43 @@ export default function EventsPage() {
       setCancelDialogOpen(true);
     } else if (currentStatus === "canceled") {
       // Restore the occurrence
+      const occurrenceIdToRestore = occurrence.id;
+      const eventIdToKeep = selectedEvent.id;
       try {
         const response = await fetch(`/api/events/${selectedEvent.id}/cancel`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            occurrenceId: occurrence.id,
+            occurrenceId: occurrenceIdToRestore,
             date: occurrence.date,
             restore: true,
           }),
         });
         if (response.ok) {
-          await loadEvents();
+          // Reload events to get updated occurrence status
+          const eventsResponse = await fetch("/api/events");
+          if (eventsResponse.ok) {
+            const eventsData = await eventsResponse.json();
+            const newEvents = eventsData.events || [];
+            setEvents(newEvents);
+            
+            // Reload gym members to update counts
+            await loadGymMembers();
+            
+            // Find and update the selected event and occurrence with fresh data
+            const updatedEvent = newEvents.find((e: Event) => e.id === eventIdToKeep);
+            if (updatedEvent) {
+              setSelectedEvent(updatedEvent);
+              const updatedOccurrence = updatedEvent.occurrences.find(
+                (o: EventOccurrence) => o.id === occurrenceIdToRestore
+              );
+              if (updatedOccurrence) {
+                setSelectedOccurrence(updatedOccurrence);
+                // Reload RSVPs for the updated occurrence
+                await loadOccurrenceRsvps(updatedOccurrence.id);
+              }
+            }
+          }
         }
       } catch (err) {
         console.error(err);
