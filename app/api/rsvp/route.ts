@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { prisma } from "@/lib/prisma/client";
+import { db } from "@/lib/db";
+import { users, rsvps, eventOccurrences, events } from "@/drizzle/schema";
+import { eq, and, asc } from "drizzle-orm";
 
 export async function POST(request: Request) {
   try {
@@ -13,9 +15,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const dbUser = await prisma.user.findUnique({
-      where: { id: user.id },
-    });
+    const [dbUser] = await db.select().from(users).where(eq(users.id, user.id)).limit(1);
 
     if (!dbUser) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
@@ -39,10 +39,10 @@ export async function POST(request: Request) {
     }
 
     // Verify occurrence exists and is in the future
-    const occurrence = await prisma.eventOccurrence.findUnique({
-      where: { id: occurrenceId },
-      include: { event: true },
-    });
+    const [occurrence] = await db.select()
+      .from(eventOccurrences)
+      .where(eq(eventOccurrences.id, occurrenceId))
+      .limit(1);
 
     if (!occurrence) {
       return NextResponse.json(
@@ -66,22 +66,29 @@ export async function POST(request: Request) {
     }
 
     // Create or update RSVP
-    const rsvp = await prisma.rSVP.upsert({
-      where: {
-        userId_occurrenceId: {
-          userId: user.id,
-          occurrenceId,
-        },
-      },
-      create: {
+    const [existingRsvp] = await db.select()
+      .from(rsvps)
+      .where(
+        and(
+          eq(rsvps.userId, user.id),
+          eq(rsvps.occurrenceId, occurrenceId)
+        )
+      )
+      .limit(1);
+
+    let rsvp;
+    if (existingRsvp) {
+      [rsvp] = await db.update(rsvps)
+        .set({ status: (status || "going") as "going" | "not_going" })
+        .where(eq(rsvps.id, existingRsvp.id))
+        .returning();
+    } else {
+      [rsvp] = await db.insert(rsvps).values({
         userId: user.id,
         occurrenceId,
-        status: status || "going",
-      },
-      update: {
-        status: status || "going",
-      },
-    });
+        status: (status || "going") as "going" | "not_going",
+      }).returning();
+    }
 
     return NextResponse.json({ success: true, rsvp });
   } catch (error) {
@@ -105,42 +112,49 @@ export async function GET(request: Request) {
     const occurrenceId = searchParams.get("occurrenceId");
 
     if (occurrenceId) {
-    // Get RSVPs for a specific occurrence
-    const rsvps = await prisma.rSVP.findMany({
-        where: { occurrenceId },
-        include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              avatarUrl: true,
-            },
-          },
+      // Get RSVPs for a specific occurrence
+      const rsvpsList = await db.select({
+        rsvp: rsvps,
+        user: {
+          id: users.id,
+          name: users.name,
+          email: users.email,
+          avatarUrl: users.avatarUrl,
         },
-      });
+      })
+        .from(rsvps)
+        .innerJoin(users, eq(rsvps.userId, users.id))
+        .where(eq(rsvps.occurrenceId, occurrenceId));
 
-      return NextResponse.json({ rsvps });
+      const formattedRsvps = rsvpsList.map(({ rsvp, user }) => ({
+        ...rsvp,
+        user,
+      }));
+
+      return NextResponse.json({ rsvps: formattedRsvps });
     }
 
     // Get user's RSVPs
-    const rsvps = await prisma.rSVP.findMany({
-      where: { userId: user.id },
-      include: {
-        occurrence: {
-          include: {
-            event: true,
-          },
-        },
-      },
-      orderBy: {
-        occurrence: {
-          date: "asc",
-        },
-      },
-    });
+    const rsvpsList = await db.select({
+      rsvp: rsvps,
+      occurrence: eventOccurrences,
+      event: events,
+    })
+      .from(rsvps)
+      .innerJoin(eventOccurrences, eq(rsvps.occurrenceId, eventOccurrences.id))
+      .innerJoin(events, eq(eventOccurrences.eventId, events.id))
+      .where(eq(rsvps.userId, user.id))
+      .orderBy(asc(eventOccurrences.date));
 
-    return NextResponse.json({ rsvps });
+    const formattedRsvps = rsvpsList.map(({ rsvp, occurrence, event }) => ({
+      ...rsvp,
+      occurrence: {
+        ...occurrence,
+        event,
+      },
+    }));
+
+    return NextResponse.json({ rsvps: formattedRsvps });
   } catch (error) {
     console.error("RSVP fetch error:", error);
     return NextResponse.json(

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { prisma } from "@/lib/prisma/client";
+import { db } from "@/lib/db";
+import { users, events, eventOccurrences, gyms } from "@/drizzle/schema";
+import { eq, and, gte, desc, asc } from "drizzle-orm";
 
 export async function POST(request: Request) {
   try {
@@ -13,12 +15,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const dbUser = await prisma.user.findUnique({
-      where: { id: user.id },
-      include: { gym: true },
-    });
+    const [dbUser] = await db.select().from(users).where(eq(users.id, user.id)).limit(1);
 
-    if (!dbUser || !dbUser.gym) {
+    if (!dbUser || !dbUser.gymId) {
       return NextResponse.json(
         { error: "User must belong to a gym" },
         { status: 400 },
@@ -40,15 +39,13 @@ export async function POST(request: Request) {
     }
 
     // Create event
-    const event = await prisma.event.create({
-      data: {
-        gymId: dbUser.gymId!,
-        title,
-        startTime,
-        endTime,
-        recurrenceRule: recurrenceRule || null,
-      },
-    });
+    const [event] = await db.insert(events).values({
+      gymId: dbUser.gymId,
+      title,
+      startTime,
+      endTime,
+      recurrenceRule: recurrenceRule || null,
+    }).returning();
 
     // Generate occurrences for the next 3 months
     await generateEventOccurrences(event.id, recurrenceRule, startTime);
@@ -144,10 +141,7 @@ async function generateEventOccurrences(
 
   // Bulk create occurrences
   if (occurrences.length > 0) {
-    await prisma.eventOccurrence.createMany({
-      data: occurrences,
-      skipDuplicates: true,
-    });
+    await db.insert(eventOccurrences).values(occurrences).onConflictDoNothing();
   }
 }
 
@@ -162,29 +156,43 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const dbUser = await prisma.user.findUnique({
-      where: { id: user.id },
-    });
+    const [dbUser] = await db.select().from(users).where(eq(users.id, user.id)).limit(1);
 
     if (!dbUser || !dbUser.gymId) {
       return NextResponse.json({ error: "User must belong to a gym" }, { status: 400 });
     }
 
-    const events = await prisma.event.findMany({
-      where: { gymId: dbUser.gymId },
-      include: {
-        occurrences: {
-          where: {
-            date: { gte: new Date() },
-          },
-          orderBy: { date: "asc" },
-          take: 10,
-        },
-      },
-      orderBy: { createdAt: "desc" },
-    });
+    const eventsList = await db.select({
+      id: events.id,
+      gymId: events.gymId,
+      title: events.title,
+      recurrenceRule: events.recurrenceRule,
+      startTime: events.startTime,
+      endTime: events.endTime,
+      createdAt: events.createdAt,
+      updatedAt: events.updatedAt,
+    }).from(events)
+      .where(eq(events.gymId, dbUser.gymId))
+      .orderBy(desc(events.createdAt));
 
-    return NextResponse.json({ events });
+    // Get occurrences for each event
+    const eventsWithOccurrences = await Promise.all(
+      eventsList.map(async (event) => {
+        const occurrencesList = await db.select()
+          .from(eventOccurrences)
+          .where(
+            and(
+              eq(eventOccurrences.eventId, event.id),
+              gte(eventOccurrences.date, new Date())
+            )
+          )
+          .orderBy(asc(eventOccurrences.date))
+          .limit(10);
+        return { ...event, occurrences: occurrencesList };
+      })
+    );
+
+    return NextResponse.json({ events: eventsWithOccurrences });
   } catch (error) {
     console.error("Event fetch error:", error);
     return NextResponse.json(

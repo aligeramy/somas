@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { prisma } from "@/lib/prisma/client";
+import { db } from "@/lib/db";
+import { users } from "@/drizzle/schema";
+import { eq } from "drizzle-orm";
 
 export default async function DashboardLayout({
   children,
@@ -17,9 +19,7 @@ export default async function DashboardLayout({
   }
 
   // Check if user exists in our database
-  const dbUser = await prisma.user.findUnique({
-    where: { id: user.id },
-  });
+  const [dbUser] = await db.select().from(users).where(eq(users.id, user.id)).limit(1);
 
   // If user doesn't exist in DB, create them
   if (!dbUser) {

@@ -1,7 +1,9 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { prisma } from "@/lib/prisma/client";
+import { db } from "@/lib/db";
+import { users, invitations } from "@/drizzle/schema";
+import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 
@@ -16,18 +18,17 @@ export async function registerAction(formData: FormData) {
   // If token provided, validate invitation
   let invitation = null;
   if (token) {
-    invitation = await prisma.invitation.findUnique({
-      where: { token },
-      include: { gym: true },
-    });
+    const [invitationData] = await db.select().from(invitations).where(eq(invitations.token, token)).limit(1);
 
-    if (!invitation || invitation.used || invitation.expiresAt < new Date()) {
+    if (!invitationData || invitationData.used || invitationData.expiresAt < new Date()) {
       return { error: "Invalid or expired invitation token" };
     }
 
-    if (invitation.email !== email) {
+    if (invitationData.email !== email) {
       return { error: "Email does not match invitation" };
     }
+
+    invitation = invitationData;
   }
 
   // Sign up user
@@ -51,22 +52,19 @@ export async function registerAction(formData: FormData) {
   const userRole = role || invitation?.role || "athlete";
   const gymId = invitation?.gymId || null;
 
-  await prisma.user.create({
-    data: {
-      id: data.user.id,
-      email: data.user.email!,
-      role: userRole as "owner" | "coach" | "athlete",
-      gymId,
-      onboarded: false,
-    },
+  await db.insert(users).values({
+    id: data.user.id,
+    email: data.user.email!,
+    role: userRole as "owner" | "coach" | "athlete",
+    gymId,
+    onboarded: false,
   });
 
   // Mark invitation as used
   if (invitation) {
-    await prisma.invitation.update({
-      where: { id: invitation.id },
-      data: { used: true },
-    });
+    await db.update(invitations)
+      .set({ used: true })
+      .where(eq(invitations.id, invitation.id));
   }
 
   // If user was invited, redirect to profile setup

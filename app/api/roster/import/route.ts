@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { prisma } from "@/lib/prisma/client";
+import { db } from "@/lib/db";
+import { users, invitations, gyms } from "@/drizzle/schema";
+import { eq, and, gt } from "drizzle-orm";
 import { parse } from "papaparse";
 import { randomBytes } from "crypto";
 import { Resend } from "resend";
@@ -19,14 +21,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const dbUser = await prisma.user.findUnique({
-      where: { id: user.id },
-      include: { gym: true },
-    });
+    const [dbUser] = await db.select().from(users).where(eq(users.id, user.id)).limit(1);
 
-    if (!dbUser || !dbUser.gym) {
+    if (!dbUser || !dbUser.gymId) {
       return NextResponse.json(
         { error: "User must belong to a gym" },
+        { status: 400 },
+      );
+    }
+
+    // Get gym info
+    const [gym] = await db.select().from(gyms).where(eq(gyms.id, dbUser.gymId)).limit(1);
+
+    if (!gym) {
+      return NextResponse.json(
+        { error: "Gym not found" },
         { status: 400 },
       );
     }
@@ -65,8 +74,8 @@ export async function POST(request: Request) {
       );
     }
 
-    const invitations = [];
-    const errors = [];
+    const invitationsList: Array<typeof invitations.$inferSelect> = [];
+    const errors: Array<{ row?: Record<string, string>; email?: string; error: string }> = [];
 
     for (const row of data) {
       try {
@@ -97,9 +106,7 @@ export async function POST(request: Request) {
             : "athlete";
 
         // Check if user already exists
-        const existingUser = await prisma.user.findUnique({
-          where: { email },
-        });
+        const [existingUser] = await db.select().from(users).where(eq(users.email, email)).limit(1);
 
         if (existingUser) {
           errors.push({ email, error: "User already exists" });
@@ -107,14 +114,17 @@ export async function POST(request: Request) {
         }
 
         // Check for existing invitation
-        const existingInvitation = await prisma.invitation.findFirst({
-          where: {
-            email,
-            gymId: dbUser.gymId!,
-            used: false,
-            expiresAt: { gt: new Date() },
-          },
-        });
+        const [existingInvitation] = await db.select()
+          .from(invitations)
+          .where(
+            and(
+              eq(invitations.email, email),
+              eq(invitations.gymId, dbUser.gymId),
+              eq(invitations.used, false),
+              gt(invitations.expiresAt, new Date())
+            )
+          )
+          .limit(1);
 
         if (existingInvitation) {
           errors.push({ email, error: "Invitation already sent" });
@@ -127,16 +137,14 @@ export async function POST(request: Request) {
         expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
 
         // Create invitation
-        const invitation = await prisma.invitation.create({
-          data: {
-            gymId: dbUser.gymId!,
-            email,
-            role: role as "coach" | "athlete",
-            token,
-            invitedById: user.id,
-            expiresAt,
-          },
-        });
+        const [invitation] = await db.insert(invitations).values({
+          gymId: dbUser.gymId,
+          email,
+          role: role as "coach" | "athlete",
+          token,
+          invitedById: user.id,
+          expiresAt,
+        }).returning();
 
         // Send email
         const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL}/register?token=${token}&email=${encodeURIComponent(email)}`;
@@ -144,15 +152,15 @@ export async function POST(request: Request) {
         await resend.emails.send({
           from: `${process.env.RESEND_FROM_NAME} <${process.env.RESEND_FROM_EMAIL}>`,
           to: email,
-          subject: `Invitation to join ${dbUser.gym.name} on TOM`,
+          subject: `Invitation to join ${gym.name} on TOM`,
           react: InvitationEmail({
-            gymName: dbUser.gym.name,
+            gymName: gym.name,
             inviteUrl,
             role,
           }),
         });
 
-        invitations.push(invitation);
+        invitationsList.push(invitation);
       } catch (error) {
         errors.push({
           row,
@@ -163,10 +171,10 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      invitations: invitations.length,
+      invitations: invitationsList.length,
       errors: errors.length,
       details: {
-        invitations,
+        invitations: invitationsList,
         errors: errors.length > 0 ? errors : undefined,
       },
     });

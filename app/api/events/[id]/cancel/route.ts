@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { prisma } from "@/lib/prisma/client";
+import { db } from "@/lib/db";
+import { users, eventOccurrences, events } from "@/drizzle/schema";
+import { eq } from "drizzle-orm";
 
 export async function POST(
   request: Request,
@@ -16,12 +18,9 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const dbUser = await prisma.user.findUnique({
-      where: { id: user.id },
-      include: { gym: true },
-    });
+    const [dbUser] = await db.select().from(users).where(eq(users.id, user.id)).limit(1);
 
-    if (!dbUser || !dbUser.gym) {
+    if (!dbUser || !dbUser.gymId) {
       return NextResponse.json(
         { error: "User must belong to a gym" },
         { status: 400 },
@@ -37,12 +36,17 @@ export async function POST(
     const occurrenceId = id;
 
     // Verify occurrence belongs to user's gym
-    const occurrence = await prisma.eventOccurrence.findUnique({
-      where: { id: occurrenceId },
-      include: {
-        event: true,
-      },
-    });
+    const [occurrence] = await db.select({
+      id: eventOccurrences.id,
+      eventId: eventOccurrences.eventId,
+      date: eventOccurrences.date,
+      status: eventOccurrences.status,
+      gymId: events.gymId,
+    })
+      .from(eventOccurrences)
+      .innerJoin(events, eq(eventOccurrences.eventId, events.id))
+      .where(eq(eventOccurrences.id, occurrenceId))
+      .limit(1);
 
     if (!occurrence) {
       return NextResponse.json(
@@ -51,15 +55,14 @@ export async function POST(
       );
     }
 
-    if (occurrence.event.gymId !== dbUser.gymId) {
+    if (occurrence.gymId !== dbUser.gymId) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     // Cancel occurrence
-    await prisma.eventOccurrence.update({
-      where: { id: occurrenceId },
-      data: { status: "canceled" },
-    });
+    await db.update(eventOccurrences)
+      .set({ status: "canceled" })
+      .where(eq(eventOccurrences.id, occurrenceId));
 
     // TODO: Send notifications to RSVP'd users
 
