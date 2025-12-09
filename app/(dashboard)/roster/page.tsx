@@ -224,10 +224,16 @@ export default function RosterPage() {
     setError(null);
 
     try {
+      // Don't send role field if editing owner (can't change owner role)
+      const { role, ...restForm } = editForm;
+      const updateData = editingMember.role === "owner" 
+        ? restForm 
+        : { ...restForm, role };
+
       const response = await fetch(`/api/roster/${editingMember.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(editForm),
+        body: JSON.stringify(updateData),
       });
 
       if (!response.ok) {
@@ -403,7 +409,7 @@ export default function RosterPage() {
       </PageHeader>
 
       <div className="flex-1 overflow-auto min-h-0">
-        <div className="space-y-6 p-4">
+        <div className="space-y-6">
         {loading && roster.length === 0 ? (
           <Card className="rounded-xl">
             <CardHeader>
@@ -480,7 +486,7 @@ export default function RosterPage() {
                               {member.email}
                             </span>
                             {member.phone && (
-                              <span className="flex items-center gap-1">
+                              <span className="hidden md:flex items-center gap-1">
                                 <IconPhone className="h-3 w-3" />
                                 {member.phone}
                               </span>
@@ -507,11 +513,10 @@ export default function RosterPage() {
                           </Badge>
                         )}
 
-                        {/* Actions - Only for owners, or coaches can edit athletes */}
+                        {/* Actions - Owners can edit anyone, coaches can edit athletes */}
                         {(isOwner ||
                           (currentUserRole === "coach" &&
-                            member.role === "athlete")) &&
-                          member.role !== "owner" && (
+                            member.role === "athlete")) && (
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button
@@ -533,7 +538,7 @@ export default function RosterPage() {
                                   <IconEdit className="h-4 w-4" />
                                   Edit Member
                                 </DropdownMenuItem>
-                                {isOwner && (
+                                {isOwner && member.role !== "owner" && (
                                   <>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem
@@ -624,6 +629,19 @@ export default function RosterPage() {
                     <SelectItem value="coach">Coach</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+            )}
+            {editingMember?.role === "owner" && (
+              <div className="space-y-2">
+                <Label>Role</Label>
+                <Input
+                  value="Owner"
+                  disabled
+                  className="h-11 rounded-xl bg-muted"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Owner role cannot be changed
+                </p>
               </div>
             )}
           </div>

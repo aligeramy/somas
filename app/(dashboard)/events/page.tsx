@@ -586,34 +586,37 @@ export default function EventsPage() {
                 ) : (
                   <div className="space-y-3">
                     {events.map((event) => (
-                      <div key={event.id} className="relative">
-                        <button
-                          type="button"
-                          onClick={() => selectEvent(event)}
-                          className={`w-full text-left p-4 rounded-xl transition-all ${
-                            selectedEvent?.id === event.id
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-card hover:bg-muted/50"
-                          }`}
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="flex-1 min-w-0">
-                              <p className="font-semibold text-base mb-2">
-                                {event.title}
-                              </p>
-                              <div className="flex flex-wrap items-center gap-3 text-sm opacity-80">
-                                <div className="flex items-center gap-1.5">
-                                  <IconClock className="h-4 w-4" />
-                                  {formatTime(event.startTime)}
-                                </div>
-                                <div className="flex items-center gap-1.5">
-                                  <IconRepeat className="h-4 w-4" />
-                                  {getRecurrenceLabel(event.recurrenceRule)}
-                                </div>
+                      <div
+                        key={event.id}
+                        className={`relative w-full rounded-xl transition-all ${
+                          selectedEvent?.id === event.id
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-card hover:bg-muted/50"
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <button
+                            type="button"
+                            onClick={() => selectEvent(event)}
+                            className="flex-1 text-left p-4 min-w-0"
+                          >
+                            <p className="font-semibold text-base mb-2">
+                              {event.title}
+                            </p>
+                            <div className="flex flex-wrap items-center gap-3 text-sm opacity-80">
+                              <div className="flex items-center gap-1.5">
+                                <IconClock className="h-4 w-4" />
+                                {formatTime(event.startTime)}
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <IconRepeat className="h-4 w-4" />
+                                {getRecurrenceLabel(event.recurrenceRule)}
                               </div>
                             </div>
+                          </button>
+                          <div className="p-2">
                             <DropdownMenu>
-                              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                              <DropdownMenuTrigger asChild>
                                 <Button
                                   variant="ghost"
                                   size="icon"
@@ -632,8 +635,7 @@ export default function EventsPage() {
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
                                   className="gap-2 text-destructive focus:text-destructive"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
+                                  onClick={() => {
                                     setSelectedEvent(event);
                                     setDeleteDialogOpen(true);
                                   }}
@@ -644,7 +646,7 @@ export default function EventsPage() {
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </div>
-                        </button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -907,22 +909,22 @@ export default function EventsPage() {
     <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
       <PageHeader title="Events">
         <div className="flex items-center gap-2">
-          <div className="flex rounded-xl border p-1">
+          <div className="flex rounded-xl border p-1 gap-1">
             <Button
               variant={viewMode === "list" ? "secondary" : "ghost"}
-              size="sm"
-              className="h-8 rounded-lg"
+              size="icon"
+              className="h-8 w-8 rounded-lg p-0"
               onClick={() => setViewMode("list")}
             >
-              <IconList className="h-4 w-4" />
+              <IconList className="h-4 w-4 !m-0" />
             </Button>
             <Button
               variant={viewMode === "calendar" ? "secondary" : "ghost"}
-              size="sm"
-              className="h-8 rounded-lg"
+              size="icon"
+              className="h-8 w-8 rounded-lg p-0"
               onClick={() => setViewMode("calendar")}
             >
-              <IconCalendar className="h-4 w-4" />
+              <IconCalendar className="h-4 w-4 !m-0" />
             </Button>
           </div>
           <Button size="sm" className="gap-2 rounded-xl" asChild>

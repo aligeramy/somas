@@ -156,12 +156,12 @@ export function CustomEventCalendar({
                 const isDayToday = isToday(day);
                 const isSelected = selectedDate && isSameDay(day, selectedDate);
 
-                let dayClasses = "h-16 rounded-xl flex flex-col items-center justify-center text-sm font-medium transition-all cursor-pointer hover:bg-muted/50 border border-border ";
+                let dayClasses = "h-16 rounded-xl flex flex-col items-center justify-center text-sm font-medium transition-all cursor-pointer border border-border ";
                 
                 if (!isCurrent) {
-                  dayClasses += "text-muted-foreground/40 border-muted/50 ";
+                  dayClasses += "text-muted-foreground/40 border-muted/50 hover:bg-muted/30 hover:text-muted-foreground/60 ";
                 } else {
-                  dayClasses += "text-foreground ";
+                  dayClasses += "text-foreground hover:bg-muted hover:text-foreground ";
                 }
 
                 if (isDayToday && isCurrent) {
@@ -170,9 +170,9 @@ export function CustomEventCalendar({
 
                 if (occ) {
                   if (occ.status === "scheduled") {
-                    dayClasses += "bg-primary text-primary-foreground border-primary ";
+                    dayClasses += "bg-primary text-primary-foreground border-primary hover:bg-primary/90 hover:text-primary-foreground ";
                   } else if (occ.status === "canceled") {
-                    dayClasses += "bg-destructive/20 text-destructive line-through border-destructive/50 ";
+                    dayClasses += "bg-destructive/20 text-destructive line-through border-destructive/50 hover:bg-destructive/30 hover:text-destructive ";
                   }
                   if (occ.isCustom) {
                     dayClasses += "border-2 border-dashed border-primary ";

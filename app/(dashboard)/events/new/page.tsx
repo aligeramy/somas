@@ -276,36 +276,35 @@ export default function NewEventPage() {
 
                     <div className="space-y-2">
                       <Label className="text-sm font-medium">Recurrence</Label>
-                      <Select value={recurrence} onValueChange={(v) => setRecurrence(v as any)}>
-                        <SelectTrigger className="h-11 rounded-xl">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="rounded-xl">
-                          <SelectItem value="none">One-time event</SelectItem>
-                          <SelectItem value="daily">Daily</SelectItem>
-                          <SelectItem value="weekly">Weekly</SelectItem>
-                          <SelectItem value="monthly">Monthly</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {recurrence === "weekly" && (
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium">Day of Week</Label>
-                        <Select value={dayOfWeek} onValueChange={setDayOfWeek}>
-                          <SelectTrigger className="h-11 rounded-xl">
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <Select value={recurrence} onValueChange={(v) => setRecurrence(v as any)}>
+                          <SelectTrigger className="h-11 rounded-xl w-full">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent className="rounded-xl">
-                            {DAYS_OF_WEEK.map((day) => (
-                              <SelectItem key={day.value} value={day.value}>
-                                {day.label}
-                              </SelectItem>
-                            ))}
+                            <SelectItem value="none">One-time event</SelectItem>
+                            <SelectItem value="daily">Daily</SelectItem>
+                            <SelectItem value="weekly">Weekly</SelectItem>
+                            <SelectItem value="monthly">Monthly</SelectItem>
                           </SelectContent>
                         </Select>
+
+                        {recurrence === "weekly" && (
+                          <Select value={dayOfWeek} onValueChange={setDayOfWeek}>
+                            <SelectTrigger className="h-11 rounded-xl w-full">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-xl">
+                              {DAYS_OF_WEEK.map((day) => (
+                                <SelectItem key={day.value} value={day.value}>
+                                  {day.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
                       </div>
-                    )}
+                    </div>
 
                     {recurrence !== "none" && (
                       <div className="space-y-3 pt-2 border-t">
