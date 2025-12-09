@@ -45,6 +45,8 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { RealtimeChat } from "@/components/realtime-chat";
+import { createClient } from "@/lib/supabase/client";
 
 interface EventOccurrence {
   id: string;
@@ -98,6 +100,112 @@ function useIsEventsMobile() {
   return !!isEventsMobile;
 }
 
+// Event Chat Component
+function EventChatContent({
+  eventId,
+  channelId,
+  eventTitle,
+  onChannelLoad,
+}: {
+  eventId?: string;
+  channelId?: string;
+  eventTitle: string;
+  onChannelLoad: (id: string) => void;
+}) {
+  const [loading, setLoading] = useState(true);
+  const [currentChannelId, setCurrentChannelId] = useState<string | null>(channelId || null);
+  const [currentUser, setCurrentUser] = useState<{ id: string; name: string } | null>(null);
+  const supabase = createClient();
+
+  useEffect(() => {
+    loadUser();
+    if (channelId) {
+      setCurrentChannelId(channelId);
+      setLoading(false);
+    } else if (eventId) {
+      loadOrCreateChannel();
+    }
+  }, [eventId, channelId]);
+
+  async function loadUser() {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (user) {
+      const { data } = await supabase
+        .from("User")
+        .select("id, name")
+        .eq("id", user.id)
+        .single();
+      if (data) {
+        setCurrentUser({ id: data.id, name: data.name || "User" });
+      }
+    }
+  }
+
+  async function loadOrCreateChannel() {
+    try {
+      setLoading(true);
+      // Try to find existing channel for this event
+      const response = await fetch(`/api/chat/channels?eventId=${eventId}`);
+      if (response.ok) {
+        const result = await response.json();
+        if (result.channels && result.channels.length > 0) {
+          setCurrentChannelId(result.channels[0].id);
+          onChannelLoad(result.channels[0].id);
+          setLoading(false);
+          return;
+        }
+      }
+
+      // Create new channel for this event
+      const createResponse = await fetch("/api/chat/channels", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: `${eventTitle} Chat`,
+          type: "group",
+          eventId,
+        }),
+      });
+
+      if (createResponse.ok) {
+        const result = await createResponse.json();
+        setCurrentChannelId(result.channel.id);
+        onChannelLoad(result.channel.id);
+      }
+    } catch (error) {
+      console.error("Error loading channel:", error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex flex-1 items-center justify-center">
+        <div className="animate-pulse text-muted-foreground">Loading chat...</div>
+      </div>
+    );
+  }
+
+  if (!currentChannelId || !currentUser) {
+    return (
+      <div className="flex flex-1 items-center justify-center text-muted-foreground">
+        <p>Unable to load chat</p>
+      </div>
+    );
+  }
+
+  return (
+    <RealtimeChat
+      channelId={currentChannelId}
+      roomName={`${eventTitle} Chat`}
+      username={currentUser.name}
+    />
+  );
+}
+
 export default function EventsPage() {
   const searchParams = useSearchParams();
   const isEventsMobile = useIsEventsMobile();
@@ -113,7 +221,9 @@ export default function EventsPage() {
   const [showPastEvents, setShowPastEvents] = useState(false);
   const [sendingReminder, setSendingReminder] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
-  const [mobileView, setMobileView] = useState<"events" | "occurrences" | "details">("events");
+  const [mobileView, setMobileView] = useState<"events" | "occurrences" | "details" | "chat">("events");
+  const [eventDetailTab, setEventDetailTab] = useState<"details" | "chat">("details");
+  const [eventChannelId, setEventChannelId] = useState<string | null>(null);
   const isInitialMount = useRef(true);
 
   // Cancel dialog state
@@ -129,6 +239,36 @@ export default function EventsPage() {
   const [addDateDialogOpen, setAddDateDialogOpen] = useState(false);
   const [customDate, setCustomDate] = useState<Date | null>(null);
   const [addingDate, setAddingDate] = useState(false);
+
+  // Load or create channel when event is selected
+  useEffect(() => {
+    if (selectedEvent && !eventChannelId) {
+      fetch(`/api/chat/channels?eventId=${selectedEvent.id}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.channels && data.channels.length > 0) {
+            setEventChannelId(data.channels[0].id);
+          } else {
+            // Create channel for event
+            fetch("/api/chat/channels", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                name: `${selectedEvent.title} Chat`,
+                type: "group",
+                eventId: selectedEvent.id,
+              }),
+            })
+              .then((res) => res.json())
+              .then((data) => {
+                if (data.channel) {
+                  setEventChannelId(data.channel.id);
+                }
+              });
+          }
+        });
+    }
+  }, [selectedEvent, eventChannelId]);
 
   const loadEvents = useCallback(async (isInitial = false) => {
     try {
@@ -613,7 +753,7 @@ export default function EventsPage() {
         <Tabs value={mobileView} onValueChange={(value) => setMobileView(value as typeof mobileView)} className="flex-1 flex flex-col min-h-0 overflow-hidden">
           {/* Mobile Tab Navigation */}
           <div className="px-4 shrink-0">
-            <TabsList className="w-full grid grid-cols-3 h-12">
+            <TabsList className="w-full grid grid-cols-4 h-12">
               <TabsTrigger value="events" className="text-sm">
                 Events
               </TabsTrigger>
@@ -622,6 +762,9 @@ export default function EventsPage() {
               </TabsTrigger>
               <TabsTrigger value="details" className="text-sm" disabled={!selectedOccurrence}>
                 Details
+              </TabsTrigger>
+              <TabsTrigger value="chat" className="text-sm" disabled={!selectedEvent}>
+                Chat
               </TabsTrigger>
             </TabsList>
           </div>
@@ -960,6 +1103,27 @@ export default function EventsPage() {
               </div>
             )}
           </TabsContent>
+
+          {/* Chat Tab */}
+          <TabsContent value="chat" className="flex-1 flex flex-col min-h-0 m-0 overflow-hidden">
+            {selectedEvent && eventChannelId ? (
+              <EventChatContent
+                channelId={eventChannelId}
+                eventTitle={selectedEvent.title}
+                onChannelLoad={setEventChannelId}
+              />
+            ) : selectedEvent ? (
+              <EventChatContent
+                eventId={selectedEvent.id}
+                eventTitle={selectedEvent.title}
+                onChannelLoad={setEventChannelId}
+              />
+            ) : (
+              <div className="flex flex-1 items-center justify-center text-muted-foreground">
+                <p>Select an event to view chat</p>
+              </div>
+            )}
+          </TabsContent>
         </Tabs>
       </div>
     );
@@ -1225,7 +1389,7 @@ export default function EventsPage() {
               )}
             </div>
 
-            {/* RSVP Detail */}
+            {/* Event Detail */}
             <div className="flex-1 flex flex-col bg-card border rounded-xl shadow-sm overflow-hidden min-h-0">
               {selectedOccurrence ? (
                 <>
@@ -1241,7 +1405,8 @@ export default function EventsPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       {notAnsweredUsers.length > 0 &&
-                        selectedOccurrence.status !== "canceled" && (
+                        selectedOccurrence.status !== "canceled" &&
+                        eventDetailTab === "details" && (
                           <Button
                             variant="outline"
                             size="sm"
@@ -1255,139 +1420,207 @@ export default function EventsPage() {
                               : `Remind (${notAnsweredUsers.length})`}
                           </Button>
                         )}
-                      {selectedOccurrence.status !== "canceled" && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setCancelDialogOpen(true)}
-                          className="text-destructive hover:text-destructive rounded-xl"
-                        >
-                          <IconX className="h-4 w-4 mr-1" />
-                          Cancel
-                        </Button>
-                      )}
+                      {selectedOccurrence.status !== "canceled" &&
+                        eventDetailTab === "details" && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCancelDialogOpen(true)}
+                            className="text-destructive hover:text-destructive rounded-xl"
+                          >
+                            <IconX className="h-4 w-4 mr-1" />
+                            Cancel
+                          </Button>
+                        )}
                     </div>
                   </div>
-                  <div className="flex-1 overflow-hidden">
-                    {rsvpLoading ? (
-                      <div className="flex flex-col h-full p-4">
-                        <Skeleton className="h-10 w-full mb-4 rounded-xl" />
-                        <div className="space-y-3">
-                          {[1, 2, 3, 4, 5].map((i) => (
-                            <div key={i} className="flex items-center gap-3 p-3 rounded-xl">
-                              <Skeleton className="h-10 w-10 rounded-xl" />
-                              <div className="flex-1 space-y-2">
-                                <Skeleton className="h-4 w-32" />
-                                <Skeleton className="h-3 w-48" />
-                              </div>
-                              <Skeleton className="h-6 w-16 rounded-full" />
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ) : (
-                      <Tabs defaultValue="all" className="h-full flex flex-col min-h-0">
-                        <div className="px-4 pt-4 shrink-0">
-                          <TabsList className="w-full grid grid-cols-4 h-10 rounded-xl">
-                            <TabsTrigger
-                              value="all"
-                              className="text-xs rounded-lg"
-                            >
-                              All ({gymMembers.length})
-                            </TabsTrigger>
-                            <TabsTrigger
-                              value="going"
-                              className="text-xs rounded-lg"
-                            >
-                              Going ({goingUsers.length})
-                            </TabsTrigger>
-                            <TabsTrigger
-                              value="not_going"
-                              className="text-xs rounded-lg"
-                            >
-                              Can't ({notGoingUsers.length})
-                            </TabsTrigger>
-                            <TabsTrigger
-                              value="pending"
-                              className="text-xs rounded-lg"
-                            >
-                              Pending ({notAnsweredUsers.length})
-                            </TabsTrigger>
-                          </TabsList>
-                        </div>
-                        <TabsContent
-                          value="all"
-                          className="flex-1 overflow-auto mt-0 p-4 min-h-0"
-                        >
-                          {gymMembersLoading ? (
-                            <div className="space-y-3">
-                              {[1, 2, 3].map((i) => (
-                                <div key={i} className="flex items-center gap-3 p-3 rounded-xl">
-                                  <Skeleton className="h-10 w-10 rounded-xl" />
-                                  <div className="flex-1 space-y-2">
-                                    <Skeleton className="h-4 w-32" />
-                                    <Skeleton className="h-3 w-48" />
-                                  </div>
-                                  <Skeleton className="h-6 w-16 rounded-full" />
+                  <Tabs value={eventDetailTab} onValueChange={(value) => setEventDetailTab(value as typeof eventDetailTab)} className="flex-1 flex flex-col min-h-0">
+                    <div className="px-4 py-4 shrink-0 border-b">
+                      <TabsList className="w-full grid grid-cols-2 h-10 rounded-xl">
+                        <TabsTrigger value="details" className="text-xs rounded-lg">
+                          Details
+                        </TabsTrigger>
+                        <TabsTrigger value="chat" className="text-xs rounded-lg">
+                          Chat
+                        </TabsTrigger>
+                      </TabsList>
+                    </div>
+                    <TabsContent value="details" className="flex-1 overflow-hidden mt-0 min-h-0">
+                      {rsvpLoading ? (
+                        <div className="flex flex-col h-full p-4">
+                          <Skeleton className="h-10 w-full mb-4 rounded-xl" />
+                          <div className="space-y-3">
+                            {[1, 2, 3, 4, 5].map((i) => (
+                              <div key={i} className="flex items-center gap-3 p-3 rounded-xl">
+                                <Skeleton className="h-10 w-10 rounded-xl" />
+                                <div className="flex-1 space-y-2">
+                                  <Skeleton className="h-4 w-32" />
+                                  <Skeleton className="h-3 w-48" />
                                 </div>
-                              ))}
-                            </div>
-                          ) : (
+                                <Skeleton className="h-6 w-16 rounded-full" />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <Tabs defaultValue="all" className="h-full flex flex-col min-h-0">
+                          <div className="px-4 pt-4 shrink-0">
+                            <TabsList className="w-full grid grid-cols-4 h-10 rounded-xl">
+                              <TabsTrigger
+                                value="all"
+                                className="text-xs rounded-lg"
+                              >
+                                All ({gymMembers.length})
+                              </TabsTrigger>
+                              <TabsTrigger
+                                value="going"
+                                className="text-xs rounded-lg"
+                              >
+                                Going ({goingUsers.length})
+                              </TabsTrigger>
+                              <TabsTrigger
+                                value="not_going"
+                                className="text-xs rounded-lg"
+                              >
+                                Can't ({notGoingUsers.length})
+                              </TabsTrigger>
+                              <TabsTrigger
+                                value="pending"
+                                className="text-xs rounded-lg"
+                              >
+                                Pending ({notAnsweredUsers.length})
+                              </TabsTrigger>
+                            </TabsList>
+                          </div>
+                          <TabsContent
+                            value="all"
+                            className="flex-1 overflow-auto mt-0 p-4 min-h-0"
+                          >
+                            {gymMembersLoading ? (
+                              <div className="space-y-3">
+                                {[1, 2, 3].map((i) => (
+                                  <div key={i} className="flex items-center gap-3 p-3 rounded-xl">
+                                    <Skeleton className="h-10 w-10 rounded-xl" />
+                                    <div className="flex-1 space-y-2">
+                                      <Skeleton className="h-4 w-32" />
+                                      <Skeleton className="h-3 w-48" />
+                                    </div>
+                                    <Skeleton className="h-6 w-16 rounded-full" />
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <UserList
+                                users={gymMembers.map((m) => ({
+                                  ...m,
+                                  status:
+                                    occurrenceRsvps.find((r) => r.id === m.id)
+                                      ?.status || null,
+                                }))}
+                                getInitials={getInitials}
+                                onEditRsvp={handleEditRsvp}
+                              />
+                            )}
+                          </TabsContent>
+                          <TabsContent
+                            value="going"
+                            className="flex-1 overflow-auto mt-0 p-4"
+                          >
                             <UserList
-                              users={gymMembers.map((m) => ({
-                                ...m,
-                                status:
-                                  occurrenceRsvps.find((r) => r.id === m.id)
-                                    ?.status || null,
+                              users={goingUsers.map((u) => ({
+                                ...u,
+                                status: "going",
                               }))}
                               getInitials={getInitials}
                               onEditRsvp={handleEditRsvp}
                             />
-                          )}
-                        </TabsContent>
-                        <TabsContent
-                          value="going"
-                          className="flex-1 overflow-auto mt-0 p-4"
-                        >
-                          <UserList
-                            users={goingUsers.map((u) => ({
-                              ...u,
-                              status: "going",
-                            }))}
-                            getInitials={getInitials}
-                            onEditRsvp={handleEditRsvp}
-                          />
-                        </TabsContent>
-                        <TabsContent
-                          value="not_going"
-                          className="flex-1 overflow-auto mt-0 p-4"
-                        >
-                          <UserList
-                            users={notGoingUsers.map((u) => ({
-                              ...u,
-                              status: "not_going",
-                            }))}
-                            getInitials={getInitials}
-                            onEditRsvp={handleEditRsvp}
-                          />
-                        </TabsContent>
-                        <TabsContent
-                          value="pending"
-                          className="flex-1 overflow-auto mt-0 p-4"
-                        >
-                          <UserList
-                            users={notAnsweredUsers.map((u) => ({
-                              ...u,
-                              status: null,
-                            }))}
-                            getInitials={getInitials}
-                            onEditRsvp={handleEditRsvp}
-                          />
-                        </TabsContent>
-                      </Tabs>
-                    )}
-                  </div>
+                          </TabsContent>
+                          <TabsContent
+                            value="not_going"
+                            className="flex-1 overflow-auto mt-0 p-4"
+                          >
+                            <UserList
+                              users={notGoingUsers.map((u) => ({
+                                ...u,
+                                status: "not_going",
+                              }))}
+                              getInitials={getInitials}
+                              onEditRsvp={handleEditRsvp}
+                            />
+                          </TabsContent>
+                          <TabsContent
+                            value="pending"
+                            className="flex-1 overflow-auto mt-0 p-4"
+                          >
+                            <UserList
+                              users={notAnsweredUsers.map((u) => ({
+                                ...u,
+                                status: null,
+                              }))}
+                              getInitials={getInitials}
+                              onEditRsvp={handleEditRsvp}
+                            />
+                          </TabsContent>
+                        </Tabs>
+                      )}
+                    </TabsContent>
+                    <TabsContent value="chat" className="flex-1 overflow-hidden mt-0 min-h-0">
+                      {selectedEvent && eventChannelId ? (
+                        <EventChatContent
+                          channelId={eventChannelId}
+                          eventTitle={selectedEvent.title}
+                          onChannelLoad={setEventChannelId}
+                        />
+                      ) : selectedEvent ? (
+                        <EventChatContent
+                          eventId={selectedEvent.id}
+                          eventTitle={selectedEvent.title}
+                          onChannelLoad={setEventChannelId}
+                        />
+                      ) : (
+                        <div className="flex flex-1 items-center justify-center text-muted-foreground">
+                          <p>Select an event to view chat</p>
+                        </div>
+                      )}
+                    </TabsContent>
+                  </Tabs>
                 </>
+              ) : selectedEvent ? (
+                <div className="flex-1 flex flex-col min-h-0">
+                  <Tabs value={eventDetailTab} onValueChange={(value) => setEventDetailTab(value as typeof eventDetailTab)} className="flex-1 flex flex-col min-h-0">
+                    <div className="px-4 py-4 shrink-0 border-b">
+                      <TabsList className="w-full grid grid-cols-2 h-10 rounded-xl">
+                        <TabsTrigger value="details" className="text-xs rounded-lg">
+                          Details
+                        </TabsTrigger>
+                        <TabsTrigger value="chat" className="text-xs rounded-lg">
+                          Chat
+                        </TabsTrigger>
+                      </TabsList>
+                    </div>
+                    <TabsContent value="details" className="flex-1 overflow-auto mt-0 p-4 min-h-0">
+                      <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                        <IconUsers className="h-12 w-12 mb-3 opacity-20" />
+                        <p className="text-sm">Select a session to view attendance</p>
+                      </div>
+                    </TabsContent>
+                    <TabsContent value="chat" className="flex-1 overflow-hidden mt-0 min-h-0">
+                      {eventChannelId ? (
+                        <EventChatContent
+                          channelId={eventChannelId}
+                          eventTitle={selectedEvent.title}
+                          onChannelLoad={setEventChannelId}
+                        />
+                      ) : (
+                        <EventChatContent
+                          eventId={selectedEvent.id}
+                          eventTitle={selectedEvent.title}
+                          onChannelLoad={setEventChannelId}
+                        />
+                      )}
+                    </TabsContent>
+                  </Tabs>
+                </div>
               ) : (
                 <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground">
                   <IconUsers className="h-12 w-12 mb-3 opacity-20" />

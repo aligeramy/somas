@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { users, gyms } from "@/drizzle/schema";
 import { eq } from "drizzle-orm";
 import { AppSidebarWrapper } from "@/components/app-sidebar-wrapper";
+import { MobileBottomNavWrapper } from "@/components/mobile-bottom-nav-wrapper";
 import {
   SidebarInset,
   SidebarProvider,
@@ -52,10 +53,11 @@ export default async function DashboardLayout({
     >
       <AppSidebarWrapper />
       <SidebarInset>
-        <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
+        <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden pb-16 lg:pb-0">
           {children}
         </div>
       </SidebarInset>
+      <MobileBottomNavWrapper userRole={dbUser.role} />
     </SidebarProvider>
   );
 }

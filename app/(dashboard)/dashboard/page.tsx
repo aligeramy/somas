@@ -1,8 +1,8 @@
-import React, { Suspense } from "react";
+import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { db } from "@/lib/db";
-import { users, events, eventOccurrences, rsvps } from "@/drizzle/schema";
-import { eq, and, gte, asc, sql, inArray } from "drizzle-orm";
+import { users, events, eventOccurrences, rsvps, notices, blogPosts } from "@/drizzle/schema";
+import { eq, and, gte, asc, sql, inArray, desc } from "drizzle-orm";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -165,18 +165,43 @@ export default async function DashboardPage() {
     rsvpsByOccurrence.set(rsvp.occurrenceId, current);
   });
 
-  const recentMembers = await db
+  // Get active notice
+  const [activeNotice] = await db
     .select({
-      id: users.id,
-      name: users.name,
-      email: users.email,
-      role: users.role,
-      avatarUrl: users.avatarUrl,
+      id: notices.id,
+      title: notices.title,
+      content: notices.content,
+      createdAt: notices.createdAt,
+      author: {
+        id: users.id,
+        name: users.name,
+      },
     })
-    .from(users)
-    .where(eq(users.gymId, dbUser.gymId))
-    .orderBy(asc(users.createdAt))
-    .limit(5);
+    .from(notices)
+    .innerJoin(users, eq(notices.authorId, users.id))
+    .where(and(eq(notices.gymId, dbUser.gymId), eq(notices.active, true)))
+    .limit(1);
+
+  // Get latest blog posts
+  const latestPosts = await db
+    .select({
+      id: blogPosts.id,
+      title: blogPosts.title,
+      content: blogPosts.content,
+      type: blogPosts.type,
+      imageUrl: blogPosts.imageUrl,
+      createdAt: blogPosts.createdAt,
+      author: {
+        id: users.id,
+        name: users.name,
+        avatarUrl: users.avatarUrl,
+      },
+    })
+    .from(blogPosts)
+    .innerJoin(users, eq(blogPosts.authorId, users.id))
+    .where(eq(blogPosts.gymId, dbUser.gymId))
+    .orderBy(desc(blogPosts.createdAt))
+    .limit(3);
 
   function getInitials(name: string | null, email: string) {
     if (name) {
@@ -228,7 +253,7 @@ export default async function DashboardPage() {
   ];
 
   return (
-    <div className="flex flex-1 flex-col">
+    <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
       <PageHeader 
         title={`Welcome back${dbUser.name ? `, ${dbUser.name.split(" ")[0]}` : ""}`} 
         description="Here's what's happening with your team"
@@ -246,11 +271,12 @@ export default async function DashboardPage() {
           dbUser={dbUser}
           stats={stats}
           upcomingOccurrences={upcomingOccurrences}
-          recentMembers={recentMembers}
           rsvpsByOccurrence={rsvpsByOccurrence}
           formatDate={formatDate}
           formatTime={formatTime}
           getInitials={getInitials}
+          activeNotice={activeNotice || null}
+          latestPosts={latestPosts}
         />
       </Suspense>
     </div>
@@ -259,7 +285,7 @@ export default async function DashboardPage() {
 
 function DashboardSkeleton() {
   return (
-    <div className="flex-1 overflow-auto">
+    <div className="flex-1 overflow-auto min-h-0">
       <div className="space-y-6">
         {/* Stats */}
         <div className="grid grid-cols-3 gap-4">
@@ -299,24 +325,28 @@ function DashboardSkeleton() {
             </CardContent>
           </Card>
 
-          {/* Team Members Skeleton */}
+          {/* Latest Posts Skeleton */}
           <Card className="rounded-xl">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
-                <Skeleton className="h-5 w-16" />
+                <Skeleton className="h-5 w-24" />
                 <Skeleton className="h-8 w-20 rounded-xl" />
               </div>
             </CardHeader>
             <CardContent className="pt-0">
               <div className="space-y-2">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <div key={i} className="flex items-center gap-3 p-2 rounded-xl">
-                    <Skeleton className="h-10 w-10 rounded-xl" />
-                    <div className="flex-1 space-y-1">
-                      <Skeleton className="h-4 w-28" />
-                      <Skeleton className="h-3 w-40" />
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="flex items-center gap-3 p-3 rounded-xl">
+                    <Skeleton className="h-16 w-16 rounded-lg" />
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Skeleton className="h-4 w-16 rounded-md" />
+                        <Skeleton className="h-3 w-20" />
+                      </div>
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-3 w-full" />
+                      <Skeleton className="h-3 w-3/4" />
                     </div>
-                    <Skeleton className="h-5 w-16 rounded-md" />
                   </div>
                 ))}
               </div>
@@ -332,16 +362,16 @@ function DashboardContent({
   dbUser,
   stats,
   upcomingOccurrences,
-  recentMembers,
   rsvpsByOccurrence,
   formatDate,
   formatTime,
   getInitials,
+  activeNotice,
+  latestPosts,
 }: {
   dbUser: { name: string | null; email: string };
   stats: Array<{ label: string; value: number; icon: React.ComponentType<{ className?: string }>; color: string }>;
   upcomingOccurrences: Array<{ occurrence: any; event: any }>;
-  recentMembers: Array<{ id: string; name: string | null; email: string; role: string; avatarUrl: string | null }>;
   rsvpsByOccurrence: Map<string, {
     going: Array<{ id: string; name: string | null; email: string; avatarUrl: string | null }>;
     notGoing: Array<{ id: string; name: string | null; email: string; avatarUrl: string | null }>;
@@ -349,10 +379,32 @@ function DashboardContent({
   formatDate: (date: Date | string | null) => { day: string; month: string; weekday: string };
   formatTime: (time: string | null) => string;
   getInitials: (name: string | null, email: string) => string;
+  activeNotice: { id: string; title: string; content: string; createdAt: Date | string; author: { id: string; name: string | null } } | null;
+  latestPosts: Array<{ id: string; title: string; content: string; type: string; imageUrl: string | null; createdAt: Date | string; author: { id: string; name: string | null; avatarUrl: string | null } }>;
 }) {
   return (
-    <div className="flex-1 overflow-auto">
+    <div className="flex-1 overflow-auto min-h-0">
       <div className="space-y-4">
+        {/* Active Notice */}
+        {activeNotice && (
+          <Card className="rounded-xl border border-primary/20 bg-primary/5">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Badge variant="default" className="rounded-lg">Notice</Badge>
+                  <CardTitle className="text-lg">{activeNotice.title}</CardTitle>
+                </div>
+                <span className="text-xs text-muted-foreground">
+                  by {activeNotice.author.name || "Admin"}
+                </span>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm whitespace-pre-wrap">{activeNotice.content}</p>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Stats */}
         <div className="grid grid-cols-3 gap-4">
           {stats.map((stat) => (
@@ -455,13 +507,13 @@ function DashboardContent({
             </CardContent>
           </Card>
 
-          {/* Team Members */}
+          {/* Latest Posts */}
           <Card className="rounded-xl">
-            <CardHeader className="pb">
+            <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base font-semibold">Team</CardTitle>
+                <CardTitle className="text-base font-semibold">Latest Posts</CardTitle>
                 <Button variant="ghost" size="sm" asChild className="text-muted-foreground rounded-xl">
-                  <Link href="/roster">
+                  <Link href="/blog">
                     View all
                     <IconChevronRight className="h-4 w-4 ml-1" />
                   </Link>
@@ -469,48 +521,47 @@ function DashboardContent({
               </div>
             </CardHeader>
             <CardContent className="pt-0">
-              {recentMembers.length === 0 ? (
+              {latestPosts.length === 0 ? (
                 <div className="py-8 text-center">
-                  <IconUsers className="h-10 w-10 mx-auto mb-3 text-muted-foreground/30" />
-                  <p className="text-sm text-muted-foreground mb-4">No team members yet</p>
+                  <IconCalendar className="h-10 w-10 mx-auto mb-3 text-muted-foreground/30" />
+                  <p className="text-sm text-muted-foreground mb-4">No blog posts yet</p>
                   <Button variant="outline" size="sm" asChild className="rounded-xl">
-                    <Link href="/roster">Add members</Link>
+                    <Link href="/blog">View blog</Link>
                   </Button>
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {recentMembers.map((member) => (
-                    <div
-                      key={member.id}
-                      className="flex items-center gap-3 p-2 rounded-xl"
+                  {latestPosts.map((post) => (
+                    <Link
+                      key={post.id}
+                      href={`/blog/${post.id}`}
+                      className="block p-3 rounded-xl hover:bg-muted/50 transition-colors"
                     >
-                      <Avatar className="h-10 w-10 rounded-xl border">
-                        <AvatarImage src={member.avatarUrl || undefined} />
-                        <AvatarFallback className="rounded-xl text-xs bg-linear-to-br from-primary/20 to-primary/5">
-                          {getInitials(member.name, member.email)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">
-                          {member.name || "Unnamed"}
-                        </p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {member.email}
-                        </p>
+                      <div className="flex gap-3">
+                        {post.imageUrl && (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={post.imageUrl}
+                            alt={post.title}
+                            className="w-16 h-16 rounded-lg object-cover"
+                          />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Badge variant="outline" className="rounded-lg text-xs">
+                              {post.type}
+                            </Badge>
+                            <span className="text-xs text-muted-foreground">
+                              {post.author.name}
+                            </span>
+                          </div>
+                          <h3 className="font-semibold text-sm truncate">{post.title}</h3>
+                          <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
+                            {post.content}
+                          </p>
+                        </div>
                       </div>
-                      <Badge
-                        variant={
-                          member.role === "owner"
-                            ? "default"
-                            : member.role === "coach"
-                            ? "secondary"
-                            : "outline"
-                        }
-                        className="text-[10px] px-1.5 rounded-md"
-                      >
-                        {member.role}
-                      </Badge>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               )}
@@ -547,7 +598,7 @@ function StackedAvatars({
             {visibleUsers.map((user, index) => (
               <Avatar
                 key={user.id}
-                className={`h-7 w-7 rounded-full border-2 ${borderColor} ring-2 ring-background`}
+                className={`h-7 w-7 rounded-full border ${borderColor} ring-2 ring-background`}
                 style={{ zIndex: MAX_VISIBLE - index }}
               >
                 <AvatarImage src={user.avatarUrl || undefined} />
@@ -558,7 +609,7 @@ function StackedAvatars({
             ))}
             {remainingCount > 0 && (
               <div
-                className={`h-7 w-7 rounded-full border-2 ${borderColor} ring-2 ring-background bg-muted flex items-center justify-center text-[10px] font-medium`}
+                className={`h-7 w-7 rounded-full border ${borderColor} ring-2 ring-background bg-muted flex items-center justify-center text-[10px] font-medium`}
                 style={{ zIndex: 0 }}
               >
                 +{remainingCount}

@@ -146,6 +146,10 @@ export const invitations = pgTable(
     invitedById: uuid("invitedById").notNull(),
     expiresAt: timestamp("expiresAt").notNull(),
     used: boolean("used").default(false).notNull(),
+    // Additional user info (optional, can be pre-filled)
+    name: varchar("name", { length: 255 }),
+    phone: varchar("phone", { length: 50 }),
+    address: text("address"),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().notNull(),
   },
@@ -181,12 +185,14 @@ export const channels = pgTable(
     gymId: uuid("gymId").notNull(),
     name: varchar("name", { length: 255 }).notNull(),
     type: channelTypeEnum("type").notNull(),
+    eventId: uuid("eventId"), // Optional: link to event for event-based chats
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().notNull(),
   },
   (table) => ({
     gymIdIdx: index("Channel_gymId_idx").on(table.gymId),
     typeIdx: index("Channel_type_idx").on(table.type),
+    eventIdIdx: index("Channel_eventId_idx").on(table.eventId),
   }),
 );
 
@@ -200,6 +206,7 @@ export const messages = pgTable(
     senderId: uuid("senderId").notNull(),
     content: text("content").notNull(),
     attachmentUrl: varchar("attachmentUrl", { length: 500 }),
+    attachmentType: varchar("attachmentType", { length: 50 }), // 'image', 'file', etc.
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().notNull(),
   },
@@ -208,6 +215,50 @@ export const messages = pgTable(
     channelIdIdx: index("Message_channelId_idx").on(table.channelId),
     senderIdIdx: index("Message_senderId_idx").on(table.senderId),
     createdAtIdx: index("Message_createdAt_idx").on(table.createdAt),
+  }),
+);
+
+// Blog Post table
+export const blogPosts = pgTable(
+  "BlogPost",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    gymId: uuid("gymId").notNull(),
+    authorId: uuid("authorId").notNull(),
+    title: varchar("title", { length: 255 }).notNull(),
+    content: text("content").notNull(),
+    type: varchar("type", { length: 50 }).notNull(), // 'about', 'schedule', 'event', 'general'
+    eventId: uuid("eventId"), // Optional: link to event
+    imageUrl: varchar("imageUrl", { length: 500 }),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    gymIdIdx: index("BlogPost_gymId_idx").on(table.gymId),
+    authorIdIdx: index("BlogPost_authorId_idx").on(table.authorId),
+    eventIdIdx: index("BlogPost_eventId_idx").on(table.eventId),
+    createdAtIdx: index("BlogPost_createdAt_idx").on(table.createdAt),
+  }),
+);
+
+// Notice table (only one active notice per gym)
+export const notices = pgTable(
+  "Notice",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    gymId: uuid("gymId").notNull(),
+    authorId: uuid("authorId").notNull(),
+    title: varchar("title", { length: 255 }).notNull(),
+    content: text("content").notNull(),
+    active: boolean("active").default(false).notNull(),
+    sendEmail: boolean("sendEmail").default(false).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    gymIdIdx: index("Notice_gymId_idx").on(table.gymId),
+    authorIdIdx: index("Notice_authorId_idx").on(table.authorId),
+    activeIdx: index("Notice_active_idx").on(table.active),
   }),
 );
 
@@ -250,6 +301,8 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   sentMessages: many(messages, { relationName: "MessageSender" }),
   announcements: many(announcements),
   reminderLogs: many(reminderLogs),
+  blogPosts: many(blogPosts),
+  notices: many(notices),
 }));
 
 export const gymsRelations = relations(gyms, ({ one, many }) => ({
@@ -264,6 +317,8 @@ export const gymsRelations = relations(gyms, ({ one, many }) => ({
   announcements: many(announcements),
   invitations: many(invitations),
   messages: many(messages),
+  blogPosts: many(blogPosts),
+  notices: many(notices),
 }));
 
 export const eventsRelations = relations(events, ({ one, many }) => ({
@@ -272,6 +327,8 @@ export const eventsRelations = relations(events, ({ one, many }) => ({
     references: [gyms.id],
   }),
   occurrences: many(eventOccurrences),
+  channels: many(channels),
+  blogPosts: many(blogPosts),
 }));
 
 export const eventOccurrencesRelations = relations(
@@ -329,6 +386,10 @@ export const channelsRelations = relations(channels, ({ one, many }) => ({
     fields: [channels.gymId],
     references: [gyms.id],
   }),
+  event: one(events, {
+    fields: [channels.eventId],
+    references: [events.id],
+  }),
   messages: many(messages),
 }));
 
@@ -355,6 +416,32 @@ export const reminderLogsRelations = relations(reminderLogs, ({ one }) => ({
   }),
   user: one(users, {
     fields: [reminderLogs.userId],
+    references: [users.id],
+  }),
+}));
+
+export const blogPostsRelations = relations(blogPosts, ({ one }) => ({
+  gym: one(gyms, {
+    fields: [blogPosts.gymId],
+    references: [gyms.id],
+  }),
+  author: one(users, {
+    fields: [blogPosts.authorId],
+    references: [users.id],
+  }),
+  event: one(events, {
+    fields: [blogPosts.eventId],
+    references: [events.id],
+  }),
+}));
+
+export const noticesRelations = relations(notices, ({ one }) => ({
+  gym: one(gyms, {
+    fields: [notices.gymId],
+    references: [gyms.id],
+  }),
+  author: one(users, {
+    fields: [notices.authorId],
     references: [users.id],
   }),
 }));

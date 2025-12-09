@@ -121,6 +121,58 @@
   }
 }
 
+@layer components {
+  .rich-text-editor .ProseMirror {
+    min-height: 200px;
+    padding: 1rem;
+  }
+  .rich-text-editor .ProseMirror:focus {
+    outline: none;
+  }
+  .rich-text-editor .ProseMirror p.is-editor-empty:first-child::before {
+    content: attr(data-placeholder);
+    float: left;
+    color: hsl(var(--muted-foreground));
+    pointer-events: none;
+    height: 0;
+  }
+  .rich-text-editor .ProseMirror ul,
+  .rich-text-editor .ProseMirror ol {
+    padding-left: 1.5rem;
+  }
+  .rich-text-editor .ProseMirror h1 {
+    font-size: 2em;
+    font-weight: bold;
+    margin-top: 0.67em;
+    margin-bottom: 0.67em;
+  }
+  .rich-text-editor .ProseMirror h2 {
+    font-size: 1.5em;
+    font-weight: bold;
+    margin-top: 0.83em;
+    margin-bottom: 0.83em;
+  }
+  .rich-text-editor .ProseMirror h3 {
+    font-size: 1.17em;
+    font-weight: bold;
+    margin-top: 1em;
+    margin-bottom: 1em;
+  }
+  .rich-text-editor .ProseMirror a {
+    color: hsl(var(--primary));
+    text-decoration: underline;
+  }
+  .rich-text-editor .ProseMirror strong {
+    font-weight: bold;
+  }
+  .rich-text-editor .ProseMirror em {
+    font-style: italic;
+  }
+  .rich-text-editor .ProseMirror s {
+    text-decoration: line-through;
+  }
+}
+
 @keyframes laserFlow1 {
   0%, 100% {
     transform: translateX(-100%) scaleX(0.5);

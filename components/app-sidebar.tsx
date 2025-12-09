@@ -8,6 +8,9 @@ import {
   IconListCheck,
   IconUsers,
   IconBuilding,
+  IconMessageCircle,
+  IconNews,
+  IconBell,
 } from "@tabler/icons-react"
 import Link from "next/link"
 
@@ -51,6 +54,12 @@ export function AppSidebar({ user, gymName, gymLogo, ...props }: AppSidebarProps
       roles: ["owner", "coach"],
     },
     {
+      title: "Chat",
+      url: "/chat",
+      icon: IconMessageCircle,
+      roles: ["owner", "coach", "athlete"],
+    },
+    {
       title: "Members",
       url: "/roster",
       icon: IconUsers,
@@ -65,6 +74,18 @@ export function AppSidebar({ user, gymName, gymLogo, ...props }: AppSidebarProps
   ].filter((item) => item.roles.includes(user.role));
 
   const navSecondary = [
+    {
+      title: "Blog Posts",
+      url: "/blog",
+      icon: IconNews,
+      roles: ["owner", "coach"],
+    },
+    {
+      title: "Notices",
+      url: "/notices",
+      icon: IconBell,
+      roles: ["owner", "coach"],
+    },
     {
       title: "Gym Settings",
       url: "/gym-settings",
@@ -85,7 +106,7 @@ export function AppSidebar({ user, gymName, gymLogo, ...props }: AppSidebarProps
   }
 
   return (
-    <Sidebar collapsible="offcanvas" variant="floating" {...props}>
+    <Sidebar collapsible="offcanvas" variant="floating" className="hidden lg:flex" {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>

@@ -44,7 +44,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const { emails, role } = await request.json();
+    const { emails, role, userInfo } = await request.json();
 
     if (!emails || !Array.isArray(emails) || emails.length === 0) {
       return NextResponse.json(
@@ -96,7 +96,7 @@ export async function POST(request: Request) {
         const expiresAt = new Date();
         expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
 
-        // Create invitation
+        // Create invitation with optional user info
         const [invitation] = await db.insert(invitations).values({
           gymId: dbUser.gymId,
           email,
@@ -104,6 +104,9 @@ export async function POST(request: Request) {
           token,
           invitedById: user.id,
           expiresAt,
+          name: userInfo?.name || null,
+          phone: userInfo?.phone || null,
+          address: userInfo?.address || null,
         }).returning();
 
         // Send email

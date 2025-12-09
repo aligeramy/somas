@@ -64,6 +64,9 @@ interface User {
 
 export default function RosterPage() {
   const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
   const [role, setRole] = useState<"coach" | "athlete">("athlete");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -187,6 +190,11 @@ export default function RosterPage() {
         body: JSON.stringify({
           emails: [email],
           role,
+          userInfo: {
+            name: name.trim() || undefined,
+            phone: phone.trim() || undefined,
+            address: address.trim() || undefined,
+          },
         }),
       });
 
@@ -198,6 +206,9 @@ export default function RosterPage() {
 
       setSuccess("Invitation sent successfully!");
       setEmail("");
+      setName("");
+      setPhone("");
+      setAddress("");
       setIsAddMemberDialogOpen(false);
       fetchRoster();
     } catch (err) {
@@ -306,7 +317,7 @@ export default function RosterPage() {
             </DialogHeader>
             <div
               {...getRootProps()}
-              className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${
+              className={`border border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${
                 isDragActive
                   ? "border-primary bg-primary/5"
                   : "border-muted-foreground/25 hover:border-muted-foreground/50"
@@ -368,7 +379,7 @@ export default function RosterPage() {
                 </div>
               )}
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">Email *</Label>
                 <Input
                   id="email"
                   type="email"
@@ -377,6 +388,39 @@ export default function RosterPage() {
                   placeholder="user@example.com"
                   className="h-11 rounded-xl"
                   required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="name">Name</Label>
+                <Input
+                  id="name"
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Full name"
+                  className="h-11 rounded-xl"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone</Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="Phone number"
+                  className="h-11 rounded-xl"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="address">Address</Label>
+                <Input
+                  id="address"
+                  type="text"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  placeholder="Address"
+                  className="h-11 rounded-xl"
                 />
               </div>
               <div className="space-y-2">

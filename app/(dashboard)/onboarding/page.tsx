@@ -131,7 +131,7 @@ export default function OnboardingPage() {
               <Label>Logo (Optional)</Label>
               <div
                 {...getRootProps()}
-                className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+                className={`border border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
                   isDragActive
                     ? "border-primary bg-primary/5"
                     : "border-muted-foreground/25 hover:border-muted-foreground/50"

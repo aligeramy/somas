@@ -10,7 +10,7 @@ interface PageHeaderProps {
 
 export function PageHeader({ title, children }: PageHeaderProps) {
   return (
-    <div className="sticky z-10 -top-1 mb-4">
+    <div className="sticky z-10 -top-1 mb-2">
       <header className="flex h-14 shrink-0 items-center gap-2 bg-card border rounded-xl shadow-sm px-4 lg:px-6">
         <SidebarTrigger className="-ml-1 md:hidden" />
         <div className="flex flex-1 items-center justify-between gap-4">

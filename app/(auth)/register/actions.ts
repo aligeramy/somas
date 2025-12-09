@@ -58,6 +58,10 @@ export async function registerAction(formData: FormData) {
     role: userRole as "owner" | "coach" | "athlete",
     gymId,
     onboarded: false,
+    // Pre-populate with invitation info if available
+    name: invitation?.name || null,
+    phone: invitation?.phone || null,
+    address: invitation?.address || null,
   });
 
   // Mark invitation as used

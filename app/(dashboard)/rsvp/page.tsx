@@ -327,7 +327,7 @@ export default function RSVPPage() {
                         {going.slice(0, 4).map((r) => (
                           <Avatar
                             key={r.id}
-                            className="h-8 w-8 rounded-xl border-2 border-background"
+                            className="h-8 w-8 rounded-xl border border-background"
                           >
                             <AvatarImage src={r.user?.avatarUrl || undefined} />
                             <AvatarFallback className="rounded-xl text-[10px] bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300">
@@ -339,7 +339,7 @@ export default function RSVPPage() {
                           </Avatar>
                         ))}
                         {going.length > 4 && (
-                          <div className="h-8 w-8 rounded-xl bg-muted flex items-center justify-center text-xs font-medium border-2 border-background">
+                          <div className="h-8 w-8 rounded-xl bg-muted flex items-center justify-center text-xs font-medium border border-background">
                             +{going.length - 4}
                           </div>
                         )}

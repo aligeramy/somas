@@ -7,8 +7,9 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
+import { Separator } from "@/components/ui/separator";
 import { PageHeader } from "@/components/page-header";
-import { IconCamera, IconCheck } from "@tabler/icons-react";
+import { IconCamera, IconCheck, IconBuilding } from "@tabler/icons-react";
 import { useDropzone } from "react-dropzone";
 import { createClient } from "@/lib/supabase/client";
 
@@ -27,9 +28,16 @@ interface UserProfile {
   };
 }
 
+interface GymProfile {
+  id: string;
+  name: string;
+  logoUrl: string | null;
+}
+
 export default function ProfilePage() {
   const supabase = createClient();
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [gym, setGym] = useState<GymProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -46,6 +54,11 @@ export default function ProfilePage() {
   // Avatar upload
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+
+  // Gym settings fields (for owners)
+  const [gymName, setGymName] = useState("");
+  const [gymLogoFile, setGymLogoFile] = useState<File | null>(null);
+  const [gymLogoPreview, setGymLogoPreview] = useState<string | null>(null);
 
   const { getRootProps: getAvatarRootProps, getInputProps: getAvatarInputProps } = useDropzone({
     accept: {
@@ -65,8 +78,27 @@ export default function ProfilePage() {
     },
   });
 
+  const { getRootProps: getLogoRootProps, getInputProps: getLogoInputProps } = useDropzone({
+    accept: {
+      "image/*": [".png", ".jpg", ".jpeg", ".gif", ".webp"],
+    },
+    maxFiles: 1,
+    onDrop: (acceptedFiles) => {
+      if (acceptedFiles.length > 0) {
+        const file = acceptedFiles[0];
+        setGymLogoFile(file);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setGymLogoPreview(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+      }
+    },
+  });
+
   useEffect(() => {
     loadProfile();
+    loadGym();
   }, []);
 
   async function loadProfile() {
@@ -86,6 +118,20 @@ export default function ProfilePage() {
       setError(err instanceof Error ? err.message : "Failed to load profile");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function loadGym() {
+    try {
+      const response = await fetch("/api/gym");
+      if (response.ok) {
+        const data = await response.json();
+        setGym(data.gym);
+        setGymName(data.gym.name || "");
+      }
+    } catch (err) {
+      // Not an error if user is not owner
+      console.log("Gym not accessible (user may not be owner)");
     }
   }
 
@@ -144,6 +190,51 @@ export default function ProfilePage() {
       });
 
       if (!response.ok) throw new Error("Failed to save profile");
+
+      // Update gym settings if user is owner
+      if (profile?.role === "owner" && gym) {
+        let logoUrl = gym.logoUrl || null;
+
+        // Upload gym logo if provided
+        if (gymLogoFile) {
+          const {
+            data: { user: authUser },
+          } = await supabase.auth.getUser();
+          if (!authUser) throw new Error("Not authenticated");
+
+          const fileExt = gymLogoFile.name.split(".").pop();
+          const fileName = `${authUser.id}-${Date.now()}.${fileExt}`;
+          const filePath = `logos/${fileName}`;
+
+          const { error: uploadError } = await supabase.storage
+            .from("logos")
+            .upload(filePath, gymLogoFile, {
+              cacheControl: "3600",
+              upsert: false,
+            });
+
+          if (uploadError) {
+            throw new Error(`Failed to upload logo: ${uploadError.message}`);
+          }
+
+          const {
+            data: { publicUrl },
+          } = supabase.storage.from("logos").getPublicUrl(filePath);
+          logoUrl = publicUrl;
+        }
+
+        const gymResponse = await fetch("/api/gym", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: gymName,
+            logoUrl,
+          }),
+        });
+
+        if (!gymResponse.ok) throw new Error("Failed to save gym settings");
+        await loadGym();
+      }
       
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
@@ -316,6 +407,67 @@ export default function ProfilePage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Gym Settings (for owners only) */}
+          {profile?.role === "owner" && gym && (
+            <>
+              <Card className="rounded-xl">
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <IconBuilding className="h-5 w-5" />
+                    Gym Settings
+                  </CardTitle>
+                  <CardDescription>Manage your gym information</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Gym Logo Section */}
+                  <div className="flex items-center gap-4">
+                    <div className="relative">
+                      {gymLogoPreview || gym.logoUrl ? (
+                        <img
+                          src={gymLogoPreview || gym.logoUrl || ""}
+                          alt="Gym logo"
+                          className="h-24 w-24 rounded-xl border-4 border-background shadow-lg object-cover"
+                        />
+                      ) : (
+                        <div className="h-24 w-24 rounded-xl border-4 border-background shadow-lg bg-muted flex items-center justify-center">
+                          <span className="text-3xl font-bold">
+                            {gymName[0]?.toUpperCase() || "G"}
+                          </span>
+                        </div>
+                      )}
+                      <button
+                        {...getLogoRootProps()}
+                        className="absolute bottom-0 right-0 h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg hover:bg-primary/90 transition-colors cursor-pointer"
+                      >
+                        <input {...getLogoInputProps()} />
+                        <IconCamera className="h-4 w-4" />
+                      </button>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm text-muted-foreground">
+                        Click the camera icon to upload a new logo. Recommended size: 512x512px
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Gym Name */}
+                  <div className="space-y-2">
+                    <Label htmlFor="gymName" className="text-sm">Gym Name</Label>
+                    <Input
+                      id="gymName"
+                      value={gymName}
+                      onChange={(e) => setGymName(e.target.value)}
+                      placeholder="Gym Name"
+                      className="rounded-xl h-11"
+                      required
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+              <Separator className="my-6" />
+            </>
+          )}
 
         </div>
       </div>

@@ -316,7 +316,7 @@ export default function NewEventPage() {
                             }`}
                             onClick={() => setEndType("never")}
                           >
-                            <div className={`h-4 w-4 rounded-full border-2 ${
+                            <div className={`h-4 w-4 rounded-full border ${
                               endType === "never" ? "border-primary bg-primary" : "border-muted-foreground"
                             }`}>
                               {endType === "never" && <div className="h-full w-full rounded-full bg-primary-foreground scale-50" />}
@@ -329,7 +329,7 @@ export default function NewEventPage() {
                             }`}
                             onClick={() => setEndType("count")}
                           >
-                            <div className={`h-4 w-4 rounded-full border-2 ${
+                            <div className={`h-4 w-4 rounded-full border ${
                               endType === "count" ? "border-primary bg-primary" : "border-muted-foreground"
                             }`}>
                               {endType === "count" && <div className="h-full w-full rounded-full bg-primary-foreground scale-50" />}
@@ -352,7 +352,7 @@ export default function NewEventPage() {
                             }`}
                             onClick={() => setEndType("date")}
                           >
-                            <div className={`h-4 w-4 rounded-full border-2 ${
+                            <div className={`h-4 w-4 rounded-full border ${
                               endType === "date" ? "border-primary bg-primary" : "border-muted-foreground"
                             }`}>
                               {endType === "date" && <div className="h-full w-full rounded-full bg-primary-foreground scale-50" />}

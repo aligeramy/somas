@@ -175,7 +175,7 @@ export function CustomEventCalendar({
                     dayClasses += "bg-destructive/20 text-destructive line-through border-destructive/50 hover:bg-destructive/30 hover:text-destructive ";
                   }
                   if (occ.isCustom) {
-                    dayClasses += "border-2 border-dashed border-primary ";
+                    dayClasses += "border border-dashed border-primary ";
                   }
                 }
 
@@ -209,7 +209,7 @@ export function CustomEventCalendar({
                 <span>Canceled</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="h-4 w-4 rounded-lg border-2 border-dashed border-primary" />
+                <div className="h-4 w-4 rounded-lg border border-dashed border-primary" />
                 <span>Custom</span>
               </div>
             </div>

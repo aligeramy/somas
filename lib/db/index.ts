@@ -12,6 +12,14 @@ if (!connectionString) {
 // prepare: false is REQUIRED for Transaction pool mode (port 6543)
 const client = postgres(connectionString, {
   prepare: false,
+  max: 10, // Maximum number of connections in the pool
+  idle_timeout: 20, // Close idle clients after 20 seconds
+  connect_timeout: 10, // Connection timeout in seconds
+  max_lifetime: 60 * 30, // Maximum lifetime of a connection in seconds (30 minutes)
+  onnotice: () => {}, // Suppress notices
+  transform: {
+    undefined: null, // Transform undefined to null
+  },
 });
 
 export const db = drizzle(client, { schema });

@@ -18,8 +18,33 @@ export default function ProfileSetupPage() {
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loadingProfile, setLoadingProfile] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const supabase = createClient();
+
+  useEffect(() => {
+    loadUserProfile();
+  }, []);
+
+  async function loadUserProfile() {
+    try {
+      setLoadingProfile(true);
+      const response = await fetch("/api/profile");
+      if (response.ok) {
+        const data = await response.json();
+        // Pre-populate fields if user already has data (from invitation)
+        if (data.user.name) setName(data.user.name);
+        if (data.user.phone) setPhone(data.user.phone);
+        if (data.user.address) setAddress(data.user.address);
+        if (data.user.avatarUrl) setAvatarPreview(data.user.avatarUrl);
+      }
+    } catch (err) {
+      // Ignore errors, user might not exist yet
+      console.log("Could not load existing profile");
+    } finally {
+      setLoadingProfile(false);
+    }
+  }
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: {
@@ -104,13 +129,27 @@ export default function ProfileSetupPage() {
     }
   }
 
+  if (loadingProfile) {
+    return (
+      <div className="flex min-h-screen items-center justify-center p-6">
+        <Card className="w-full max-w-2xl">
+          <CardContent className="pt-6">
+            <div className="animate-pulse text-muted-foreground text-center">
+              Loading...
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen items-center justify-center p-6">
       <Card className="w-full max-w-2xl">
         <CardHeader>
           <CardTitle>Complete Your Profile</CardTitle>
           <CardDescription>
-            Set up your profile to get started with TOM
+            Set up your profile to get started with TOM. You can edit any pre-filled information.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -157,7 +196,7 @@ export default function ProfileSetupPage() {
               <Label>Profile Photo (Optional)</Label>
               <div
                 {...getRootProps()}
-                className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+                className={`border border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
                   isDragActive
                     ? "border-primary bg-primary/5"
                     : "border-muted-foreground/25 hover:border-muted-foreground/50"

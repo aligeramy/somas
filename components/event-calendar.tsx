@@ -237,7 +237,7 @@ export function EventCalendar({
           <span>Canceled</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="h-3 w-3 rounded border-2 border-dashed border-primary" />
+          <div className="h-3 w-3 rounded border border-dashed border-primary" />
           <span>Custom</span>
         </div>
       </div>
