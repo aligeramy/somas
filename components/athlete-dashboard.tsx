@@ -1,0 +1,246 @@
+"use client";
+
+import { useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/page-header";
+import { IconCheck, IconX, IconClock, IconCalendar } from "@tabler/icons-react";
+
+interface Occurrence {
+  id: string;
+  date: string;
+  status: string;
+  eventId: string;
+  eventTitle: string;
+  startTime: string;
+  endTime: string;
+  rsvpStatus: string | null;
+}
+
+interface AthleteDashboardProps {
+  userName: string | null;
+  occurrences: Occurrence[];
+}
+
+export function AthleteDashboard({ userName, occurrences }: AthleteDashboardProps) {
+  const [rsvpStates, setRsvpStates] = useState<Record<string, string | null>>(
+    Object.fromEntries(occurrences.map((o) => [o.id, o.rsvpStatus]))
+  );
+  const [loading, setLoading] = useState<string | null>(null);
+
+  async function handleRsvp(occurrenceId: string, status: "going" | "not_going") {
+    setLoading(occurrenceId);
+    try {
+      const response = await fetch("/api/rsvp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ occurrenceId, status }),
+      });
+      if (response.ok) {
+        setRsvpStates((prev) => ({ ...prev, [occurrenceId]: status }));
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(null);
+    }
+  }
+
+  function formatDate(dateValue: string) {
+    const date = new Date(dateValue);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    let relative = "";
+    if (date.toDateString() === today.toDateString()) relative = "Today";
+    else if (date.toDateString() === tomorrow.toDateString()) relative = "Tomorrow";
+
+    return {
+      day: date.getDate().toString(),
+      month: date.toLocaleDateString("en-US", { month: "short" }).toUpperCase(),
+      weekday: date.toLocaleDateString("en-US", { weekday: "long" }),
+      relative,
+    };
+  }
+
+  function formatTime(time: string) {
+    const [hours, minutes] = time.split(":");
+    const hour = parseInt(hours);
+    const ampm = hour >= 12 ? "PM" : "AM";
+    const displayHour = hour % 12 || 12;
+    return `${displayHour}:${minutes} ${ampm}`;
+  }
+
+  // Get next event
+  const nextEvent = occurrences[0];
+
+  return (
+    <div className="flex flex-1 flex-col">
+      <PageHeader
+        title={`Hey${userName ? `, ${userName.split(" ")[0]}` : ""}! 👋`}
+        description="Here's your upcoming schedule"
+      />
+
+      <div className="flex-1 overflow-auto">
+        <div className="p-4 lg:p-6 space-y-6 max-w-2xl mx-auto">
+          {occurrences.length === 0 ? (
+            <Card className="rounded-2xl border-dashed">
+              <CardContent className="py-16 text-center">
+                <IconCalendar className="h-12 w-12 mx-auto mb-4 text-muted-foreground/30" />
+                <p className="text-muted-foreground">No upcoming events</p>
+                <p className="text-sm text-muted-foreground mt-1">Check back later for new sessions!</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <>
+              {/* Featured Next Event */}
+              {nextEvent && (
+                <Card className={`rounded-2xl overflow-hidden ${
+                  rsvpStates[nextEvent.id] === "going"
+                    ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800"
+                    : rsvpStates[nextEvent.id] === "not_going"
+                    ? "bg-muted/50"
+                    : "bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20"
+                }`}>
+                  <CardContent className="p-6">
+                    <div className="flex items-start gap-4">
+                      {/* Big Date */}
+                      <div className={`h-20 w-20 rounded-2xl flex flex-col items-center justify-center shrink-0 ${
+                        rsvpStates[nextEvent.id] === "going"
+                          ? "bg-emerald-500 text-white"
+                          : rsvpStates[nextEvent.id] === "not_going"
+                          ? "bg-muted text-muted-foreground"
+                          : "bg-primary text-primary-foreground"
+                      }`}>
+                        <span className="text-3xl font-bold leading-none">{formatDate(nextEvent.date).day}</span>
+                        <span className="text-xs font-medium opacity-80 mt-1">{formatDate(nextEvent.date).month}</span>
+                      </div>
+
+                      {/* Event Details */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          {formatDate(nextEvent.date).relative && (
+                            <Badge variant="secondary" className="text-xs rounded-md">
+                              {formatDate(nextEvent.date).relative}
+                            </Badge>
+                          )}
+                          <span className="text-xs text-muted-foreground">Next up</span>
+                        </div>
+                        <h2 className="text-xl font-semibold">{nextEvent.eventTitle}</h2>
+                        <p className="text-sm text-muted-foreground mt-1 flex items-center gap-2">
+                          <span className="whitespace-nowrap">{formatDate(nextEvent.date).weekday}</span>
+                          <span>•</span>
+                          <span className="flex items-center gap-1">
+                            <IconClock className="h-3.5 w-3.5" />
+                            {formatTime(nextEvent.startTime)} - {formatTime(nextEvent.endTime)}
+                          </span>
+                        </p>
+
+                        {/* RSVP Buttons */}
+                        <div className="flex gap-2 mt-4">
+                          <Button
+                            size="lg"
+                            variant={rsvpStates[nextEvent.id] === "going" ? "default" : "outline"}
+                            onClick={() => handleRsvp(nextEvent.id, "going")}
+                            disabled={loading === nextEvent.id}
+                            className={`flex-1 h-12 rounded-xl gap-2 ${
+                              rsvpStates[nextEvent.id] === "going" ? "bg-emerald-600 hover:bg-emerald-700" : ""
+                            }`}
+                          >
+                            <IconCheck className="h-5 w-5" />
+                            {rsvpStates[nextEvent.id] === "going" ? "Going!" : "I'm In"}
+                          </Button>
+                          <Button
+                            size="lg"
+                            variant={rsvpStates[nextEvent.id] === "not_going" ? "secondary" : "outline"}
+                            onClick={() => handleRsvp(nextEvent.id, "not_going")}
+                            disabled={loading === nextEvent.id}
+                            className="flex-1 h-12 rounded-xl gap-2"
+                          >
+                            <IconX className="h-5 w-5" />
+                            Can't Make It
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Rest of Events */}
+              {occurrences.length > 1 && (
+                <div className="space-y-2">
+                  <h3 className="text-sm font-medium text-muted-foreground px-1">Coming Up</h3>
+                  {occurrences.slice(1).map((occ) => {
+                    const dateInfo = formatDate(occ.date);
+                    const rsvpStatus = rsvpStates[occ.id];
+                    const isLoading = loading === occ.id;
+
+                    return (
+                      <Card key={occ.id} className="rounded-2xl">
+                        <CardContent className="p-4">
+                          <div className="flex items-center gap-4">
+                            {/* Date */}
+                            <div className={`h-14 w-14 rounded-xl flex flex-col items-center justify-center shrink-0 ${
+                              rsvpStatus === "going"
+                                ? "bg-emerald-100 dark:bg-emerald-950/50"
+                                : rsvpStatus === "not_going"
+                                ? "bg-muted"
+                                : "bg-primary/10"
+                            }`}>
+                              <span className={`text-lg font-bold leading-none ${
+                                rsvpStatus === "going" ? "text-emerald-600" : rsvpStatus === "not_going" ? "text-muted-foreground" : ""
+                              }`}>{dateInfo.day}</span>
+                              <span className="text-[10px] font-medium text-muted-foreground">{dateInfo.month}</span>
+                            </div>
+
+                            {/* Details */}
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium">{occ.eventTitle}</p>
+                              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                <IconClock className="h-3 w-3" />
+                                {formatTime(occ.startTime)}
+                              </p>
+                            </div>
+
+                            {/* RSVP Buttons */}
+                            <div className="flex gap-1">
+                              <Button
+                                size="sm"
+                                variant={rsvpStatus === "going" ? "default" : "outline"}
+                                onClick={() => handleRsvp(occ.id, "going")}
+                                disabled={isLoading}
+                                className={`h-9 w-9 p-0 rounded-lg ${
+                                  rsvpStatus === "going" ? "bg-emerald-600 hover:bg-emerald-700" : ""
+                                }`}
+                              >
+                                <IconCheck className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant={rsvpStatus === "not_going" ? "secondary" : "outline"}
+                                onClick={() => handleRsvp(occ.id, "not_going")}
+                                disabled={isLoading}
+                                className="h-9 w-9 p-0 rounded-lg"
+                              >
+                                <IconX className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+

@@ -155,6 +155,8 @@ export async function POST(request: Request) {
           subject: `Invitation to join ${gym.name} on TOM`,
           react: InvitationEmail({
             gymName: gym.name,
+            gymLogoUrl: gym.logoUrl,
+            inviterName: dbUser.name || "A team member",
             inviteUrl,
             role,
           }),

@@ -2,28 +2,17 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { PageHeader } from "@/components/page-header";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   IconPlus,
   IconClock,
@@ -32,7 +21,11 @@ import {
   IconRepeat,
   IconCheck,
   IconHistory,
+  IconBell,
+  IconEdit,
+  IconDotsVertical,
 } from "@tabler/icons-react";
+import Link from "next/link";
 
 interface EventOccurrence {
   id: string;
@@ -73,17 +66,9 @@ export default function EventsPage() {
   const [selectedOccurrence, setSelectedOccurrence] = useState<EventOccurrence | null>(null);
   const [occurrenceRsvps, setOccurrenceRsvps] = useState<RSVPUser[]>([]);
   const [rsvpLoading, setRsvpLoading] = useState(false);
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [showPastEvents, setShowPastEvents] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Create event form
-  const [title, setTitle] = useState("");
-  const [startTime, setStartTime] = useState("");
-  const [endTime, setEndTime] = useState("");
-  const [recurrence, setRecurrence] = useState<"daily" | "weekly" | "monthly">("weekly");
-  const [dayOfWeek, setDayOfWeek] = useState("");
-  const [createLoading, setCreateLoading] = useState(false);
+  const [sendingReminder, setSendingReminder] = useState(false);
 
   useEffect(() => {
     loadEvents();
@@ -140,42 +125,6 @@ export default function EventsPage() {
     }
   }
 
-  async function handleCreateEvent(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-    setCreateLoading(true);
-
-    try {
-      let recurrenceRule = "";
-      if (recurrence === "daily") {
-        recurrenceRule = "FREQ=DAILY";
-      } else if (recurrence === "weekly") {
-        recurrenceRule = `FREQ=WEEKLY;BYDAY=${dayOfWeek || "MO"}`;
-      } else if (recurrence === "monthly") {
-        recurrenceRule = "FREQ=MONTHLY";
-      }
-
-      const response = await fetch("/api/events", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, startTime, endTime, recurrenceRule }),
-      });
-
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || "Failed to create event");
-
-      setTitle("");
-      setStartTime("");
-      setEndTime("");
-      setCreateDialogOpen(false);
-      await loadEvents();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
-    } finally {
-      setCreateLoading(false);
-    }
-  }
-
   async function handleCancelOccurrence(occurrenceId: string) {
     try {
       const occurrence = selectedEvent?.occurrences.find((o) => o.id === occurrenceId);
@@ -195,6 +144,45 @@ export default function EventsPage() {
     }
   }
 
+  async function handleEditRsvp(userId: string, status: "going" | "not_going") {
+    if (!selectedOccurrence) return;
+    try {
+      const response = await fetch("/api/rsvp/edit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId,
+          occurrenceId: selectedOccurrence.id,
+          status,
+        }),
+      });
+      if (!response.ok) throw new Error("Failed to edit RSVP");
+      await loadOccurrenceRsvps(selectedOccurrence.id);
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  async function handleSendReminders() {
+    if (!selectedOccurrence) return;
+    setSendingReminder(true);
+    try {
+      const response = await fetch("/api/reminders/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ occurrenceId: selectedOccurrence.id }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+      alert(`Sent ${data.sent} reminder(s)`);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to send reminders");
+    } finally {
+      setSendingReminder(false);
+    }
+  }
+
   function selectEvent(event: Event) {
     setSelectedEvent(event);
     setSelectedOccurrence(null);
@@ -209,11 +197,11 @@ export default function EventsPage() {
   function formatDate(dateValue: string | Date | undefined | null) {
     if (!dateValue) return { day: "", month: "", weekday: "" };
     const date = typeof dateValue === "string" ? new Date(dateValue) : dateValue;
-    if (isNaN(date.getTime())) return { day: "", month: "", weekday: "" };
+    if (Number.isNaN(date.getTime())) return { day: "", month: "", weekday: "" };
     return {
       day: date.getDate().toString(),
       month: date.toLocaleDateString("en-US", { month: "short" }).toUpperCase(),
-      weekday: date.toLocaleDateString("en-US", { weekday: "short" }),
+      weekday: date.toLocaleDateString("en-US", { weekday: "long" }),
     };
   }
 
@@ -221,7 +209,7 @@ export default function EventsPage() {
     if (!time) return "";
     const [hours, minutes] = time.split(":");
     const hour = parseInt(hours);
-    if (isNaN(hour)) return time;
+    if (Number.isNaN(hour)) return time;
     const ampm = hour >= 12 ? "PM" : "AM";
     const displayHour = hour % 12 || 12;
     return `${displayHour}:${minutes} ${ampm}`;
@@ -270,70 +258,12 @@ export default function EventsPage() {
   return (
     <div className="flex flex-1 flex-col h-[calc(100vh-var(--header-height))]">
       <PageHeader title="Events" description="Manage training sessions">
-        <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm" className="gap-2 rounded-xl">
-              <IconPlus className="h-4 w-4" />
-              New Event
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-md rounded-2xl">
-            <DialogHeader>
-              <DialogTitle>Create Event</DialogTitle>
-              <DialogDescription>Set up a recurring training session</DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleCreateEvent} className="space-y-4 pt-4">
-              {error && (
-                <div className="bg-destructive/10 text-destructive rounded-xl p-3 text-sm">{error}</div>
-              )}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Event Name</Label>
-                <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Morning Practice" className="h-11 rounded-xl" required />
-              </div>
-              <div className="grid gap-4 grid-cols-2">
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Start</Label>
-                  <Input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className="h-11 rounded-xl" required />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">End</Label>
-                  <Input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} className="h-11 rounded-xl" required />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Frequency</Label>
-                <Select value={recurrence} onValueChange={(v) => setRecurrence(v as any)}>
-                  <SelectTrigger className="h-11 rounded-xl"><SelectValue /></SelectTrigger>
-                  <SelectContent className="rounded-xl">
-                    <SelectItem value="daily">Every Day</SelectItem>
-                    <SelectItem value="weekly">Every Week</SelectItem>
-                    <SelectItem value="monthly">Every Month</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              {recurrence === "weekly" && (
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Day</Label>
-                  <Select value={dayOfWeek} onValueChange={setDayOfWeek}>
-                    <SelectTrigger className="h-11 rounded-xl"><SelectValue placeholder="Select day" /></SelectTrigger>
-                    <SelectContent className="rounded-xl">
-                      <SelectItem value="MO">Monday</SelectItem>
-                      <SelectItem value="TU">Tuesday</SelectItem>
-                      <SelectItem value="WE">Wednesday</SelectItem>
-                      <SelectItem value="TH">Thursday</SelectItem>
-                      <SelectItem value="FR">Friday</SelectItem>
-                      <SelectItem value="SA">Saturday</SelectItem>
-                      <SelectItem value="SU">Sunday</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-              <Button type="submit" className="w-full h-11 rounded-xl" disabled={createLoading || !title || !startTime || !endTime}>
-                {createLoading ? "Creating..." : "Create Event"}
-              </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
+        <Button size="sm" className="gap-2 rounded-xl" asChild>
+          <Link href="/events/new">
+            <IconPlus className="h-4 w-4" />
+            New Event
+          </Link>
+        </Button>
       </PageHeader>
 
       <div className="flex flex-1 overflow-hidden">
@@ -346,32 +276,28 @@ export default function EventsPage() {
                   No events yet
                 </div>
               ) : (
-                events.map((event) => {
-                  const nextOcc = event.occurrences.find((o) => !isPastDate(o.date));
-                  const nextDate = nextOcc ? formatDate(nextOcc.date) : null;
-                  return (
-                    <button
-                      key={event.id}
-                      onClick={() => selectEvent(event)}
-                      className={`w-full text-left p-3 rounded-xl mb-1 transition-all ${
-                        selectedEvent?.id === event.id
-                          ? "bg-primary text-primary-foreground"
-                          : "hover:bg-muted"
-                      }`}
-                    >
-                      <p className="font-medium truncate text-sm">{event.title}</p>
-                      <div className={`flex items-center gap-2 mt-1.5 text-xs ${
-                        selectedEvent?.id === event.id ? "text-primary-foreground/70" : "text-muted-foreground"
-                      }`}>
-                        <IconClock className="h-3 w-3" />
-                        {formatTime(event.startTime)}
-                        <span className="opacity-50">•</span>
-                        <IconRepeat className="h-3 w-3" />
-                        {getRecurrenceLabel(event.recurrenceRule)}
-                      </div>
-                    </button>
-                  );
-                })
+                events.map((event) => (
+                  <button
+                    key={event.id}
+                    onClick={() => selectEvent(event)}
+                    className={`w-full text-left p-3 rounded-xl mb-1 transition-all ${
+                      selectedEvent?.id === event.id
+                        ? "bg-primary text-primary-foreground"
+                        : "hover:bg-muted"
+                    }`}
+                  >
+                    <p className="font-medium truncate text-sm">{event.title}</p>
+                    <div className={`flex items-center gap-2 mt-1.5 text-xs ${
+                      selectedEvent?.id === event.id ? "text-primary-foreground/70" : "text-muted-foreground"
+                    }`}>
+                      <IconClock className="h-3 w-3" />
+                      {formatTime(event.startTime)}
+                      <span className="opacity-50">•</span>
+                      <IconRepeat className="h-3 w-3" />
+                      {getRecurrenceLabel(event.recurrenceRule)}
+                    </div>
+                  </button>
+                ))
               )}
             </div>
           </ScrollArea>
@@ -407,8 +333,7 @@ export default function EventsPage() {
                               : "hover:bg-muted"
                           } ${isPast ? "opacity-50" : ""} ${occ.status === "canceled" ? "opacity-40" : ""}`}
                         >
-                          {/* Big Date Display */}
-                          <div className={`h-14 w-14 rounded-xl flex flex-col items-center justify-center flex-shrink-0 ${
+                          <div className={`h-14 w-14 rounded-xl flex flex-col items-center justify-center shrink-0 ${
                             selectedOccurrence?.id === occ.id 
                               ? "bg-primary text-primary-foreground" 
                               : "bg-muted"
@@ -417,7 +342,7 @@ export default function EventsPage() {
                             <span className="text-[10px] font-medium opacity-70 mt-0.5">{dateInfo.month}</span>
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="font-medium text-sm">{dateInfo.weekday}</p>
+                            <p className="font-medium text-sm whitespace-nowrap">{dateInfo.weekday}</p>
                             <p className="text-xs text-muted-foreground">
                               {formatTime(selectedEvent.startTime)}
                             </p>
@@ -459,17 +384,31 @@ export default function EventsPage() {
                     {formatDate(selectedOccurrence.date).weekday}, {formatDate(selectedOccurrence.date).month} {formatDate(selectedOccurrence.date).day} • {formatTime(selectedEvent?.startTime)}
                   </p>
                 </div>
-                {selectedOccurrence.status !== "canceled" && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleCancelOccurrence(selectedOccurrence.id)}
-                    className="text-destructive hover:text-destructive rounded-xl"
-                  >
-                    <IconX className="h-4 w-4 mr-1" />
-                    Cancel
-                  </Button>
-                )}
+                <div className="flex items-center gap-2">
+                  {notAnsweredUsers.length > 0 && selectedOccurrence.status !== "canceled" && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleSendReminders}
+                      disabled={sendingReminder}
+                      className="gap-2 rounded-xl"
+                    >
+                      <IconBell className="h-4 w-4" />
+                      {sendingReminder ? "Sending..." : `Remind (${notAnsweredUsers.length})`}
+                    </Button>
+                  )}
+                  {selectedOccurrence.status !== "canceled" && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleCancelOccurrence(selectedOccurrence.id)}
+                      className="text-destructive hover:text-destructive rounded-xl"
+                    >
+                      <IconX className="h-4 w-4 mr-1" />
+                      Cancel
+                    </Button>
+                  )}
+                </div>
               </div>
               <div className="flex-1 overflow-hidden">
                 {rsvpLoading ? (
@@ -495,19 +434,23 @@ export default function EventsPage() {
                       </TabsList>
                     </div>
                     <TabsContent value="all" className="flex-1 overflow-auto mt-0 p-4">
-                      <UserList users={gymMembers.map((m) => ({
-                        ...m,
-                        status: occurrenceRsvps.find((r) => r.id === m.id)?.status || null,
-                      }))} getInitials={getInitials} />
+                      <UserList
+                        users={gymMembers.map((m) => ({
+                          ...m,
+                          status: occurrenceRsvps.find((r) => r.id === m.id)?.status || null,
+                        }))}
+                        getInitials={getInitials}
+                        onEditRsvp={handleEditRsvp}
+                      />
                     </TabsContent>
                     <TabsContent value="going" className="flex-1 overflow-auto mt-0 p-4">
-                      <UserList users={goingUsers.map((u) => ({ ...u, status: "going" }))} getInitials={getInitials} />
+                      <UserList users={goingUsers.map((u) => ({ ...u, status: "going" }))} getInitials={getInitials} onEditRsvp={handleEditRsvp} />
                     </TabsContent>
                     <TabsContent value="not_going" className="flex-1 overflow-auto mt-0 p-4">
-                      <UserList users={notGoingUsers.map((u) => ({ ...u, status: "not_going" }))} getInitials={getInitials} />
+                      <UserList users={notGoingUsers.map((u) => ({ ...u, status: "not_going" }))} getInitials={getInitials} onEditRsvp={handleEditRsvp} />
                     </TabsContent>
                     <TabsContent value="pending" className="flex-1 overflow-auto mt-0 p-4">
-                      <UserList users={notAnsweredUsers.map((u) => ({ ...u, status: null }))} getInitials={getInitials} />
+                      <UserList users={notAnsweredUsers.map((u) => ({ ...u, status: null }))} getInitials={getInitials} onEditRsvp={handleEditRsvp} />
                     </TabsContent>
                   </Tabs>
                 )}
@@ -534,9 +477,10 @@ interface UserListProps {
     status: string | null;
   }>;
   getInitials: (name: string | null, email: string) => string;
+  onEditRsvp?: (userId: string, status: "going" | "not_going") => void;
 }
 
-function UserList({ users, getInitials }: UserListProps) {
+function UserList({ users, getInitials, onEditRsvp }: UserListProps) {
   if (users.length === 0) {
     return (
       <div className="text-center text-sm text-muted-foreground py-8">
@@ -550,7 +494,7 @@ function UserList({ users, getInitials }: UserListProps) {
       {users.map((user) => (
         <div
           key={user.id}
-          className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 transition-colors"
+          className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 transition-colors group"
         >
           <Avatar className="h-10 w-10 rounded-xl">
             <AvatarImage src={user.avatarUrl || undefined} />
@@ -562,23 +506,45 @@ function UserList({ users, getInitials }: UserListProps) {
             <p className="font-medium text-sm truncate">{user.name || "Unnamed"}</p>
             <p className="text-xs text-muted-foreground truncate">{user.email}</p>
           </div>
-          {user.status === "going" && (
-            <div className="flex items-center gap-1 text-emerald-600 bg-emerald-100 dark:bg-emerald-950/50 px-2.5 py-1 rounded-full text-xs font-medium">
-              <IconCheck className="h-3 w-3" />
-              Going
-            </div>
-          )}
-          {user.status === "not_going" && (
-            <div className="flex items-center gap-1 text-red-600 bg-red-100 dark:bg-red-950/50 px-2.5 py-1 rounded-full text-xs font-medium">
-              <IconX className="h-3 w-3" />
-              Can't Go
-            </div>
-          )}
-          {user.status === null && (
-            <div className="flex items-center gap-1 text-muted-foreground bg-muted px-2.5 py-1 rounded-full text-xs font-medium">
-              Pending
-            </div>
-          )}
+          <div className="flex items-center gap-2">
+            {user.status === "going" && (
+              <div className="flex items-center gap-1 text-emerald-600 bg-emerald-100 dark:bg-emerald-950/50 px-2.5 py-1 rounded-full text-xs font-medium">
+                <IconCheck className="h-3 w-3" />
+                Going
+              </div>
+            )}
+            {user.status === "not_going" && (
+              <div className="flex items-center gap-1 text-red-600 bg-red-100 dark:bg-red-950/50 px-2.5 py-1 rounded-full text-xs font-medium">
+                <IconX className="h-3 w-3" />
+                Can't Go
+              </div>
+            )}
+            {user.status === null && (
+              <div className="flex items-center gap-1 text-amber-600 bg-amber-100 dark:bg-amber-950/50 px-2.5 py-1 rounded-full text-xs font-medium">
+                <IconBell className="h-3 w-3" />
+                Pending
+              </div>
+            )}
+            {onEditRsvp && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <IconDotsVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="rounded-xl">
+                  <DropdownMenuItem onClick={() => onEditRsvp(user.id, "going")} className="gap-2">
+                    <IconCheck className="h-4 w-4 text-emerald-600" />
+                    Mark as Going
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onEditRsvp(user.id, "not_going")} className="gap-2">
+                    <IconX className="h-4 w-4 text-red-600" />
+                    Mark as Can't Go
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
         </div>
       ))}
     </div>

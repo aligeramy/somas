@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { IconChevronRight, IconUsers, IconCalendar, IconCheck, IconClock } from "@tabler/icons-react";
 import { PageHeader } from "@/components/page-header";
+import { AthleteDashboard } from "@/components/athlete-dashboard";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -30,7 +31,57 @@ export default async function DashboardPage() {
     );
   }
 
-  // Get stats
+  // Athletes get a focused dashboard
+  if (dbUser.role === "athlete") {
+    // Get upcoming events for athlete
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const upcomingOccurrences = await db
+      .select({
+        occurrence: eventOccurrences,
+        event: events,
+      })
+      .from(eventOccurrences)
+      .innerJoin(events, eq(eventOccurrences.eventId, events.id))
+      .where(
+        and(
+          eq(events.gymId, dbUser.gymId),
+          gte(eventOccurrences.date, today),
+          eq(eventOccurrences.status, "scheduled")
+        )
+      )
+      .orderBy(asc(eventOccurrences.date))
+      .limit(10);
+
+    // Get user's RSVPs
+    const userRsvps = await db
+      .select()
+      .from(rsvps)
+      .where(eq(rsvps.userId, dbUser.id));
+
+    const rsvpMap = new Map(userRsvps.map((r) => [r.occurrenceId, r.status]));
+
+    const occurrencesWithRsvp = upcomingOccurrences.map(({ occurrence, event }) => ({
+      id: occurrence.id,
+      date: occurrence.date instanceof Date ? occurrence.date.toISOString() : occurrence.date,
+      status: occurrence.status,
+      eventId: event.id,
+      eventTitle: event.title,
+      startTime: event.startTime,
+      endTime: event.endTime,
+      rsvpStatus: rsvpMap.get(occurrence.id) || null,
+    }));
+
+    return (
+      <AthleteDashboard
+        userName={dbUser.name}
+        occurrences={occurrencesWithRsvp}
+      />
+    );
+  }
+
+  // Owner/Coach dashboard
   const totalMembers = await db
     .select({ count: sql<number>`count(*)` })
     .from(users)
@@ -41,7 +92,6 @@ export default async function DashboardPage() {
     .from(events)
     .where(eq(events.gymId, dbUser.gymId));
 
-  // Get upcoming event occurrences (next 7 days)
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const nextWeek = new Date();
@@ -65,7 +115,6 @@ export default async function DashboardPage() {
     .orderBy(asc(eventOccurrences.date))
     .limit(5);
 
-  // Get recent RSVPs count
   const recentRsvps = await db
     .select({ count: sql<number>`count(*)` })
     .from(rsvps)
@@ -78,7 +127,6 @@ export default async function DashboardPage() {
       )
     );
 
-  // Get recent members
   const recentMembers = await db
     .select({
       id: users.id,
@@ -102,11 +150,11 @@ export default async function DashboardPage() {
   function formatDate(dateValue: Date | string | null) {
     if (!dateValue) return { day: "", month: "", weekday: "" };
     const date = typeof dateValue === "string" ? new Date(dateValue) : dateValue;
-    if (isNaN(date.getTime())) return { day: "", month: "", weekday: "" };
+    if (Number.isNaN(date.getTime())) return { day: "", month: "", weekday: "" };
     return {
       day: date.getDate().toString(),
       month: date.toLocaleDateString("en-US", { month: "short" }).toUpperCase(),
-      weekday: date.toLocaleDateString("en-US", { weekday: "short" }),
+      weekday: date.toLocaleDateString("en-US", { weekday: "long" }),
     };
   }
 
@@ -114,7 +162,7 @@ export default async function DashboardPage() {
     if (!time) return "";
     const [hours, minutes] = time.split(":");
     const hour = parseInt(hours);
-    if (isNaN(hour)) return time;
+    if (Number.isNaN(hour)) return time;
     const ampm = hour >= 12 ? "PM" : "AM";
     const displayHour = hour % 12 || 12;
     return `${displayHour}:${minutes} ${ampm}`;
@@ -186,7 +234,7 @@ export default async function DashboardPage() {
                     <IconCalendar className="h-10 w-10 mx-auto mb-3 text-muted-foreground/30" />
                     <p className="text-sm text-muted-foreground mb-4">No upcoming events this week</p>
                     <Button variant="outline" size="sm" asChild className="rounded-xl">
-                      <Link href="/events">Create an event</Link>
+                      <Link href="/events/new">Create an event</Link>
                     </Button>
                   </div>
                 ) : (
@@ -203,8 +251,7 @@ export default async function DashboardPage() {
                             isCanceled ? "opacity-50" : ""
                           }`}
                         >
-                          {/* Big Date */}
-                          <div className="h-12 w-12 rounded-xl bg-muted flex flex-col items-center justify-center flex-shrink-0">
+                          <div className="h-12 w-12 rounded-xl bg-muted flex flex-col items-center justify-center shrink-0">
                             <span className="text-lg font-bold leading-none">{dateInfo.day}</span>
                             <span className="text-[9px] font-medium text-muted-foreground">{dateInfo.month}</span>
                           </div>
@@ -281,9 +328,9 @@ export default async function DashboardPage() {
                         >
                           {member.role}
                         </Badge>
-              </div>
+                      </div>
                     ))}
-            </div>
+                  </div>
                 )}
               </CardContent>
             </Card>

@@ -142,7 +142,7 @@ export default function RSVPPage() {
     return {
       day: date.getDate().toString(),
       month: date.toLocaleDateString("en-US", { month: "short" }).toUpperCase(),
-      weekday: date.toLocaleDateString("en-US", { weekday: "short" }),
+      weekday: date.toLocaleDateString("en-US", { weekday: "long" }),
       relative,
     };
   }
@@ -234,7 +234,7 @@ export default function RSVPPage() {
                         {isCanceled && <Badge variant="destructive" className="text-[10px] rounded-md">Canceled</Badge>}
                       </div>
                       <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
-                        <span>{dateInfo.weekday}</span>
+                        <span className="whitespace-nowrap">{dateInfo.weekday}</span>
                         <span className="flex items-center gap-1">
                           <IconClock className="h-3 w-3" />
                           {formatTime(occ.event.startTime)}
@@ -328,7 +328,7 @@ export default function RSVPPage() {
                       {isCanceled && <Badge variant="destructive" className="text-[10px] rounded-md">Canceled</Badge>}
                     </div>
                     <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
-                      <span>{dateInfo.weekday}</span>
+                      <span className="whitespace-nowrap">{dateInfo.weekday}</span>
                       <span className="flex items-center gap-1">
                         <IconClock className="h-3 w-3" />
                         {formatTime(occ.event.startTime)} - {formatTime(occ.event.endTime)}
