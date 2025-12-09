@@ -99,3 +99,4 @@ Ensure Realtime is enabled for the `Message` table in Supabase:
 - `PUT /api/notices` - Update notice active status
 
 
+
