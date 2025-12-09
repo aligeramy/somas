@@ -219,9 +219,8 @@ export default function EventsPage() {
         return;
       }
       const data = await response.json();
-      // Filter to only athletes for RSVP purposes
-      const athletes = (data.roster || []).filter((m: GymMember) => m.role === "athlete");
-      setGymMembers(athletes);
+      // Include all gym members (athletes, coaches, and owners) for the "all" tab
+      setGymMembers(data.roster || []);
     } catch (err) {
       console.error("Failed to load gym members:", err);
       setGymMembers([]);
