@@ -6,8 +6,8 @@ import {
   IconDashboard,
   IconHelp,
   IconListCheck,
-  IconSettings,
   IconUsers,
+  IconBuilding,
 } from "@tabler/icons-react"
 import Link from "next/link"
 
@@ -30,6 +30,7 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
     name: string | null
     email: string
     avatar: string | null
+    role: string
   }
   gymName: string | null
   gymLogo: string | null
@@ -41,36 +42,42 @@ export function AppSidebar({ user, gymName, gymLogo, ...props }: AppSidebarProps
       title: "Dashboard",
       url: "/dashboard",
       icon: IconDashboard,
+      roles: ["owner", "coach", "athlete"],
     },
     {
       title: "Events",
       url: "/events",
       icon: IconCalendar,
+      roles: ["owner", "coach"],
     },
     {
       title: "Members",
       url: "/roster",
       icon: IconUsers,
+      roles: ["owner"],
     },
     {
       title: "Attendance",
       url: "/rsvp",
       icon: IconListCheck,
+      roles: ["owner", "coach", "athlete"],
     },
-  ]
+  ].filter((item) => item.roles.includes(user.role));
 
   const navSecondary = [
     {
-      title: "Settings",
-      url: "/settings",
-      icon: IconSettings,
+      title: "Gym Settings",
+      url: "/gym-settings",
+      icon: IconBuilding,
+      roles: ["owner"],
     },
     {
       title: "Help",
       url: "/help",
       icon: IconHelp,
+      roles: ["owner", "coach", "athlete"],
     },
-  ]
+  ].filter((item) => item.roles.includes(user.role));
 
   const getGymInitials = (name: string | null) => {
     if (!name) return "T"

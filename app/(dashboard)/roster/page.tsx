@@ -277,7 +277,7 @@ export default function RosterPage() {
   const isOwner = currentUserRole === "owner";
 
   return (
-    <div className="flex flex-1 flex-col gap-2">
+    <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
       <PageHeader
         title="Roster Management"
         description="Manage your gym's coaches and athletes"
@@ -402,7 +402,8 @@ export default function RosterPage() {
         </Dialog>
       </PageHeader>
 
-      <div className="flex flex-col gap-4 md:gap-6 space-y-6">
+      <div className="flex-1 overflow-auto min-h-0">
+        <div className="space-y-6 p-4">
         {loading && roster.length === 0 ? (
           <Card className="rounded-xl">
             <CardHeader>
@@ -410,7 +411,7 @@ export default function RosterPage() {
               <Skeleton className="h-4 w-64" />
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-[500px]">
+              <ScrollArea className="h-[calc(100vh-400px)] min-h-[300px]">
                 <div className="space-y-2">
                   {[1, 2, 3, 4, 5].map((i) => (
                     <div
@@ -450,7 +451,7 @@ export default function RosterPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-[500px]">
+              <ScrollArea className="h-[calc(100vh-400px)] min-h-[300px]">
                 <div className="space-y-2">
                   {roster.map((member) => (
                     <div
@@ -555,6 +556,7 @@ export default function RosterPage() {
             </CardContent>
           </Card>
         )}
+        </div>
       </div>
 
       {/* Edit Member Dialog */}

@@ -9,6 +9,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
 import { PageHeader } from "@/components/page-header";
 import { IconCamera, IconCheck } from "@tabler/icons-react";
+import { useDropzone } from "react-dropzone";
+import { createClient } from "@/lib/supabase/client";
 
 interface UserProfile {
   id: string;
@@ -26,6 +28,7 @@ interface UserProfile {
 }
 
 export default function ProfilePage() {
+  const supabase = createClient();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -39,6 +42,28 @@ export default function ProfilePage() {
   const [emailNotif, setEmailNotif] = useState(true);
   const [pushNotif, setPushNotif] = useState(true);
   const [reminders, setReminders] = useState(true);
+  
+  // Avatar upload
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+
+  const { getRootProps: getAvatarRootProps, getInputProps: getAvatarInputProps } = useDropzone({
+    accept: {
+      "image/*": [".png", ".jpg", ".jpeg", ".gif", ".webp"],
+    },
+    maxFiles: 1,
+    onDrop: (acceptedFiles) => {
+      if (acceptedFiles.length > 0) {
+        const file = acceptedFiles[0];
+        setAvatarFile(file);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setAvatarPreview(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+      }
+    },
+  });
 
   useEffect(() => {
     loadProfile();
@@ -71,6 +96,37 @@ export default function ProfilePage() {
     setSaving(true);
 
     try {
+      let avatarUrl = profile?.avatarUrl || null;
+
+      // Upload avatar if provided
+      if (avatarFile) {
+        const {
+          data: { user: authUser },
+        } = await supabase.auth.getUser();
+        if (!authUser) throw new Error("Not authenticated");
+
+        const fileExt = avatarFile.name.split(".").pop();
+        const fileName = `${authUser.id}-${Date.now()}.${fileExt}`;
+        const filePath = `avatars/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("avatars")
+          .upload(filePath, avatarFile, {
+            cacheControl: "3600",
+            upsert: false,
+          });
+
+        if (uploadError) {
+          throw new Error(`Failed to upload avatar: ${uploadError.message}`);
+        }
+
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from("avatars").getPublicUrl(filePath);
+        avatarUrl = publicUrl;
+      }
+
+      // Update user profile
       const response = await fetch("/api/profile", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -78,6 +134,7 @@ export default function ProfilePage() {
           name,
           phone,
           address,
+          avatarUrl,
           notifPreferences: {
             email: emailNotif,
             push: pushNotif,
@@ -87,8 +144,10 @@ export default function ProfilePage() {
       });
 
       if (!response.ok) throw new Error("Failed to save profile");
+      
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
+      await loadProfile(); // Reload to get updated data
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save");
     } finally {
@@ -126,7 +185,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="flex flex-1 flex-col">
+    <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
       <PageHeader title="Profile" description="Manage your account settings">
         <Button onClick={handleSave} disabled={saving} className="gap-2">
           {success ? (
@@ -140,8 +199,8 @@ export default function ProfilePage() {
         </Button>
       </PageHeader>
 
-      <div className="flex-1 overflow-auto">
-        <div className="max-w-2xl mx-auto space-y-6">
+      <div className="flex-1 overflow-auto min-h-0">
+        <div className="max-w-2xl mx-auto space-y-6 p-4">
           {error && (
             <div className="bg-destructive/10 text-destructive rounded-xl p-4 text-sm">
               {error}
@@ -154,12 +213,16 @@ export default function ProfilePage() {
               <div className="flex items-center gap-4">
                 <div className="relative">
                   <Avatar className="h-20 w-20 border-4 border-background shadow-lg">
-                    <AvatarImage src={profile.avatarUrl || undefined} />
+                    <AvatarImage src={avatarPreview || profile.avatarUrl || undefined} />
                     <AvatarFallback className="text-xl bg-gradient-to-br from-primary/20 to-primary/5">
                       {getInitials(profile.name, profile.email)}
                     </AvatarFallback>
                   </Avatar>
-                  <button className="absolute bottom-0 right-0 h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg hover:bg-primary/90 transition-colors">
+                  <button
+                    {...getAvatarRootProps()}
+                    className="absolute bottom-0 right-0 h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg hover:bg-primary/90 transition-colors cursor-pointer"
+                  >
+                    <input {...getAvatarInputProps()} />
                     <IconCamera className="h-4 w-4" />
                   </button>
                 </div>
@@ -253,6 +316,7 @@ export default function ProfilePage() {
               </div>
             </CardContent>
           </Card>
+
         </div>
       </div>
     </div>

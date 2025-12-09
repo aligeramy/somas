@@ -187,9 +187,9 @@ export default function RSVPPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-1 flex-col h-[calc(100vh-var(--header-height))]">
+      <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
         <PageHeader title={isOwnerOrCoach ? "Attendance" : "My Schedule"} />
-        <ScrollArea className="flex-1">
+        <ScrollArea className="flex-1 h-0">
           <div className="space-y-2">
             {[1, 2, 3, 4].map((i) => (
               <div
@@ -255,13 +255,13 @@ export default function RSVPPage() {
     );
 
     return (
-      <div className="flex flex-1 flex-col h-[calc(100vh-var(--header-height))]">
+      <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
         <PageHeader
           title="Attendance"
           description="Track who's coming to each session"
         />
-        <ScrollArea className="flex-1">
-          <div className="space-y-2">
+        <ScrollArea className="flex-1 h-0">
+          <div className="space-y-2 p-4">
             {events.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
                 <p>No upcoming events</p>
@@ -367,10 +367,10 @@ export default function RSVPPage() {
 
   // Athlete View
   return (
-    <div className="flex flex-1 flex-col h-[calc(100vh-var(--header-height))]">
+    <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
       <PageHeader title="My Schedule" description="RSVP to upcoming sessions" />
-      <ScrollArea className="flex-1">
-        <div className="space-y-2">
+      <ScrollArea className="flex-1 h-0">
+        <div className="space-y-2 p-4">
           {events.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <p>No upcoming events</p>

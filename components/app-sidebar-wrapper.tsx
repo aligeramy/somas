@@ -86,6 +86,7 @@ async function AppSidebarContent() {
         name: dbUser.name,
         email: dbUser.email,
         avatar: dbUser.avatarUrl,
+        role: dbUser.role,
       }}
       gymName={gymName}
       gymLogo={gymLogo}

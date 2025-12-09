@@ -58,7 +58,7 @@ export async function PUT(request: Request) {
     }
 
     const body = await request.json();
-    const { name, phone, address, notifPreferences } = body;
+    const { name, phone, address, notifPreferences, avatarUrl } = body;
 
     const [updatedUser] = await db
       .update(users)
@@ -66,6 +66,7 @@ export async function PUT(request: Request) {
         name: name || null,
         phone: phone || null,
         address: address || null,
+        avatarUrl: avatarUrl !== undefined ? (avatarUrl || null) : undefined,
         notifPreferences: notifPreferences || {},
         updatedAt: new Date(),
       })
