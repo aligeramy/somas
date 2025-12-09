@@ -61,7 +61,7 @@ model Gym {
   id        String   @id @default(uuid())
   name      String
   logoUrl   String?
-  createdById String
+  createdById String @unique
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -71,6 +71,7 @@ model Gym {
   channels  Channel[]
   announcements Announcement[]
   invitations Invitation[]
+  messages  Message[]
 
   @@index([createdById])
 }

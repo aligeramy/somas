@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma/client";
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const supabase = await createClient();
@@ -33,7 +33,8 @@ export async function POST(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const occurrenceId = params.id;
+    const { id } = await params;
+    const occurrenceId = id;
 
     // Verify occurrence belongs to user's gym
     const occurrence = await prisma.eventOccurrence.findUnique({
