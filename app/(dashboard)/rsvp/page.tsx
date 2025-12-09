@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { PageHeader } from "@/components/page-header";
 import {
-  IconCalendar,
   IconCheck,
   IconX,
   IconClock,
@@ -51,6 +51,7 @@ export default function RSVPPage() {
 
   useEffect(() => {
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function loadData() {
@@ -75,7 +76,6 @@ export default function RSVPPage() {
       const allOccurrences: EventOccurrence[] = [];
       eventsData.events.forEach((event: any) => {
         event.occurrences.forEach((occ: any) => {
-          // Only show future events
           const occDate = new Date(occ.date);
           const today = new Date();
           today.setHours(0, 0, 0, 0);
@@ -93,9 +93,7 @@ export default function RSVPPage() {
         });
       });
 
-      // Sort by date
       allOccurrences.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
       setEvents(allOccurrences);
       setRsvps(rsvpsData.rsvps || []);
     } catch (err) {
@@ -128,23 +126,25 @@ export default function RSVPPage() {
   }
 
   function formatDate(dateValue: string | Date | undefined | null) {
-    if (!dateValue) return "";
+    if (!dateValue) return { day: "", month: "", weekday: "", relative: "" };
     const date = typeof dateValue === "string" ? new Date(dateValue) : dateValue;
-    if (isNaN(date.getTime())) return String(dateValue);
+    if (isNaN(date.getTime())) return { day: "", month: "", weekday: "", relative: "" };
     
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
     
-    if (date.toDateString() === today.toDateString()) return "Today";
-    if (date.toDateString() === tomorrow.toDateString()) return "Tomorrow";
+    let relative = "";
+    if (date.toDateString() === today.toDateString()) relative = "Today";
+    else if (date.toDateString() === tomorrow.toDateString()) relative = "Tomorrow";
     
-    return date.toLocaleDateString("en-US", {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-    });
+    return {
+      day: date.getDate().toString(),
+      month: date.toLocaleDateString("en-US", { month: "short" }).toUpperCase(),
+      weekday: date.toLocaleDateString("en-US", { weekday: "short" }),
+      relative,
+    };
   }
 
   function formatTime(time: string | undefined | null) {
@@ -166,21 +166,27 @@ export default function RSVPPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center">
-        <div className="animate-pulse text-muted-foreground">Loading...</div>
+      <div className="flex flex-1 flex-col">
+        <PageHeader title={isOwnerOrCoach ? "Attendance" : "My Schedule"} />
+        <div className="flex flex-1 items-center justify-center">
+          <div className="animate-pulse text-muted-foreground">Loading...</div>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex flex-1 flex-col p-6">
-        <div className="bg-destructive/10 text-destructive rounded-lg p-4">{error}</div>
+      <div className="flex flex-1 flex-col">
+        <PageHeader title="Attendance" />
+        <div className="p-6">
+          <div className="bg-destructive/10 text-destructive rounded-xl p-4">{error}</div>
+        </div>
       </div>
     );
   }
 
-  // For owners/coaches, show all RSVPs grouped by occurrence
+  // Owner/Coach View
   if (isOwnerOrCoach) {
     const rsvpsByOccurrence = rsvps.reduce((acc, rsvp) => {
       if (!rsvp.occurrence) return acc;
@@ -192,15 +198,11 @@ export default function RSVPPage() {
 
     return (
       <div className="flex flex-1 flex-col h-[calc(100vh-var(--header-height))]">
-        <div className="p-4 lg:p-6 border-b">
-          <h1 className="text-2xl font-semibold tracking-tight">Attendance Overview</h1>
-          <p className="text-sm text-muted-foreground mt-1">See who's coming to each session</p>
-        </div>
+        <PageHeader title="Attendance" description="Track who's coming to each session" />
         <ScrollArea className="flex-1">
-          <div className="p-4 lg:p-6 space-y-2">
+          <div className="p-4 lg:px-6 space-y-2">
             {events.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
-                <IconCalendar className="h-12 w-12 mx-auto mb-3 opacity-20" />
                 <p>No upcoming events</p>
               </div>
             ) : (
@@ -209,24 +211,30 @@ export default function RSVPPage() {
                 const going = occRsvps.filter((r) => r.status === "going");
                 const notGoing = occRsvps.filter((r) => r.status === "not_going");
                 const isCanceled = occ.status === "canceled";
+                const dateInfo = formatDate(occ.date);
 
                 return (
                   <div
                     key={occ.id}
-                    className={`flex items-center gap-4 p-4 rounded-xl border hover:bg-muted/30 transition-colors ${
+                    className={`flex items-center gap-4 p-4 rounded-2xl border hover:bg-muted/30 transition-colors ${
                       isCanceled ? "opacity-50" : ""
                     }`}
                   >
-                    <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
-                      <IconCalendar className="h-6 w-6 text-primary" />
+                    {/* Big Date */}
+                    <div className="h-16 w-16 rounded-xl bg-muted flex flex-col items-center justify-center flex-shrink-0">
+                      <span className="text-2xl font-bold leading-none">{dateInfo.day}</span>
+                      <span className="text-[10px] font-medium text-muted-foreground mt-0.5">{dateInfo.month}</span>
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <p className="font-medium">{occ.event.title}</p>
-                        {isCanceled && <Badge variant="destructive" className="text-[10px]">Canceled</Badge>}
+                        {dateInfo.relative && (
+                          <Badge variant="secondary" className="text-[10px] rounded-md">{dateInfo.relative}</Badge>
+                        )}
+                        {isCanceled && <Badge variant="destructive" className="text-[10px] rounded-md">Canceled</Badge>}
                       </div>
                       <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
-                        <span>{formatDate(occ.date)}</span>
+                        <span>{dateInfo.weekday}</span>
                         <span className="flex items-center gap-1">
                           <IconClock className="h-3 w-3" />
                           {formatTime(occ.event.startTime)}
@@ -234,18 +242,17 @@ export default function RSVPPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      {/* Avatars of going users */}
                       <div className="flex -space-x-2">
                         {going.slice(0, 4).map((r) => (
-                          <Avatar key={r.id} className="h-8 w-8 border-2 border-background">
+                          <Avatar key={r.id} className="h-8 w-8 rounded-xl border-2 border-background">
                             <AvatarImage src={r.user?.avatarUrl || undefined} />
-                            <AvatarFallback className="text-[10px] bg-emerald-100 text-emerald-700">
+                            <AvatarFallback className="rounded-xl text-[10px] bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300">
                               {getInitials(r.user?.name || null, r.user?.email || "")}
                             </AvatarFallback>
                           </Avatar>
                         ))}
                         {going.length > 4 && (
-                          <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-xs font-medium border-2 border-background">
+                          <div className="h-8 w-8 rounded-xl bg-muted flex items-center justify-center text-xs font-medium border-2 border-background">
                             +{going.length - 4}
                           </div>
                         )}
@@ -271,18 +278,14 @@ export default function RSVPPage() {
     );
   }
 
-  // For athletes, show their personal RSVP list
+  // Athlete View
   return (
     <div className="flex flex-1 flex-col h-[calc(100vh-var(--header-height))]">
-      <div className="p-4 lg:p-6 border-b">
-        <h1 className="text-2xl font-semibold tracking-tight">My Schedule</h1>
-        <p className="text-sm text-muted-foreground mt-1">RSVP to upcoming sessions</p>
-      </div>
+      <PageHeader title="My Schedule" description="RSVP to upcoming sessions" />
       <ScrollArea className="flex-1">
-        <div className="p-4 lg:p-6 space-y-2">
+        <div className="p-4 lg:px-6 space-y-2">
           {events.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
-              <IconCalendar className="h-12 w-12 mx-auto mb-3 opacity-20" />
               <p>No upcoming events</p>
             </div>
           ) : (
@@ -290,38 +293,42 @@ export default function RSVPPage() {
               const rsvpStatus = getRSVPStatus(occ.id);
               const isCanceled = occ.status === "canceled";
               const isUpdating = updatingId === occ.id;
+              const dateInfo = formatDate(occ.date);
 
               return (
                 <div
                   key={occ.id}
-                  className={`flex items-center gap-4 p-4 rounded-xl border transition-colors ${
+                  className={`flex items-center gap-4 p-4 rounded-2xl border transition-colors ${
                     isCanceled ? "opacity-50" : "hover:bg-muted/30"
                   }`}
                 >
-                  <div className={`h-12 w-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                  {/* Big Date with Status */}
+                  <div className={`h-16 w-16 rounded-xl flex flex-col items-center justify-center flex-shrink-0 ${
                     rsvpStatus === "going" 
                       ? "bg-emerald-100 dark:bg-emerald-950/50" 
                       : rsvpStatus === "not_going"
                       ? "bg-red-100 dark:bg-red-950/50"
                       : "bg-muted"
                   }`}>
-                    {rsvpStatus === "going" ? (
-                      <IconCheck className="h-6 w-6 text-emerald-600" />
-                    ) : rsvpStatus === "not_going" ? (
-                      <IconX className="h-6 w-6 text-red-500" />
-                    ) : (
-                      <IconCalendar className="h-6 w-6 text-muted-foreground" />
-                    )}
+                    <span className={`text-2xl font-bold leading-none ${
+                      rsvpStatus === "going" 
+                        ? "text-emerald-600 dark:text-emerald-400" 
+                        : rsvpStatus === "not_going"
+                        ? "text-red-600 dark:text-red-400"
+                        : ""
+                    }`}>{dateInfo.day}</span>
+                    <span className="text-[10px] font-medium text-muted-foreground mt-0.5">{dateInfo.month}</span>
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <p className="font-medium">{occ.event.title}</p>
-                      {isCanceled && <Badge variant="destructive" className="text-[10px]">Canceled</Badge>}
+                      {dateInfo.relative && (
+                        <Badge variant="secondary" className="text-[10px] rounded-md">{dateInfo.relative}</Badge>
+                      )}
+                      {isCanceled && <Badge variant="destructive" className="text-[10px] rounded-md">Canceled</Badge>}
                     </div>
                     <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
-                      <span className={formatDate(occ.date) === "Today" ? "text-primary font-medium" : ""}>
-                        {formatDate(occ.date)}
-                      </span>
+                      <span>{dateInfo.weekday}</span>
                       <span className="flex items-center gap-1">
                         <IconClock className="h-3 w-3" />
                         {formatTime(occ.event.startTime)} - {formatTime(occ.event.endTime)}
@@ -335,7 +342,7 @@ export default function RSVPPage() {
                         variant={rsvpStatus === "going" ? "default" : "outline"}
                         onClick={() => handleRSVP(occ.id, "going")}
                         disabled={isUpdating}
-                        className={`h-9 ${rsvpStatus === "going" ? "bg-emerald-600 hover:bg-emerald-700" : ""}`}
+                        className={`h-9 rounded-xl ${rsvpStatus === "going" ? "bg-emerald-600 hover:bg-emerald-700" : ""}`}
                       >
                         <IconCheck className="h-4 w-4 mr-1" />
                         Going
@@ -345,6 +352,7 @@ export default function RSVPPage() {
                         variant={rsvpStatus === "not_going" ? "secondary" : "outline"}
                         onClick={() => handleRSVP(occ.id, "not_going")}
                         disabled={isUpdating}
+                        className="h-9 rounded-xl"
                       >
                         <IconX className="h-4 w-4 mr-1" />
                         Can't Go
