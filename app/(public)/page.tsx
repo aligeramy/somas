@@ -1,18 +1,7 @@
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
-export default async function HomePage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (user) {
-    redirect("/dashboard");
-  }
-
+export default function PublicPage() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-8 p-8">
       <div className="flex flex-col items-center gap-4 text-center">
@@ -32,3 +21,4 @@ export default async function HomePage() {
     </div>
   );
 }
+
