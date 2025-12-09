@@ -242,33 +242,46 @@ export default function EventsPage() {
 
   // Load or create channel when event is selected
   useEffect(() => {
-    if (selectedEvent && !eventChannelId) {
-      fetch(`/api/chat/channels?eventId=${selectedEvent.id}`)
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.channels && data.channels.length > 0) {
-            setEventChannelId(data.channels[0].id);
-          } else {
-            // Create channel for event
-            fetch("/api/chat/channels", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                name: `${selectedEvent.title} Chat`,
-                type: "group",
-                eventId: selectedEvent.id,
-              }),
-            })
-              .then((res) => res.json())
-              .then((data) => {
-                if (data.channel) {
-                  setEventChannelId(data.channel.id);
-                }
-              });
-          }
-        });
+    if (!selectedEvent) {
+      setEventChannelId(null);
+      return;
     }
-  }, [selectedEvent, eventChannelId]);
+
+    const eventId = selectedEvent.id;
+    const eventTitle = selectedEvent.title;
+
+    // Reset channel ID when event changes
+    setEventChannelId(null);
+
+    // Load or create channel for the selected event
+    fetch(`/api/chat/channels?eventId=${eventId}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.channels && data.channels.length > 0) {
+          setEventChannelId(data.channels[0].id);
+        } else {
+          // Create channel for event
+          fetch("/api/chat/channels", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: `${eventTitle} Chat`,
+              type: "group",
+              eventId: eventId,
+            }),
+          })
+            .then((res) => res.json())
+            .then((data) => {
+              if (data.channel) {
+                setEventChannelId(data.channel.id);
+              }
+            });
+        }
+      })
+      .catch((error) => {
+        console.error("Error loading event channel:", error);
+      });
+  }, [selectedEvent]); // Depend on selectedEvent object
 
   const loadEvents = useCallback(async (isInitial = false) => {
     try {
