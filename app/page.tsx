@@ -1,13 +1,26 @@
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import {
+  BarChart3,
+  Bell,
+  Calendar,
+  MessageSquare,
+  Shield,
+  Users,
+} from "lucide-react";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar, Users, MessageSquare, Bell, BarChart3, Shield } from "lucide-react";
-import { LandingHeader } from "@/components/landing-header";
-import { LandingFooter } from "@/components/landing-footer";
-import { DarkModeWrapper } from "@/components/dark-mode-wrapper";
+import { redirect } from "next/navigation";
 import { DarkVeil } from "@/components/DarkVeil";
+import { DarkModeWrapper } from "@/components/dark-mode-wrapper";
+import { LandingFooter } from "@/components/landing-footer";
+import { LandingHeader } from "@/components/landing-header";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { createClient } from "@/lib/supabase/server";
 
 export default async function HomePage() {
   const supabase = await createClient();
@@ -23,32 +36,38 @@ export default async function HomePage() {
     {
       icon: Calendar,
       title: "Event Scheduling",
-      description: "Create recurring events with automatic calendar sync and RSVP tracking.",
+      description:
+        "Create recurring events with automatic calendar sync and RSVP tracking.",
     },
     {
       icon: Users,
       title: "Athlete Management",
-      description: "Manage your roster, track attendance, and coordinate with your team.",
+      description:
+        "Manage your roster, track attendance, and coordinate with your team.",
     },
     {
       icon: MessageSquare,
       title: "Team Communication",
-      description: "Global, group, and direct messaging to keep everyone connected.",
+      description:
+        "Global, group, and direct messaging to keep everyone connected.",
     },
     {
       icon: Bell,
       title: "Smart Notifications",
-      description: "Push notifications and email reminders for events and updates.",
+      description:
+        "Push notifications and email reminders for events and updates.",
     },
     {
       icon: BarChart3,
       title: "Analytics & Insights",
-      description: "Track attendance patterns and get insights into your gym operations.",
+      description:
+        "Track attendance patterns and get insights into your gym operations.",
     },
     {
       icon: Shield,
       title: "Secure & Private",
-      description: "Invite-only access with enterprise-grade security and privacy.",
+      description:
+        "Invite-only access with enterprise-grade security and privacy.",
     },
   ];
 
@@ -57,7 +76,7 @@ export default async function HomePage() {
       <div className="flex min-h-screen flex-col relative">
         <DarkVeil />
         <LandingHeader />
-        
+
         {/* Hero Section */}
         <section className="flex flex-col items-center justify-center gap-8 px-4 py-20 md:py-32 relative z-10">
           <div className="flex flex-col items-center gap-6 text-center max-w-3xl">
@@ -83,15 +102,18 @@ export default async function HomePage() {
         </section>
 
         {/* Features Section */}
-        <section id="features" className="px-4 py-16 md:py-24 bg-muted/30 relative z-10">
+        <section
+          id="features"
+          className="px-4 py-16 md:py-24 bg-muted/30 relative z-10"
+        >
           <div className="mx-auto max-w-6xl">
             <div className="text-center mb-12">
               <h2 className="text-3xl font-bold tracking-tight md:text-4xl mb-4">
                 Everything you need to manage your gym
               </h2>
               <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-                Powerful features designed to help coaches and gym owners coordinate
-                with athletes efficiently.
+                Powerful features designed to help coaches and gym owners
+                coordinate with athletes efficiently.
               </p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -124,8 +146,8 @@ export default async function HomePage() {
               Ready to get started?
             </h2>
             <p className="text-muted-foreground text-lg mb-8 max-w-2xl mx-auto">
-              Join gyms and coaches who are already using TOM to streamline their
-              operations and improve athlete coordination.
+              Join gyms and coaches who are already using TOM to streamline
+              their operations and improve athlete coordination.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button asChild size="lg" className="text-base">
@@ -137,7 +159,7 @@ export default async function HomePage() {
             </div>
           </div>
         </section>
-        
+
         <LandingFooter />
       </div>
     </DarkModeWrapper>

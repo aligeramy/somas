@@ -1,168 +1,238 @@
-import { pgTable, uuid, varchar, text, boolean, jsonb, timestamp, pgEnum, index, unique } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
+import {
+  boolean,
+  index,
+  jsonb,
+  pgEnum,
+  pgTable,
+  text,
+  timestamp,
+  unique,
+  uuid,
+  varchar,
+} from "drizzle-orm/pg-core";
 
 // Enums
 export const userRoleEnum = pgEnum("UserRole", ["owner", "coach", "athlete"]);
-export const eventOccurrenceStatusEnum = pgEnum("EventOccurrenceStatus", ["scheduled", "canceled"]);
+export const eventOccurrenceStatusEnum = pgEnum("EventOccurrenceStatus", [
+  "scheduled",
+  "canceled",
+]);
 export const rsvpStatusEnum = pgEnum("RSVPStatus", ["going", "not_going"]);
 export const channelTypeEnum = pgEnum("ChannelType", ["global", "dm", "group"]);
 
 // User table
-export const users = pgTable("User", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  email: varchar("email", { length: 255 }).notNull().unique(),
-  name: varchar("name", { length: 255 }),
-  phone: varchar("phone", { length: 50 }),
-  address: text("address"),
-  role: userRoleEnum("role").notNull(),
-  gymId: uuid("gymId"),
-  onboarded: boolean("onboarded").default(false).notNull(),
-  avatarUrl: varchar("avatarUrl", { length: 500 }),
-  pushToken: varchar("pushToken", { length: 500 }),
-  notifPreferences: jsonb("notifPreferences").default({}),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-}, (table) => ({
-  gymIdIdx: index("User_gymId_idx").on(table.gymId),
-  emailIdx: index("User_email_idx").on(table.email),
-}));
+export const users = pgTable(
+  "User",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    email: varchar("email", { length: 255 }).notNull().unique(),
+    name: varchar("name", { length: 255 }),
+    phone: varchar("phone", { length: 50 }),
+    address: text("address"),
+    role: userRoleEnum("role").notNull(),
+    gymId: uuid("gymId"),
+    onboarded: boolean("onboarded").default(false).notNull(),
+    avatarUrl: varchar("avatarUrl", { length: 500 }),
+    pushToken: varchar("pushToken", { length: 500 }),
+    notifPreferences: jsonb("notifPreferences").default({}),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    gymIdIdx: index("User_gymId_idx").on(table.gymId),
+    emailIdx: index("User_email_idx").on(table.email),
+  }),
+);
 
 // Gym table
-export const gyms = pgTable("Gym", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  name: varchar("name", { length: 255 }).notNull(),
-  logoUrl: varchar("logoUrl", { length: 500 }),
-  createdById: uuid("createdById").notNull().unique(),
-  emailSettings: jsonb("emailSettings").default({ enabled: true, reminderEnabled: true, announcementEnabled: true }),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-}, (table) => ({
-  createdByIdIdx: index("Gym_createdById_idx").on(table.createdById),
-}));
+export const gyms = pgTable(
+  "Gym",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: varchar("name", { length: 255 }).notNull(),
+    logoUrl: varchar("logoUrl", { length: 500 }),
+    createdById: uuid("createdById").notNull().unique(),
+    emailSettings: jsonb("emailSettings").default({
+      enabled: true,
+      reminderEnabled: true,
+      announcementEnabled: true,
+    }),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    createdByIdIdx: index("Gym_createdById_idx").on(table.createdById),
+  }),
+);
 
 // Event table
-export const events = pgTable("Event", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  gymId: uuid("gymId").notNull(),
-  title: varchar("title", { length: 255 }).notNull(),
-  description: text("description"),
-  location: varchar("location", { length: 255 }),
-  recurrenceRule: text("recurrenceRule"),
-  recurrenceEndDate: timestamp("recurrenceEndDate"), // When recurrence ends
-  recurrenceCount: varchar("recurrenceCount", { length: 10 }).$type<number>(), // Number of occurrences
-  startTime: varchar("startTime", { length: 10 }).notNull(),
-  endTime: varchar("endTime", { length: 10 }).notNull(),
-  reminderDays: jsonb("reminderDays").default([7, 1, 0.02]), // 7 days, 1 day, 30 min (0.02 = 30min/1440min)
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-}, (table) => ({
-  gymIdIdx: index("Event_gymId_idx").on(table.gymId),
-}));
+export const events = pgTable(
+  "Event",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    gymId: uuid("gymId").notNull(),
+    title: varchar("title", { length: 255 }).notNull(),
+    description: text("description"),
+    location: varchar("location", { length: 255 }),
+    recurrenceRule: text("recurrenceRule"),
+    recurrenceEndDate: timestamp("recurrenceEndDate"), // When recurrence ends
+    recurrenceCount: varchar("recurrenceCount", { length: 10 }).$type<number>(), // Number of occurrences
+    startTime: varchar("startTime", { length: 10 }).notNull(),
+    endTime: varchar("endTime", { length: 10 }).notNull(),
+    reminderDays: jsonb("reminderDays").default([7, 1, 0.02]), // 7 days, 1 day, 30 min (0.02 = 30min/1440min)
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    gymIdIdx: index("Event_gymId_idx").on(table.gymId),
+  }),
+);
 
 // EventOccurrence table
-export const eventOccurrences = pgTable("EventOccurrence", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  eventId: uuid("eventId").notNull(),
-  date: timestamp("date").notNull(),
-  status: eventOccurrenceStatusEnum("status").default("scheduled").notNull(),
-  note: text("note"), // Optional note for this occurrence
-  isCustom: boolean("isCustom").default(false), // True if manually added (not from recurrence)
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-}, (table) => ({
-  eventIdIdx: index("EventOccurrence_eventId_idx").on(table.eventId),
-  dateIdx: index("EventOccurrence_date_idx").on(table.date),
-  uniqueEventDate: unique("EventOccurrence_eventId_date_key").on(table.eventId, table.date),
-}));
+export const eventOccurrences = pgTable(
+  "EventOccurrence",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    eventId: uuid("eventId").notNull(),
+    date: timestamp("date").notNull(),
+    status: eventOccurrenceStatusEnum("status").default("scheduled").notNull(),
+    note: text("note"), // Optional note for this occurrence
+    isCustom: boolean("isCustom").default(false), // True if manually added (not from recurrence)
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    eventIdIdx: index("EventOccurrence_eventId_idx").on(table.eventId),
+    dateIdx: index("EventOccurrence_date_idx").on(table.date),
+    uniqueEventDate: unique("EventOccurrence_eventId_date_key").on(
+      table.eventId,
+      table.date,
+    ),
+  }),
+);
 
 // RSVP table
-export const rsvps = pgTable("RSVP", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("userId").notNull(),
-  occurrenceId: uuid("occurrenceId").notNull(),
-  status: rsvpStatusEnum("status").default("going").notNull(),
-  updatedBy: uuid("updatedBy"), // Track who updated (for coach edits)
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-}, (table) => ({
-  userIdIdx: index("RSVP_userId_idx").on(table.userId),
-  occurrenceIdIdx: index("RSVP_occurrenceId_idx").on(table.occurrenceId),
-  uniqueUserOccurrence: unique("RSVP_userId_occurrenceId_key").on(table.userId, table.occurrenceId),
-}));
+export const rsvps = pgTable(
+  "RSVP",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("userId").notNull(),
+    occurrenceId: uuid("occurrenceId").notNull(),
+    status: rsvpStatusEnum("status").default("going").notNull(),
+    updatedBy: uuid("updatedBy"), // Track who updated (for coach edits)
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdIdx: index("RSVP_userId_idx").on(table.userId),
+    occurrenceIdIdx: index("RSVP_occurrenceId_idx").on(table.occurrenceId),
+    uniqueUserOccurrence: unique("RSVP_userId_occurrenceId_key").on(
+      table.userId,
+      table.occurrenceId,
+    ),
+  }),
+);
 
 // Invitation table
-export const invitations = pgTable("Invitation", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  gymId: uuid("gymId").notNull(),
-  email: varchar("email", { length: 255 }).notNull(),
-  role: userRoleEnum("role").notNull(),
-  token: varchar("token", { length: 255 }).notNull().unique(),
-  invitedById: uuid("invitedById").notNull(),
-  expiresAt: timestamp("expiresAt").notNull(),
-  used: boolean("used").default(false).notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-}, (table) => ({
-  tokenIdx: index("Invitation_token_idx").on(table.token),
-  emailIdx: index("Invitation_email_idx").on(table.email),
-  gymIdIdx: index("Invitation_gymId_idx").on(table.gymId),
-}));
+export const invitations = pgTable(
+  "Invitation",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    gymId: uuid("gymId").notNull(),
+    email: varchar("email", { length: 255 }).notNull(),
+    role: userRoleEnum("role").notNull(),
+    token: varchar("token", { length: 255 }).notNull().unique(),
+    invitedById: uuid("invitedById").notNull(),
+    expiresAt: timestamp("expiresAt").notNull(),
+    used: boolean("used").default(false).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    tokenIdx: index("Invitation_token_idx").on(table.token),
+    emailIdx: index("Invitation_email_idx").on(table.email),
+    gymIdIdx: index("Invitation_gymId_idx").on(table.gymId),
+  }),
+);
 
 // Announcement table
-export const announcements = pgTable("Announcement", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  gymId: uuid("gymId").notNull(),
-  coachId: uuid("coachId").notNull(),
-  content: text("content").notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-}, (table) => ({
-  gymIdIdx: index("Announcement_gymId_idx").on(table.gymId),
-  coachIdIdx: index("Announcement_coachId_idx").on(table.coachId),
-}));
+export const announcements = pgTable(
+  "Announcement",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    gymId: uuid("gymId").notNull(),
+    coachId: uuid("coachId").notNull(),
+    content: text("content").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    gymIdIdx: index("Announcement_gymId_idx").on(table.gymId),
+    coachIdIdx: index("Announcement_coachId_idx").on(table.coachId),
+  }),
+);
 
 // Channel table
-export const channels = pgTable("Channel", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  gymId: uuid("gymId").notNull(),
-  name: varchar("name", { length: 255 }).notNull(),
-  type: channelTypeEnum("type").notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-}, (table) => ({
-  gymIdIdx: index("Channel_gymId_idx").on(table.gymId),
-  typeIdx: index("Channel_type_idx").on(table.type),
-}));
+export const channels = pgTable(
+  "Channel",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    gymId: uuid("gymId").notNull(),
+    name: varchar("name", { length: 255 }).notNull(),
+    type: channelTypeEnum("type").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    gymIdIdx: index("Channel_gymId_idx").on(table.gymId),
+    typeIdx: index("Channel_type_idx").on(table.type),
+  }),
+);
 
 // Message table
-export const messages = pgTable("Message", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  gymId: uuid("gymId").notNull(),
-  channelId: uuid("channelId").notNull(),
-  senderId: uuid("senderId").notNull(),
-  content: text("content").notNull(),
-  attachmentUrl: varchar("attachmentUrl", { length: 500 }),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-}, (table) => ({
-  gymIdIdx: index("Message_gymId_idx").on(table.gymId),
-  channelIdIdx: index("Message_channelId_idx").on(table.channelId),
-  senderIdIdx: index("Message_senderId_idx").on(table.senderId),
-  createdAtIdx: index("Message_createdAt_idx").on(table.createdAt),
-}));
+export const messages = pgTable(
+  "Message",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    gymId: uuid("gymId").notNull(),
+    channelId: uuid("channelId").notNull(),
+    senderId: uuid("senderId").notNull(),
+    content: text("content").notNull(),
+    attachmentUrl: varchar("attachmentUrl", { length: 500 }),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    gymIdIdx: index("Message_gymId_idx").on(table.gymId),
+    channelIdIdx: index("Message_channelId_idx").on(table.channelId),
+    senderIdIdx: index("Message_senderId_idx").on(table.senderId),
+    createdAtIdx: index("Message_createdAt_idx").on(table.createdAt),
+  }),
+);
 
 // ReminderLog table
-export const reminderLogs = pgTable("ReminderLog", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  occurrenceId: uuid("occurrenceId").notNull(),
-  userId: uuid("userId").notNull(),
-  reminderType: varchar("reminderType", { length: 50 }).notNull(),
-  sentAt: timestamp("sentAt").defaultNow().notNull(),
-}, (table) => ({
-  occurrenceIdIdx: index("ReminderLog_occurrenceId_idx").on(table.occurrenceId),
-  userIdIdx: index("ReminderLog_userId_idx").on(table.userId),
-  uniqueReminderLog: unique("ReminderLog_unique").on(table.occurrenceId, table.userId, table.reminderType),
-}));
+export const reminderLogs = pgTable(
+  "ReminderLog",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    occurrenceId: uuid("occurrenceId").notNull(),
+    userId: uuid("userId").notNull(),
+    reminderType: varchar("reminderType", { length: 50 }).notNull(),
+    sentAt: timestamp("sentAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    occurrenceIdIdx: index("ReminderLog_occurrenceId_idx").on(
+      table.occurrenceId,
+    ),
+    userIdIdx: index("ReminderLog_userId_idx").on(table.userId),
+    uniqueReminderLog: unique("ReminderLog_unique").on(
+      table.occurrenceId,
+      table.userId,
+      table.reminderType,
+    ),
+  }),
+);
 
 // Relations
 export const usersRelations = relations(users, ({ one, many }) => ({
@@ -204,14 +274,17 @@ export const eventsRelations = relations(events, ({ one, many }) => ({
   occurrences: many(eventOccurrences),
 }));
 
-export const eventOccurrencesRelations = relations(eventOccurrences, ({ one, many }) => ({
-  event: one(events, {
-    fields: [eventOccurrences.eventId],
-    references: [events.id],
+export const eventOccurrencesRelations = relations(
+  eventOccurrences,
+  ({ one, many }) => ({
+    event: one(events, {
+      fields: [eventOccurrences.eventId],
+      references: [events.id],
+    }),
+    rsvps: many(rsvps),
+    reminderLogs: many(reminderLogs),
   }),
-  rsvps: many(rsvps),
-  reminderLogs: many(reminderLogs),
-}));
+);
 
 export const rsvpsRelations = relations(rsvps, ({ one }) => ({
   user: one(users, {

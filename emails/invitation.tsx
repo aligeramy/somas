@@ -1,10 +1,4 @@
-import {
-  Button,
-  Heading,
-  Section,
-  Text,
-} from "@react-email/components";
-import * as React from "react";
+import { Button, Heading, Section, Text } from "@react-email/components";
 import { BaseLayout } from "./base-layout";
 
 interface InvitationEmailProps {
@@ -28,16 +22,14 @@ export function InvitationEmail({
       gymName={gymName}
       gymLogoUrl={gymLogoUrl}
     >
-      <Heading style={heading}>
-        You're Invited!
-      </Heading>
+      <Heading style={heading}>You're Invited!</Heading>
 
-      <Text style={greeting}>
-        Hello,
-      </Text>
+      <Text style={greeting}>Hello,</Text>
 
       <Text style={paragraph}>
-        <strong>{inviterName}</strong> has invited you to join <strong>{gymName}</strong> as {role === "coach" ? "a coach" : "an athlete"}.
+        <strong>{inviterName}</strong> has invited you to join{" "}
+        <strong>{gymName}</strong> as{" "}
+        {role === "coach" ? "a coach" : "an athlete"}.
       </Text>
 
       <Section style={highlightBox}>
@@ -58,9 +50,7 @@ export function InvitationEmail({
         </Button>
       </Section>
 
-      <Text style={smallText}>
-        This invitation link will expire in 7 days.
-      </Text>
+      <Text style={smallText}>This invitation link will expire in 7 days.</Text>
     </BaseLayout>
   );
 }

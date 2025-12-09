@@ -1,13 +1,38 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { PageHeader } from "@/components/page-header";
+import {
+  IconAlertTriangle,
+  IconBell,
+  IconCalendar,
+  IconCheck,
+  IconClock,
+  IconDotsVertical,
+  IconEdit,
+  IconHistory,
+  IconList,
+  IconPlus,
+  IconRepeat,
+  IconTrash,
+  IconUsers,
+  IconX,
+} from "@tabler/icons-react";
+import { format } from "date-fns";
+import Link from "next/link";
+import { useCallback, useEffect, useState } from "react";
 import { EventCalendar } from "@/components/event-calendar";
+import { PageHeader } from "@/components/page-header";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,35 +40,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-  IconPlus,
-  IconClock,
-  IconUsers,
-  IconX,
-  IconRepeat,
-  IconCheck,
-  IconHistory,
-  IconBell,
-  IconEdit,
-  IconDotsVertical,
-  IconTrash,
-  IconCalendar,
-  IconList,
-  IconAlertTriangle,
-} from "@tabler/icons-react";
-import Link from "next/link";
-import { format, parseISO } from "date-fns";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface EventOccurrence {
   id: string;
@@ -85,34 +84,29 @@ export default function EventsPage() {
   const [gymMembers, setGymMembers] = useState<GymMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
-  const [selectedOccurrence, setSelectedOccurrence] = useState<EventOccurrence | null>(null);
+  const [selectedOccurrence, setSelectedOccurrence] =
+    useState<EventOccurrence | null>(null);
   const [occurrenceRsvps, setOccurrenceRsvps] = useState<RSVPUser[]>([]);
   const [rsvpLoading, setRsvpLoading] = useState(false);
   const [showPastEvents, setShowPastEvents] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [sendingReminder, setSendingReminder] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
-  
+
   // Cancel dialog state
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [notifyOnCancel, setNotifyOnCancel] = useState(true);
   const [canceling, setCanceling] = useState(false);
-  
+
   // Delete event dialog
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  
+
   // Add custom date dialog
   const [addDateDialogOpen, setAddDateDialogOpen] = useState(false);
   const [customDate, setCustomDate] = useState<Date | null>(null);
   const [addingDate, setAddingDate] = useState(false);
 
-  useEffect(() => {
-    loadEvents();
-    loadGymMembers();
-  }, []);
-
-  async function loadEvents() {
+  const loadEvents = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch("/api/events");
@@ -123,22 +117,29 @@ export default function EventsPage() {
         setSelectedEvent(data.events[0]);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load events");
+      console.error(err);
     } finally {
       setLoading(false);
     }
-  }
+  }, [selectedEvent]);
 
-  async function loadGymMembers() {
+  const loadGymMembers = useCallback(async () => {
     try {
       const response = await fetch("/api/roster");
       if (!response.ok) return;
       const data = await response.json();
-      setGymMembers((data.roster || []).filter((m: GymMember) => m.role === "athlete"));
+      setGymMembers(
+        (data.roster || []).filter((m: GymMember) => m.role === "athlete"),
+      );
     } catch (err) {
       console.error(err);
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    loadEvents();
+    loadGymMembers();
+  }, [loadEvents, loadGymMembers]);
 
   async function loadOccurrenceRsvps(occurrenceId: string) {
     try {
@@ -147,13 +148,23 @@ export default function EventsPage() {
       if (!response.ok) throw new Error("Failed to load RSVPs");
       const data = await response.json();
       setOccurrenceRsvps(
-        (data.rsvps || []).map((r: any) => ({
-          id: r.user.id,
-          name: r.user.name,
-          email: r.user.email,
-          avatarUrl: r.user.avatarUrl,
-          status: r.status,
-        }))
+        (data.rsvps || []).map(
+          (r: {
+            user: {
+              id: string;
+              name: string | null;
+              email: string;
+              avatarUrl: string | null;
+            };
+            status: string;
+          }) => ({
+            id: r.user.id,
+            name: r.user.name,
+            email: r.user.email,
+            avatarUrl: r.user.avatarUrl,
+            status: r.status,
+          }),
+        ),
       );
     } catch (err) {
       console.error(err);
@@ -166,21 +177,24 @@ export default function EventsPage() {
     if (!selectedOccurrence) return;
     setCanceling(true);
     try {
-      const response = await fetch(`/api/events/${selectedEvent?.id}/cancel-notify`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          occurrenceId: selectedOccurrence.id,
-          notifyUsers: notifyOnCancel,
-        }),
-      });
+      const response = await fetch(
+        `/api/events/${selectedEvent?.id}/cancel-notify`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            occurrenceId: selectedOccurrence.id,
+            notifyUsers: notifyOnCancel,
+          }),
+        },
+      );
       if (!response.ok) throw new Error("Failed to cancel");
       const data = await response.json();
-      
+
       setCancelDialogOpen(false);
       await loadEvents();
       setSelectedOccurrence(null);
-      
+
       if (notifyOnCancel && data.notified > 0) {
         alert(`Session canceled. ${data.notified} user(s) notified.`);
       }
@@ -200,7 +214,7 @@ export default function EventsPage() {
         method: "DELETE",
       });
       if (!response.ok) throw new Error("Failed to delete");
-      
+
       setDeleteDialogOpen(false);
       setSelectedEvent(null);
       setSelectedOccurrence(null);
@@ -213,9 +227,12 @@ export default function EventsPage() {
     }
   }
 
-  async function handleToggleOccurrence(date: Date, currentStatus: string | null) {
+  async function handleToggleOccurrence(
+    date: Date,
+    currentStatus: string | null,
+  ) {
     if (!selectedEvent) return;
-    
+
     const occurrence = selectedEvent.occurrences.find((occ) => {
       const occDate = new Date(occ.date);
       return occDate.toDateString() === date.toDateString();
@@ -256,11 +273,14 @@ export default function EventsPage() {
     if (!selectedEvent || !customDate) return;
     setAddingDate(true);
     try {
-      const response = await fetch(`/api/events/${selectedEvent.id}/occurrences`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ date: customDate.toISOString() }),
-      });
+      const response = await fetch(
+        `/api/events/${selectedEvent.id}/occurrences`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ date: customDate.toISOString() }),
+        },
+      );
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.error || "Failed to add date");
@@ -278,11 +298,14 @@ export default function EventsPage() {
   async function handleRemoveCustomDate(occurrenceId: string) {
     if (!selectedEvent) return;
     try {
-      const response = await fetch(`/api/events/${selectedEvent.id}/occurrences`, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ occurrenceId }),
-      });
+      const response = await fetch(
+        `/api/events/${selectedEvent.id}/occurrences`,
+        {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ occurrenceId }),
+        },
+      );
       if (!response.ok) throw new Error("Failed to remove");
       await loadEvents();
     } catch (err) {
@@ -343,8 +366,10 @@ export default function EventsPage() {
 
   function formatDate(dateValue: string | Date | undefined | null) {
     if (!dateValue) return { day: "", month: "", weekday: "" };
-    const date = typeof dateValue === "string" ? new Date(dateValue) : dateValue;
-    if (Number.isNaN(date.getTime())) return { day: "", month: "", weekday: "" };
+    const date =
+      typeof dateValue === "string" ? new Date(dateValue) : dateValue;
+    if (Number.isNaN(date.getTime()))
+      return { day: "", month: "", weekday: "" };
     return {
       day: date.getDate().toString(),
       month: date.toLocaleDateString("en-US", { month: "short" }).toUpperCase(),
@@ -355,7 +380,7 @@ export default function EventsPage() {
   function formatTime(time: string | undefined | null) {
     if (!time) return "";
     const [hours, minutes] = time.split(":");
-    const hour = parseInt(hours);
+    const hour = parseInt(hours, 10);
     if (Number.isNaN(hour)) return time;
     const ampm = hour >= 12 ? "PM" : "AM";
     const displayHour = hour % 12 || 12;
@@ -371,7 +396,13 @@ export default function EventsPage() {
   }
 
   function getInitials(name: string | null, email: string) {
-    if (name) return name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
+    if (name)
+      return name
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2);
     return email[0].toUpperCase();
   }
 
@@ -382,9 +413,13 @@ export default function EventsPage() {
     return date < today;
   }
 
-  const futureOccurrences = selectedEvent?.occurrences.filter((o) => !isPastDate(o.date)) || [];
-  const pastOccurrences = selectedEvent?.occurrences.filter((o) => isPastDate(o.date)) || [];
-  const displayedOccurrences = showPastEvents ? [...futureOccurrences, ...pastOccurrences] : futureOccurrences;
+  const futureOccurrences =
+    selectedEvent?.occurrences.filter((o) => !isPastDate(o.date)) || [];
+  const pastOccurrences =
+    selectedEvent?.occurrences.filter((o) => isPastDate(o.date)) || [];
+  const displayedOccurrences = showPastEvents
+    ? [...futureOccurrences, ...pastOccurrences]
+    : futureOccurrences;
 
   const goingUsers = occurrenceRsvps.filter((r) => r.status === "going");
   const notGoingUsers = occurrenceRsvps.filter((r) => r.status === "not_going");
@@ -446,6 +481,7 @@ export default function EventsPage() {
                 events.map((event) => (
                   <div key={event.id} className="relative group">
                     <button
+                      type="button"
                       onClick={() => selectEvent(event)}
                       className={`w-full text-left p-3 rounded-xl mb-1 transition-all ${
                         selectedEvent?.id === event.id
@@ -453,10 +489,16 @@ export default function EventsPage() {
                           : "hover:bg-muted"
                       }`}
                     >
-                      <p className="font-medium truncate text-sm pr-6">{event.title}</p>
-                      <div className={`flex items-center gap-2 mt-1.5 text-xs ${
-                        selectedEvent?.id === event.id ? "text-primary-foreground/70" : "text-muted-foreground"
-                      }`}>
+                      <p className="font-medium truncate text-sm pr-6">
+                        {event.title}
+                      </p>
+                      <div
+                        className={`flex items-center gap-2 mt-1.5 text-xs ${
+                          selectedEvent?.id === event.id
+                            ? "text-primary-foreground/70"
+                            : "text-muted-foreground"
+                        }`}
+                      >
                         <IconClock className="h-3 w-3" />
                         {formatTime(event.startTime)}
                         <span className="opacity-50">•</span>
@@ -464,7 +506,7 @@ export default function EventsPage() {
                         {getRecurrenceLabel(event.recurrenceRule)}
                       </div>
                     </button>
-                    
+
                     {/* Event Actions */}
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -472,7 +514,9 @@ export default function EventsPage() {
                           variant="ghost"
                           size="icon"
                           className={`absolute right-2 top-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity ${
-                            selectedEvent?.id === event.id ? "text-primary-foreground hover:bg-primary-foreground/20" : ""
+                            selectedEvent?.id === event.id
+                              ? "text-primary-foreground hover:bg-primary-foreground/20"
+                              : ""
                           }`}
                         >
                           <IconDotsVertical className="h-4 w-4" />
@@ -511,15 +555,20 @@ export default function EventsPage() {
             {selectedEvent ? (
               <div className="max-w-3xl mx-auto">
                 <div className="mb-4">
-                  <h2 className="text-xl font-semibold">{selectedEvent.title}</h2>
+                  <h2 className="text-xl font-semibold">
+                    {selectedEvent.title}
+                  </h2>
                   <p className="text-sm text-muted-foreground">
-                    {formatTime(selectedEvent.startTime)} - {formatTime(selectedEvent.endTime)}
+                    {formatTime(selectedEvent.startTime)} -{" "}
+                    {formatTime(selectedEvent.endTime)}
                   </p>
                 </div>
                 <EventCalendar
                   occurrences={selectedEvent.occurrences.map((o) => ({
                     ...o,
-                    isCustom: (o as any).isCustom || false,
+                    isCustom:
+                      (o as EventOccurrence & { isCustom?: boolean })
+                        .isCustom || false,
                   }))}
                   eventTitle={selectedEvent.title}
                   onToggleDate={handleToggleOccurrence}
@@ -540,9 +589,12 @@ export default function EventsPage() {
               {selectedEvent ? (
                 <>
                   <div className="p-4 border-b">
-                    <h3 className="font-semibold text-sm">{selectedEvent.title}</h3>
+                    <h3 className="font-semibold text-sm">
+                      {selectedEvent.title}
+                    </h3>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      {formatTime(selectedEvent.startTime)} - {formatTime(selectedEvent.endTime)}
+                      {formatTime(selectedEvent.startTime)} -{" "}
+                      {formatTime(selectedEvent.endTime)}
                     </p>
                   </div>
                   <ScrollArea className="flex-1">
@@ -558,6 +610,7 @@ export default function EventsPage() {
                           return (
                             <button
                               key={occ.id}
+                              type="button"
                               onClick={() => selectOccurrence(occ)}
                               className={`w-full text-left p-3 rounded-xl mb-1 transition-all flex items-center gap-3 ${
                                 selectedOccurrence?.id === occ.id
@@ -565,26 +618,48 @@ export default function EventsPage() {
                                   : "hover:bg-muted"
                               } ${isPast ? "opacity-50" : ""} ${occ.status === "canceled" ? "opacity-40" : ""}`}
                             >
-                              <div className={`h-14 w-14 rounded-xl flex flex-col items-center justify-center shrink-0 ${
-                                selectedOccurrence?.id === occ.id 
-                                  ? "bg-primary text-primary-foreground" 
-                                  : "bg-muted"
-                              }`}>
-                                <span className="text-xl font-bold leading-none">{dateInfo.day}</span>
-                                <span className="text-[10px] font-medium opacity-70 mt-0.5">{dateInfo.month}</span>
+                              <div
+                                className={`h-14 w-14 rounded-xl flex flex-col items-center justify-center shrink-0 ${
+                                  selectedOccurrence?.id === occ.id
+                                    ? "bg-primary text-primary-foreground"
+                                    : "bg-muted"
+                                }`}
+                              >
+                                <span className="text-xl font-bold leading-none">
+                                  {dateInfo.day}
+                                </span>
+                                <span className="text-[10px] font-medium opacity-70 mt-0.5">
+                                  {dateInfo.month}
+                                </span>
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="font-medium text-sm whitespace-nowrap">{dateInfo.weekday}</p>
+                                <p className="font-medium text-sm whitespace-nowrap">
+                                  {dateInfo.weekday}
+                                </p>
                                 <p className="text-xs text-muted-foreground">
                                   {formatTime(selectedEvent.startTime)}
                                 </p>
                               </div>
                               <div className="flex flex-col items-end gap-1">
                                 {occ.status === "canceled" && (
-                                  <Badge variant="destructive" className="text-[10px]">Canceled</Badge>
+                                  <Badge
+                                    variant="destructive"
+                                    className="text-[10px]"
+                                  >
+                                    Canceled
+                                  </Badge>
                                 )}
-                                {(occ as any).isCustom && (
-                                  <Badge variant="outline" className="text-[10px]">Custom</Badge>
+                                {(
+                                  occ as EventOccurrence & {
+                                    isCustom?: boolean;
+                                  }
+                                ).isCustom && (
+                                  <Badge
+                                    variant="outline"
+                                    className="text-[10px]"
+                                  >
+                                    Custom
+                                  </Badge>
                                 )}
                               </div>
                             </button>
@@ -593,6 +668,7 @@ export default function EventsPage() {
                       )}
                       {pastOccurrences.length > 0 && (
                         <button
+                          type="button"
                           onClick={() => setShowPastEvents(!showPastEvents)}
                           className="w-full p-3 text-xs text-muted-foreground hover:text-foreground flex items-center justify-center gap-2"
                         >
@@ -618,22 +694,28 @@ export default function EventsPage() {
                     <div>
                       <h3 className="font-semibold">{selectedEvent?.title}</h3>
                       <p className="text-sm text-muted-foreground">
-                        {formatDate(selectedOccurrence.date).weekday}, {formatDate(selectedOccurrence.date).month} {formatDate(selectedOccurrence.date).day} • {formatTime(selectedEvent?.startTime)}
+                        {formatDate(selectedOccurrence.date).weekday},{" "}
+                        {formatDate(selectedOccurrence.date).month}{" "}
+                        {formatDate(selectedOccurrence.date).day} •{" "}
+                        {formatTime(selectedEvent?.startTime)}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
-                      {notAnsweredUsers.length > 0 && selectedOccurrence.status !== "canceled" && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={handleSendReminders}
-                          disabled={sendingReminder}
-                          className="gap-2 rounded-xl"
-                        >
-                          <IconBell className="h-4 w-4" />
-                          {sendingReminder ? "Sending..." : `Remind (${notAnsweredUsers.length})`}
-                        </Button>
-                      )}
+                      {notAnsweredUsers.length > 0 &&
+                        selectedOccurrence.status !== "canceled" && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleSendReminders}
+                            disabled={sendingReminder}
+                            className="gap-2 rounded-xl"
+                          >
+                            <IconBell className="h-4 w-4" />
+                            {sendingReminder
+                              ? "Sending..."
+                              : `Remind (${notAnsweredUsers.length})`}
+                          </Button>
+                        )}
                       {selectedOccurrence.status !== "canceled" && (
                         <Button
                           variant="outline"
@@ -656,38 +738,85 @@ export default function EventsPage() {
                       <Tabs defaultValue="all" className="h-full flex flex-col">
                         <div className="px-4 pt-4">
                           <TabsList className="w-full grid grid-cols-4 h-10 rounded-xl">
-                            <TabsTrigger value="all" className="text-xs rounded-lg">
+                            <TabsTrigger
+                              value="all"
+                              className="text-xs rounded-lg"
+                            >
                               All ({gymMembers.length})
                             </TabsTrigger>
-                            <TabsTrigger value="going" className="text-xs rounded-lg">
+                            <TabsTrigger
+                              value="going"
+                              className="text-xs rounded-lg"
+                            >
                               Going ({goingUsers.length})
                             </TabsTrigger>
-                            <TabsTrigger value="not_going" className="text-xs rounded-lg">
+                            <TabsTrigger
+                              value="not_going"
+                              className="text-xs rounded-lg"
+                            >
                               Can't ({notGoingUsers.length})
                             </TabsTrigger>
-                            <TabsTrigger value="pending" className="text-xs rounded-lg">
+                            <TabsTrigger
+                              value="pending"
+                              className="text-xs rounded-lg"
+                            >
                               Pending ({notAnsweredUsers.length})
                             </TabsTrigger>
                           </TabsList>
                         </div>
-                        <TabsContent value="all" className="flex-1 overflow-auto mt-0 p-4">
+                        <TabsContent
+                          value="all"
+                          className="flex-1 overflow-auto mt-0 p-4"
+                        >
                           <UserList
                             users={gymMembers.map((m) => ({
                               ...m,
-                              status: occurrenceRsvps.find((r) => r.id === m.id)?.status || null,
+                              status:
+                                occurrenceRsvps.find((r) => r.id === m.id)
+                                  ?.status || null,
                             }))}
                             getInitials={getInitials}
                             onEditRsvp={handleEditRsvp}
                           />
                         </TabsContent>
-                        <TabsContent value="going" className="flex-1 overflow-auto mt-0 p-4">
-                          <UserList users={goingUsers.map((u) => ({ ...u, status: "going" }))} getInitials={getInitials} onEditRsvp={handleEditRsvp} />
+                        <TabsContent
+                          value="going"
+                          className="flex-1 overflow-auto mt-0 p-4"
+                        >
+                          <UserList
+                            users={goingUsers.map((u) => ({
+                              ...u,
+                              status: "going",
+                            }))}
+                            getInitials={getInitials}
+                            onEditRsvp={handleEditRsvp}
+                          />
                         </TabsContent>
-                        <TabsContent value="not_going" className="flex-1 overflow-auto mt-0 p-4">
-                          <UserList users={notGoingUsers.map((u) => ({ ...u, status: "not_going" }))} getInitials={getInitials} onEditRsvp={handleEditRsvp} />
+                        <TabsContent
+                          value="not_going"
+                          className="flex-1 overflow-auto mt-0 p-4"
+                        >
+                          <UserList
+                            users={notGoingUsers.map((u) => ({
+                              ...u,
+                              status: "not_going",
+                            }))}
+                            getInitials={getInitials}
+                            onEditRsvp={handleEditRsvp}
+                          />
                         </TabsContent>
-                        <TabsContent value="pending" className="flex-1 overflow-auto mt-0 p-4">
-                          <UserList users={notAnsweredUsers.map((u) => ({ ...u, status: null }))} getInitials={getInitials} onEditRsvp={handleEditRsvp} />
+                        <TabsContent
+                          value="pending"
+                          className="flex-1 overflow-auto mt-0 p-4"
+                        >
+                          <UserList
+                            users={notAnsweredUsers.map((u) => ({
+                              ...u,
+                              status: null,
+                            }))}
+                            getInitials={getInitials}
+                            onEditRsvp={handleEditRsvp}
+                          />
                         </TabsContent>
                       </Tabs>
                     )}
@@ -720,24 +849,42 @@ export default function EventsPage() {
             <div className="p-3 rounded-xl bg-muted/50 mb-4">
               <p className="font-medium">{selectedEvent?.title}</p>
               <p className="text-sm text-muted-foreground">
-                {selectedOccurrence && formatDate(selectedOccurrence.date).weekday}, {selectedOccurrence && formatDate(selectedOccurrence.date).month} {selectedOccurrence && formatDate(selectedOccurrence.date).day}
+                {selectedOccurrence &&
+                  formatDate(selectedOccurrence.date).weekday}
+                ,{" "}
+                {selectedOccurrence &&
+                  formatDate(selectedOccurrence.date).month}{" "}
+                {selectedOccurrence && formatDate(selectedOccurrence.date).day}
               </p>
             </div>
-            <div
-              className="flex items-center space-x-3 p-3 rounded-xl bg-muted/50 cursor-pointer"
+            <button
+              type="button"
+              className="flex items-center space-x-3 p-3 rounded-xl bg-muted/50 cursor-pointer w-full text-left"
               onClick={() => setNotifyOnCancel(!notifyOnCancel)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setNotifyOnCancel(!notifyOnCancel);
+                }
+              }}
             >
               <Checkbox
                 checked={notifyOnCancel}
-                onCheckedChange={(checked) => setNotifyOnCancel(checked as boolean)}
+                onCheckedChange={(checked) =>
+                  setNotifyOnCancel(checked as boolean)
+                }
               />
               <Label className="cursor-pointer">
                 Notify all users who RSVP'd "Going" via email
               </Label>
-            </div>
+            </button>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCancelDialogOpen(false)} className="rounded-xl">
+            <Button
+              variant="outline"
+              onClick={() => setCancelDialogOpen(false)}
+              className="rounded-xl"
+            >
               Keep Session
             </Button>
             <Button
@@ -761,11 +908,16 @@ export default function EventsPage() {
               Delete Event
             </DialogTitle>
             <DialogDescription>
-              This will permanently delete "{selectedEvent?.title}" and all its sessions. This action cannot be undone.
+              This will permanently delete "{selectedEvent?.title}" and all its
+              sessions. This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} className="rounded-xl">
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialogOpen(false)}
+              className="rounded-xl"
+            >
               Cancel
             </Button>
             <Button
@@ -786,14 +938,23 @@ export default function EventsPage() {
           <DialogHeader>
             <DialogTitle>Add Custom Session</DialogTitle>
             <DialogDescription>
-              Add a one-time session for {selectedEvent?.title} on {customDate && format(customDate, "PPPP")}
+              Add a one-time session for {selectedEvent?.title} on{" "}
+              {customDate && format(customDate, "PPPP")}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setAddDateDialogOpen(false)} className="rounded-xl">
+            <Button
+              variant="outline"
+              onClick={() => setAddDateDialogOpen(false)}
+              className="rounded-xl"
+            >
               Cancel
             </Button>
-            <Button onClick={confirmAddCustomDate} disabled={addingDate} className="rounded-xl">
+            <Button
+              onClick={confirmAddCustomDate}
+              disabled={addingDate}
+              className="rounded-xl"
+            >
               {addingDate ? "Adding..." : "Add Session"}
             </Button>
           </DialogFooter>
@@ -833,13 +994,17 @@ function UserList({ users, getInitials, onEditRsvp }: UserListProps) {
         >
           <Avatar className="h-10 w-10 rounded-xl">
             <AvatarImage src={user.avatarUrl || undefined} />
-            <AvatarFallback className="rounded-xl text-xs bg-gradient-to-br from-primary/20 to-primary/5">
+            <AvatarFallback className="rounded-xl text-xs bg-linear-to-br from-primary/20 to-primary/5">
               {getInitials(user.name, user.email)}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
-            <p className="font-medium text-sm truncate">{user.name || "Unnamed"}</p>
-            <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+            <p className="font-medium text-sm truncate">
+              {user.name || "Unnamed"}
+            </p>
+            <p className="text-xs text-muted-foreground truncate">
+              {user.email}
+            </p>
           </div>
           <div className="flex items-center gap-2">
             {user.status === "going" && (
@@ -863,16 +1028,26 @@ function UserList({ users, getInitials, onEditRsvp }: UserListProps) {
             {onEditRsvp && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
                     <IconEdit className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="rounded-xl">
-                  <DropdownMenuItem onClick={() => onEditRsvp(user.id, "going")} className="gap-2">
+                  <DropdownMenuItem
+                    onClick={() => onEditRsvp(user.id, "going")}
+                    className="gap-2"
+                  >
                     <IconCheck className="h-4 w-4 text-emerald-600" />
                     Mark as Going
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onEditRsvp(user.id, "not_going")} className="gap-2">
+                  <DropdownMenuItem
+                    onClick={() => onEditRsvp(user.id, "not_going")}
+                    className="gap-2"
+                  >
                     <IconX className="h-4 w-4 text-red-600" />
                     Mark as Can't Go
                   </DropdownMenuItem>

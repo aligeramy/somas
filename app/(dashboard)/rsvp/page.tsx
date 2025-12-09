@@ -1,16 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { IconCheck, IconClock, IconX } from "@tabler/icons-react";
+import { useCallback, useEffect, useState } from "react";
 import { PageHeader } from "@/components/page-header";
-import {
-  IconCheck,
-  IconX,
-  IconClock,
-} from "@tabler/icons-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface EventOccurrence {
   id: string;
@@ -49,12 +45,7 @@ export default function RSVPPage() {
   const [error, setError] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  async function loadData() {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       const [eventsRes, rsvpsRes, userRes] = await Promise.all([
@@ -74,26 +65,38 @@ export default function RSVPPage() {
       }
 
       const allOccurrences: EventOccurrence[] = [];
-      eventsData.events.forEach((event: any) => {
-        event.occurrences.forEach((occ: any) => {
-          const occDate = new Date(occ.date);
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
-          if (occDate >= today) {
-            allOccurrences.push({
-              ...occ,
-              event: {
-                id: event.id,
-                title: event.title,
-                startTime: event.startTime,
-                endTime: event.endTime,
-              },
-            });
-          }
-        });
-      });
+      eventsData.events.forEach(
+        (event: {
+          id: string;
+          title: string;
+          startTime: string;
+          endTime: string;
+          occurrences: Array<{ id: string; date: string; status: string }>;
+        }) => {
+          event.occurrences.forEach(
+            (occ: { id: string; date: string; status: string }) => {
+              const occDate = new Date(occ.date);
+              const today = new Date();
+              today.setHours(0, 0, 0, 0);
+              if (occDate >= today) {
+                allOccurrences.push({
+                  ...occ,
+                  event: {
+                    id: event.id,
+                    title: event.title,
+                    startTime: event.startTime,
+                    endTime: event.endTime,
+                  },
+                });
+              }
+            },
+          );
+        },
+      );
 
-      allOccurrences.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      allOccurrences.sort(
+        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+      );
       setEvents(allOccurrences);
       setRsvps(rsvpsData.rsvps || []);
     } catch (err) {
@@ -101,9 +104,16 @@ export default function RSVPPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
-  async function handleRSVP(occurrenceId: string, status: "going" | "not_going") {
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  async function handleRSVP(
+    occurrenceId: string,
+    status: "going" | "not_going",
+  ) {
     try {
       setUpdatingId(occurrenceId);
       const response = await fetch("/api/rsvp", {
@@ -127,18 +137,21 @@ export default function RSVPPage() {
 
   function formatDate(dateValue: string | Date | undefined | null) {
     if (!dateValue) return { day: "", month: "", weekday: "", relative: "" };
-    const date = typeof dateValue === "string" ? new Date(dateValue) : dateValue;
-    if (isNaN(date.getTime())) return { day: "", month: "", weekday: "", relative: "" };
-    
+    const date =
+      typeof dateValue === "string" ? new Date(dateValue) : dateValue;
+    if (Number.isNaN(date.getTime()))
+      return { day: "", month: "", weekday: "", relative: "" };
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
-    
+
     let relative = "";
     if (date.toDateString() === today.toDateString()) relative = "Today";
-    else if (date.toDateString() === tomorrow.toDateString()) relative = "Tomorrow";
-    
+    else if (date.toDateString() === tomorrow.toDateString())
+      relative = "Tomorrow";
+
     return {
       day: date.getDate().toString(),
       month: date.toLocaleDateString("en-US", { month: "short" }).toUpperCase(),
@@ -150,19 +163,26 @@ export default function RSVPPage() {
   function formatTime(time: string | undefined | null) {
     if (!time) return "";
     const [hours, minutes] = time.split(":");
-    const hour = parseInt(hours);
-    if (isNaN(hour)) return time;
+    const hour = parseInt(hours, 10);
+    if (Number.isNaN(hour)) return time;
     const ampm = hour >= 12 ? "PM" : "AM";
     const displayHour = hour % 12 || 12;
     return `${displayHour}:${minutes} ${ampm}`;
   }
 
   function getInitials(name: string | null, email: string) {
-    if (name) return name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
+    if (name)
+      return name
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2);
     return email[0].toUpperCase();
   }
 
-  const isOwnerOrCoach = userInfo?.role === "owner" || userInfo?.role === "coach";
+  const isOwnerOrCoach =
+    userInfo?.role === "owner" || userInfo?.role === "coach";
 
   if (loading) {
     return (
@@ -180,7 +200,9 @@ export default function RSVPPage() {
       <div className="flex flex-1 flex-col">
         <PageHeader title="Attendance" />
         <div className="p-6">
-          <div className="bg-destructive/10 text-destructive rounded-xl p-4">{error}</div>
+          <div className="bg-destructive/10 text-destructive rounded-xl p-4">
+            {error}
+          </div>
         </div>
       </div>
     );
@@ -188,17 +210,24 @@ export default function RSVPPage() {
 
   // Owner/Coach View
   if (isOwnerOrCoach) {
-    const rsvpsByOccurrence = rsvps.reduce((acc, rsvp) => {
-      if (!rsvp.occurrence) return acc;
-      const occId = rsvp.occurrence.id;
-      if (!acc[occId]) acc[occId] = { occurrence: rsvp.occurrence, rsvps: [] };
-      if (rsvp.user) acc[occId].rsvps.push(rsvp);
-      return acc;
-    }, {} as Record<string, { occurrence: EventOccurrence; rsvps: RSVP[] }>);
+    const rsvpsByOccurrence = rsvps.reduce(
+      (acc, rsvp) => {
+        if (!rsvp.occurrence) return acc;
+        const occId = rsvp.occurrence.id;
+        if (!acc[occId])
+          acc[occId] = { occurrence: rsvp.occurrence, rsvps: [] };
+        if (rsvp.user) acc[occId].rsvps.push(rsvp);
+        return acc;
+      },
+      {} as Record<string, { occurrence: EventOccurrence; rsvps: RSVP[] }>,
+    );
 
     return (
       <div className="flex flex-1 flex-col h-[calc(100vh-var(--header-height))]">
-        <PageHeader title="Attendance" description="Track who's coming to each session" />
+        <PageHeader
+          title="Attendance"
+          description="Track who's coming to each session"
+        />
         <ScrollArea className="flex-1">
           <div className="p-4 lg:px-6 space-y-2">
             {events.length === 0 ? (
@@ -209,7 +238,9 @@ export default function RSVPPage() {
               events.map((occ) => {
                 const occRsvps = rsvpsByOccurrence[occ.id]?.rsvps || [];
                 const going = occRsvps.filter((r) => r.status === "going");
-                const notGoing = occRsvps.filter((r) => r.status === "not_going");
+                const notGoing = occRsvps.filter(
+                  (r) => r.status === "not_going",
+                );
                 const isCanceled = occ.status === "canceled";
                 const dateInfo = formatDate(occ.date);
 
@@ -221,20 +252,38 @@ export default function RSVPPage() {
                     }`}
                   >
                     {/* Big Date */}
-                    <div className="h-16 w-16 rounded-xl bg-muted flex flex-col items-center justify-center flex-shrink-0">
-                      <span className="text-2xl font-bold leading-none">{dateInfo.day}</span>
-                      <span className="text-[10px] font-medium text-muted-foreground mt-0.5">{dateInfo.month}</span>
+                    <div className="h-16 w-16 rounded-xl bg-muted flex flex-col items-center justify-center shrink-0">
+                      <span className="text-2xl font-bold leading-none">
+                        {dateInfo.day}
+                      </span>
+                      <span className="text-[10px] font-medium text-muted-foreground mt-0.5">
+                        {dateInfo.month}
+                      </span>
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <p className="font-medium">{occ.event.title}</p>
                         {dateInfo.relative && (
-                          <Badge variant="secondary" className="text-[10px] rounded-md">{dateInfo.relative}</Badge>
+                          <Badge
+                            variant="secondary"
+                            className="text-[10px] rounded-md"
+                          >
+                            {dateInfo.relative}
+                          </Badge>
                         )}
-                        {isCanceled && <Badge variant="destructive" className="text-[10px] rounded-md">Canceled</Badge>}
+                        {isCanceled && (
+                          <Badge
+                            variant="destructive"
+                            className="text-[10px] rounded-md"
+                          >
+                            Canceled
+                          </Badge>
+                        )}
                       </div>
                       <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
-                        <span className="whitespace-nowrap">{dateInfo.weekday}</span>
+                        <span className="whitespace-nowrap">
+                          {dateInfo.weekday}
+                        </span>
                         <span className="flex items-center gap-1">
                           <IconClock className="h-3 w-3" />
                           {formatTime(occ.event.startTime)}
@@ -244,10 +293,16 @@ export default function RSVPPage() {
                     <div className="flex items-center gap-3">
                       <div className="flex -space-x-2">
                         {going.slice(0, 4).map((r) => (
-                          <Avatar key={r.id} className="h-8 w-8 rounded-xl border-2 border-background">
+                          <Avatar
+                            key={r.id}
+                            className="h-8 w-8 rounded-xl border-2 border-background"
+                          >
                             <AvatarImage src={r.user?.avatarUrl || undefined} />
                             <AvatarFallback className="rounded-xl text-[10px] bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300">
-                              {getInitials(r.user?.name || null, r.user?.email || "")}
+                              {getInitials(
+                                r.user?.name || null,
+                                r.user?.email || "",
+                              )}
                             </AvatarFallback>
                           </Avatar>
                         ))}
@@ -303,35 +358,58 @@ export default function RSVPPage() {
                   }`}
                 >
                   {/* Big Date with Status */}
-                  <div className={`h-16 w-16 rounded-xl flex flex-col items-center justify-center flex-shrink-0 ${
-                    rsvpStatus === "going" 
-                      ? "bg-emerald-100 dark:bg-emerald-950/50" 
-                      : rsvpStatus === "not_going"
-                      ? "bg-red-100 dark:bg-red-950/50"
-                      : "bg-muted"
-                  }`}>
-                    <span className={`text-2xl font-bold leading-none ${
-                      rsvpStatus === "going" 
-                        ? "text-emerald-600 dark:text-emerald-400" 
+                  <div
+                    className={`h-16 w-16 rounded-xl flex flex-col items-center justify-center shrink-0 ${
+                      rsvpStatus === "going"
+                        ? "bg-emerald-100 dark:bg-emerald-950/50"
                         : rsvpStatus === "not_going"
-                        ? "text-red-600 dark:text-red-400"
-                        : ""
-                    }`}>{dateInfo.day}</span>
-                    <span className="text-[10px] font-medium text-muted-foreground mt-0.5">{dateInfo.month}</span>
+                          ? "bg-red-100 dark:bg-red-950/50"
+                          : "bg-muted"
+                    }`}
+                  >
+                    <span
+                      className={`text-2xl font-bold leading-none ${
+                        rsvpStatus === "going"
+                          ? "text-emerald-600 dark:text-emerald-400"
+                          : rsvpStatus === "not_going"
+                            ? "text-red-600 dark:text-red-400"
+                            : ""
+                      }`}
+                    >
+                      {dateInfo.day}
+                    </span>
+                    <span className="text-[10px] font-medium text-muted-foreground mt-0.5">
+                      {dateInfo.month}
+                    </span>
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <p className="font-medium">{occ.event.title}</p>
                       {dateInfo.relative && (
-                        <Badge variant="secondary" className="text-[10px] rounded-md">{dateInfo.relative}</Badge>
+                        <Badge
+                          variant="secondary"
+                          className="text-[10px] rounded-md"
+                        >
+                          {dateInfo.relative}
+                        </Badge>
                       )}
-                      {isCanceled && <Badge variant="destructive" className="text-[10px] rounded-md">Canceled</Badge>}
+                      {isCanceled && (
+                        <Badge
+                          variant="destructive"
+                          className="text-[10px] rounded-md"
+                        >
+                          Canceled
+                        </Badge>
+                      )}
                     </div>
                     <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
-                      <span className="whitespace-nowrap">{dateInfo.weekday}</span>
+                      <span className="whitespace-nowrap">
+                        {dateInfo.weekday}
+                      </span>
                       <span className="flex items-center gap-1">
                         <IconClock className="h-3 w-3" />
-                        {formatTime(occ.event.startTime)} - {formatTime(occ.event.endTime)}
+                        {formatTime(occ.event.startTime)} -{" "}
+                        {formatTime(occ.event.endTime)}
                       </span>
                     </div>
                   </div>
@@ -349,7 +427,9 @@ export default function RSVPPage() {
                       </Button>
                       <Button
                         size="sm"
-                        variant={rsvpStatus === "not_going" ? "secondary" : "outline"}
+                        variant={
+                          rsvpStatus === "not_going" ? "secondary" : "outline"
+                        }
                         onClick={() => handleRSVP(occ.id, "not_going")}
                         disabled={isUpdating}
                         className="h-9 rounded-xl"

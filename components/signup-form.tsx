@@ -1,20 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
 import { GalleryVerticalEnd } from "lucide-react";
-
-import { cn } from "@/lib/utils";
+import { useSearchParams } from "next/navigation";
+import { useState } from "react";
+import { registerAction } from "@/app/(auth)/register/actions";
 import { Button } from "@/components/ui/button";
 import {
   Field,
   FieldDescription,
   FieldGroup,
   FieldLabel,
-  FieldSeparator,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { registerAction } from "@/app/(auth)/register/actions";
+import { cn } from "@/lib/utils";
 
 export function SignupForm({
   className,
@@ -48,15 +46,12 @@ export function SignupForm({
       <form onSubmit={handleSubmit}>
         <FieldGroup>
           <div className="flex flex-col items-center gap-2 text-center">
-            <a
-              href="#"
-              className="flex flex-col items-center gap-2 font-medium"
-            >
+            <div className="flex flex-col items-center gap-2 font-medium">
               <div className="flex size-8 items-center justify-center rounded-md">
                 <GalleryVerticalEnd className="size-6" />
               </div>
               <span className="sr-only">TOM</span>
-            </a>
+            </div>
             <h1 className="text-xl font-bold">Welcome to TOM</h1>
             <FieldDescription>
               Already have an account?{" "}
@@ -101,9 +96,16 @@ export function SignupForm({
         </FieldGroup>
       </form>
       <FieldDescription className="px-6 text-center">
-        By clicking continue, you agree to our <a href="#">Terms of Service</a>{" "}
-        and <a href="#">Privacy Policy</a>.
+        By clicking continue, you agree to our{" "}
+        <button type="button" className="underline">
+          Terms of Service
+        </button>{" "}
+        and{" "}
+        <button type="button" className="underline">
+          Privacy Policy
+        </button>
+        .
       </FieldDescription>
     </div>
-  )
+  );
 }
