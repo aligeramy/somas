@@ -28,7 +28,7 @@ export default async function HomePage() {
         <Button asChild variant="outline">
           <Link href="/register">Sign Up</Link>
         </Button>
-      </div>
+        </div>
     </div>
   );
 }

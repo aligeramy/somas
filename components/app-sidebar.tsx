@@ -8,10 +8,8 @@ import {
   IconListCheck,
   IconSettings,
   IconUsers,
-  IconBuilding,
 } from "@tabler/icons-react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
 
 import { NavMain } from "@/components/nav-main"
 import { NavSecondary } from "@/components/nav-secondary"
@@ -38,8 +36,6 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
 }
 
 export function AppSidebar({ user, gymName, gymLogo, ...props }: AppSidebarProps) {
-  const pathname = usePathname()
-
   const navMain = [
     {
       title: "Dashboard",
@@ -57,7 +53,7 @@ export function AppSidebar({ user, gymName, gymLogo, ...props }: AppSidebarProps
       icon: IconUsers,
     },
     {
-      title: "RSVP",
+      title: "Attendance",
       url: "/rsvp",
       icon: IconListCheck,
     },
@@ -76,16 +72,9 @@ export function AppSidebar({ user, gymName, gymLogo, ...props }: AppSidebarProps
     },
   ]
 
-  const getInitials = (name: string | null, email: string) => {
-    if (name) {
-      return name
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2)
-    }
-    return email[0].toUpperCase()
+  const getGymInitials = (name: string | null) => {
+    if (!name) return "T"
+    return name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
   }
 
   return (
@@ -95,20 +84,18 @@ export function AppSidebar({ user, gymName, gymLogo, ...props }: AppSidebarProps
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
-              className="data-[slot=sidebar-menu-button]:!p-1.5"
+              className="data-[slot=sidebar-menu-button]:!p-2 h-auto"
             >
-              <Link href="/dashboard">
-                {gymLogo ? (
-                  <Avatar className="h-8 w-8 rounded-lg">
+              <Link href="/dashboard" className="flex items-center gap-3">
+                <Avatar className="h-9 w-9 rounded-xl">
+                  {gymLogo ? (
                     <AvatarImage src={gymLogo} alt={gymName || "Gym"} />
-                    <AvatarFallback className="rounded-lg">
-                      <IconBuilding className="h-4 w-4" />
-                    </AvatarFallback>
-                  </Avatar>
-                ) : (
-                  <IconBuilding className="!size-5" />
-                )}
-                <span className="text-base font-semibold">
+                  ) : null}
+                  <AvatarFallback className="rounded-xl bg-primary text-primary-foreground font-semibold">
+                    {getGymInitials(gymName)}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-base font-semibold truncate">
                   {gymName || "TOM"}
                 </span>
               </Link>

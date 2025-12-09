@@ -4,8 +4,13 @@ import {
   IconDotsVertical,
   IconLogout,
   IconUserCircle,
+  IconMoon,
+  IconSun,
+  IconDeviceDesktop,
 } from "@tabler/icons-react"
 import { useRouter } from "next/navigation"
+import { useTheme } from "next-themes"
+import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
 
 import {
@@ -20,6 +25,9 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
@@ -40,6 +48,7 @@ export function NavUser({
 }) {
   const { isMobile } = useSidebar()
   const router = useRouter()
+  const { theme, setTheme } = useTheme()
 
   const getInitials = (name?: string, email?: string) => {
     if (name) {
@@ -90,7 +99,7 @@ export function NavUser({
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
-            className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
+            className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-xl"
             side={isMobile ? "bottom" : "right"}
             align="end"
             sideOffset={4}
@@ -115,14 +124,42 @@ export function NavUser({
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <IconUserCircle />
-                Profile
+              <DropdownMenuItem asChild>
+                <Link href="/profile">
+                  <IconUserCircle className="mr-2 h-4 w-4" />
+                  Profile
+                </Link>
               </DropdownMenuItem>
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                  {theme === "dark" ? (
+                    <IconMoon className="mr-2 h-4 w-4" />
+                  ) : theme === "light" ? (
+                    <IconSun className="mr-2 h-4 w-4" />
+                  ) : (
+                    <IconDeviceDesktop className="mr-2 h-4 w-4" />
+                  )}
+                  Theme
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent className="rounded-xl">
+                  <DropdownMenuItem onClick={() => setTheme("light")}>
+                    <IconSun className="mr-2 h-4 w-4" />
+                    Light
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setTheme("dark")}>
+                    <IconMoon className="mr-2 h-4 w-4" />
+                    Dark
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setTheme("system")}>
+                    <IconDeviceDesktop className="mr-2 h-4 w-4" />
+                    System
+                  </DropdownMenuItem>
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleLogout}>
-              <IconLogout />
+            <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
+              <IconLogout className="mr-2 h-4 w-4" />
               Log out
             </DropdownMenuItem>
           </DropdownMenuContent>
