@@ -133,3 +133,4 @@ const footerSubtext = {
 
 export default BaseLayout;
 
+

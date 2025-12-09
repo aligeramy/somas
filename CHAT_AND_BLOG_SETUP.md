@@ -98,3 +98,4 @@ Ensure Realtime is enabled for the `Message` table in Supabase:
 - `POST /api/notices` - Create notice (owner/coach only)
 - `PUT /api/notices` - Update notice active status
 
+
