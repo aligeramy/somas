@@ -1,9 +1,9 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { ChatMessage } from "@/hooks/use-realtime-chat";
 import { format } from "date-fns";
+import { IconCheck, IconClock } from "@tabler/icons-react";
 
 interface ChatMessageItemProps {
   message: ChatMessage;
@@ -16,17 +16,19 @@ export function ChatMessageItem({
   isOwnMessage,
   showHeader,
 }: ChatMessageItemProps) {
-  const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
-  };
+  const isPending = message.status === "pending";
 
   return (
-    <div className={cn("flex mt-2", isOwnMessage ? "justify-end" : "justify-start")}>
+    <div 
+      className={cn(
+        "flex mt-2 animate-in fade-in slide-in-from-bottom-2 duration-300",
+        isOwnMessage ? "justify-end" : "justify-start"
+      )}
+      style={{
+        animationDelay: isPending ? "0ms" : "100ms",
+        opacity: isPending ? 0.8 : 1,
+      }}
+    >
       <div
         className={cn("max-w-[75%] w-fit flex flex-col gap-1", {
           "items-end": isOwnMessage,
@@ -46,25 +48,41 @@ export function ChatMessageItem({
         )}
         <div
           className={cn(
-            "py-2 px-3 rounded-2xl text-sm w-fit flex flex-col gap-2",
+            "py-2 px-3 rounded-2xl text-sm w-fit flex flex-col gap-2 transition-all duration-300",
             isOwnMessage
               ? "bg-primary text-primary-foreground rounded-br-sm"
-              : "bg-muted text-foreground rounded-bl-sm"
+              : "bg-muted text-foreground rounded-bl-sm",
+            isPending && isOwnMessage && "opacity-80"
           )}
         >
           {message.attachmentUrl && message.attachmentType === "image" && (
+            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={message.attachmentUrl}
               alt="Attachment"
               className="max-w-[200px] rounded-lg"
             />
           )}
-          {message.content && <p className="whitespace-pre-wrap break-words">{message.content}</p>}
+          <div className="flex items-end gap-2">
+            {message.content && (
+              <p className="whitespace-pre-wrap wrap-break-word">{message.content}</p>
+            )}
+            {isOwnMessage && (
+              <div className="flex items-center shrink-0">
+                {isPending ? (
+                  <IconClock className="h-3 w-3 opacity-70 animate-pulse" />
+                ) : (
+                  <IconCheck className="h-3 w-3 opacity-70 transition-opacity duration-300" />
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
   );
 }
+
 
 
 

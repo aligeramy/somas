@@ -84,7 +84,7 @@ export default async function HomePage() {
               TOM
             </h1>
             <p className="text-muted-foreground text-xl md:text-2xl max-w-2xl">
-              Team Operations Manager
+              Titans of Mississauga
             </p>
             <p className="text-muted-foreground text-lg md:text-xl max-w-xl">
               The modern platform for gym management and athlete coordination.
@@ -112,7 +112,7 @@ export default async function HomePage() {
                 Everything you need to manage your gym
               </h2>
               <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-                Powerful features designed to help coaches and gym owners
+                Powerful features designed to help coaches and head coaches
                 coordinate with athletes efficiently.
               </p>
             </div>
@@ -146,7 +146,7 @@ export default async function HomePage() {
               Ready to get started?
             </h2>
             <p className="text-muted-foreground text-lg mb-8 max-w-2xl mx-auto">
-              Join gyms and coaches who are already using TOM to streamline
+              Join gyms and coaches who are already using Titans of Mississauga to streamline
               their operations and improve athlete coordination.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">

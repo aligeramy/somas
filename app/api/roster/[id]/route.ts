@@ -66,7 +66,7 @@ export async function PUT(
       return NextResponse.json({ error: "User must belong to a gym" }, { status: 400 });
     }
 
-    // Only owners can edit members (coaches can only edit themselves or athletes)
+    // Only head coaches can edit members (coaches can only edit themselves or athletes)
     if (dbUser.role !== "owner") {
       // Check if editing self or an athlete
       if (id !== user.id) {
@@ -87,14 +87,14 @@ export async function PUT(
 
     // Validate role change
     if (role) {
-      // Only owners can change roles
+      // Only head coaches can change roles
       if (dbUser.role !== "owner") {
-        return NextResponse.json({ error: "Only owners can change member roles" }, { status: 403 });
+        return NextResponse.json({ error: "Only head coaches can change member roles" }, { status: 403 });
       }
-      // Can't change owner role
+      // Can't change head coach role
       const [targetMember] = await db.select().from(users).where(eq(users.id, id)).limit(1);
       if (targetMember?.role === "owner") {
-        return NextResponse.json({ error: "Cannot change owner role" }, { status: 400 });
+        return NextResponse.json({ error: "Cannot change head coach role" }, { status: 400 });
       }
     }
 
@@ -143,9 +143,9 @@ export async function DELETE(
       return NextResponse.json({ error: "User must belong to a gym" }, { status: 400 });
     }
 
-    // Only owners can remove members
+    // Only head coaches can remove members
     if (dbUser.role !== "owner") {
-      return NextResponse.json({ error: "Only owners can remove members" }, { status: 403 });
+      return NextResponse.json({ error: "Only head coaches can remove members" }, { status: 403 });
     }
 
     // Can't remove yourself
@@ -179,6 +179,7 @@ export async function DELETE(
     return NextResponse.json({ error: "Failed to remove member" }, { status: 500 });
   }
 }
+
 
 
 

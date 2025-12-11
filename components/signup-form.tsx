@@ -50,9 +50,9 @@ export function SignupForm({
               <div className="flex size-8 items-center justify-center rounded-md">
                 <GalleryVerticalEnd className="size-6" />
               </div>
-              <span className="sr-only">TOM</span>
+              <span className="sr-only">Titans of Mississauga</span>
             </div>
-            <h1 className="text-xl font-bold">Welcome to TOM</h1>
+            <h1 className="text-xl font-bold">Welcome to Titans of Mississauga</h1>
             <FieldDescription>
               Already have an account?{" "}
               <a href="/login" className="underline">

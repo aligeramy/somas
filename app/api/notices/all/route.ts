@@ -24,11 +24,7 @@ export async function GET() {
       );
     }
 
-    // Only owners and coaches can view all notices
-    if (dbUser.role !== "owner" && dbUser.role !== "coach") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
+    // All authenticated users can view notices
     const noticesList = await db
       .select({
         id: notices.id,
@@ -56,6 +52,7 @@ export async function GET() {
     );
   }
 }
+
 
 
 

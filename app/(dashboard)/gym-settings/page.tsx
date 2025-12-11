@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/page-header";
-import { IconCamera, IconCheck, IconBuilding, IconPlus, IconMail, IconPhone, IconDotsVertical } from "@tabler/icons-react";
+import { IconCamera, IconCheck, IconBuilding, IconPlus, IconMail, IconPhone } from "@tabler/icons-react";
 import { useDropzone } from "react-dropzone";
 import { createClient } from "@/lib/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -20,13 +20,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -34,6 +27,7 @@ interface GymProfile {
   id: string;
   name: string;
   logoUrl: string | null;
+  website: string | null;
   emailSettings: {
     enabled?: boolean;
     reminderEnabled?: boolean;
@@ -61,6 +55,7 @@ export default function GymSettingsPage() {
 
   // Gym fields
   const [gymName, setGymName] = useState("");
+  const [gymWebsite, setGymWebsite] = useState("");
   const [gymLogoFile, setGymLogoFile] = useState<File | null>(null);
   const [gymLogoPreview, setGymLogoPreview] = useState<string | null>(null);
 
@@ -89,11 +84,6 @@ export default function GymSettingsPage() {
     },
   });
 
-  useEffect(() => {
-    loadGym();
-    loadCoaches();
-  }, []);
-
   const loadCoaches = useCallback(async () => {
     setLoadingCoaches(true);
     try {
@@ -109,7 +99,7 @@ export default function GymSettingsPage() {
     }
   }, []);
 
-  async function loadGym() {
+  const loadGym = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch("/api/gym");
@@ -117,12 +107,19 @@ export default function GymSettingsPage() {
       const data = await response.json();
       setGym(data.gym);
       setGymName(data.gym.name || "");
+      setGymWebsite(data.gym.website || "");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load gym");
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    loadGym();
+    loadCoaches();
+  }, [loadGym, loadCoaches]);
+
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -167,6 +164,7 @@ export default function GymSettingsPage() {
         body: JSON.stringify({
           name: gymName,
           logoUrl,
+          website: gymWebsite.trim() || null,
         }),
       });
 
@@ -334,6 +332,20 @@ export default function GymSettingsPage() {
                   className="rounded-xl h-11"
                   required
                 />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="gymWebsite" className="text-sm">Website</Label>
+                <Input
+                  id="gymWebsite"
+                  type="url"
+                  value={gymWebsite}
+                  onChange={(e) => setGymWebsite(e.target.value)}
+                  placeholder="https://example.com"
+                  className="rounded-xl h-11"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Enter your gym's website URL. This will be visible to all members.
+                </p>
               </div>
             </CardContent>
           </Card>

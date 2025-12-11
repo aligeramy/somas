@@ -50,10 +50,10 @@ export function BaseLayout({ preview, gymName, gymLogoUrl, children }: BaseLayou
           {/* Footer */}
           <Section style={footer}>
             <Text style={footerText}>
-              Sent by {gymName} via TOM
+              Sent by {gymName} via Titans of Mississauga
             </Text>
             <Text style={footerSubtext}>
-              Team Operations Manager
+              Titans of Mississauga
             </Text>
           </Section>
         </Container>
@@ -132,6 +132,7 @@ const footerSubtext = {
 };
 
 export default BaseLayout;
+
 
 
 

@@ -21,7 +21,7 @@ export async function GET() {
       return NextResponse.json({ error: "User must belong to a gym" }, { status: 400 });
     }
 
-    // Only owners can view/edit gym
+    // Only head coaches can view/edit gym
     if (dbUser.role !== "owner") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
@@ -59,18 +59,19 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: "User must belong to a gym" }, { status: 400 });
     }
 
-    // Only owners can edit gym
+    // Only head coaches can edit gym
     if (dbUser.role !== "owner") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const body = await request.json();
-    const { name, logoUrl, emailSettings } = body;
+    const { name, logoUrl, website, emailSettings } = body;
 
     const updateData: {
       name?: string;
       logoUrl?: string | null;
-      emailSettings?: any;
+      website?: string | null;
+      emailSettings?: Record<string, unknown> | null;
       updatedAt: Date;
     } = {
       updatedAt: new Date(),
@@ -81,6 +82,9 @@ export async function PUT(request: Request) {
     }
     if (logoUrl !== undefined) {
       updateData.logoUrl = logoUrl || null;
+    }
+    if (website !== undefined) {
+      updateData.website = website || null;
     }
     if (emailSettings !== undefined) {
       updateData.emailSettings = emailSettings;
@@ -101,6 +105,7 @@ export async function PUT(request: Request) {
     );
   }
 }
+
 
 
 

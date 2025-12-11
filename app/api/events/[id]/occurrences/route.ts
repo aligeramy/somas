@@ -27,7 +27,7 @@ export async function POST(
     }
 
     if (dbUser.role !== "owner" && dbUser.role !== "coach") {
-      return NextResponse.json({ error: "Only owners and coaches can add occurrences" }, { status: 403 });
+      return NextResponse.json({ error: "Only head coaches and coaches can add occurrences" }, { status: 403 });
     }
 
     // Verify event belongs to user's gym
@@ -108,7 +108,7 @@ export async function DELETE(
     }
 
     if (dbUser.role !== "owner" && dbUser.role !== "coach") {
-      return NextResponse.json({ error: "Only owners and coaches can remove occurrences" }, { status: 403 });
+      return NextResponse.json({ error: "Only head coaches and coaches can remove occurrences" }, { status: 403 });
     }
 
     const { occurrenceId } = await request.json();
@@ -153,6 +153,7 @@ export async function DELETE(
     return NextResponse.json({ error: "Failed to remove occurrence" }, { status: 500 });
   }
 }
+
 
 
 

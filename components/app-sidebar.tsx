@@ -1,6 +1,6 @@
 "use client"
 
-import * as React from "react"
+import type * as React from "react"
 import {
   IconCalendar,
   IconDashboard,
@@ -11,6 +11,7 @@ import {
   IconMessageCircle,
   IconNews,
   IconBell,
+  IconWorldWww,
 } from "@tabler/icons-react"
 import Link from "next/link"
 
@@ -25,6 +26,8 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarGroup,
+  SidebarGroupContent,
 } from "@/components/ui/sidebar"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
@@ -37,14 +40,21 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   }
   gymName: string | null
   gymLogo: string | null
+  gymWebsite: string | null
 }
 
-export function AppSidebar({ user, gymName, gymLogo, ...props }: AppSidebarProps) {
+export function AppSidebar({ user, gymName, gymLogo, gymWebsite, ...props }: AppSidebarProps) {
   const navMain = [
     {
       title: "Dashboard",
       url: "/dashboard",
       icon: IconDashboard,
+      roles: ["owner", "coach", "athlete"],
+    },
+    {
+      title: "Calendar",
+      url: "/calendar",
+      icon: IconCalendar,
       roles: ["owner", "coach", "athlete"],
     },
     {
@@ -57,6 +67,12 @@ export function AppSidebar({ user, gymName, gymLogo, ...props }: AppSidebarProps
       title: "Chat",
       url: "/chat",
       icon: IconMessageCircle,
+      roles: ["owner", "coach", "athlete"],
+    },
+    {
+      title: "Notices",
+      url: "/notices",
+      icon: IconBell,
       roles: ["owner", "coach", "athlete"],
     },
     {
@@ -78,12 +94,6 @@ export function AppSidebar({ user, gymName, gymLogo, ...props }: AppSidebarProps
       title: "Blog Posts",
       url: "/blog",
       icon: IconNews,
-      roles: ["owner", "coach"],
-    },
-    {
-      title: "Notices",
-      url: "/notices",
-      icon: IconBell,
       roles: ["owner", "coach"],
     },
     {
@@ -134,6 +144,30 @@ export function AppSidebar({ user, gymName, gymLogo, ...props }: AppSidebarProps
       <SidebarContent>
         <NavMain items={navMain} />
         <NavSecondary items={navSecondary} className="mt-auto" />
+        {gymWebsite && (
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    tooltip="Gym Website"
+                    asChild
+                  >
+                    <a
+                      href={gymWebsite}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2"
+                    >
+                      <IconWorldWww />
+                      <span>Gym Website</span>
+                    </a>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={{

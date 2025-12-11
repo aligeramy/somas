@@ -24,7 +24,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Only owners and coaches can create events
+    // Only head coaches and coaches can create events
     if (dbUser.role !== "owner" && dbUser.role !== "coach") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }

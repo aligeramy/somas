@@ -55,7 +55,7 @@ export default function ProfilePage() {
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
-  // Gym settings fields (for owners)
+  // Gym settings fields (for head coaches)
   const [gymName, setGymName] = useState("");
   const [gymLogoFile, setGymLogoFile] = useState<File | null>(null);
   const [gymLogoPreview, setGymLogoPreview] = useState<string | null>(null);
@@ -130,8 +130,8 @@ export default function ProfilePage() {
         setGymName(data.gym.name || "");
       }
     } catch (err) {
-      // Not an error if user is not owner
-      console.log("Gym not accessible (user may not be owner)");
+      // Not an error if user is not head coach
+      console.log("Gym not accessible (user may not be head coach)");
     }
   }
 
@@ -191,7 +191,7 @@ export default function ProfilePage() {
 
       if (!response.ok) throw new Error("Failed to save profile");
 
-      // Update gym settings if user is owner
+      // Update gym settings if user is head coach
       if (profile?.role === "owner" && gym) {
         let logoUrl = gym.logoUrl || null;
 
@@ -320,7 +320,7 @@ export default function ProfilePage() {
                 <div>
                   <p className="font-semibold text-lg">{profile.name || "Unnamed"}</p>
                   <p className="text-sm text-muted-foreground">{profile.email}</p>
-                  <p className="text-xs text-muted-foreground capitalize mt-1">{profile.role}</p>
+                  <p className="text-xs text-muted-foreground capitalize mt-1">{profile.role === "owner" ? "Head Coach" : profile.role}</p>
                 </div>
               </div>
             </CardContent>
@@ -408,7 +408,7 @@ export default function ProfilePage() {
             </CardContent>
           </Card>
 
-          {/* Gym Settings (for owners only) */}
+          {/* Gym Settings (for head coaches only) */}
           {profile?.role === "owner" && gym && (
             <>
               <Card className="rounded-xl">

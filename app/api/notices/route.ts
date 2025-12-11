@@ -74,7 +74,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Only owners and coaches can create notices
+    // Only head coaches and coaches can create notices
     if (dbUser.role !== "owner" && dbUser.role !== "coach") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
@@ -170,7 +170,7 @@ export async function PUT(request: Request) {
       );
     }
 
-    // Only owners and coaches can update notices
+    // Only head coaches and coaches can update notices
     if (dbUser.role !== "owner" && dbUser.role !== "coach") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
@@ -207,6 +207,7 @@ export async function PUT(request: Request) {
     );
   }
 }
+
 
 
 

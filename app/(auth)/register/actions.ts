@@ -76,7 +76,7 @@ export async function registerAction(formData: FormData) {
     redirect("/profile-setup");
   }
 
-  // If owner, redirect to onboarding
+  // If head coach, redirect to onboarding
   if (userRole === "owner") {
     redirect("/onboarding");
   }

@@ -100,3 +100,4 @@ Ensure Realtime is enabled for the `Message` table in Supabase:
 
 
 
+

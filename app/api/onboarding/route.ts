@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { db } from "@/lib/db";
-import { users, gyms } from "@/drizzle/schema";
+import { users, gyms, channels } from "@/drizzle/schema";
 import { eq } from "drizzle-orm";
 
 export async function POST(request: Request) {
@@ -50,6 +50,14 @@ export async function POST(request: Request) {
       role: "owner",
       onboarded: true,
     }).where(eq(users.id, user.id));
+
+    // Create global channel for the gym
+    await db.insert(channels).values({
+      gymId: gym.id,
+      name: "Gym Chat",
+      type: "global",
+      eventId: null,
+    });
 
     return NextResponse.json({ success: true, gym });
   } catch (error) {

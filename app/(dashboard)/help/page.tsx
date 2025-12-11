@@ -40,7 +40,7 @@ export default function HelpPage() {
               <div className="space-y-2">
                 <h3 className="font-medium text-sm">Navigation</h3>
                 <p className="text-sm text-muted-foreground">
-                  Use the sidebar menu to access different features. The menu adapts based on your role (Owner, Coach, or Athlete).
+                  Use the sidebar menu to access different features. The menu adapts based on your role (Head Coach, Coach, or Athlete).
                 </p>
               </div>
             </CardContent>
@@ -87,7 +87,7 @@ export default function HelpPage() {
                     <IconUsers className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                   </div>
                   <div className="space-y-1">
-                    <h3 className="font-medium text-sm">Members (Owners Only)</h3>
+                    <h3 className="font-medium text-sm">Members (Head Coaches Only)</h3>
                     <p className="text-sm text-muted-foreground">
                       Manage your team roster, add new members, and view member profiles. 
                       Import members from CSV files for bulk additions.
@@ -112,7 +112,7 @@ export default function HelpPage() {
                     <IconBuilding className="h-4 w-4 text-purple-600 dark:text-purple-400" />
                   </div>
                   <div className="space-y-1">
-                    <h3 className="font-medium text-sm">Gym Settings (Owners Only)</h3>
+                    <h3 className="font-medium text-sm">Gym Settings (Head Coaches Only)</h3>
                     <p className="text-sm text-muted-foreground">
                       Configure your gym's information, logo, and other settings.
                     </p>
@@ -152,7 +152,7 @@ export default function HelpPage() {
                 <div className="space-y-1">
                   <h3 className="font-medium text-sm">Can I cancel an event?</h3>
                   <p className="text-sm text-muted-foreground">
-                    Yes, event owners and coaches can cancel events. Navigate to the event details and use the 
+                    Yes, head coaches and coaches can cancel events. Navigate to the event details and use the 
                     cancel option. Members will be notified automatically.
                   </p>
                 </div>
@@ -160,7 +160,7 @@ export default function HelpPage() {
                 <div className="space-y-1">
                   <h3 className="font-medium text-sm">How do I add team members?</h3>
                   <p className="text-sm text-muted-foreground">
-                    Owners can add members by going to the Members page. You can add members individually or 
+                    Head coaches can add members by going to the Members page. You can add members individually or 
                     import them in bulk using a CSV file.
                   </p>
                 </div>
@@ -194,6 +194,7 @@ export default function HelpPage() {
     </div>
   );
 }
+
 
 
 

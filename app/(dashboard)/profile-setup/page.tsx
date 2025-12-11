@@ -149,7 +149,7 @@ export default function ProfileSetupPage() {
         <CardHeader>
           <CardTitle>Complete Your Profile</CardTitle>
           <CardDescription>
-            Set up your profile to get started with TOM. You can edit any pre-filled information.
+            Set up your profile to get started with Titans of Mississauga. You can edit any pre-filled information.
           </CardDescription>
         </CardHeader>
         <CardContent>

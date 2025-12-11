@@ -14,6 +14,7 @@ import {
   IconHelp,
   IconNews,
   IconBell,
+  IconWorldWww,
 } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
 import {
@@ -27,9 +28,10 @@ import {
 
 interface MobileBottomNavProps {
   userRole: string;
+  gymWebsite: string | null;
 }
 
-export function MobileBottomNav({ userRole }: MobileBottomNavProps) {
+export function MobileBottomNav({ userRole, gymWebsite }: MobileBottomNavProps) {
   const pathname = usePathname();
   const [moreOpen, setMoreOpen] = useState(false);
 
@@ -51,6 +53,12 @@ export function MobileBottomNav({ userRole }: MobileBottomNavProps) {
       title: "Chat",
       url: "/chat",
       icon: IconMessageCircle,
+      roles: ["owner", "coach", "athlete"],
+    },
+    {
+      title: "Notices",
+      url: "/notices",
+      icon: IconBell,
       roles: ["owner", "coach", "athlete"],
     },
     ...(userRole === "owner"
@@ -77,12 +85,6 @@ export function MobileBottomNav({ userRole }: MobileBottomNavProps) {
       title: "Blog Posts",
       url: "/blog",
       icon: IconNews,
-      roles: ["owner", "coach"],
-    },
-    {
-      title: "Notices",
-      url: "/notices",
-      icon: IconBell,
       roles: ["owner", "coach"],
     },
     {
@@ -130,6 +132,7 @@ export function MobileBottomNav({ userRole }: MobileBottomNavProps) {
         <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
           <SheetTrigger asChild>
             <button
+              type="button"
               className={cn(
                 "flex flex-col items-center justify-center gap-1 flex-1 h-full transition-colors",
                 isMoreActive
@@ -167,6 +170,20 @@ export function MobileBottomNav({ userRole }: MobileBottomNavProps) {
                   </Link>
                 );
               })}
+              {gymWebsite && (
+                <a
+                  href={gymWebsite}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setMoreOpen(false)}
+                  className={cn(
+                    "flex items-center gap-3 p-3 rounded-xl transition-colors hover:bg-muted"
+                  )}
+                >
+                  <IconWorldWww className="h-5 w-5" />
+                  <span className="font-medium">Gym Website</span>
+                </a>
+              )}
             </div>
           </SheetContent>
         </Sheet>

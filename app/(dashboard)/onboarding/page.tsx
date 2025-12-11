@@ -105,7 +105,7 @@ export default function OnboardingPage() {
         <CardHeader>
           <CardTitle>Complete Your Gym Setup</CardTitle>
           <CardDescription>
-            Set up your gym profile to get started with TOM
+            Set up your gym profile to get started with Titans of Mississauga
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -173,6 +173,7 @@ export default function OnboardingPage() {
     </div>
   );
 }
+
 
 
 

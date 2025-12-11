@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,10 +16,8 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { IconPlus, IconEdit, IconTrash, IconBell } from "@tabler/icons-react";
+import { IconPlus, IconEdit, IconTrash } from "@tabler/icons-react";
 import { format } from "date-fns";
 
 interface Notice {
@@ -37,48 +35,54 @@ interface Notice {
 
 export default function NoticesPage() {
   const [notices, setNotices] = useState<Notice[]>([]);
-  const [activeNotice, setActiveNotice] = useState<Notice | null>(null);
   const [loading, setLoading] = useState(true);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingNotice, setEditingNotice] = useState<Notice | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   // Form state
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [sendEmail, setSendEmail] = useState(false);
 
-  useEffect(() => {
-    loadNotices();
-  }, []);
+  const canManage = userRole === "owner" || userRole === "coach";
 
-  async function loadNotices() {
+  const loadNotices = useCallback(async () => {
     try {
       setLoading(true);
-      // Load all notices (we'll need to add an endpoint for this)
       const response = await fetch("/api/notices/all");
       if (response.ok) {
         const data = await response.json();
+        // Notices are already sorted by date desc from the API
         setNotices(data.notices || []);
-        setActiveNotice(data.notices?.find((n: Notice) => n.active) || null);
       } else {
-        // Fallback: just get active notice
-        const activeResponse = await fetch("/api/notices");
-        if (activeResponse.ok) {
-          const activeData = await activeResponse.json();
-          if (activeData.notice) {
-            setActiveNotice(activeData.notice);
-            setNotices([activeData.notice]);
-          }
-        }
+        const errorData = await response.json();
+        setError(errorData.error || "Failed to load notices");
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load notices");
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    async function fetchUserRole() {
+      try {
+        const response = await fetch("/api/user-info");
+        if (response.ok) {
+          const data = await response.json();
+          setUserRole(data.role);
+        }
+      } catch (err) {
+        console.error("Failed to fetch user role:", err);
+      }
+    }
+    fetchUserRole();
+    loadNotices();
+  }, [loadNotices]);
 
   function openCreateDialog() {
     setEditingNotice(null);
@@ -168,11 +172,16 @@ export default function NoticesPage() {
 
   return (
     <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
-      <PageHeader title="Notices" description="Manage announcements for your team">
-        <Button onClick={openCreateDialog} className="rounded-xl">
-          <IconPlus className="mr-2 h-4 w-4" />
-          New Notice
-        </Button>
+      <PageHeader 
+        title="Notices" 
+        description={canManage ? "Manage announcements for your team" : "View all team announcements"}
+      >
+        {canManage && (
+          <Button onClick={openCreateDialog} className="rounded-xl">
+            <IconPlus className="mr-2 h-4 w-4" />
+            New Notice
+          </Button>
+        )}
       </PageHeader>
 
       <div className="flex-1 overflow-auto min-h-0">
@@ -183,132 +192,98 @@ export default function NoticesPage() {
             </div>
           )}
 
-          {/* Active Notice Highlight */}
-          {activeNotice && (
-            <Card className="rounded-xl border border-primary/20 bg-primary/5">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="default" className="rounded-lg">Active</Badge>
-                    <CardTitle className="text-lg">{activeNotice.title}</CardTitle>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleToggleActive(activeNotice.id, true)}
-                      className="h-8 w-8"
-                    >
-                      <IconEdit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDelete(activeNotice.id)}
-                      className="h-8 w-8 text-destructive"
-                    >
-                      <IconTrash className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-                <CardDescription>
-                  by {activeNotice.author.name || "Admin"} • {format(new Date(activeNotice.createdAt), "MMM d, yyyy")}
-                  {activeNotice.sendEmail && (
-                    <Badge variant="secondary" className="ml-2 rounded-lg">
-                      Email Sent
-                    </Badge>
-                  )}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm whitespace-pre-wrap">{activeNotice.content}</p>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* All Notices */}
+          {/* All Notices - Latest First */}
           <Card className="rounded-xl">
             <CardHeader>
               <CardTitle>All Notices</CardTitle>
-              <CardDescription>Manage your team notices</CardDescription>
+              <CardDescription>
+                {canManage ? "Manage your team notices" : "View all team notices"}
+              </CardDescription>
             </CardHeader>
             <CardContent>
               {loading ? (
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {[1, 2, 3].map((i) => (
-                    <div key={i} className="animate-pulse space-y-2">
-                      <div className="h-4 w-3/4 bg-muted rounded" />
+                    <div key={i} className="animate-pulse space-y-3 p-4 border rounded-xl">
+                      <div className="h-5 w-3/4 bg-muted rounded" />
+                      <div className="h-4 w-full bg-muted rounded" />
                       <div className="h-3 w-1/2 bg-muted rounded" />
                     </div>
                   ))}
                 </div>
               ) : notices.length === 0 ? (
                 <p className="text-center text-muted-foreground py-8">
-                  No notices yet. Create one to get started.
+                  No notices yet.
+                  {canManage && " Create one to get started."}
                 </p>
               ) : (
-                <ScrollArea className="h-[400px]">
-                  <div className="space-y-3">
-                    {notices.map((notice) => (
-                      <div
-                        key={notice.id}
-                        className={`p-4 rounded-xl border ${
-                          notice.active ? "bg-primary/5 border-primary/20" : "bg-card"
-                        }`}
-                      >
-                        <div className="flex items-start justify-between">
+                <div className="space-y-4">
+                  {notices.map((notice) => (
+                    <Card
+                      key={notice.id}
+                      className={`rounded-xl ${
+                        notice.active ? "border-primary/20 bg-primary/5" : ""
+                      }`}
+                    >
+                      <CardHeader>
+                        <div className="flex items-start justify-between gap-4">
                           <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
+                            <div className="flex items-center gap-2 mb-2">
                               {notice.active && (
                                 <Badge variant="default" className="rounded-lg">Active</Badge>
                               )}
-                              <h3 className="font-semibold">{notice.title}</h3>
+                              <CardTitle className="text-lg">{notice.title}</CardTitle>
                             </div>
-                            <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
-                              {notice.content}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {format(new Date(notice.createdAt), "MMM d, yyyy")}
+                            <CardDescription>
+                              by {notice.author.name || "Admin"} • {format(new Date(notice.createdAt), "MMM d, yyyy 'at' h:mm a")}
                               {notice.sendEmail && (
-                                <span className="ml-2">• Email sent</span>
+                                <Badge variant="secondary" className="ml-2 rounded-lg">
+                                  Email Sent
+                                </Badge>
                               )}
-                            </p>
+                            </CardDescription>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <Switch
-                              checked={notice.active}
-                              onCheckedChange={() => handleToggleActive(notice.id, notice.active)}
-                            />
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => openEditDialog(notice)}
-                              className="h-8 w-8"
-                            >
-                              <IconEdit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleDelete(notice.id)}
-                              className="h-8 w-8 text-destructive"
-                            >
-                              <IconTrash className="h-4 w-4" />
-                            </Button>
-                          </div>
+                          {canManage && (
+                            <div className="flex items-center gap-2">
+                              <Switch
+                                checked={notice.active}
+                                onCheckedChange={() => handleToggleActive(notice.id, notice.active)}
+                              />
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => openEditDialog(notice)}
+                                className="h-8 w-8"
+                              >
+                                <IconEdit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDelete(notice.id)}
+                                className="h-8 w-8 text-destructive"
+                              >
+                                <IconTrash className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          )}
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                </ScrollArea>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm whitespace-pre-wrap leading-relaxed">{notice.content}</p>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
               )}
             </CardContent>
           </Card>
         </div>
       </div>
 
-      {/* Create/Edit Dialog */}
-      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+      {/* Create/Edit Dialog - Only show for coaches/owners */}
+      {canManage && (
+        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
         <DialogContent className="rounded-xl max-w-2xl">
           <DialogHeader>
             <DialogTitle>{editingNotice ? "Edit Notice" : "Create New Notice"}</DialogTitle>
@@ -366,6 +341,7 @@ export default function NoticesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      )}
     </div>
   );
 }

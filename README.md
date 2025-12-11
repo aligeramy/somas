@@ -4,7 +4,7 @@ TOM is a modern, mobile‑first gym management system designed for private gyms,
 It includes:
 
 - Expo mobile app for athletes (RSVP, chat, notifications)
-- Next.js web admin dashboard for gym owners & coaches
+- Next.js web admin dashboard for head coaches & coaches
 - Supabase backend (Auth, DB, RLS, Realtime, Storage)
 
 

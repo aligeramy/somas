@@ -52,6 +52,7 @@ export const gyms = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     name: varchar("name", { length: 255 }).notNull(),
     logoUrl: varchar("logoUrl", { length: 500 }),
+    website: varchar("website", { length: 500 }),
     createdById: uuid("createdById").notNull().unique(),
     emailSettings: jsonb("emailSettings").default({
       enabled: true,
@@ -218,6 +219,30 @@ export const messages = pgTable(
   }),
 );
 
+// ChatNotification table - tracks unread messages
+export const chatNotifications = pgTable(
+  "ChatNotification",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("userId").notNull(),
+    channelId: uuid("channelId").notNull(),
+    messageId: uuid("messageId").notNull(),
+    readAt: timestamp("readAt"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdChannelIdIdx: index("ChatNotification_userId_channelId_idx").on(
+      table.userId,
+      table.channelId
+    ),
+    userIdReadAtIdx: index("ChatNotification_userId_readAt_idx").on(
+      table.userId,
+      table.readAt
+    ),
+    channelIdIdx: index("ChatNotification_channelId_idx").on(table.channelId),
+  }),
+);
+
 // Blog Post table
 export const blogPosts = pgTable(
   "BlogPost",
@@ -303,13 +328,14 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   reminderLogs: many(reminderLogs),
   blogPosts: many(blogPosts),
   notices: many(notices),
+  chatNotifications: many(chatNotifications),
 }));
 
 export const gymsRelations = relations(gyms, ({ one, many }) => ({
   owner: one(users, {
     fields: [gyms.createdById],
     references: [users.id],
-    relationName: "GymOwner",
+    relationName: "HeadCoach",
   }),
   members: many(users),
   events: many(events),
@@ -393,7 +419,7 @@ export const channelsRelations = relations(channels, ({ one, many }) => ({
   messages: many(messages),
 }));
 
-export const messagesRelations = relations(messages, ({ one }) => ({
+export const messagesRelations = relations(messages, ({ one, many }) => ({
   gym: one(gyms, {
     fields: [messages.gymId],
     references: [gyms.id],
@@ -407,6 +433,7 @@ export const messagesRelations = relations(messages, ({ one }) => ({
     references: [users.id],
     relationName: "MessageSender",
   }),
+  notifications: many(chatNotifications),
 }));
 
 export const reminderLogsRelations = relations(reminderLogs, ({ one }) => ({
@@ -443,5 +470,20 @@ export const noticesRelations = relations(notices, ({ one }) => ({
   author: one(users, {
     fields: [notices.authorId],
     references: [users.id],
+  }),
+}));
+
+export const chatNotificationsRelations = relations(chatNotifications, ({ one }) => ({
+  user: one(users, {
+    fields: [chatNotifications.userId],
+    references: [users.id],
+  }),
+  channel: one(channels, {
+    fields: [chatNotifications.channelId],
+    references: [channels.id],
+  }),
+  message: one(messages, {
+    fields: [chatNotifications.messageId],
+    references: [messages.id],
   }),
 }));

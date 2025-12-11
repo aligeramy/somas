@@ -63,6 +63,11 @@ interface User {
 }
 
 export default function RosterPage() {
+  const formatRoleDisplay = (role: string) => {
+    if (role === "owner") return "Head Coach";
+    return role.charAt(0).toUpperCase() + role.slice(1);
+  };
+
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -235,7 +240,7 @@ export default function RosterPage() {
     setError(null);
 
     try {
-      // Don't send role field if editing owner (can't change owner role)
+      // Don't send role field if editing head coach (can't change head coach role)
       const { role, ...restForm } = editForm;
       const updateData = editingMember.role === "owner" 
         ? restForm 
@@ -549,7 +554,7 @@ export default function RosterPage() {
                           }
                           className="rounded-lg"
                         >
-                          {member.role}
+                          {formatRoleDisplay(member.role)}
                         </Badge>
                         {!member.onboarded && (
                           <Badge variant="outline" className="rounded-lg">
@@ -557,7 +562,7 @@ export default function RosterPage() {
                           </Badge>
                         )}
 
-                        {/* Actions - Owners can edit anyone, coaches can edit athletes */}
+                        {/* Actions - Head coaches can edit anyone, coaches can edit athletes */}
                         {(isOwner ||
                           (currentUserRole === "coach" &&
                             member.role === "athlete")) && (
@@ -679,12 +684,12 @@ export default function RosterPage() {
               <div className="space-y-2">
                 <Label>Role</Label>
                 <Input
-                  value="Owner"
+                  value="Head Coach"
                   disabled
                   className="h-11 rounded-xl bg-muted"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Owner role cannot be changed
+                  Head Coach role cannot be changed
                 </p>
               </div>
             )}

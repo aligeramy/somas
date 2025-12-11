@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { db } from "@/lib/db";
 import { users, channels } from "@/drizzle/schema";
-import { eq, and, isNotNull, isNull } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 
 export async function GET(request: Request) {
   try {
@@ -28,6 +28,24 @@ export async function GET(request: Request) {
     const gymId = searchParams.get("gymId") || dbUser.gymId;
     const eventId = searchParams.get("eventId");
 
+    // Ensure global channel exists for this gym
+    const [existingGlobal] = await db
+      .select()
+      .from(channels)
+      .where(
+        and(eq(channels.gymId, gymId), eq(channels.type, "global"))
+      )
+      .limit(1);
+
+    if (!existingGlobal) {
+      await db.insert(channels).values({
+        gymId: gymId,
+        name: "Gym Chat",
+        type: "global",
+        eventId: null,
+      });
+    }
+
     const channelsList = await db
       .select()
       .from(channels)
@@ -38,7 +56,14 @@ export async function GET(request: Request) {
       )
       .orderBy(channels.createdAt);
 
-    return NextResponse.json({ channels: channelsList });
+    // Sort channels: global first, then others
+    const sortedChannels = [...channelsList].sort((a, b) => {
+      if (a.type === "global") return -1;
+      if (b.type === "global") return 1;
+      return 0;
+    });
+
+    return NextResponse.json({ channels: sortedChannels });
   } catch (error) {
     console.error("Channels fetch error:", error);
     return NextResponse.json(

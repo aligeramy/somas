@@ -26,10 +26,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Only owners and coaches can send reminders
+    // Only head coaches and coaches can send reminders
     if (dbUser.role !== "owner" && dbUser.role !== "coach") {
       return NextResponse.json(
-        { error: "Only owners and coaches can send reminders" },
+        { error: "Only head coaches and coaches can send reminders" },
         { status: 403 },
       );
     }
@@ -139,7 +139,7 @@ export async function POST(request: Request) {
         today.setHours(0, 0, 0, 0);
 
         await resend.emails.send({
-          from: `${process.env.RESEND_FROM_NAME || "TOM"} <${process.env.RESEND_FROM_EMAIL || "noreply@mail.titansofmississauga.ca"}>`,
+          from: `${process.env.RESEND_FROM_NAME || "Titans of Mississauga"} <${process.env.RESEND_FROM_EMAIL || "noreply@mail.titansofmississauga.ca"}>`,
           to: targetUser.email,
           subject: `RSVP needed for ${occurrenceData.event.title}`,
           react: RsvpReminderEmail({

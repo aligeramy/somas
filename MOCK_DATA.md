@@ -11,14 +11,14 @@ This document contains login credentials for the mock users created in the TOM d
 
 ## User Accounts
 
-### Gym Owner
+### Head Coach
 
 **Email:** `owner@titans.com`  
 **Password:** `Titans2024!`  
 **Name:** Erik Singer  
 **Phone:** 4168241408  
 **Address:** 6810 Kitimat Rd #24, Mississauga, ON, L5N 5M2  
-**Role:** Owner  
+**Role:** Head Coach  
 **Permissions:** Full access - can create gym, manage members, create events, cancel sessions, view analytics
 
 ---
@@ -83,7 +83,7 @@ This document contains login credentials for the mock users created in the TOM d
 
 | Role | Email | Password |
 |------|-------|----------|
-| Owner | `owner@titans.com` | `Titans2024!` |
+| Head Coach | `owner@titans.com` | `Titans2024!` |
 | Coach | `coach1@titans.com` | `Coach123!` |
 | Coach | `coach2@titans.com` | `Coach123!` |
 | Athlete | `athlete1@titans.com` | `Athlete123!` |

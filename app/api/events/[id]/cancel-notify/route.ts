@@ -31,7 +31,7 @@ export async function POST(
     }
 
     if (dbUser.role !== "owner" && dbUser.role !== "coach") {
-      return NextResponse.json({ error: "Only owners and coaches can cancel events" }, { status: 403 });
+      return NextResponse.json({ error: "Only head coaches and coaches can cancel events" }, { status: 403 });
     }
 
     const { occurrenceId, notifyUsers = true } = await request.json();
@@ -116,7 +116,7 @@ export async function POST(
         for (const { user: targetUser } of goingRsvps) {
           try {
             await resend.emails.send({
-              from: `${process.env.RESEND_FROM_NAME || "TOM"} <${process.env.RESEND_FROM_EMAIL || "noreply@mail.titansofmississauga.ca"}>`,
+              from: `${process.env.RESEND_FROM_NAME || "Titans of Mississauga"} <${process.env.RESEND_FROM_EMAIL || "noreply@mail.titansofmississauga.ca"}>`,
               to: targetUser.email,
               subject: `${occurrenceData.event.title} has been canceled`,
               react: EventReminderEmail({

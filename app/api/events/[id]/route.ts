@@ -72,7 +72,7 @@ export async function PUT(
     }
 
     if (dbUser.role !== "owner" && dbUser.role !== "coach") {
-      return NextResponse.json({ error: "Only owners and coaches can edit events" }, { status: 403 });
+      return NextResponse.json({ error: "Only head coaches and coaches can edit events" }, { status: 403 });
     }
 
     const body = await request.json();
@@ -128,7 +128,7 @@ export async function DELETE(
     }
 
     if (dbUser.role !== "owner" && dbUser.role !== "coach") {
-      return NextResponse.json({ error: "Only owners and coaches can delete events" }, { status: 403 });
+      return NextResponse.json({ error: "Only head coaches and coaches can delete events" }, { status: 403 });
     }
 
     // Verify event belongs to user's gym
@@ -154,6 +154,7 @@ export async function DELETE(
     return NextResponse.json({ error: "Failed to delete event" }, { status: 500 });
   }
 }
+
 
 
 

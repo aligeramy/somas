@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { users, rsvps, eventOccurrences, events } from "@/drizzle/schema";
 import { eq, and } from "drizzle-orm";
 
-// Coach/Owner can edit someone's RSVP
+// Coach/Head Coach can edit someone's RSVP
 export async function POST(request: Request) {
   try {
     const supabase = await createClient();
@@ -22,10 +22,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Only owners and coaches can edit RSVPs
+    // Only head coaches and coaches can edit RSVPs
     if (dbUser.role !== "owner" && dbUser.role !== "coach") {
       return NextResponse.json(
-        { error: "Only owners and coaches can edit RSVPs" },
+        { error: "Only head coaches and coaches can edit RSVPs" },
         { status: 403 },
       );
     }
@@ -126,6 +126,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Failed to edit RSVP" }, { status: 500 });
   }
 }
+
 
 
 

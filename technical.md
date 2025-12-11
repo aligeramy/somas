@@ -32,7 +32,7 @@ Realtime — realtime updates for chat & RSVPs
 
 ## 2. User Roles
 
-### Gym Owner
+### Head Coach
 - Creates gym
 - Uploads logo
 - Manages members
@@ -58,8 +58,8 @@ Realtime — realtime updates for chat & RSVPs
 
 ## 3. Authentication & Onboarding Flow
 
-- Only **Gym Owner** can create a gym.
-- Owner invites users with auto-generated signup links.
+- Only **Head Coach** can create a gym.
+- Head coach invites users with auto-generated signup links.
 - User clicks link → redirected to authentication service → signs up.
 - On completion, user is linked to the gym automatically.
 - Password reset supported by authentication service.
@@ -76,7 +76,7 @@ Each gym can define recurring events:
 - Custom rules (stored as recurrence rule strings)
 
 ### Event Lifecycle
-1. Owner/coach creates event
+1. Head coach/coach creates event
 2. Recurrence expands into future occurrences
 3. Athletes RSVP
 4. System sends:

@@ -13,6 +13,7 @@ import Link from "next/link";
 import { IconChevronRight, IconUsers, IconCalendar, IconCheck, IconClock, IconPlus, IconX } from "@tabler/icons-react";
 import { PageHeader } from "@/components/page-header";
 import { AthleteDashboard } from "@/components/athlete-dashboard";
+import { EventActionsDropdown } from "@/components/event-actions-dropdown";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -84,7 +85,7 @@ export default async function DashboardPage() {
     );
   }
 
-  // Owner/Coach dashboard
+  // Head Coach/Coach dashboard
   const totalMembers = await db
     .select({ count: sql<number>`count(*)` })
     .from(users)
@@ -277,6 +278,7 @@ export default async function DashboardPage() {
           getInitials={getInitials}
           activeNotice={activeNotice || null}
           latestPosts={latestPosts}
+          userRole={dbUser.role}
         />
       </Suspense>
     </div>
@@ -368,6 +370,7 @@ function DashboardContent({
   getInitials,
   activeNotice,
   latestPosts,
+  userRole,
 }: {
   dbUser: { name: string | null; email: string };
   stats: Array<{ label: string; value: number; icon: React.ComponentType<{ className?: string }>; color: string }>;
@@ -381,6 +384,7 @@ function DashboardContent({
   getInitials: (name: string | null, email: string) => string;
   activeNotice: { id: string; title: string; content: string; createdAt: Date | string; author: { id: string; name: string | null } } | null;
   latestPosts: Array<{ id: string; title: string; content: string; type: string; imageUrl: string | null; createdAt: Date | string; author: { id: string; name: string | null; avatarUrl: string | null } }>;
+  userRole: string;
 }) {
   return (
     <div className="flex-1 overflow-auto min-h-0">
@@ -388,19 +392,19 @@ function DashboardContent({
         {/* Active Notice */}
         {activeNotice && (
           <Card className="rounded-xl border border-primary/20 bg-primary/5">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Badge variant="default" className="rounded-lg">Notice</Badge>
-                  <CardTitle className="text-lg">{activeNotice.title}</CardTitle>
+            <CardContent className="p-4">
+              <div className="flex items-start gap-3">
+                <Badge variant="default" className="rounded-lg shrink-0">Notice</Badge>
+                <div className="flex-1 min-w-0 space-y-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="font-semibold text-sm">{activeNotice.title}</h3>
+                    <span className="text-xs text-muted-foreground">
+                      by {activeNotice.author.name || "Admin"}
+                    </span>
+                  </div>
+                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">{activeNotice.content}</p>
                 </div>
-                <span className="text-xs text-muted-foreground">
-                  by {activeNotice.author.name || "Admin"}
-                </span>
               </div>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm whitespace-pre-wrap">{activeNotice.content}</p>
             </CardContent>
           </Card>
         )}
@@ -419,6 +423,29 @@ function DashboardContent({
             </Card>
           ))}
         </div>
+
+        {/* Quick Access - Calendar */}
+        <Card className="rounded-xl border shadow-sm bg-gradient-to-br from-primary/5 to-primary/10">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="inline-flex items-center justify-center h-10 w-10 rounded-xl bg-primary text-primary-foreground">
+                  <IconCalendar className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-base">View Calendar</h3>
+                  <p className="text-sm text-muted-foreground">See all events and RSVP directly</p>
+                </div>
+              </div>
+              <Button variant="default" size="sm" asChild className="rounded-xl">
+                <Link href="/calendar">
+                  Open Calendar
+                  <IconChevronRight className="h-4 w-4 ml-1" />
+                </Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Content Grid */}
         <div className="grid gap-6 lg:grid-cols-2">
@@ -450,56 +477,66 @@ function DashboardContent({
                     const dateInfo = formatDate(occurrence.date);
                     const isCanceled = occurrence.status === "canceled";
                     const rsvpData = rsvpsByOccurrence.get(occurrence.id) || { going: [], notGoing: [] };
+                    const isCoachOrOwner = userRole === "owner" || userRole === "coach";
 
                     return (
-                      <Link
+                      <div
                         key={occurrence.id}
-                        href={`/events?eventId=${event.id}&occurrenceId=${occurrence.id}`}
-                        className={`flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 transition-colors ${
+                        className={`group relative flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 transition-colors ${
                           isCanceled ? "opacity-50" : ""
                         }`}
                       >
-                        <div className="h-12 w-12 rounded-xl bg-muted flex flex-col items-center justify-center shrink-0">
-                          <span className="text-lg font-bold leading-none">{dateInfo.day}</span>
-                          <span className="text-[9px] font-medium text-muted-foreground">{dateInfo.month}</span>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm truncate">{event.title}</p>
-                          <p className="text-xs text-muted-foreground flex items-center gap-1">
-                            <IconClock className="h-3 w-3" />
-                            {formatTime(event.startTime)} - {formatTime(event.endTime)}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          {(rsvpData.going.length > 0 || rsvpData.notGoing.length > 0) && (
-                            <div className="flex items-center gap-3">
-                              {rsvpData.going.length > 0 && (
-                                <div className="flex items-center gap-1.5">
-                                  <StackedAvatars
-                                    users={rsvpData.going}
-                                    getInitials={getInitials}
-                                    variant="going"
-                                  />
-                                  <span className="text-xs text-emerald-600 font-medium">{rsvpData.going.length}</span>
-                                </div>
-                              )}
-                              {rsvpData.notGoing.length > 0 && (
-                                <div className="flex items-center gap-1.5">
-                                  <StackedAvatars
-                                    users={rsvpData.notGoing}
-                                    getInitials={getInitials}
-                                    variant="notGoing"
-                                  />
-                                  <span className="text-xs text-red-600 font-medium">{rsvpData.notGoing.length}</span>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                          {isCanceled && (
-                            <Badge variant="destructive" className="text-[10px] rounded-md">Canceled</Badge>
-                          )}
-                        </div>
-                      </Link>
+                        <Link
+                          href={`/events?eventId=${event.id}&occurrenceId=${occurrence.id}`}
+                          className="flex items-center gap-3 flex-1 min-w-0"
+                        >
+                          <div className="h-12 w-12 rounded-xl bg-muted flex flex-col items-center justify-center shrink-0">
+                            <span className="text-lg font-bold leading-none">{dateInfo.day}</span>
+                            <span className="text-[9px] font-medium text-muted-foreground">{dateInfo.month}</span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm truncate">{event.title}</p>
+                            <p className="text-xs text-muted-foreground flex items-center gap-1">
+                              <IconClock className="h-3 w-3" />
+                              {formatTime(event.startTime)} - {formatTime(event.endTime)}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            {(rsvpData.going.length > 0 || rsvpData.notGoing.length > 0) && (
+                              <div className="flex items-center gap-3">
+                                {rsvpData.going.length > 0 && (
+                                  <div className="flex items-center gap-1.5">
+                                    <StackedAvatars
+                                      users={rsvpData.going}
+                                      getInitials={getInitials}
+                                      variant="going"
+                                    />
+                                    <span className="text-xs text-emerald-600 font-medium">{rsvpData.going.length}</span>
+                                  </div>
+                                )}
+                                {rsvpData.notGoing.length > 0 && (
+                                  <div className="flex items-center gap-1.5">
+                                    <StackedAvatars
+                                      users={rsvpData.notGoing}
+                                      getInitials={getInitials}
+                                      variant="notGoing"
+                                    />
+                                    <span className="text-xs text-red-600 font-medium">{rsvpData.notGoing.length}</span>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                            {isCanceled && (
+                              <Badge variant="destructive" className="text-[10px] rounded-md">Canceled</Badge>
+                            )}
+                          </div>
+                        </Link>
+                        {isCoachOrOwner && (
+                          <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                            <EventActionsDropdown eventId={event.id} occurrenceId={occurrence.id} isCanceled={isCanceled} />
+                          </div>
+                        )}
+                      </div>
                     );
                   })}
                 </div>
@@ -638,3 +675,4 @@ function StackedAvatars({
     </TooltipProvider>
   );
 }
+

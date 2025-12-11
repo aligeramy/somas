@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { db } from "@/lib/db";
 import { users, rsvps, eventOccurrences, events } from "@/drizzle/schema";
-import { eq, and, asc } from "drizzle-orm";
+import { eq, and, asc, gte, lte, desc } from "drizzle-orm";
 
 export async function POST(request: Request) {
   try {
@@ -21,10 +21,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Only athletes can RSVP
-    if (dbUser.role !== "athlete") {
+    // Athletes, coaches, and owners can RSVP
+    if (dbUser.role !== "athlete" && dbUser.role !== "coach" && dbUser.role !== "owner") {
       return NextResponse.json(
-        { error: "Only athletes can RSVP" },
+        { error: "Only athletes, coaches, and owners can RSVP" },
         { status: 403 },
       );
     }
@@ -78,16 +78,22 @@ export async function POST(request: Request) {
 
     let rsvp;
     if (existingRsvp) {
-      [rsvp] = await db.update(rsvps)
+      const updated = await db.update(rsvps)
         .set({ status: (status || "going") as "going" | "not_going" })
         .where(eq(rsvps.id, existingRsvp.id))
         .returning();
+      rsvp = updated[0];
     } else {
-      [rsvp] = await db.insert(rsvps).values({
+      const inserted = await db.insert(rsvps).values({
         userId: user.id,
         occurrenceId,
         status: (status || "going") as "going" | "not_going",
       }).returning();
+      rsvp = inserted[0];
+    }
+    
+    if (!rsvp) {
+      return NextResponse.json({ error: "Failed to create RSVP" }, { status: 500 });
     }
 
     return NextResponse.json({ success: true, rsvp });
@@ -116,6 +122,11 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const occurrenceId = searchParams.get("occurrenceId");
+    const eventId = searchParams.get("eventId"); // Filter by event
+    const userId = searchParams.get("userId"); // For coaches to filter by person
+    const includePast = searchParams.get("includePast") === "true"; // Include historical data
+    const startDate = searchParams.get("startDate");
+    const endDate = searchParams.get("endDate");
 
     if (occurrenceId) {
       // Get RSVPs for a specific occurrence
@@ -147,6 +158,32 @@ export async function GET(request: Request) {
         return NextResponse.json({ error: "User must belong to a gym" }, { status: 400 });
       }
 
+      // Build where conditions
+      const conditions = [eq(events.gymId, dbUser.gymId)];
+      
+      // Filter by eventId if provided
+      if (eventId) {
+        conditions.push(eq(events.id, eventId));
+      }
+      
+      // Filter by userId if provided
+      if (userId) {
+        conditions.push(eq(rsvps.userId, userId));
+      }
+
+      // Filter by date range if provided
+      if (startDate) {
+        conditions.push(gte(eventOccurrences.date, new Date(startDate)));
+      }
+      if (endDate) {
+        conditions.push(lte(eventOccurrences.date, new Date(endDate)));
+      }
+
+      // If not including past, only get future events
+      if (!includePast && !startDate && !endDate && !eventId) {
+        conditions.push(gte(eventOccurrences.date, new Date()));
+      }
+
       // Get all RSVPs for events in this gym
       const rsvpsList = await db.select({
         rsvp: rsvps,
@@ -163,8 +200,8 @@ export async function GET(request: Request) {
         .innerJoin(users, eq(rsvps.userId, users.id))
         .innerJoin(eventOccurrences, eq(rsvps.occurrenceId, eventOccurrences.id))
         .innerJoin(events, eq(eventOccurrences.eventId, events.id))
-        .where(eq(events.gymId, dbUser.gymId))
-        .orderBy(asc(eventOccurrences.date));
+        .where(and(...conditions))
+        .orderBy(includePast ? desc(eventOccurrences.date) : asc(eventOccurrences.date));
 
       const formattedRsvps = rsvpsList.map(({ rsvp, user, occurrence, event }) => ({
         ...rsvp,
@@ -179,6 +216,26 @@ export async function GET(request: Request) {
     }
 
     // Get user's RSVPs (for athletes)
+    const conditions = [eq(rsvps.userId, user.id)];
+    
+    // Filter by eventId if provided
+    if (eventId) {
+      conditions.push(eq(events.id, eventId));
+    }
+    
+    // Filter by date range if provided
+    if (startDate) {
+      conditions.push(gte(eventOccurrences.date, new Date(startDate)));
+    }
+    if (endDate) {
+      conditions.push(lte(eventOccurrences.date, new Date(endDate)));
+    }
+
+    // If not including past, only get future events
+    if (!includePast && !startDate && !endDate && !eventId) {
+      conditions.push(gte(eventOccurrences.date, new Date()));
+    }
+
     const rsvpsList = await db.select({
       rsvp: rsvps,
       occurrence: eventOccurrences,
@@ -187,8 +244,8 @@ export async function GET(request: Request) {
       .from(rsvps)
       .innerJoin(eventOccurrences, eq(rsvps.occurrenceId, eventOccurrences.id))
       .innerJoin(events, eq(eventOccurrences.eventId, events.id))
-      .where(eq(rsvps.userId, user.id))
-      .orderBy(asc(eventOccurrences.date));
+      .where(and(...conditions))
+      .orderBy(includePast ? desc(eventOccurrences.date) : asc(eventOccurrences.date));
 
     const formattedRsvps = rsvpsList.map(({ rsvp, occurrence, event }) => ({
       ...rsvp,

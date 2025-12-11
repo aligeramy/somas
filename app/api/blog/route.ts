@@ -83,7 +83,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Only owners and coaches can create posts
+    // Only head coaches and coaches can create posts
     if (dbUser.role !== "owner" && dbUser.role !== "coach") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }

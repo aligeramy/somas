@@ -104,7 +104,7 @@ export async function PUT(
       );
     }
 
-    // Only owners and coaches can update posts
+    // Only head coaches and coaches can update posts
     if (dbUser.role !== "owner" && dbUser.role !== "coach") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
@@ -216,7 +216,7 @@ export async function DELETE(
       );
     }
 
-    // Only owners and coaches can delete posts
+    // Only head coaches and coaches can delete posts
     if (dbUser.role !== "owner" && dbUser.role !== "coach") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }

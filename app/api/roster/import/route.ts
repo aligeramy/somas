@@ -40,7 +40,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Only owners can import roster
+    // Only head coaches can import roster
     if (dbUser.role !== "owner") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
@@ -152,7 +152,7 @@ export async function POST(request: Request) {
         await resend.emails.send({
           from: `${process.env.RESEND_FROM_NAME} <${process.env.RESEND_FROM_EMAIL}>`,
           to: email,
-          subject: `Invitation to join ${gym.name} on TOM`,
+          subject: `Invitation to join ${gym.name} on Titans of Mississauga`,
           react: InvitationEmail({
             gymName: gym.name,
             gymLogoUrl: gym.logoUrl,

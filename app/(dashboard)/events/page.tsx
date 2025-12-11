@@ -10,6 +10,7 @@ import {
   IconEdit,
   IconHistory,
   IconList,
+  IconMessageCircle,
   IconPlus,
   IconRepeat,
   IconTrash,
@@ -125,6 +126,7 @@ function EventChatContent({
     } else if (eventId) {
       loadOrCreateChannel();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eventId, channelId]);
 
   async function loadUser() {
@@ -224,7 +226,14 @@ export default function EventsPage() {
   const [mobileView, setMobileView] = useState<"events" | "occurrences" | "details" | "chat">("events");
   const [eventDetailTab, setEventDetailTab] = useState<"details" | "chat">("details");
   const [eventChannelId, setEventChannelId] = useState<string | null>(null);
+  const [eventChatDialogOpen, setEventChatDialogOpen] = useState(false);
+  const [eventChatEventId, setEventChatEventId] = useState<string | null>(null);
+  const [eventChatChannelId, setEventChatChannelId] = useState<string | null>(null);
   const isInitialMount = useRef(true);
+  
+  // Current user info
+  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
+  const [currentUserRsvps, setCurrentUserRsvps] = useState<Map<string, "going" | "not_going">>(new Map());
 
   // Cancel dialog state
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
@@ -372,7 +381,7 @@ export default function EventsPage() {
         return;
       }
       const data = await response.json();
-      // Include all gym members (athletes, coaches, and owners) for the "all" tab
+      // Include all gym members (athletes, coaches, and head coaches) for the "all" tab
       setGymMembers(data.roster || []);
     } catch (err) {
       console.error("Failed to load gym members:", err);
@@ -414,13 +423,56 @@ export default function EventsPage() {
     }
   }, []);
 
+  const loadCurrentUserInfo = useCallback(async () => {
+    try {
+      const response = await fetch("/api/user-info");
+      if (response.ok) {
+        const data = await response.json();
+        setCurrentUserRole(data.role);
+      }
+    } catch (err) {
+      console.error("Failed to load user info:", err);
+    }
+  }, []);
+
+  const loadCurrentUserRsvps = useCallback(async (eventId: string) => {
+    try {
+      const response = await fetch(`/api/rsvp?eventId=${eventId}`);
+      if (response.ok) {
+        const data = await response.json();
+        const rsvpMap = new Map<string, "going" | "not_going">();
+        if (data.rsvps) {
+          data.rsvps.forEach((rsvp: { occurrenceId?: string; occurrence?: { id: string }; status: string }) => {
+            const occId = rsvp.occurrenceId || rsvp.occurrence?.id;
+            if (occId && (rsvp.status === "going" || rsvp.status === "not_going")) {
+              rsvpMap.set(occId, rsvp.status as "going" | "not_going");
+            }
+          });
+        }
+        setCurrentUserRsvps(rsvpMap);
+      }
+    } catch (err) {
+      console.error("Failed to load user RSVPs:", err);
+    }
+  }, []);
+
   useEffect(() => {
     if (isInitialMount.current) {
       isInitialMount.current = false;
       loadEvents(true);
       loadGymMembers();
+      loadCurrentUserInfo();
     }
-  }, [loadEvents, loadGymMembers]);
+  }, [loadEvents, loadGymMembers, loadCurrentUserInfo]);
+
+  // Load user RSVPs when event is selected
+  useEffect(() => {
+    if (selectedEvent) {
+      loadCurrentUserRsvps(selectedEvent.id);
+    } else {
+      setCurrentUserRsvps(new Map());
+    }
+  }, [selectedEvent, loadCurrentUserRsvps]);
 
   // Load RSVPs when occurrence is selected from URL params
   useEffect(() => {
@@ -648,6 +700,105 @@ export default function EventsPage() {
       await loadOccurrenceRsvps(selectedOccurrence.id);
     } catch (err) {
       console.error(err);
+    }
+  }
+
+  async function handleRsvp(occurrenceId: string, status: "going" | "not_going") {
+    try {
+      const response = await fetch("/api/rsvp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          occurrenceId,
+          status,
+        }),
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to RSVP");
+      }
+      
+      // Update local RSVP map
+      const newRsvps = new Map(currentUserRsvps);
+      newRsvps.set(occurrenceId, status);
+      setCurrentUserRsvps(newRsvps);
+      
+      // Reload occurrence RSVPs if this occurrence is selected
+      if (selectedOccurrence?.id === occurrenceId) {
+        await loadOccurrenceRsvps(occurrenceId);
+      }
+      
+      // Reload events to update counts
+      await loadEvents();
+    } catch (err) {
+      console.error("RSVP error:", err);
+      alert(err instanceof Error ? err.message : "Failed to RSVP");
+      throw err;
+    }
+  }
+
+  async function handleCancelFromCalendar(occurrenceId: string) {
+    if (!selectedEvent) return;
+    const eventIdToKeep = selectedEvent.id;
+    try {
+      const response = await fetch(`/api/events/${selectedEvent.id}/cancel`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          occurrenceId,
+          restore: false,
+        }),
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to cancel");
+      }
+      
+      // Reload events to get updated occurrence status
+      const eventsResponse = await fetch("/api/events");
+      if (!eventsResponse.ok) throw new Error("Failed to reload events");
+      const eventsData = await eventsResponse.json();
+      const newEvents = eventsData.events || [];
+      setEvents(newEvents);
+      
+      // Reload gym members to update counts
+      await loadGymMembers();
+      
+      // Find and update the selected event with fresh data
+      const updatedEvent = newEvents.find((e: Event) => e.id === eventIdToKeep);
+      if (updatedEvent) {
+        setSelectedEvent(updatedEvent);
+        const updatedOccurrence = updatedEvent.occurrences.find(
+          (o: EventOccurrence) => o.id === occurrenceId
+        );
+        if (updatedOccurrence) {
+          setSelectedOccurrence(updatedOccurrence);
+          // Reload RSVPs for the updated occurrence
+          await loadOccurrenceRsvps(updatedOccurrence.id);
+        } else {
+          setSelectedOccurrence(null);
+          setOccurrenceRsvps([]);
+        }
+      } else {
+        // Event was deleted, select first event or clear selection
+        if (newEvents.length > 0) {
+          setSelectedEvent(newEvents[0]);
+          setSelectedOccurrence(null);
+        } else {
+          setSelectedEvent(null);
+          setSelectedOccurrence(null);
+        }
+        setOccurrenceRsvps([]);
+      }
+      
+      // Reload user RSVPs for the event
+      if (updatedEvent) {
+        await loadCurrentUserRsvps(updatedEvent.id);
+      }
+    } catch (err) {
+      console.error("Cancel error:", err);
+      alert(err instanceof Error ? err.message : "Failed to cancel session");
+      throw err;
     }
   }
 
@@ -895,55 +1046,104 @@ export default function EventsPage() {
                           const isPast = isPastDate(occ.date);
                           const dateInfo = formatDate(occ.date);
                           return (
-                            <button
+                            <div
                               key={occ.id}
-                              type="button"
-                              onClick={() => selectOccurrence(occ)}
-                              className={`w-full text-left p-4 rounded-xl transition-all ${
+                              className={`w-full rounded-xl transition-all ${
                                 selectedOccurrence?.id === occ.id
                                   ? "bg-primary text-primary-foreground"
                                   : "bg-card hover:bg-muted/50"
                               } ${isPast ? "opacity-60" : ""} ${occ.status === "canceled" ? "opacity-40" : ""}`}
                             >
-                              <div className="flex items-center gap-4">
-                                <div
-                                  className={`h-16 w-16 rounded-xl flex flex-col items-center justify-center shrink-0 ${
-                                    selectedOccurrence?.id === occ.id
-                                      ? "bg-primary-foreground/20"
-                                      : "bg-muted"
-                                  }`}
+                              <div className="flex items-center gap-2 p-4">
+                                <button
+                                  type="button"
+                                  onClick={() => selectOccurrence(occ)}
+                                  className="flex-1 text-left flex items-center gap-4 min-w-0"
                                 >
-                                  <span className="text-2xl font-bold leading-none">
-                                    {dateInfo.day}
-                                  </span>
-                                  <span className="text-xs font-medium opacity-70 mt-1">
-                                    {dateInfo.month}
-                                  </span>
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="font-semibold text-base mb-1">
-                                    {dateInfo.weekday}
-                                  </p>
-                                  <p className="text-sm opacity-80">
-                                    {formatTime(selectedEvent.startTime)}
-                                  </p>
-                                </div>
-                                <div className="flex flex-col items-end gap-1 shrink-0">
-                                  {occ.status === "canceled" && (
-                                    <Badge variant="destructive" className="text-xs">
-                                      Canceled
-                                    </Badge>
-                                  )}
-                                  {(
-                                    occ as EventOccurrence & { isCustom?: boolean }
-                                  ).isCustom && (
-                                    <Badge variant="outline" className="text-xs">
-                                      Custom
-                                    </Badge>
-                                  )}
+                                  <div
+                                    className={`h-16 w-16 rounded-xl flex flex-col items-center justify-center shrink-0 ${
+                                      selectedOccurrence?.id === occ.id
+                                        ? "bg-primary-foreground/20"
+                                        : "bg-muted"
+                                    }`}
+                                  >
+                                    <span className="text-2xl font-bold leading-none">
+                                      {dateInfo.day}
+                                    </span>
+                                    <span className="text-xs font-medium opacity-70 mt-1">
+                                      {dateInfo.month}
+                                    </span>
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-semibold text-base mb-1">
+                                      {dateInfo.weekday}
+                                    </p>
+                                    <p className="text-sm opacity-80">
+                                      {formatTime(selectedEvent.startTime)}
+                                    </p>
+                                  </div>
+                                </button>
+                                <div className="flex items-center gap-2 shrink-0">
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={async (e) => {
+                                      e.stopPropagation();
+                                      // Load or create channel for this event
+                                      try {
+                                        const response = await fetch(`/api/chat/channels?eventId=${selectedEvent.id}`);
+                                        let channelId = eventChannelId;
+                                        if (response.ok) {
+                                          const result = await response.json();
+                                          if (result.channels && result.channels.length > 0) {
+                                            channelId = result.channels[0].id;
+                                          } else {
+                                            // Create channel if it doesn't exist
+                                            const createResponse = await fetch("/api/chat/channels", {
+                                              method: "POST",
+                                              headers: { "Content-Type": "application/json" },
+                                              body: JSON.stringify({
+                                                name: `${selectedEvent.title} Chat`,
+                                                type: "group",
+                                                eventId: selectedEvent.id,
+                                              }),
+                                            });
+                                            if (createResponse.ok) {
+                                              const createResult = await createResponse.json();
+                                              channelId = createResult.channel.id;
+                                            }
+                                          }
+                                        }
+                                        setEventChatEventId(selectedEvent.id);
+                                        setEventChatChannelId(channelId);
+                                        setEventChatDialogOpen(true);
+                                      } catch (error) {
+                                        console.error("Error loading event chat:", error);
+                                      }
+                                    }}
+                                    title="Open chat for this event"
+                                  >
+                                    <IconMessageCircle className="h-4 w-4" />
+                                  </Button>
+                                  <div className="flex flex-col items-end gap-1">
+                                    {occ.status === "canceled" && (
+                                      <Badge variant="destructive" className="text-xs">
+                                        Canceled
+                                      </Badge>
+                                    )}
+                                    {(
+                                      occ as EventOccurrence & { isCustom?: boolean }
+                                    ).isCustom && (
+                                      <Badge variant="outline" className="text-xs">
+                                        Custom
+                                      </Badge>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
-                            </button>
+                            </div>
                           );
                         })}
                       </div>
@@ -1278,6 +1478,7 @@ export default function EventsPage() {
                 </div>
                 <div className="flex-1 min-h-0">
                   <CustomEventCalendar
+                    key={`${selectedEvent.id}-${selectedEvent.occurrences.filter(o => o.status === "canceled").length}`}
                     occurrences={selectedEvent.occurrences.map((o) => ({
                       ...o,
                       isCustom:
@@ -1285,9 +1486,14 @@ export default function EventsPage() {
                           .isCustom || false,
                     }))}
                     eventTitle={selectedEvent.title}
+                    eventId={selectedEvent.id}
+                    currentUserRole={currentUserRole}
+                    currentUserRsvps={currentUserRsvps}
                     onToggleDate={handleToggleOccurrence}
                     onAddCustomDate={handleAddCustomDate}
                     onRemoveDate={handleRemoveCustomDate}
+                    onRsvp={handleRsvp}
+                    onCancel={handleCancelFromCalendar}
                   />
                 </div>
               </div>
@@ -1744,6 +1950,40 @@ export default function EventsPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Event Chat Dialog */}
+      <Dialog open={eventChatDialogOpen} onOpenChange={setEventChatDialogOpen}>
+        <DialogContent className="rounded-xl max-w-4xl h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedEvent?.title} Chat
+            </DialogTitle>
+            <DialogDescription>
+              Chat with other members about this event
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 min-h-0 overflow-hidden">
+            {eventChatEventId && eventChatChannelId ? (
+              <EventChatContent
+                eventId={eventChatEventId}
+                channelId={eventChatChannelId}
+                eventTitle={selectedEvent?.title || "Event"}
+                onChannelLoad={(id) => setEventChatChannelId(id)}
+              />
+            ) : eventChatEventId ? (
+              <EventChatContent
+                eventId={eventChatEventId}
+                eventTitle={selectedEvent?.title || "Event"}
+                onChannelLoad={(id) => setEventChatChannelId(id)}
+              />
+            ) : (
+              <div className="flex items-center justify-center h-full text-muted-foreground">
+                <p>Select an event to view chat</p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Add Custom Date Dialog */}
       <Dialog open={addDateDialogOpen} onOpenChange={setAddDateDialogOpen}>
         <DialogContent className="rounded-xl">
@@ -1845,10 +2085,20 @@ function UserList({ users, getInitials, onEditRsvp }: UserListProps) {
                     size="icon"
                     className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
                   >
-                    <IconEdit className="h-4 w-4" />
+                    <IconDotsVertical className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="rounded-xl">
+                  <DropdownMenuItem asChild>
+                    <Link
+                      href={`/chat?userId=${user.id}`}
+                      className="flex items-center gap-2 cursor-pointer"
+                    >
+                      <IconMessageCircle className="h-4 w-4" />
+                      Chat
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onClick={() => onEditRsvp(user.id, "going")}
                     className="gap-2"

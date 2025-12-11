@@ -39,7 +39,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Only owners and coaches can invite
+    // Only head coaches and coaches can invite
     if (dbUser.role !== "owner" && dbUser.role !== "coach") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
@@ -115,7 +115,7 @@ export async function POST(request: Request) {
         await resend.emails.send({
           from: `${process.env.RESEND_FROM_NAME} <${process.env.RESEND_FROM_EMAIL}>`,
           to: email,
-          subject: `Invitation to join ${gym.name} on TOM`,
+          subject: `Invitation to join ${gym.name} on Titans of Mississauga`,
           react: InvitationEmail({
             gymName: gym.name,
             gymLogoUrl: gym.logoUrl,

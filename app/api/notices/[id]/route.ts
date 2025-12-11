@@ -28,7 +28,7 @@ export async function PUT(
       );
     }
 
-    // Only owners and coaches can update notices
+    // Only head coaches and coaches can update notices
     if (dbUser.role !== "owner" && dbUser.role !== "coach") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
@@ -91,7 +91,7 @@ export async function DELETE(
       );
     }
 
-    // Only owners and coaches can delete notices
+    // Only head coaches and coaches can delete notices
     if (dbUser.role !== "owner" && dbUser.role !== "coach") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }

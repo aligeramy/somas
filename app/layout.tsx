@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "TOM - Team Operations Manager",
+  title: "Titans of Mississauga",
   description: "Gym management and athlete coordination platform",
 };
 

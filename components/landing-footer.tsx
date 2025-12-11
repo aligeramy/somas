@@ -10,7 +10,7 @@ export function LandingFooter() {
           <div>
             <h3 className="text-lg font-semibold mb-4">TOM</h3>
             <p className="text-muted-foreground text-sm">
-              Team Operations Manager. The modern platform for gym management
+              The modern platform for gym management
               and athlete coordination.
             </p>
           </div>
@@ -64,6 +64,7 @@ export function LandingFooter() {
     </footer>
   );
 }
+
 
 
 

@@ -4,11 +4,13 @@ import { MobileBottomNav } from "./mobile-bottom-nav";
 
 interface MobileBottomNavWrapperProps {
   userRole: string;
+  gymWebsite: string | null;
 }
 
-export function MobileBottomNavWrapper({ userRole }: MobileBottomNavWrapperProps) {
-  return <MobileBottomNav userRole={userRole} />;
+export function MobileBottomNavWrapper({ userRole, gymWebsite }: MobileBottomNavWrapperProps) {
+  return <MobileBottomNav userRole={userRole} gymWebsite={gymWebsite} />;
 }
+
 
 
 

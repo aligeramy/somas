@@ -72,6 +72,20 @@ export default async function DashboardLayout({
     }
   }
 
+  // Get gym website if user has a gym
+  let gymWebsite = null;
+  if (dbUser.gymId) {
+    try {
+      const [gym] = await db.select().from(gyms).where(eq(gyms.id, dbUser.gymId)).limit(1);
+      if (gym) {
+        gymWebsite = gym.website;
+      }
+    } catch (error) {
+      // Silently fail if gym fetch fails
+      console.error("Failed to fetch gym website:", error);
+    }
+  }
+
   return (
     <SidebarProvider
       className="p-4 lg:p-6 xl:p-4 h-[100dvh] overflow-hidden"
@@ -88,7 +102,7 @@ export default async function DashboardLayout({
           {children}
         </div>
       </SidebarInset>
-      <MobileBottomNavWrapper userRole={dbUser.role} />
+      <MobileBottomNavWrapper userRole={dbUser.role} gymWebsite={gymWebsite} />
     </SidebarProvider>
   );
 }
