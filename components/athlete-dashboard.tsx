@@ -78,13 +78,13 @@ export function AthleteDashboard({ userName, occurrences }: AthleteDashboardProp
   const nextEvent = occurrences[0];
 
   return (
-    <div className="flex flex-1 flex-col">
+    <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
       <PageHeader
         title={`Hey${userName ? `, ${userName.split(" ")[0]}` : ""}! 👋`}
         description="Here's your upcoming schedule"
       />
 
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto min-h-0">
         <div className="p-4 lg:p-6 space-y-6 max-w-2xl mx-auto">
           {occurrences.length === 0 ? (
             <Card className="rounded-xl border-dashed">

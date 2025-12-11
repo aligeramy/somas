@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { db } from "@/lib/db";
-import { chatNotifications, channels, users } from "@/drizzle/schema";
+import { chatNotifications, channels, users, messages } from "@/drizzle/schema";
 import { eq, and, isNull } from "drizzle-orm";
 
 export async function POST(request: Request) {
@@ -42,6 +42,36 @@ export async function POST(request: Request) {
 
     if (!channel || channel.gymId !== dbUser.gymId) {
       return NextResponse.json({ error: "Channel not found" }, { status: 404 });
+    }
+
+    // Additional security check: verify user has access to this channel type
+    if (channel.type === "global") {
+      // Global channels are accessible to all gym members - already verified above
+    } else if (channel.type === "dm") {
+      // For DM channels: check if user has sent messages OR channel name matches user's name/email
+      const userHasMessages = await db
+        .select()
+        .from(messages)
+        .where(and(eq(messages.channelId, channelId), eq(messages.senderId, user.id)))
+        .limit(1);
+      
+      const channelNameMatchesUser = 
+        channel.name === (dbUser.name || dbUser.email);
+      
+      if (userHasMessages.length === 0 && !channelNameMatchesUser) {
+        return NextResponse.json({ error: "Access denied" }, { status: 403 });
+      }
+    } else if (channel.type === "group") {
+      // For group channels: check if user has sent messages
+      const userHasMessages = await db
+        .select()
+        .from(messages)
+        .where(and(eq(messages.channelId, channelId), eq(messages.senderId, user.id)))
+        .limit(1);
+      
+      if (userHasMessages.length === 0) {
+        return NextResponse.json({ error: "Access denied" }, { status: 403 });
+      }
     }
 
     // Mark all unread notifications for this user in this channel as read

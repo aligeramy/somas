@@ -42,6 +42,36 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Channel not found" }, { status: 404 });
     }
 
+    // Additional security check: verify user has access to this channel type
+    if (channel.type === "global") {
+      // Global channels are accessible to all gym members - already verified above
+    } else if (channel.type === "dm") {
+      // For DM channels: check if user has sent messages OR channel name matches user's name/email
+      const userHasMessages = await db
+        .select()
+        .from(messages)
+        .where(and(eq(messages.channelId, channelId), eq(messages.senderId, user.id)))
+        .limit(1);
+      
+      const channelNameMatchesUser = 
+        channel.name === (dbUser.name || dbUser.email);
+      
+      if (userHasMessages.length === 0 && !channelNameMatchesUser) {
+        return NextResponse.json({ error: "Access denied" }, { status: 403 });
+      }
+    } else if (channel.type === "group") {
+      // For group channels: check if user has sent messages
+      const userHasMessages = await db
+        .select()
+        .from(messages)
+        .where(and(eq(messages.channelId, channelId), eq(messages.senderId, user.id)))
+        .limit(1);
+      
+      if (userHasMessages.length === 0) {
+        return NextResponse.json({ error: "Access denied" }, { status: 403 });
+      }
+    }
+
     // Get messages with sender info
     const messagesList = await db
       .select({
@@ -121,6 +151,38 @@ export async function POST(request: Request) {
     if (!channel || channel.gymId !== dbUser.gymId) {
       console.log("[POST /api/chat/messages] Channel not found or access denied:", { channel: !!channel, channelGymId: channel?.gymId, userGymId: dbUser.gymId });
       return NextResponse.json({ error: "Channel not found" }, { status: 404 });
+    }
+
+    // Additional security check: verify user has access to this channel type
+    if (channel.type === "global") {
+      // Global channels are accessible to all gym members - already verified above
+    } else if (channel.type === "dm") {
+      // For DM channels: check if user has sent messages OR channel name matches user's name/email
+      const userHasMessages = await db
+        .select()
+        .from(messages)
+        .where(and(eq(messages.channelId, channelId), eq(messages.senderId, user.id)))
+        .limit(1);
+      
+      const channelNameMatchesUser = 
+        channel.name === (dbUser.name || dbUser.email);
+      
+      if (userHasMessages.length === 0 && !channelNameMatchesUser) {
+        console.log("[POST /api/chat/messages] Access denied to DM channel:", { channelId, channelName: channel.name, userName: dbUser.name, userEmail: dbUser.email });
+        return NextResponse.json({ error: "Access denied" }, { status: 403 });
+      }
+    } else if (channel.type === "group") {
+      // For group channels: check if user has sent messages
+      const userHasMessages = await db
+        .select()
+        .from(messages)
+        .where(and(eq(messages.channelId, channelId), eq(messages.senderId, user.id)))
+        .limit(1);
+      
+      if (userHasMessages.length === 0) {
+        console.log("[POST /api/chat/messages] Access denied to group channel:", { channelId });
+        return NextResponse.json({ error: "Access denied" }, { status: 403 });
+      }
     }
 
     console.log("[POST /api/chat/messages] Channel found:", { id: channel.id, type: channel.type, name: channel.name });

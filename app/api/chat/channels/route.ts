@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { db } from "@/lib/db";
-import { users, channels } from "@/drizzle/schema";
-import { eq, and } from "drizzle-orm";
+import { users, channels, messages } from "@/drizzle/schema";
+import { eq, and, or, inArray } from "drizzle-orm";
 
 export async function GET(request: Request) {
   try {
@@ -46,7 +46,8 @@ export async function GET(request: Request) {
       });
     }
 
-    const channelsList = await db
+    // Get all channels for the gym
+    const allChannels = await db
       .select()
       .from(channels)
       .where(
@@ -56,8 +57,49 @@ export async function GET(request: Request) {
       )
       .orderBy(channels.createdAt);
 
+    // Get channels where the user has sent messages (for DM and group filtering)
+    const userMessageChannels = await db
+      .selectDistinct({ channelId: messages.channelId })
+      .from(messages)
+      .where(eq(messages.senderId, user.id));
+
+    const userChannelIds = new Set(
+      userMessageChannels.map((m) => m.channelId)
+    );
+
+    // Filter channels based on type and user participation
+    const filteredChannels = allChannels.filter((channel) => {
+      // Always show global channels
+      if (channel.type === "global") {
+        return true;
+      }
+
+      // For DM channels: only show if user has sent messages OR channel name matches user's name/email
+      // (meaning someone created a DM with them)
+      if (channel.type === "dm") {
+        const userIsParticipant = userChannelIds.has(channel.id);
+        const channelNameMatchesUser = 
+          channel.name === (dbUser.name || dbUser.email);
+        return userIsParticipant || channelNameMatchesUser;
+      }
+
+      // For group channels: only show if user has sent messages
+      // (assuming group chats require participation)
+      if (channel.type === "group") {
+        return userChannelIds.has(channel.id);
+      }
+
+      // For event channels: show if user has sent messages
+      if (channel.eventId) {
+        return userChannelIds.has(channel.id);
+      }
+
+      // Default: don't show
+      return false;
+    });
+
     // Sort channels: global first, then others
-    const sortedChannels = [...channelsList].sort((a, b) => {
+    const sortedChannels = [...filteredChannels].sort((a, b) => {
       if (a.type === "global") return -1;
       if (b.type === "global") return 1;
       return 0;

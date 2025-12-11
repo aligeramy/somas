@@ -94,7 +94,7 @@ export function AppSidebar({ user, gymName, gymLogo, gymWebsite, ...props }: App
       title: "Blog Posts",
       url: "/blog",
       icon: IconNews,
-      roles: ["owner", "coach"],
+      roles: ["owner", "coach", "athlete"],
     },
     {
       title: "Gym Settings",

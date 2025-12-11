@@ -85,7 +85,7 @@ export function MobileBottomNav({ userRole, gymWebsite }: MobileBottomNavProps) 
       title: "Blog Posts",
       url: "/blog",
       icon: IconNews,
-      roles: ["owner", "coach"],
+      roles: ["owner", "coach", "athlete"],
     },
     {
       title: "Attendance",
