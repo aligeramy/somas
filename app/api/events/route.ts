@@ -1,8 +1,8 @@
+import { and, asc, desc, eq, gte, sql } from "drizzle-orm";
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { eventOccurrences, events, users } from "@/drizzle/schema";
 import { db } from "@/lib/db";
-import { users, events, eventOccurrences } from "@/drizzle/schema";
-import { eq, and, gte, desc, asc, sql } from "drizzle-orm";
+import { createClient } from "@/lib/supabase/server";
 
 export async function POST(request: Request) {
   try {
@@ -15,7 +15,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const [dbUser] = await db.select().from(users).where(eq(users.id, user.id)).limit(1);
+    const [dbUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, user.id))
+      .limit(1);
 
     if (!dbUser || !dbUser.gymId) {
       return NextResponse.json(
@@ -29,22 +33,41 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const { title, description, location, startTime, endTime, recurrenceRule, recurrenceEndDate, recurrenceCount, startDate, reminderDays: reminderDaysRaw } = await request.json();
-    
+    const {
+      title,
+      description,
+      location,
+      startTime,
+      endTime,
+      recurrenceRule,
+      recurrenceEndDate,
+      recurrenceCount,
+      startDate,
+      reminderDays: reminderDaysRaw,
+    } = await request.json();
+
     // Parse reminderDays - handle string or array input
     let reminderDays: number[] | null = null;
     if (reminderDaysRaw) {
-      if (typeof reminderDaysRaw === 'string') {
+      if (typeof reminderDaysRaw === "string") {
         try {
           const parsed = JSON.parse(reminderDaysRaw);
           if (Array.isArray(parsed)) {
-            reminderDays = parsed.map(n => typeof n === 'number' ? Math.round(n) : parseInt(String(n), 10)).filter(n => !isNaN(n));
+            reminderDays = parsed
+              .map((n) =>
+                typeof n === "number" ? Math.round(n) : parseInt(String(n), 10),
+              )
+              .filter((n) => !Number.isNaN(n));
           }
         } catch {
           reminderDays = null;
         }
       } else if (Array.isArray(reminderDaysRaw)) {
-        reminderDays = reminderDaysRaw.map(n => typeof n === 'number' ? Math.round(n) : parseInt(String(n), 10)).filter(n => !isNaN(n));
+        reminderDays = reminderDaysRaw
+          .map((n) =>
+            typeof n === "number" ? Math.round(n) : parseInt(String(n), 10),
+          )
+          .filter((n) => !Number.isNaN(n));
       }
     }
 
@@ -60,9 +83,9 @@ export async function POST(request: Request) {
       const startDateTime = new Date(startDate);
       const [hours, minutes] = startTime.split(":").map(Number);
       startDateTime.setHours(hours, minutes, 0, 0);
-      
+
       const endDateTime = new Date(recurrenceEndDate);
-      
+
       if (endDateTime <= startDateTime) {
         return NextResponse.json(
           { error: "The 'End on date' must be after the start date and time" },
@@ -72,20 +95,26 @@ export async function POST(request: Request) {
     }
 
     // Create event - handle reminderDays as PostgreSQL integer[] array
-    const [event] = await db.insert(events).values({
-      gymId: dbUser.gymId,
-      title,
-      description: description || null,
-      location: location || null,
-      startTime,
-      endTime,
-      recurrenceRule: recurrenceRule || null,
-      recurrenceEndDate: recurrenceEndDate ? new Date(recurrenceEndDate) : null,
-      recurrenceCount: recurrenceCount || null,
-      reminderDays: reminderDays && reminderDays.length > 0 
-        ? sql`${`{${reminderDays.join(',')}}`}::integer[]`
-        : null,
-    }).returning();
+    const [event] = await db
+      .insert(events)
+      .values({
+        gymId: dbUser.gymId,
+        title,
+        description: description || null,
+        location: location || null,
+        startTime,
+        endTime,
+        recurrenceRule: recurrenceRule || null,
+        recurrenceEndDate: recurrenceEndDate
+          ? new Date(recurrenceEndDate)
+          : null,
+        recurrenceCount: recurrenceCount || null,
+        reminderDays:
+          reminderDays && reminderDays.length > 0
+            ? sql`${`{${reminderDays.join(",")}}`}::integer[]`
+            : null,
+      })
+      .returning();
 
     // Generate occurrences
     const occurrenceStartDate = startDate ? new Date(startDate) : new Date();
@@ -95,7 +124,7 @@ export async function POST(request: Request) {
       startTime,
       occurrenceStartDate,
       recurrenceEndDate ? new Date(recurrenceEndDate) : null,
-      recurrenceCount
+      recurrenceCount,
     );
 
     return NextResponse.json({ success: true, event });
@@ -118,7 +147,7 @@ async function generateEventOccurrences(
 ) {
   const occurrences = [];
   let endDate = new Date(startDate);
-  
+
   // Determine end date based on recurrence settings
   if (recurrenceEndDate) {
     endDate = new Date(recurrenceEndDate);
@@ -134,13 +163,16 @@ async function generateEventOccurrences(
     const [hours, minutes] = startTime.split(":").map(Number);
     const occurrenceDate = new Date(startDate);
     occurrenceDate.setHours(hours, minutes, 0, 0);
-    
+
     if (occurrenceDate >= new Date()) {
-      await db.insert(eventOccurrences).values({
-        eventId,
-        date: occurrenceDate,
-        status: "scheduled" as const,
-      }).onConflictDoNothing();
+      await db
+        .insert(eventOccurrences)
+        .values({
+          eventId,
+          date: occurrenceDate,
+          status: "scheduled" as const,
+        })
+        .onConflictDoNothing();
     }
     return;
   }
@@ -206,40 +238,50 @@ export async function GET(_request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const [dbUser] = await db.select().from(users).where(eq(users.id, user.id)).limit(1);
+    const [dbUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, user.id))
+      .limit(1);
 
     if (!dbUser || !dbUser.gymId) {
-      return NextResponse.json({ error: "User must belong to a gym" }, { status: 400 });
+      return NextResponse.json(
+        { error: "User must belong to a gym" },
+        { status: 400 },
+      );
     }
 
-    const eventsList = await db.select({
-      id: events.id,
-      gymId: events.gymId,
-      title: events.title,
-      recurrenceRule: events.recurrenceRule,
-      startTime: events.startTime,
-      endTime: events.endTime,
-      createdAt: events.createdAt,
-      updatedAt: events.updatedAt,
-    }).from(events)
+    const eventsList = await db
+      .select({
+        id: events.id,
+        gymId: events.gymId,
+        title: events.title,
+        recurrenceRule: events.recurrenceRule,
+        startTime: events.startTime,
+        endTime: events.endTime,
+        createdAt: events.createdAt,
+        updatedAt: events.updatedAt,
+      })
+      .from(events)
       .where(eq(events.gymId, dbUser.gymId))
       .orderBy(desc(events.createdAt));
 
     // Get occurrences for each event
     const eventsWithOccurrences = await Promise.all(
       eventsList.map(async (event) => {
-        const occurrencesList = await db.select()
+        const occurrencesList = await db
+          .select()
           .from(eventOccurrences)
           .where(
             and(
               eq(eventOccurrences.eventId, event.id),
-              gte(eventOccurrences.date, new Date())
-            )
+              gte(eventOccurrences.date, new Date()),
+            ),
           )
           .orderBy(asc(eventOccurrences.date))
           .limit(10);
         return { ...event, occurrences: occurrencesList };
-      })
+      }),
     );
 
     return NextResponse.json({ events: eventsWithOccurrences });
@@ -251,4 +293,3 @@ export async function GET(_request: Request) {
     );
   }
 }
-

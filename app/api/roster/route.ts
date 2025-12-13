@@ -1,8 +1,8 @@
+import { asc, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { db } from "@/lib/db";
 import { users } from "@/drizzle/schema";
-import { eq, asc } from "drizzle-orm";
+import { db } from "@/lib/db";
+import { createClient } from "@/lib/supabase/server";
 
 export async function GET(request: Request) {
   try {
@@ -15,7 +15,11 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const [dbUser] = await db.select().from(users).where(eq(users.id, user.id)).limit(1);
+    const [dbUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, user.id))
+      .limit(1);
 
     if (!dbUser || !dbUser.gymId) {
       return NextResponse.json(
@@ -53,14 +57,17 @@ export async function GET(request: Request) {
       .where(
         dbUser.role === "athlete"
           ? eq(users.gymId, dbUser.gymId) // Will filter in code below
-          : eq(users.gymId, dbUser.gymId)
+          : eq(users.gymId, dbUser.gymId),
       )
       .orderBy(asc(users.createdAt));
 
     // Filter: Athletes can only see coaches/owners (unless forEvents=true)
-    const filteredRoster = dbUser.role === "athlete" && !forEvents
-      ? roster.filter((user) => user.role === "coach" || user.role === "owner")
-      : roster;
+    const filteredRoster =
+      dbUser.role === "athlete" && !forEvents
+        ? roster.filter(
+            (user) => user.role === "coach" || user.role === "owner",
+          )
+        : roster;
 
     return NextResponse.json({ roster: filteredRoster });
   } catch (error) {
@@ -71,4 +78,3 @@ export async function GET(request: Request) {
     );
   }
 }
-

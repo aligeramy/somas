@@ -361,7 +361,6 @@ export default function RosterPage() {
       <PageHeader
         title="Roster Management"
         description="Manage your gym's coaches and athletes"
-        className="shrink-0"
       >
         <Dialog
           open={isImportRosterDialogOpen}

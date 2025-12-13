@@ -1,30 +1,49 @@
 "use client";
 
 import {
+  IconCalendar,
+  IconChartBar,
   IconCheck,
   IconClock,
-  IconX,
-  IconChartBar,
   IconUser,
-  IconCalendar,
+  IconX,
 } from "@tabler/icons-react";
-import { useCallback, useEffect, useState, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import {
+  eachMonthOfInterval,
+  endOfMonth,
+  format,
+  startOfMonth,
+  subMonths,
+} from "date-fns";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { PageHeader } from "@/components/page-header";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
   SelectContent,
@@ -32,7 +51,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { format, startOfMonth, endOfMonth, eachMonthOfInterval, subMonths } from "date-fns";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface EventOccurrence {
   id: string;
@@ -89,7 +109,9 @@ export default function RSVPPage() {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState<"month" | "year">("month");
-  const [occurrenceSummaries, setOccurrenceSummaries] = useState<Record<string, OccurrenceSummary>>({});
+  const [occurrenceSummaries, setOccurrenceSummaries] = useState<
+    Record<string, OccurrenceSummary>
+  >({});
 
   const loadData = useCallback(async () => {
     try {
@@ -156,9 +178,7 @@ export default function RSVPPage() {
     try {
       // For coaches, allow filtering by userId. For athletes, always load their own data.
       const userIdParam = selectedUserId ? `&userId=${selectedUserId}` : "";
-      const response = await fetch(
-        `/api/rsvp?includePast=true${userIdParam}`,
-      );
+      const response = await fetch(`/api/rsvp?includePast=true${userIdParam}`);
       if (response.ok) {
         const data = await response.json();
         setHistoricalRsvps(data.rsvps || []);
@@ -184,18 +204,23 @@ export default function RSVPPage() {
     }
   }, []);
 
-  const loadOccurrenceSummaries = useCallback(async (occurrenceIds: string[]) => {
-    if (occurrenceIds.length === 0) return;
-    try {
-      const response = await fetch(`/api/rsvp?summaryOccurrences=${occurrenceIds.join(",")}`);
-      if (response.ok) {
-        const data = await response.json();
-        setOccurrenceSummaries(data.summary || {});
+  const loadOccurrenceSummaries = useCallback(
+    async (occurrenceIds: string[]) => {
+      if (occurrenceIds.length === 0) return;
+      try {
+        const response = await fetch(
+          `/api/rsvp?summaryOccurrences=${occurrenceIds.join(",")}`,
+        );
+        if (response.ok) {
+          const data = await response.json();
+          setOccurrenceSummaries(data.summary || {});
+        }
+      } catch (err) {
+        console.error("Failed to load occurrence summaries:", err);
       }
-    } catch (err) {
-      console.error("Failed to load occurrence summaries:", err);
-    }
-  }, []);
+    },
+    [],
+  );
 
   useEffect(() => {
     loadData();
@@ -327,24 +352,25 @@ export default function RSVPPage() {
 
       return months.map((month) => {
         const monthStart = startOfMonth(month);
-          const monthEnd = endOfMonth(month);
-          const monthRsvps = relevantRsvps.filter((r) => {
-            if (!r.occurrence?.date) return false;
-            const occDate = new Date(r.occurrence.date);
-            return occDate >= monthStart && occDate <= monthEnd;
-          });
-
-          const going = monthRsvps.filter((r) => r.status === "going").length;
-          const notGoing = monthRsvps.filter((r) => r.status === "not_going")
-            .length;
-
-          return {
-            month: format(month, "MMM yyyy"),
-            going,
-            notGoing,
-            total: going + notGoing,
-          };
+        const monthEnd = endOfMonth(month);
+        const monthRsvps = relevantRsvps.filter((r) => {
+          if (!r.occurrence?.date) return false;
+          const occDate = new Date(r.occurrence.date);
+          return occDate >= monthStart && occDate <= monthEnd;
         });
+
+        const going = monthRsvps.filter((r) => r.status === "going").length;
+        const notGoing = monthRsvps.filter(
+          (r) => r.status === "not_going",
+        ).length;
+
+        return {
+          month: format(month, "MMM yyyy"),
+          going,
+          notGoing,
+          total: going + notGoing,
+        };
+      });
     } else {
       // Group by year
       const years = new Set<number>();
@@ -363,8 +389,9 @@ export default function RSVPPage() {
           });
 
           const going = yearRsvps.filter((r) => r.status === "going").length;
-          const notGoing = yearRsvps.filter((r) => r.status === "not_going")
-            .length;
+          const notGoing = yearRsvps.filter(
+            (r) => r.status === "not_going",
+          ).length;
 
           return {
             month: year.toString(),
@@ -437,10 +464,7 @@ export default function RSVPPage() {
         <ScrollArea className="flex-1 h-0">
           <div className="space-y-2 p-4">
             {[1, 2, 3, 4].map((i) => (
-              <div
-                key={i}
-                className="p-4 rounded-xl border bg-card space-y-3"
-              >
+              <div key={i} className="p-4 rounded-xl border bg-card space-y-3">
                 <div className="flex items-center gap-3">
                   <Skeleton className="h-16 w-16 rounded-xl" />
                   <div className="flex-1 space-y-2">
@@ -511,7 +535,10 @@ export default function RSVPPage() {
             </TabsList>
           </div>
 
-          <TabsContent value="upcoming" className="flex-1 overflow-auto mt-0 min-h-0">
+          <TabsContent
+            value="upcoming"
+            className="flex-1 overflow-auto mt-0 min-h-0"
+          >
             <ScrollArea className="h-full">
               <div className="space-y-2 p-4">
                 {events.length === 0 ? (
@@ -527,11 +554,12 @@ export default function RSVPPage() {
                     );
                     // Filter coaches from going RSVPs
                     const goingCoaches = going.filter(
-                      (r) => r.user?.role === "coach" || r.user?.role === "owner"
+                      (r) =>
+                        r.user?.role === "coach" || r.user?.role === "owner",
                     );
                     // Count athletes going
                     const goingAthletes = going.filter(
-                      (r) => r.user?.role === "athlete"
+                      (r) => r.user?.role === "athlete",
                     );
                     const isCanceled = occ.status === "canceled";
                     const dateInfo = formatDate(occ.date);
@@ -539,10 +567,14 @@ export default function RSVPPage() {
                     return (
                       <Link
                         key={occ.id}
-                        href={isCanceled ? "#" : `/events?eventId=${occ.event.id}&occurrenceId=${occ.id}`}
+                        href={
+                          isCanceled
+                            ? "#"
+                            : `/events?eventId=${occ.event.id}&occurrenceId=${occ.id}`
+                        }
                         className={`flex items-center gap-4 p-4 rounded-xl border transition-colors ${
-                          isCanceled 
-                            ? "opacity-50 cursor-default" 
+                          isCanceled
+                            ? "opacity-50 cursor-default"
                             : "hover:bg-muted/30 cursor-pointer"
                         }`}
                       >
@@ -584,7 +616,8 @@ export default function RSVPPage() {
                             </span>
                           </div>
                           {/* Coaches and athletes */}
-                          {(goingCoaches.length > 0 || goingAthletes.length > 0) && (
+                          {(goingCoaches.length > 0 ||
+                            goingAthletes.length > 0) && (
                             <div className="flex items-center gap-1.5 mt-2 flex-wrap">
                               {goingCoaches.map((r) => (
                                 <Badge
@@ -596,9 +629,12 @@ export default function RSVPPage() {
                                   {r.user?.name || r.user?.email}
                                 </Badge>
                               ))}
-                              {goingCoaches.length > 0 && goingAthletes.length > 0 && (
-                                <span className="text-muted-foreground">•</span>
-                              )}
+                              {goingCoaches.length > 0 &&
+                                goingAthletes.length > 0 && (
+                                  <span className="text-muted-foreground">
+                                    •
+                                  </span>
+                                )}
                               {goingAthletes.length > 0 && (
                                 <span className="text-sm text-emerald-600 font-medium">
                                   {goingAthletes.length} GOING
@@ -623,7 +659,10 @@ export default function RSVPPage() {
             </ScrollArea>
           </TabsContent>
 
-          <TabsContent value="per-person" className="flex-1 overflow-auto mt-0 min-h-0">
+          <TabsContent
+            value="per-person"
+            className="flex-1 overflow-auto mt-0 min-h-0"
+          >
             <ScrollArea className="h-full">
               <div className="p-4 space-y-4">
                 <div className="flex items-center gap-3">
@@ -683,8 +722,8 @@ export default function RSVPPage() {
                         <div>
                           <CardTitle>Attendance History</CardTitle>
                           <CardDescription>
-                            {roster.find((r) => r.id === selectedUserId)?.name ||
-                              "Athlete"}
+                            {roster.find((r) => r.id === selectedUserId)
+                              ?.name || "Athlete"}
                             's attendance over time
                           </CardDescription>
                         </div>
@@ -720,7 +759,10 @@ export default function RSVPPage() {
                             content={<ChartTooltipContent />}
                           />
                           <Bar dataKey="going" fill="var(--color-going)" />
-                          <Bar dataKey="notGoing" fill="var(--color-notGoing)" />
+                          <Bar
+                            dataKey="notGoing"
+                            fill="var(--color-notGoing)"
+                          />
                         </BarChart>
                       </ChartContainer>
                     </CardContent>
@@ -733,8 +775,8 @@ export default function RSVPPage() {
                       </div>
                     ) : (
                       attendanceByPerson.map((item) => (
-                        <Card 
-                          key={item.user.id} 
+                        <Card
+                          key={item.user.id}
                           className="hover:bg-muted/30 transition-colors cursor-pointer"
                           onClick={() => router.push(`/rsvp/${item.user.id}`)}
                         >
@@ -742,9 +784,14 @@ export default function RSVPPage() {
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-3">
                                 <Avatar className="h-10 w-10">
-                                  <AvatarImage src={item.user.avatarUrl || undefined} />
+                                  <AvatarImage
+                                    src={item.user.avatarUrl || undefined}
+                                  />
                                   <AvatarFallback>
-                                    {getInitials(item.user.name, item.user.email)}
+                                    {getInitials(
+                                      item.user.name,
+                                      item.user.email,
+                                    )}
                                   </AvatarFallback>
                                 </Avatar>
                                 <div>
@@ -752,12 +799,15 @@ export default function RSVPPage() {
                                     {item.user.name || item.user.email}
                                   </p>
                                   <p className="text-sm text-muted-foreground">
-                                    {item.going} attended, {item.notGoing} missed
+                                    {item.going} attended, {item.notGoing}{" "}
+                                    missed
                                   </p>
                                 </div>
                               </div>
                               <div className="text-right">
-                                <p className="text-2xl font-bold">{item.rate}%</p>
+                                <p className="text-2xl font-bold">
+                                  {item.rate}%
+                                </p>
                                 <p className="text-xs text-muted-foreground">
                                   Attendance
                                 </p>
@@ -773,7 +823,10 @@ export default function RSVPPage() {
             </ScrollArea>
           </TabsContent>
 
-          <TabsContent value="overview" className="flex-1 overflow-auto mt-0 min-h-0">
+          <TabsContent
+            value="overview"
+            className="flex-1 overflow-auto mt-0 min-h-0"
+          >
             <ScrollArea className="h-full">
               <div className="p-4 space-y-4">
                 <div className="grid gap-4 md:grid-cols-3">
@@ -832,7 +885,13 @@ export default function RSVPPage() {
                     <ChartContainer config={chartConfig}>
                       <AreaChart data={chartData}>
                         <defs>
-                          <linearGradient id="fillGoing" x1="0" y1="0" x2="0" y2="1">
+                          <linearGradient
+                            id="fillGoing"
+                            x1="0"
+                            y1="0"
+                            x2="0"
+                            y2="1"
+                          >
                             <stop
                               offset="5%"
                               stopColor="var(--color-going)"
@@ -897,7 +956,10 @@ export default function RSVPPage() {
           </TabsList>
         </div>
 
-        <TabsContent value="upcoming" className="flex-1 overflow-auto mt-0 min-h-0">
+        <TabsContent
+          value="upcoming"
+          className="flex-1 overflow-auto mt-0 min-h-0"
+        >
           <ScrollArea className="h-full">
             <div className="space-y-2 p-4">
               {events.length === 0 ? (
@@ -919,12 +981,19 @@ export default function RSVPPage() {
                       }`}
                     >
                       <Link
-                        href={isCanceled ? "#" : `/events?eventId=${occ.event.id}&occurrenceId=${occ.id}`}
+                        href={
+                          isCanceled
+                            ? "#"
+                            : `/events?eventId=${occ.event.id}&occurrenceId=${occ.id}`
+                        }
                         className="flex items-center gap-4 flex-1 min-w-0"
                         onClick={(e) => {
                           // Prevent navigation if clicking on buttons or badges
                           const target = e.target as HTMLElement;
-                          if (target.closest('button') || target.closest('[role="button"]')) {
+                          if (
+                            target.closest("button") ||
+                            target.closest('[role="button"]')
+                          ) {
                             e.preventDefault();
                           }
                         }}
@@ -989,21 +1058,26 @@ export default function RSVPPage() {
                               <span className="text-xs text-emerald-600 font-medium">
                                 {occurrenceSummaries[occ.id].goingCount} going
                               </span>
-                              {occurrenceSummaries[occ.id].coaches.length > 0 && (
+                              {occurrenceSummaries[occ.id].coaches.length >
+                                0 && (
                                 <>
-                                  <span className="text-xs text-muted-foreground">•</span>
+                                  <span className="text-xs text-muted-foreground">
+                                    •
+                                  </span>
                                   <div className="flex items-center gap-1.5 flex-wrap">
-                                    {occurrenceSummaries[occ.id].coaches.map((coach) => (
-                                      <Badge
-                                        key={coach.id}
-                                        variant="secondary"
-                                        className="text-[10px] rounded-md flex items-center gap-1"
-                                        onClick={(e) => e.stopPropagation()}
-                                      >
-                                        <IconCheck className="h-3 w-3" />
-                                        {coach.name || "Coach"}
-                                      </Badge>
-                                    ))}
+                                    {occurrenceSummaries[occ.id].coaches.map(
+                                      (coach) => (
+                                        <Badge
+                                          key={coach.id}
+                                          variant="secondary"
+                                          className="text-[10px] rounded-md flex items-center gap-1"
+                                          onClick={(e) => e.stopPropagation()}
+                                        >
+                                          <IconCheck className="h-3 w-3" />
+                                          {coach.name || "Coach"}
+                                        </Badge>
+                                      ),
+                                    )}
                                   </div>
                                 </>
                               )}
@@ -1015,7 +1089,9 @@ export default function RSVPPage() {
                         <div className="flex items-center gap-2 shrink-0">
                           <Button
                             size="sm"
-                            variant={rsvpStatus === "going" ? "default" : "outline"}
+                            variant={
+                              rsvpStatus === "going" ? "default" : "outline"
+                            }
                             onClick={(e) => {
                               e.stopPropagation();
                               handleRSVP(occ.id, "going");
@@ -1033,7 +1109,9 @@ export default function RSVPPage() {
                           <Button
                             size="sm"
                             variant={
-                              rsvpStatus === "not_going" ? "secondary" : "outline"
+                              rsvpStatus === "not_going"
+                                ? "secondary"
+                                : "outline"
                             }
                             onClick={(e) => {
                               e.stopPropagation();
@@ -1055,7 +1133,10 @@ export default function RSVPPage() {
           </ScrollArea>
         </TabsContent>
 
-        <TabsContent value="history" className="flex-1 overflow-auto mt-0 min-h-0">
+        <TabsContent
+          value="history"
+          className="flex-1 overflow-auto mt-0 min-h-0"
+        >
           <ScrollArea className="h-full">
             <div className="space-y-2 p-4">
               {historicalRsvps.length === 0 ? (
@@ -1133,7 +1214,10 @@ export default function RSVPPage() {
           </ScrollArea>
         </TabsContent>
 
-        <TabsContent value="summary" className="flex-1 overflow-auto mt-0 min-h-0">
+        <TabsContent
+          value="summary"
+          className="flex-1 overflow-auto mt-0 min-h-0"
+        >
           <ScrollArea className="h-full">
             <div className="p-4 space-y-4">
               <div className="grid gap-4 md:grid-cols-3">

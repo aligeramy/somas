@@ -1,16 +1,27 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { PageHeader } from "@/components/page-header";
-import { IconCamera, IconCheck, IconBuilding, IconPlus, IconMail, IconPhone } from "@tabler/icons-react";
+import {
+  IconBuilding,
+  IconCamera,
+  IconCheck,
+  IconMail,
+  IconPhone,
+  IconPlus,
+} from "@tabler/icons-react";
+import Image from "next/image";
+import { useCallback, useEffect, useState } from "react";
 import { useDropzone } from "react-dropzone";
-import { createClient } from "@/lib/supabase/client";
+import { PageHeader } from "@/components/page-header";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -20,8 +31,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
+import { createClient } from "@/lib/supabase/client";
 
 interface GymProfile {
   id: string;
@@ -66,23 +80,24 @@ export default function GymSettingsPage() {
   const [coachEmail, setCoachEmail] = useState("");
   const [invitingCoach, setInvitingCoach] = useState(false);
 
-  const { getRootProps: getLogoRootProps, getInputProps: getLogoInputProps } = useDropzone({
-    accept: {
-      "image/*": [".png", ".jpg", ".jpeg", ".gif", ".webp"],
-    },
-    maxFiles: 1,
-    onDrop: (acceptedFiles) => {
-      if (acceptedFiles.length > 0) {
-        const file = acceptedFiles[0];
-        setGymLogoFile(file);
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setGymLogoPreview(reader.result as string);
-        };
-        reader.readAsDataURL(file);
-      }
-    },
-  });
+  const { getRootProps: getLogoRootProps, getInputProps: getLogoInputProps } =
+    useDropzone({
+      accept: {
+        "image/*": [".png", ".jpg", ".jpeg", ".gif", ".webp"],
+      },
+      maxFiles: 1,
+      onDrop: (acceptedFiles) => {
+        if (acceptedFiles.length > 0) {
+          const file = acceptedFiles[0];
+          setGymLogoFile(file);
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            setGymLogoPreview(reader.result as string);
+          };
+          reader.readAsDataURL(file);
+        }
+      },
+    });
 
   const loadCoaches = useCallback(async () => {
     setLoadingCoaches(true);
@@ -90,7 +105,9 @@ export default function GymSettingsPage() {
       const response = await fetch("/api/roster");
       if (!response.ok) throw new Error("Failed to load coaches");
       const data = await response.json();
-      const coachesList = data.roster.filter((user: Coach) => user.role === "coach");
+      const coachesList = data.roster.filter(
+        (user: Coach) => user.role === "coach",
+      );
       setCoaches(coachesList);
     } catch (err) {
       console.error("Failed to load coaches:", err);
@@ -119,7 +136,6 @@ export default function GymSettingsPage() {
     loadGym();
     loadCoaches();
   }, [loadGym, loadCoaches]);
-
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -169,7 +185,7 @@ export default function GymSettingsPage() {
       });
 
       if (!gymResponse.ok) throw new Error("Failed to save gym");
-      
+
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
       await loadGym(); // Reload to get updated data
@@ -223,7 +239,12 @@ export default function GymSettingsPage() {
 
   function getInitials(name: string | null, email: string) {
     if (name) {
-      return name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
+      return name
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2);
     }
     return email[0].toUpperCase();
   }
@@ -252,15 +273,24 @@ export default function GymSettingsPage() {
 
   return (
     <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
-      <PageHeader title="Club Settings" description="Manage your club information">
-        <Button onClick={handleSave} disabled={saving} className="gap-2 rounded-xl">
+      <PageHeader
+        title="Club Settings"
+        description="Manage your club information"
+      >
+        <Button
+          onClick={handleSave}
+          disabled={saving}
+          className="gap-2 rounded-xl"
+        >
           {success ? (
             <>
               <IconCheck className="h-4 w-4" />
               Saved
             </>
+          ) : saving ? (
+            "Saving..."
           ) : (
-            saving ? "Saving..." : "Save Changes"
+            "Save Changes"
           )}
         </Button>
       </PageHeader>
@@ -276,7 +306,7 @@ export default function GymSettingsPage() {
           {/* Gym Logo Section */}
           <Card className="rounded-xl">
             <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
+              <CardTitle className="text-base flex items-center gap-2">
                 <IconBuilding className="h-5 w-5" />
                 Club Logo
               </CardTitle>
@@ -286,9 +316,11 @@ export default function GymSettingsPage() {
               <div className="flex items-center gap-4">
                 <div className="relative">
                   {gymLogoPreview || gym.logoUrl ? (
-                    <img
+                    <Image
                       src={gymLogoPreview || gym.logoUrl || ""}
                       alt="Club logo"
+                      width={96}
+                      height={96}
                       className="h-24 w-24 rounded-xl border-4 border-background shadow-lg object-cover"
                     />
                   ) : (
@@ -308,7 +340,8 @@ export default function GymSettingsPage() {
                 </div>
                 <div className="flex-1">
                   <p className="text-sm text-muted-foreground">
-                    Click the camera icon to upload a new logo. Recommended size: 512x512px
+                    Click the camera icon to upload a new logo. Recommended
+                    size: 512x512px
                   </p>
                 </div>
               </div>
@@ -319,11 +352,15 @@ export default function GymSettingsPage() {
           <Card className="rounded-xl">
             <CardHeader>
               <CardTitle className="text-base">Club Information</CardTitle>
-              <CardDescription>Update your club's basic information</CardDescription>
+              <CardDescription>
+                Update your club's basic information
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="gymName" className="text-sm">Club Name</Label>
+                <Label htmlFor="gymName" className="text-sm">
+                  Club Name
+                </Label>
                 <Input
                   id="gymName"
                   value={gymName}
@@ -334,7 +371,9 @@ export default function GymSettingsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="gymWebsite" className="text-sm">Website</Label>
+                <Label htmlFor="gymWebsite" className="text-sm">
+                  Website
+                </Label>
                 <Input
                   id="gymWebsite"
                   type="url"
@@ -344,7 +383,8 @@ export default function GymSettingsPage() {
                   className="rounded-xl h-11"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Enter your club's website URL. This will be visible to all members.
+                  Enter your club's website URL. This will be visible to all
+                  members.
                 </p>
               </div>
             </CardContent>
@@ -358,7 +398,10 @@ export default function GymSettingsPage() {
                   <CardTitle className="text-base">Coaches</CardTitle>
                   <CardDescription>Manage your club's coaches</CardDescription>
                 </div>
-                <Dialog open={isAddCoachDialogOpen} onOpenChange={setIsAddCoachDialogOpen}>
+                <Dialog
+                  open={isAddCoachDialogOpen}
+                  onOpenChange={setIsAddCoachDialogOpen}
+                >
                   <DialogTrigger asChild>
                     <Button size="sm" className="gap-2 rounded-xl">
                       <IconPlus className="h-4 w-4" />
@@ -369,7 +412,8 @@ export default function GymSettingsPage() {
                     <DialogHeader>
                       <DialogTitle>Invite Coach</DialogTitle>
                       <DialogDescription>
-                        Send an invitation email to add a new coach to your club.
+                        Send an invitation email to add a new coach to your
+                        club.
                       </DialogDescription>
                     </DialogHeader>
                     <form onSubmit={handleInviteCoach}>
@@ -396,7 +440,11 @@ export default function GymSettingsPage() {
                         >
                           Cancel
                         </Button>
-                        <Button type="submit" disabled={invitingCoach} className="rounded-xl">
+                        <Button
+                          type="submit"
+                          disabled={invitingCoach}
+                          className="rounded-xl"
+                        >
                           {invitingCoach ? "Sending..." : "Send Invitation"}
                         </Button>
                       </DialogFooter>
@@ -415,7 +463,9 @@ export default function GymSettingsPage() {
               ) : coaches.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <p>No coaches yet</p>
-                  <p className="text-sm mt-1">Add coaches to help manage your club</p>
+                  <p className="text-sm mt-1">
+                    Add coaches to help manage your club
+                  </p>
                 </div>
               ) : (
                 <ScrollArea className="h-[400px]">
@@ -461,4 +511,3 @@ export default function GymSettingsPage() {
     </div>
   );
 }
-

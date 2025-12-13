@@ -22,10 +22,11 @@ import {
 } from "@tabler/icons-react";
 import { format } from "date-fns";
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { CustomEventCalendar } from "@/components/custom-event-calendar";
 import { PageHeader } from "@/components/page-header";
+import { RealtimeChat } from "@/components/realtime-chat";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -47,11 +48,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { RealtimeChat } from "@/components/realtime-chat";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { createClient } from "@/lib/supabase/client";
 
 interface EventOccurrence {
@@ -96,13 +99,15 @@ interface GymMember {
 
 // Custom hook for events page breakpoint (1200px)
 function useIsEventsMobile() {
-  const [isEventsMobile, setIsEventsMobile] = useState<boolean | undefined>(undefined);
+  const [isEventsMobile, setIsEventsMobile] = useState<boolean | undefined>(
+    undefined,
+  );
 
   useEffect(() => {
     const checkWidth = () => {
       setIsEventsMobile(window.innerWidth < 1200);
     };
-    
+
     checkWidth();
     window.addEventListener("resize", checkWidth);
     return () => window.removeEventListener("resize", checkWidth);
@@ -124,22 +129,16 @@ function EventChatContent({
   onChannelLoad: (id: string) => void;
 }) {
   const [loading, setLoading] = useState(true);
-  const [currentChannelId, setCurrentChannelId] = useState<string | null>(channelId || null);
-  const [currentUser, setCurrentUser] = useState<{ id: string; name: string } | null>(null);
+  const [currentChannelId, setCurrentChannelId] = useState<string | null>(
+    channelId || null,
+  );
+  const [currentUser, setCurrentUser] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
   const supabase = createClient();
 
-  useEffect(() => {
-    loadUser();
-    if (channelId) {
-      setCurrentChannelId(channelId);
-      setLoading(false);
-    } else if (eventId) {
-      loadOrCreateChannel();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [eventId, channelId]);
-
-  async function loadUser() {
+  const loadUser = useCallback(async () => {
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -153,9 +152,9 @@ function EventChatContent({
         setCurrentUser({ id: data.id, name: data.name || "User" });
       }
     }
-  }
+  }, [supabase]);
 
-  async function loadOrCreateChannel() {
+  const loadOrCreateChannel = useCallback(async () => {
     try {
       setLoading(true);
       // Try to find existing channel for this event
@@ -191,12 +190,24 @@ function EventChatContent({
     } finally {
       setLoading(false);
     }
-  }
+  }, [eventId, eventTitle, onChannelLoad]);
+
+  useEffect(() => {
+    loadUser();
+    if (channelId) {
+      setCurrentChannelId(channelId);
+      setLoading(false);
+    } else if (eventId) {
+      loadOrCreateChannel();
+    }
+  }, [eventId, channelId, loadUser, loadOrCreateChannel]);
 
   if (loading) {
     return (
       <div className="flex flex-1 items-center justify-center">
-        <div className="animate-pulse text-muted-foreground">Loading chat...</div>
+        <div className="animate-pulse text-muted-foreground">
+          Loading chat...
+        </div>
       </div>
     );
   }
@@ -233,33 +244,50 @@ export default function EventsPage() {
   const [showPastEvents, setShowPastEvents] = useState(false);
   const [sendingReminder, setSendingReminder] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
-  const [mobileView, setMobileView] = useState<"events" | "occurrences" | "details" | "chat">("events");
-  const [eventDetailTab, setEventDetailTab] = useState<"details" | "chat">("details");
+  const [mobileView, setMobileView] = useState<
+    "events" | "occurrences" | "details" | "chat"
+  >("events");
+  const [eventDetailTab, setEventDetailTab] = useState<"details" | "chat">(
+    "details",
+  );
   const [eventChannelId, setEventChannelId] = useState<string | null>(null);
   const [eventChatDialogOpen, setEventChatDialogOpen] = useState(false);
   const [eventChatEventId, setEventChatEventId] = useState<string | null>(null);
-  const [eventChatChannelId, setEventChatChannelId] = useState<string | null>(null);
+  const [eventChatChannelId, setEventChatChannelId] = useState<string | null>(
+    null,
+  );
   const isInitialMount = useRef(true);
   const selectedEventIdRef = useRef<string | null>(null);
-  
+
   // Current user info
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [currentUserRsvps, setCurrentUserRsvps] = useState<Map<string, "going" | "not_going">>(new Map());
-  
-  // Athlete view RSVP summary state (always declared, but only used for athletes)
-  const [rsvpSummary, setRsvpSummary] = useState<Record<string, { goingCount: number; notGoingCount?: number; coaches: Array<{ id: string; name: string | null; avatarUrl: string | null }> }>>({});
-  const [summaryLoading, setSummaryLoading] = useState(true);
-  
+  const [currentUserRsvps, setCurrentUserRsvps] = useState<
+    Map<string, "going" | "not_going">
+  >(new Map());
+
   // Owner/Coach view RSVP summary state for occurrences list
-  const [occurrenceRsvpSummaries, setOccurrenceRsvpSummaries] = useState<Record<string, { goingCount: number; notGoingCount: number }>>({});
-  
+  const [occurrenceRsvpSummaries, setOccurrenceRsvpSummaries] = useState<
+    Record<string, { goingCount: number; notGoingCount: number }>
+  >({});
+
   // Athlete view state (always declared)
-  const [selectedOccurrenceForAthlete, setSelectedOccurrenceForAthlete] = useState<{ id: string; date: string; status: string; event: Event } | null>(null);
-  const [selectedEventForAthlete, setSelectedEventForAthlete] = useState<Event | null>(null);
-  const [selectedOccurrenceForAthleteDetail, setSelectedOccurrenceForAthleteDetail] = useState<EventOccurrence | null>(null);
-  const [athleteEventDetailTab, setAthleteEventDetailTab] = useState<"details" | "chat">("details");
-  const [athleteEventChannelId, setAthleteEventChannelId] = useState<string | null>(null);
+  const [selectedOccurrenceForAthlete, setSelectedOccurrenceForAthlete] =
+    useState<{ id: string; date: string; status: string; event: Event } | null>(
+      null,
+    );
+  const [selectedEventForAthlete, setSelectedEventForAthlete] =
+    useState<Event | null>(null);
+  const [
+    selectedOccurrenceForAthleteDetail,
+    setSelectedOccurrenceForAthleteDetail,
+  ] = useState<EventOccurrence | null>(null);
+  const [athleteEventDetailTab, setAthleteEventDetailTab] = useState<
+    "details" | "chat"
+  >("details");
+  const [athleteEventChannelId, setAthleteEventChannelId] = useState<
+    string | null
+  >(null);
 
   // Cancel dialog state
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
@@ -279,14 +307,14 @@ export default function EventsPage() {
   useEffect(() => {
     const eventId = selectedEvent?.id;
     const eventTitle = selectedEvent?.title;
-    
+
     // Only run if event ID actually changed
     if (eventId === selectedEventIdRef.current) {
       return;
     }
-    
+
     selectedEventIdRef.current = eventId || null;
-    
+
     if (!selectedEvent || !eventId) {
       setEventChannelId(null);
       return;
@@ -323,100 +351,114 @@ export default function EventsPage() {
       .catch((error) => {
         console.error("Error loading event channel:", error);
       });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedEvent?.id]); // Only depend on ID to prevent infinite loops
+  }, [selectedEvent]);
 
-  const loadEvents = useCallback(async (isInitial = false) => {
-    try {
-      if (isInitial) {
-        setInitialLoading(true);
-      }
-      const response = await fetch("/api/events");
-      if (!response.ok) throw new Error("Failed to load events");
-      const data = await response.json();
-      const newEvents = data.events || [];
-      setEvents(newEvents);
-      
-      // Check URL parameters for eventId and occurrenceId
-      const eventIdParam = searchParams.get("eventId");
-      const occurrenceIdParam = searchParams.get("occurrenceId");
-      
-      if (newEvents.length > 0) {
-        let eventToSelect: Event | null = null;
-        let occurrenceToSelect: EventOccurrence | null = null;
-        
-        // If URL params exist, try to select that event/occurrence
-        if (eventIdParam) {
-          eventToSelect = newEvents.find((e: Event) => e.id === eventIdParam) || null;
-          if (eventToSelect && occurrenceIdParam) {
-            occurrenceToSelect = eventToSelect.occurrences.find(
-              (o: EventOccurrence) => o.id === occurrenceIdParam
-            ) || null;
-          }
+  const loadEvents = useCallback(
+    async (isInitial = false) => {
+      try {
+        if (isInitial) {
+          setInitialLoading(true);
         }
-        
-        // If no URL params or not found, use default selection logic
-        if (!eventToSelect) {
-          const currentSelectedId = selectedEventIdRef.current;
-          if (!currentSelectedId) {
-            eventToSelect = newEvents[0];
-          } else {
-            // Check if current selected event still exists
-            const stillExists = newEvents.find((e: Event) => e.id === currentSelectedId);
-            if (!stillExists) {
-              eventToSelect = newEvents[0];
-            } else {
-              // Find the updated event object from newEvents
-              eventToSelect = newEvents.find((e: Event) => e.id === currentSelectedId) || newEvents[0];
+        const response = await fetch("/api/events");
+        if (!response.ok) throw new Error("Failed to load events");
+        const data = await response.json();
+        const newEvents = data.events || [];
+        setEvents(newEvents);
+
+        // Check URL parameters for eventId and occurrenceId
+        const eventIdParam = searchParams.get("eventId");
+        const occurrenceIdParam = searchParams.get("occurrenceId");
+
+        if (newEvents.length > 0) {
+          let eventToSelect: Event | null = null;
+          let occurrenceToSelect: EventOccurrence | null = null;
+
+          // If URL params exist, try to select that event/occurrence
+          if (eventIdParam) {
+            eventToSelect =
+              newEvents.find((e: Event) => e.id === eventIdParam) || null;
+            if (eventToSelect && occurrenceIdParam) {
+              occurrenceToSelect =
+                eventToSelect.occurrences.find(
+                  (o: EventOccurrence) => o.id === occurrenceIdParam,
+                ) || null;
             }
           }
-        }
-        
-        // Only update if the ID actually changed
-        if (eventToSelect && eventToSelect.id !== selectedEventIdRef.current) {
-          selectedEventIdRef.current = eventToSelect.id;
-          setSelectedEvent(eventToSelect);
-        } else if (!eventToSelect && selectedEventIdRef.current) {
+
+          // If no URL params or not found, use default selection logic
+          if (!eventToSelect) {
+            const currentSelectedId = selectedEventIdRef.current;
+            if (!currentSelectedId) {
+              eventToSelect = newEvents[0];
+            } else {
+              // Check if current selected event still exists
+              const stillExists = newEvents.find(
+                (e: Event) => e.id === currentSelectedId,
+              );
+              if (!stillExists) {
+                eventToSelect = newEvents[0];
+              } else {
+                // Find the updated event object from newEvents
+                eventToSelect =
+                  newEvents.find((e: Event) => e.id === currentSelectedId) ||
+                  newEvents[0];
+              }
+            }
+          }
+
+          // Only update if the ID actually changed
+          if (
+            eventToSelect &&
+            eventToSelect.id !== selectedEventIdRef.current
+          ) {
+            selectedEventIdRef.current = eventToSelect.id;
+            setSelectedEvent(eventToSelect);
+          } else if (!eventToSelect && selectedEventIdRef.current) {
+            selectedEventIdRef.current = null;
+            setSelectedEvent(null);
+          } else if (
+            eventToSelect &&
+            eventToSelect.id === selectedEventIdRef.current
+          ) {
+            // Update the event object to get latest data, but only if ID matches
+            setSelectedEvent(eventToSelect);
+          }
+          setSelectedOccurrence(occurrenceToSelect);
+
+          // Set mobile view based on selection
+          if (isEventsMobile) {
+            if (occurrenceToSelect) {
+              setMobileView("details");
+            } else if (eventToSelect) {
+              setMobileView("occurrences");
+            } else {
+              setMobileView("events");
+            }
+          }
+
+          // Load RSVPs if occurrence is selected (will be handled by useEffect)
+          if (!occurrenceToSelect) {
+            setOccurrenceRsvps([]);
+          }
+        } else {
           selectedEventIdRef.current = null;
           setSelectedEvent(null);
-        } else if (eventToSelect && eventToSelect.id === selectedEventIdRef.current) {
-          // Update the event object to get latest data, but only if ID matches
-          setSelectedEvent(eventToSelect);
-        }
-        setSelectedOccurrence(occurrenceToSelect);
-        
-        // Set mobile view based on selection
-        if (isEventsMobile) {
-          if (occurrenceToSelect) {
-            setMobileView("details");
-          } else if (eventToSelect) {
-            setMobileView("occurrences");
-          } else {
+          setSelectedOccurrence(null);
+          setOccurrenceRsvps([]);
+          if (isEventsMobile) {
             setMobileView("events");
           }
         }
-        
-        // Load RSVPs if occurrence is selected (will be handled by useEffect)
-        if (!occurrenceToSelect) {
-          setOccurrenceRsvps([]);
-        }
-      } else {
-        selectedEventIdRef.current = null;
-        setSelectedEvent(null);
-        setSelectedOccurrence(null);
-        setOccurrenceRsvps([]);
-        if (isEventsMobile) {
-          setMobileView("events");
+      } catch (err) {
+        console.error(err);
+      } finally {
+        if (isInitial) {
+          setInitialLoading(false);
         }
       }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      if (isInitial) {
-        setInitialLoading(false);
-      }
-    }
-  }, [searchParams, isEventsMobile]); // Removed selectedEvent dependency to prevent infinite loops
+    },
+    [searchParams, isEventsMobile],
+  ); // Removed selectedEvent dependency to prevent infinite loops
 
   const loadGymMembers = useCallback(async () => {
     try {
@@ -497,12 +539,21 @@ export default function EventsPage() {
         const data = await response.json();
         const rsvpMap = new Map<string, "going" | "not_going">();
         if (data.rsvps) {
-          data.rsvps.forEach((rsvp: { occurrenceId?: string; occurrence?: { id: string }; status: string }) => {
-            const occId = rsvp.occurrenceId || rsvp.occurrence?.id;
-            if (occId && (rsvp.status === "going" || rsvp.status === "not_going")) {
-              rsvpMap.set(occId, rsvp.status as "going" | "not_going");
-            }
-          });
+          data.rsvps.forEach(
+            (rsvp: {
+              occurrenceId?: string;
+              occurrence?: { id: string };
+              status: string;
+            }) => {
+              const occId = rsvp.occurrenceId || rsvp.occurrence?.id;
+              if (
+                occId &&
+                (rsvp.status === "going" || rsvp.status === "not_going")
+              ) {
+                rsvpMap.set(occId, rsvp.status as "going" | "not_going");
+              }
+            },
+          );
         }
         setCurrentUserRsvps(rsvpMap);
       }
@@ -529,12 +580,21 @@ export default function EventsPage() {
         .then((data) => {
           if (data.rsvps) {
             const rsvpMap = new Map<string, "going" | "not_going">();
-            data.rsvps.forEach((rsvp: { occurrenceId?: string; occurrence?: { id: string }; status: string }) => {
-              const occId = rsvp.occurrenceId || rsvp.occurrence?.id;
-              if (occId && (rsvp.status === "going" || rsvp.status === "not_going")) {
-                rsvpMap.set(occId, rsvp.status as "going" | "not_going");
-              }
-            });
+            data.rsvps.forEach(
+              (rsvp: {
+                occurrenceId?: string;
+                occurrence?: { id: string };
+                status: string;
+              }) => {
+                const occId = rsvp.occurrenceId || rsvp.occurrence?.id;
+                if (
+                  occId &&
+                  (rsvp.status === "going" || rsvp.status === "not_going")
+                ) {
+                  rsvpMap.set(occId, rsvp.status as "going" | "not_going");
+                }
+              },
+            );
             setCurrentUserRsvps(rsvpMap);
           }
         })
@@ -544,35 +604,37 @@ export default function EventsPage() {
 
   // Load RSVP summary for athlete view
   useEffect(() => {
+    // This function is kept for potential future use but currently doesn't set any state
     if (currentUserRole === "athlete" && events.length > 0) {
       // Flatten events to occurrences for list view
-      const allOccurrences = events.flatMap((event) =>
-        event.occurrences.map((occ) => ({
-          ...occ,
-          event,
-        }))
-      ).filter((occ) => {
-        const occDate = new Date(occ.date);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        return occDate >= today && occ.status === "scheduled";
-      });
+      const allOccurrences = events
+        .flatMap((event) =>
+          event.occurrences.map((occ) => ({
+            ...occ,
+            event,
+          })),
+        )
+        .filter((occ) => {
+          const occDate = new Date(occ.date);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          return occDate >= today && occ.status === "scheduled";
+        });
 
       if (allOccurrences.length === 0) {
-        setSummaryLoading(false);
         return;
       }
-      
+
       const occurrenceIds = allOccurrences.map((occ) => occ.id).join(",");
       fetch(`/api/rsvp?summaryOccurrences=${occurrenceIds}`)
         .then((res) => res.json())
         .then((data) => {
-          setRsvpSummary(data.summary || {});
-          setSummaryLoading(false);
+          // Summary data fetched but not currently used
+          void data;
         })
-        .catch(() => setSummaryLoading(false));
-    } else {
-      setSummaryLoading(false);
+        .catch(() => {
+          // Error handling - no state to update
+        });
     }
   }, [currentUserRole, events]);
 
@@ -588,11 +650,16 @@ export default function EventsPage() {
 
   // Load RSVP summaries for owner/coach view when event is selected
   const loadOccurrenceSummaries = useCallback(async () => {
-    if ((currentUserRole === "owner" || currentUserRole === "coach") && selectedEvent) {
+    if (
+      (currentUserRole === "owner" || currentUserRole === "coach") &&
+      selectedEvent
+    ) {
       const occurrenceIds = selectedEvent.occurrences.map((occ) => occ.id);
       if (occurrenceIds.length > 0) {
         try {
-          const response = await fetch(`/api/rsvp?summaryOccurrences=${occurrenceIds.join(",")}`);
+          const response = await fetch(
+            `/api/rsvp?summaryOccurrences=${occurrenceIds.join(",")}`,
+          );
           if (response.ok) {
             const data = await response.json();
             setOccurrenceRsvpSummaries(data.summary || {});
@@ -617,7 +684,7 @@ export default function EventsPage() {
   useEffect(() => {
     const eventId = selectedEventForAthlete?.id;
     const eventTitle = selectedEventForAthlete?.title;
-    
+
     if (!eventId) {
       setAthleteEventChannelId(null);
       return;
@@ -651,8 +718,7 @@ export default function EventsPage() {
       .catch((error) => {
         console.error("Error loading event channel:", error);
       });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedEventForAthlete?.id]);
+  }, [selectedEventForAthlete]);
 
   // Load RSVPs when occurrence is selected from URL params
   useEffect(() => {
@@ -666,8 +732,11 @@ export default function EventsPage() {
     if (currentUserRole === "athlete" && selectedOccurrenceForAthleteDetail) {
       loadOccurrenceRsvps(selectedOccurrenceForAthleteDetail.id);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUserRole, selectedOccurrenceForAthleteDetail?.id]);
+  }, [
+    currentUserRole,
+    selectedOccurrenceForAthleteDetail,
+    loadOccurrenceRsvps,
+  ]);
 
   async function handleCancelWithNotify() {
     if (!selectedOccurrence || !selectedEvent) return;
@@ -690,23 +759,23 @@ export default function EventsPage() {
       const data = await response.json();
 
       setCancelDialogOpen(false);
-      
+
       // Reload events to get updated occurrence status
       const eventsResponse = await fetch("/api/events");
       if (!eventsResponse.ok) throw new Error("Failed to reload events");
       const eventsData = await eventsResponse.json();
       const newEvents = eventsData.events || [];
       setEvents(newEvents);
-      
+
       // Reload gym members to update counts
       await loadGymMembers();
-      
+
       // Find and update the selected event and occurrence with fresh data
       const updatedEvent = newEvents.find((e: Event) => e.id === eventIdToKeep);
       if (updatedEvent) {
         setSelectedEvent(updatedEvent);
         const updatedOccurrence = updatedEvent.occurrences.find(
-          (o: EventOccurrence) => o.id === occurrenceIdToCancel
+          (o: EventOccurrence) => o.id === occurrenceIdToCancel,
         );
         if (updatedOccurrence) {
           setSelectedOccurrence(updatedOccurrence);
@@ -797,16 +866,18 @@ export default function EventsPage() {
             const eventsData = await eventsResponse.json();
             const newEvents = eventsData.events || [];
             setEvents(newEvents);
-            
+
             // Reload gym members to update counts
             await loadGymMembers();
-            
+
             // Find and update the selected event and occurrence with fresh data
-            const updatedEvent = newEvents.find((e: Event) => e.id === eventIdToKeep);
+            const updatedEvent = newEvents.find(
+              (e: Event) => e.id === eventIdToKeep,
+            );
             if (updatedEvent) {
               setSelectedEvent(updatedEvent);
               const updatedOccurrence = updatedEvent.occurrences.find(
-                (o: EventOccurrence) => o.id === occurrenceIdToRestore
+                (o: EventOccurrence) => o.id === occurrenceIdToRestore,
               );
               if (updatedOccurrence) {
                 setSelectedOccurrence(updatedOccurrence);
@@ -895,7 +966,10 @@ export default function EventsPage() {
     }
   }
 
-  async function handleRsvp(occurrenceId: string, status: "going" | "not_going") {
+  async function handleRsvp(
+    occurrenceId: string,
+    status: "going" | "not_going",
+  ) {
     try {
       const response = await fetch("/api/rsvp", {
         method: "POST",
@@ -909,22 +983,22 @@ export default function EventsPage() {
         const data = await response.json();
         throw new Error(data.error || "Failed to RSVP");
       }
-      
+
       // Update local RSVP map
       const newRsvps = new Map(currentUserRsvps);
       newRsvps.set(occurrenceId, status);
       setCurrentUserRsvps(newRsvps);
-      
+
       // Reload occurrence RSVPs if this occurrence is selected
       if (selectedOccurrence?.id === occurrenceId) {
         await loadOccurrenceRsvps(occurrenceId);
       }
-      
+
       // Reload summaries for owner/coach view
       if (currentUserRole === "owner" || currentUserRole === "coach") {
         await loadOccurrenceSummaries();
       }
-      
+
       // Reload events to update counts
       await loadEvents();
     } catch (err) {
@@ -950,23 +1024,23 @@ export default function EventsPage() {
         const data = await response.json();
         throw new Error(data.error || "Failed to cancel");
       }
-      
+
       // Reload events to get updated occurrence status
       const eventsResponse = await fetch("/api/events");
       if (!eventsResponse.ok) throw new Error("Failed to reload events");
       const eventsData = await eventsResponse.json();
       const newEvents = eventsData.events || [];
       setEvents(newEvents);
-      
+
       // Reload gym members to update counts
       await loadGymMembers();
-      
+
       // Find and update the selected event with fresh data
       const updatedEvent = newEvents.find((e: Event) => e.id === eventIdToKeep);
       if (updatedEvent) {
         setSelectedEvent(updatedEvent);
         const updatedOccurrence = updatedEvent.occurrences.find(
-          (o: EventOccurrence) => o.id === occurrenceId
+          (o: EventOccurrence) => o.id === occurrenceId,
         );
         if (updatedOccurrence) {
           setSelectedOccurrence(updatedOccurrence);
@@ -987,7 +1061,7 @@ export default function EventsPage() {
         }
         setOccurrenceRsvps([]);
       }
-      
+
       // Reload user RSVPs for the event
       if (updatedEvent) {
         await loadCurrentUserRsvps(updatedEvent.id);
@@ -1103,28 +1177,31 @@ export default function EventsPage() {
   // Only include coaches/owners and athletes in notAnsweredUsers (filter out any other roles)
   const notAnsweredUsers = gymMembers.filter((m) => {
     const role = m.role;
-    const isCoachOrAthlete = role === "coach" || role === "owner" || role === "athlete" || !role;
+    const isCoachOrAthlete =
+      role === "coach" || role === "owner" || role === "athlete" || !role;
     return isCoachOrAthlete && !respondedIds.has(m.id);
   });
 
   // Update selected occurrence for athletes when URL or events change (must be before any returns)
   useEffect(() => {
     if (currentUserRole === "athlete" && events.length > 0) {
-      const allOccurrences = events.flatMap((event) =>
-        event.occurrences.map((occ) => ({
-          ...occ,
-          event,
-        }))
-      ).filter((occ) => {
-        const occDate = new Date(occ.date);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        return occDate >= today && occ.status === "scheduled";
-      });
+      const allOccurrences = events
+        .flatMap((event) =>
+          event.occurrences.map((occ) => ({
+            ...occ,
+            event,
+          })),
+        )
+        .filter((occ) => {
+          const occDate = new Date(occ.date);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          return occDate >= today && occ.status === "scheduled";
+        });
 
       const eventIdParam = searchParams.get("eventId");
       const occurrenceIdParam = searchParams.get("occurrenceId");
-      
+
       if (currentUserRole === "athlete") {
         // For athletes, set event and occurrence separately
         if (eventIdParam) {
@@ -1132,7 +1209,9 @@ export default function EventsPage() {
           if (event) {
             setSelectedEventForAthlete(event);
             if (occurrenceIdParam) {
-              const occ = event.occurrences.find((o) => o.id === occurrenceIdParam);
+              const occ = event.occurrences.find(
+                (o) => o.id === occurrenceIdParam,
+              );
               if (occ) {
                 setSelectedOccurrenceForAthleteDetail(occ);
               } else if (event.occurrences.length > 0) {
@@ -1184,9 +1263,13 @@ export default function EventsPage() {
         }
       } else {
         // Original logic for non-athletes
-        const selectedOccFromUrl = eventIdParam && occurrenceIdParam
-          ? allOccurrences.find((occ) => occ.id === occurrenceIdParam && occ.event.id === eventIdParam)
-          : null;
+        const selectedOccFromUrl =
+          eventIdParam && occurrenceIdParam
+            ? allOccurrences.find(
+                (occ) =>
+                  occ.id === occurrenceIdParam && occ.event.id === eventIdParam,
+              )
+            : null;
 
         if (selectedOccFromUrl) {
           setSelectedOccurrenceForAthlete(selectedOccFromUrl);
@@ -1195,7 +1278,13 @@ export default function EventsPage() {
         }
       }
     }
-  }, [currentUserRole, events, searchParams, selectedOccurrenceForAthlete, selectedEventForAthlete]);
+  }, [
+    currentUserRole,
+    events,
+    searchParams,
+    selectedOccurrenceForAthlete,
+    selectedEventForAthlete,
+  ]);
 
   // Mobile fullscreen tabs experience (for screens < 1200px)
   if (isEventsMobile) {
@@ -1210,27 +1299,46 @@ export default function EventsPage() {
           </Button>
         </PageHeader>
 
-        <Tabs value={mobileView} onValueChange={(value) => setMobileView(value as typeof mobileView)} className="flex-1 flex flex-col min-h-0 overflow-hidden">
+        <Tabs
+          value={mobileView}
+          onValueChange={(value) => setMobileView(value as typeof mobileView)}
+          className="flex-1 flex flex-col min-h-0 overflow-hidden"
+        >
           {/* Mobile Tab Navigation */}
           <div className="px-4 shrink-0">
             <TabsList className="w-full grid grid-cols-4 h-12">
               <TabsTrigger value="events" className="text-sm">
                 Events
               </TabsTrigger>
-              <TabsTrigger value="occurrences" className="text-sm" disabled={!selectedEvent}>
+              <TabsTrigger
+                value="occurrences"
+                className="text-sm"
+                disabled={!selectedEvent}
+              >
                 Sessions
               </TabsTrigger>
-              <TabsTrigger value="details" className="text-sm" disabled={!selectedOccurrence}>
+              <TabsTrigger
+                value="details"
+                className="text-sm"
+                disabled={!selectedOccurrence}
+              >
                 Details
               </TabsTrigger>
-              <TabsTrigger value="chat" className="text-sm" disabled={!selectedEvent}>
+              <TabsTrigger
+                value="chat"
+                className="text-sm"
+                disabled={!selectedEvent}
+              >
                 Chat
               </TabsTrigger>
             </TabsList>
           </div>
 
           {/* Events Tab - Fullscreen */}
-          <TabsContent value="events" className="flex-1 flex flex-col min-h-0 m-0 overflow-hidden">
+          <TabsContent
+            value="events"
+            className="flex-1 flex flex-col min-h-0 m-0 overflow-hidden"
+          >
             <ScrollArea className="flex-1">
               <div className="p-4">
                 {initialLoading ? (
@@ -1289,7 +1397,10 @@ export default function EventsPage() {
                                   <IconDotsVertical className="h-4 w-4" />
                                 </Button>
                               </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="rounded-xl">
+                              <DropdownMenuContent
+                                align="end"
+                                className="rounded-xl"
+                              >
                                 <DropdownMenuItem asChild className="gap-2">
                                   <Link href={`/events/${event.id}/edit`}>
                                     <IconEdit className="h-4 w-4" />
@@ -1320,13 +1431,19 @@ export default function EventsPage() {
           </TabsContent>
 
           {/* Occurrences Tab - Fullscreen */}
-          <TabsContent value="occurrences" className="flex-1 flex flex-col min-h-0 m-0 overflow-hidden">
+          <TabsContent
+            value="occurrences"
+            className="flex-1 flex flex-col min-h-0 m-0 overflow-hidden"
+          >
             {selectedEvent ? (
               <>
                 <div className="p-4 shrink-0">
-                  <h2 className="font-semibold text-lg">{selectedEvent.title}</h2>
+                  <h2 className="font-semibold text-lg">
+                    {selectedEvent.title}
+                  </h2>
                   <p className="text-sm text-muted-foreground mt-1">
-                    {formatTime(selectedEvent.startTime)} - {formatTime(selectedEvent.endTime)}
+                    {formatTime(selectedEvent.startTime)} -{" "}
+                    {formatTime(selectedEvent.endTime)}
                   </p>
                 </div>
                 <ScrollArea className="flex-1">
@@ -1381,25 +1498,50 @@ export default function EventsPage() {
                                       {formatTime(selectedEvent.startTime)}
                                     </p>
                                     {/* RSVP counts for athletes */}
-                                    {(currentUserRole === "owner" || currentUserRole === "coach") && (
-                                      <div className={`flex items-center gap-2 mt-1 ${
-                                        selectedOccurrence?.id === occ.id ? "opacity-90" : ""
-                                      }`}>
+                                    {(currentUserRole === "owner" ||
+                                      currentUserRole === "coach") && (
+                                      <div
+                                        className={`flex items-center gap-2 mt-1 ${
+                                          selectedOccurrence?.id === occ.id
+                                            ? "opacity-90"
+                                            : ""
+                                        }`}
+                                      >
                                         <div className="flex items-center gap-1">
-                                          <IconCheck className={`h-3 w-3 ${
-                                            selectedOccurrence?.id === occ.id ? "text-primary-foreground" : "text-emerald-600"
-                                          }`} />
-                                          <span className={`text-xs font-medium ${
-                                            selectedOccurrence?.id === occ.id ? "text-primary-foreground" : "text-emerald-600"
-                                          }`}>{goingCount}</span>
+                                          <IconCheck
+                                            className={`h-3 w-3 ${
+                                              selectedOccurrence?.id === occ.id
+                                                ? "text-primary-foreground"
+                                                : "text-emerald-600"
+                                            }`}
+                                          />
+                                          <span
+                                            className={`text-xs font-medium ${
+                                              selectedOccurrence?.id === occ.id
+                                                ? "text-primary-foreground"
+                                                : "text-emerald-600"
+                                            }`}
+                                          >
+                                            {goingCount}
+                                          </span>
                                         </div>
                                         <div className="flex items-center gap-1">
-                                          <IconX className={`h-3 w-3 ${
-                                            selectedOccurrence?.id === occ.id ? "text-primary-foreground" : "text-red-600"
-                                          }`} />
-                                          <span className={`text-xs font-medium ${
-                                            selectedOccurrence?.id === occ.id ? "text-primary-foreground" : "text-red-600"
-                                          }`}>{notGoingCount}</span>
+                                          <IconX
+                                            className={`h-3 w-3 ${
+                                              selectedOccurrence?.id === occ.id
+                                                ? "text-primary-foreground"
+                                                : "text-red-600"
+                                            }`}
+                                          />
+                                          <span
+                                            className={`text-xs font-medium ${
+                                              selectedOccurrence?.id === occ.id
+                                                ? "text-primary-foreground"
+                                                : "text-red-600"
+                                            }`}
+                                          >
+                                            {notGoingCount}
+                                          </span>
                                         </div>
                                       </div>
                                     )}
@@ -1415,26 +1557,39 @@ export default function EventsPage() {
                                       e.stopPropagation();
                                       // Load or create channel for this event
                                       try {
-                                        const response = await fetch(`/api/chat/channels?eventId=${selectedEvent.id}`);
+                                        const response = await fetch(
+                                          `/api/chat/channels?eventId=${selectedEvent.id}`,
+                                        );
                                         let channelId = eventChannelId;
                                         if (response.ok) {
                                           const result = await response.json();
-                                          if (result.channels && result.channels.length > 0) {
+                                          if (
+                                            result.channels &&
+                                            result.channels.length > 0
+                                          ) {
                                             channelId = result.channels[0].id;
                                           } else {
                                             // Create channel if it doesn't exist
-                                            const createResponse = await fetch("/api/chat/channels", {
-                                              method: "POST",
-                                              headers: { "Content-Type": "application/json" },
-                                              body: JSON.stringify({
-                                                name: `${selectedEvent.title} Chat`,
-                                                type: "group",
-                                                eventId: selectedEvent.id,
-                                              }),
-                                            });
+                                            const createResponse = await fetch(
+                                              "/api/chat/channels",
+                                              {
+                                                method: "POST",
+                                                headers: {
+                                                  "Content-Type":
+                                                    "application/json",
+                                                },
+                                                body: JSON.stringify({
+                                                  name: `${selectedEvent.title} Chat`,
+                                                  type: "group",
+                                                  eventId: selectedEvent.id,
+                                                }),
+                                              },
+                                            );
                                             if (createResponse.ok) {
-                                              const createResult = await createResponse.json();
-                                              channelId = createResult.channel.id;
+                                              const createResult =
+                                                await createResponse.json();
+                                              channelId =
+                                                createResult.channel.id;
                                             }
                                           }
                                         }
@@ -1442,7 +1597,10 @@ export default function EventsPage() {
                                         setEventChatChannelId(channelId);
                                         setEventChatDialogOpen(true);
                                       } catch (error) {
-                                        console.error("Error loading event chat:", error);
+                                        console.error(
+                                          "Error loading event chat:",
+                                          error,
+                                        );
                                       }
                                     }}
                                     title="Open chat for this event"
@@ -1451,14 +1609,22 @@ export default function EventsPage() {
                                   </Button>
                                   <div className="flex flex-col items-end gap-1">
                                     {occ.status === "canceled" && (
-                                      <Badge variant="destructive" className="text-xs">
+                                      <Badge
+                                        variant="destructive"
+                                        className="text-xs"
+                                      >
                                         Canceled
                                       </Badge>
                                     )}
                                     {(
-                                      occ as EventOccurrence & { isCustom?: boolean }
+                                      occ as EventOccurrence & {
+                                        isCustom?: boolean;
+                                      }
                                     ).isCustom && (
-                                      <Badge variant="outline" className="text-xs">
+                                      <Badge
+                                        variant="outline"
+                                        className="text-xs"
+                                      >
                                         Custom
                                       </Badge>
                                     )}
@@ -1477,7 +1643,8 @@ export default function EventsPage() {
                         className="w-full mt-4 p-3 text-sm text-muted-foreground hover:text-foreground flex items-center justify-center gap-2 rounded-xl"
                       >
                         <IconHistory className="h-4 w-4" />
-                        {showPastEvents ? "Hide" : "Show"} past sessions ({pastOccurrences.length})
+                        {showPastEvents ? "Hide" : "Show"} past sessions (
+                        {pastOccurrences.length})
                       </button>
                     )}
                   </div>
@@ -1494,11 +1661,16 @@ export default function EventsPage() {
           </TabsContent>
 
           {/* Details Tab - Fullscreen */}
-          <TabsContent value="details" className="flex-1 flex flex-col min-h-0 m-0 overflow-hidden">
+          <TabsContent
+            value="details"
+            className="flex-1 flex flex-col min-h-0 m-0 overflow-hidden"
+          >
             {selectedOccurrence ? (
               <>
                 <div className="p-4 shrink-0">
-                  <h2 className="font-semibold text-lg">{selectedEvent?.title}</h2>
+                  <h2 className="font-semibold text-lg">
+                    {selectedEvent?.title}
+                  </h2>
                   <p className="text-sm text-muted-foreground mt-1">
                     {formatDate(selectedOccurrence.date).weekday},{" "}
                     {formatDate(selectedOccurrence.date).month}{" "}
@@ -1540,7 +1712,10 @@ export default function EventsPage() {
                       <Skeleton className="h-12 w-full mb-4 rounded-xl" />
                       <div className="space-y-3">
                         {[1, 2, 3, 4, 5].map((i) => (
-                          <div key={i} className="flex items-center gap-3 p-3 rounded-xl">
+                          <div
+                            key={i}
+                            className="flex items-center gap-3 p-3 rounded-xl"
+                          >
                             <Skeleton className="h-12 w-12 rounded-xl" />
                             <div className="flex-1 space-y-2">
                               <Skeleton className="h-4 w-32" />
@@ -1552,28 +1727,49 @@ export default function EventsPage() {
                       </div>
                     </div>
                   ) : (
-                    <Tabs defaultValue="all" className="h-full flex flex-col min-h-0">
+                    <Tabs
+                      defaultValue="all"
+                      className="h-full flex flex-col min-h-0"
+                    >
                       <div className="px-4 pt-4 shrink-0">
                         <TabsList className="w-full grid grid-cols-4 h-10 rounded-xl">
-                          <TabsTrigger value="all" className="text-xs rounded-lg">
+                          <TabsTrigger
+                            value="all"
+                            className="text-xs rounded-lg"
+                          >
                             All ({gymMembers.length})
                           </TabsTrigger>
-                          <TabsTrigger value="going" className="text-xs rounded-lg">
+                          <TabsTrigger
+                            value="going"
+                            className="text-xs rounded-lg"
+                          >
                             Going ({goingUsers.length})
                           </TabsTrigger>
-                          <TabsTrigger value="not_going" className="text-xs rounded-lg">
+                          <TabsTrigger
+                            value="not_going"
+                            className="text-xs rounded-lg"
+                          >
                             Can't ({notGoingUsers.length})
                           </TabsTrigger>
-                          <TabsTrigger value="pending" className="text-xs rounded-lg">
+                          <TabsTrigger
+                            value="pending"
+                            className="text-xs rounded-lg"
+                          >
                             Pending ({notAnsweredUsers.length})
                           </TabsTrigger>
                         </TabsList>
                       </div>
-                      <TabsContent value="all" className="flex-1 overflow-auto mt-0 p-4 min-h-0">
+                      <TabsContent
+                        value="all"
+                        className="flex-1 overflow-auto mt-0 p-4 min-h-0"
+                      >
                         {gymMembersLoading ? (
                           <div className="space-y-3">
                             {[1, 2, 3].map((i) => (
-                              <div key={i} className="flex items-center gap-3 p-3 rounded-xl">
+                              <div
+                                key={i}
+                                className="flex items-center gap-3 p-3 rounded-xl"
+                              >
                                 <Skeleton className="h-10 w-10 rounded-xl" />
                                 <div className="flex-1 space-y-2">
                                   <Skeleton className="h-4 w-32" />
@@ -1588,7 +1784,8 @@ export default function EventsPage() {
                             users={gymMembers.map((m) => ({
                               ...m,
                               status:
-                                occurrenceRsvps.find((r) => r.id === m.id)?.status || null,
+                                occurrenceRsvps.find((r) => r.id === m.id)
+                                  ?.status || null,
                             }))}
                             getInitials={getInitials}
                             onEditRsvp={handleEditRsvp}
@@ -1596,10 +1793,15 @@ export default function EventsPage() {
                           />
                         )}
                       </TabsContent>
-                      <TabsContent value="going" className="flex-1 overflow-auto mt-0 p-4">
+                      <TabsContent
+                        value="going"
+                        className="flex-1 overflow-auto mt-0 p-4"
+                      >
                         <UserList
                           users={goingUsers.map((u) => {
-                            const member = gymMembers.find((m) => m.id === u.id);
+                            const member = gymMembers.find(
+                              (m) => m.id === u.id,
+                            );
                             // Use role from RSVP user object first, then fall back to gymMembers
                             return {
                               ...u,
@@ -1612,10 +1814,15 @@ export default function EventsPage() {
                           currentUserRole={currentUserRole}
                         />
                       </TabsContent>
-                      <TabsContent value="not_going" className="flex-1 overflow-auto mt-0 p-4">
+                      <TabsContent
+                        value="not_going"
+                        className="flex-1 overflow-auto mt-0 p-4"
+                      >
                         <UserList
                           users={notGoingUsers.map((u) => {
-                            const member = gymMembers.find((m) => m.id === u.id);
+                            const member = gymMembers.find(
+                              (m) => m.id === u.id,
+                            );
                             // Use role from RSVP user object first, then fall back to gymMembers
                             return {
                               ...u,
@@ -1628,7 +1835,10 @@ export default function EventsPage() {
                           currentUserRole={currentUserRole}
                         />
                       </TabsContent>
-                      <TabsContent value="pending" className="flex-1 overflow-auto mt-0 p-4">
+                      <TabsContent
+                        value="pending"
+                        className="flex-1 overflow-auto mt-0 p-4"
+                      >
                         <UserList
                           users={notAnsweredUsers.map((u) => ({
                             ...u,
@@ -1654,7 +1864,10 @@ export default function EventsPage() {
           </TabsContent>
 
           {/* Chat Tab */}
-          <TabsContent value="chat" className="flex-1 flex flex-col min-h-0 m-0 overflow-hidden">
+          <TabsContent
+            value="chat"
+            className="flex-1 flex flex-col min-h-0 m-0 overflow-hidden"
+          >
             {selectedEvent && eventChannelId ? (
               <EventChatContent
                 channelId={eventChannelId}
@@ -1682,19 +1895,27 @@ export default function EventsPage() {
   if (currentUserRole === "athlete") {
     // Get selected event occurrences
     const selectedEventOccurrences = selectedEventForAthlete
-      ? selectedEventForAthlete.occurrences.filter((occ) => {
-          const occDate = new Date(occ.date);
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
-          return occDate >= today && occ.status === "scheduled";
-        }).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      ? selectedEventForAthlete.occurrences
+          .filter((occ) => {
+            const occDate = new Date(occ.date);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            return occDate >= today && occ.status === "scheduled";
+          })
+          .sort(
+            (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+          )
       : [];
 
     // Filter RSVPs: show coaches individually, athletes as counts only
     const occurrenceRsvpsForAthlete = occurrenceRsvps || [];
-    const goingUsers = occurrenceRsvpsForAthlete.filter((r) => r.status === "going");
-    const notGoingUsers = occurrenceRsvpsForAthlete.filter((r) => r.status === "not_going");
-    
+    const goingUsers = occurrenceRsvpsForAthlete.filter(
+      (r) => r.status === "going",
+    );
+    const notGoingUsers = occurrenceRsvpsForAthlete.filter(
+      (r) => r.status === "not_going",
+    );
+
     // Get IDs of users who have RSVP'd
     const rsvpedUserIds = new Set(occurrenceRsvpsForAthlete.map((r) => r.id));
 
@@ -1747,7 +1968,7 @@ export default function EventsPage() {
         const nameB = b.name || b.email || "";
         return nameA.localeCompare(nameB);
       });
-    
+
     // Pending coaches: those who haven't RSVP'd at all (not in rsvpedUserIds)
     // Only include coaches/owners, and always include current user if they're a coach/owner
     const pendingCoaches = gymMembers
@@ -1771,7 +1992,7 @@ export default function EventsPage() {
         const nameB = b.name || b.email || "";
         return nameA.localeCompare(nameB);
       });
-    
+
     // Pending athletes: those who haven't RSVP'd at all (not in rsvpedUserIds)
     // Only include athletes, and always include current user if they're an athlete
     const pendingAthletes = gymMembers
@@ -1799,44 +2020,67 @@ export default function EventsPage() {
     // Ensure current user is always included in the appropriate category
     if (currentUserId) {
       const currentUserMember = gymMembers.find((m) => m.id === currentUserId);
-      const currentUserRsvp = occurrenceRsvpsForAthlete.find((r) => r.id === currentUserId);
+      const currentUserRsvp = occurrenceRsvpsForAthlete.find(
+        (r) => r.id === currentUserId,
+      );
       // Determine role: use RSVP role first, then gymMembers role, then assume athlete if none
       const currentUserRole = currentUserRsvp?.role || currentUserMember?.role;
-      
+
       // Check if current user is already in any list
       const isInGoingCoaches = goingCoaches.some((u) => u.id === currentUserId);
-      const isInGoingAthletes = goingAthletes.some((u) => u.id === currentUserId);
-      const isInNotGoingCoaches = notGoingCoaches.some((u) => u.id === currentUserId);
-      const isInNotGoingAthletes = notGoingAthletes.some((u) => u.id === currentUserId);
-      const isInPendingCoaches = pendingCoaches.some((u) => u.id === currentUserId);
-      const isInPendingAthletes = pendingAthletes.some((u) => u.id === currentUserId);
-      
+      const isInGoingAthletes = goingAthletes.some(
+        (u) => u.id === currentUserId,
+      );
+      const isInNotGoingCoaches = notGoingCoaches.some(
+        (u) => u.id === currentUserId,
+      );
+      const isInNotGoingAthletes = notGoingAthletes.some(
+        (u) => u.id === currentUserId,
+      );
+      const isInPendingCoaches = pendingCoaches.some(
+        (u) => u.id === currentUserId,
+      );
+      const isInPendingAthletes = pendingAthletes.some(
+        (u) => u.id === currentUserId,
+      );
+
       const isCurrentUserCoach = isCoachOrOwner(currentUserId, currentUserRole);
       const isCurrentUserAthlete = isAthlete(currentUserId, currentUserRole);
-      
+
       // If current user is not in any list, add them to the appropriate pending list
-      if (!isInGoingCoaches && !isInGoingAthletes && !isInNotGoingCoaches && !isInNotGoingAthletes && !isInPendingCoaches && !isInPendingAthletes) {
+      if (
+        !isInGoingCoaches &&
+        !isInGoingAthletes &&
+        !isInNotGoingCoaches &&
+        !isInNotGoingAthletes &&
+        !isInPendingCoaches &&
+        !isInPendingAthletes
+      ) {
         // Create entry from RSVP data if available, otherwise from gymMembers, or create minimal entry
-        const currentUserEntry = currentUserRsvp ? {
-          id: currentUserRsvp.id,
-          name: currentUserRsvp.name,
-          email: currentUserRsvp.email,
-          avatarUrl: currentUserRsvp.avatarUrl,
-          status: null,
-          phone: currentUserRsvp.phone,
-          cellPhone: currentUserRsvp.cellPhone,
-          role: currentUserRsvp.role || "",
-        } : currentUserMember ? {
-          id: currentUserMember.id,
-          name: currentUserMember.name,
-          email: currentUserMember.email,
-          avatarUrl: currentUserMember.avatarUrl,
-          status: null,
-          phone: currentUserMember.phone,
-          cellPhone: currentUserMember.cellPhone,
-          role: currentUserMember.role || "",
-        } : null;
-        
+        const currentUserEntry = currentUserRsvp
+          ? {
+              id: currentUserRsvp.id,
+              name: currentUserRsvp.name,
+              email: currentUserRsvp.email,
+              avatarUrl: currentUserRsvp.avatarUrl,
+              status: null,
+              phone: currentUserRsvp.phone,
+              cellPhone: currentUserRsvp.cellPhone,
+              role: currentUserRsvp.role || "",
+            }
+          : currentUserMember
+            ? {
+                id: currentUserMember.id,
+                name: currentUserMember.name,
+                email: currentUserMember.email,
+                avatarUrl: currentUserMember.avatarUrl,
+                status: null,
+                phone: currentUserMember.phone,
+                cellPhone: currentUserMember.cellPhone,
+                role: currentUserMember.role || "",
+              }
+            : null;
+
         if (currentUserEntry) {
           if (isCurrentUserCoach) {
             pendingCoaches.push(currentUserEntry);
@@ -1889,7 +2133,7 @@ export default function EventsPage() {
                       return occDate >= today && occ.status === "scheduled";
                     });
                     if (upcomingOccs.length === 0) return null;
-                    
+
                     return (
                       <div key={event.id} className="relative group mb-1">
                         <button
@@ -1897,7 +2141,9 @@ export default function EventsPage() {
                           onClick={() => {
                             setSelectedEventForAthlete(event);
                             if (upcomingOccs.length > 0) {
-                              setSelectedOccurrenceForAthleteDetail(upcomingOccs[0]);
+                              setSelectedOccurrenceForAthleteDetail(
+                                upcomingOccs[0],
+                              );
                             }
                           }}
                           className={`w-full text-left p-3 rounded-xl transition-all ${
@@ -1934,61 +2180,64 @@ export default function EventsPage() {
           {/* Occurrences List */}
           <div className="w-72 flex flex-col bg-card border rounded-xl shadow-sm overflow-hidden min-h-0 h-full">
             {selectedEventForAthlete ? (
-              <>
-                <ScrollArea className="h-full">
-                  <div className="p-2">
-                    {selectedEventOccurrences.length === 0 ? (
-                      <div className="p-4 text-center text-sm text-muted-foreground">
-                        No upcoming sessions
-                      </div>
-                    ) : (
-                      selectedEventOccurrences.map((occ) => {
-                        const dateInfo = formatDate(occ.date);
-                        return (
-                          <button
-                            key={occ.id}
-                            type="button"
-                            onClick={() => setSelectedOccurrenceForAthleteDetail(occ)}
-                            className={`w-full text-left p-3 rounded-xl mb-1 transition-all flex items-center gap-3 ${
+              <ScrollArea className="h-full">
+                <div className="p-2">
+                  {selectedEventOccurrences.length === 0 ? (
+                    <div className="p-4 text-center text-sm text-muted-foreground">
+                      No upcoming sessions
+                    </div>
+                  ) : (
+                    selectedEventOccurrences.map((occ) => {
+                      const dateInfo = formatDate(occ.date);
+                      return (
+                        <button
+                          key={occ.id}
+                          type="button"
+                          onClick={() =>
+                            setSelectedOccurrenceForAthleteDetail(occ)
+                          }
+                          className={`w-full text-left p-3 rounded-xl mb-1 transition-all flex items-center gap-3 ${
+                            selectedOccurrenceForAthleteDetail?.id === occ.id
+                              ? "bg-primary/10 ring-1 ring-primary"
+                              : "hover:bg-muted"
+                          } ${occ.status === "canceled" ? "opacity-40" : ""}`}
+                        >
+                          <div
+                            className={`h-14 w-14 rounded-xl flex flex-col items-center justify-center shrink-0 ${
                               selectedOccurrenceForAthleteDetail?.id === occ.id
-                                ? "bg-primary/10 ring-1 ring-primary"
-                                : "hover:bg-muted"
-                            } ${occ.status === "canceled" ? "opacity-40" : ""}`}
+                                ? "bg-primary text-primary-foreground"
+                                : "bg-muted"
+                            }`}
                           >
-                            <div
-                              className={`h-14 w-14 rounded-xl flex flex-col items-center justify-center shrink-0 ${
-                                selectedOccurrenceForAthleteDetail?.id === occ.id
-                                  ? "bg-primary text-primary-foreground"
-                                  : "bg-muted"
-                              }`}
+                            <span className="text-xl font-bold leading-none">
+                              {dateInfo.day}
+                            </span>
+                            <span className="text-[10px] font-medium opacity-70 mt-0.5">
+                              {dateInfo.month}
+                            </span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm whitespace-nowrap">
+                              {dateInfo.weekday}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {formatTime(selectedEventForAthlete.startTime)}
+                            </p>
+                          </div>
+                          {occ.status === "canceled" && (
+                            <Badge
+                              variant="destructive"
+                              className="text-[10px]"
                             >
-                              <span className="text-xl font-bold leading-none">
-                                {dateInfo.day}
-                              </span>
-                              <span className="text-[10px] font-medium opacity-70 mt-0.5">
-                                {dateInfo.month}
-                              </span>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium text-sm whitespace-nowrap">
-                                {dateInfo.weekday}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                {formatTime(selectedEventForAthlete.startTime)}
-                              </p>
-                            </div>
-                            {occ.status === "canceled" && (
-                              <Badge variant="destructive" className="text-[10px]">
-                                Canceled
-                              </Badge>
-                            )}
-                          </button>
-                        );
-                      })
-                    )}
-                  </div>
-                </ScrollArea>
-              </>
+                              Canceled
+                            </Badge>
+                          )}
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              </ScrollArea>
             ) : (
               <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground">
                 Select an event
@@ -2002,12 +2251,21 @@ export default function EventsPage() {
               <>
                 <div className="p-4 border-b flex items-center justify-between shrink-0 gap-4">
                   <div>
-                    <h3 className="font-semibold">{selectedEventForAthlete?.title}</h3>
+                    <h3 className="font-semibold">
+                      {selectedEventForAthlete?.title}
+                    </h3>
                     <p className="text-sm text-muted-foreground">
-                      {formatDate(selectedOccurrenceForAthleteDetail.date).weekday},{" "}
-                      {formatDate(selectedOccurrenceForAthleteDetail.date).month}{" "}
-                      {formatDate(selectedOccurrenceForAthleteDetail.date).day} •{" "}
-                      {formatTime(selectedEventForAthlete?.startTime)}
+                      {
+                        formatDate(selectedOccurrenceForAthleteDetail.date)
+                          .weekday
+                      }
+                      ,{" "}
+                      {
+                        formatDate(selectedOccurrenceForAthleteDetail.date)
+                          .month
+                      }{" "}
+                      {formatDate(selectedOccurrenceForAthleteDetail.date).day}{" "}
+                      • {formatTime(selectedEventForAthlete?.startTime)}
                     </p>
                   </div>
                   <div className="flex gap-2 shrink-0">
@@ -2026,10 +2284,15 @@ export default function EventsPage() {
                         if (response.ok) {
                           setCurrentUserRsvps((prev) => {
                             const newMap = new Map(prev);
-                            newMap.set(selectedOccurrenceForAthleteDetail.id, "going");
+                            newMap.set(
+                              selectedOccurrenceForAthleteDetail.id,
+                              "going",
+                            );
                             return newMap;
                           });
-                          loadOccurrenceRsvps(selectedOccurrenceForAthleteDetail.id);
+                          loadOccurrenceRsvps(
+                            selectedOccurrenceForAthleteDetail.id,
+                          );
                         }
                       }}
                       className={`h-9 rounded-xl gap-1.5 px-3 ${
@@ -2039,7 +2302,9 @@ export default function EventsPage() {
                       }`}
                     >
                       <IconCheck className="h-4 w-4" />
-                      {currentUserRsvpForOccurrence === "going" ? "Going!" : "Going"}
+                      {currentUserRsvpForOccurrence === "going"
+                        ? "Going!"
+                        : "Going"}
                     </Button>
                     <Button
                       size="sm"
@@ -2056,10 +2321,15 @@ export default function EventsPage() {
                         if (response.ok) {
                           setCurrentUserRsvps((prev) => {
                             const newMap = new Map(prev);
-                            newMap.set(selectedOccurrenceForAthleteDetail.id, "not_going");
+                            newMap.set(
+                              selectedOccurrenceForAthleteDetail.id,
+                              "not_going",
+                            );
                             return newMap;
                           });
-                          loadOccurrenceRsvps(selectedOccurrenceForAthleteDetail.id);
+                          loadOccurrenceRsvps(
+                            selectedOccurrenceForAthleteDetail.id,
+                          );
                         }
                       }}
                       className={`h-9 rounded-xl gap-1.5 px-3 ${
@@ -2073,10 +2343,21 @@ export default function EventsPage() {
                     </Button>
                   </div>
                 </div>
-                <Tabs value={athleteEventDetailTab} onValueChange={(value) => setAthleteEventDetailTab(value as typeof athleteEventDetailTab)} className="flex-1 flex flex-col min-h-0">
+                <Tabs
+                  value={athleteEventDetailTab}
+                  onValueChange={(value) =>
+                    setAthleteEventDetailTab(
+                      value as typeof athleteEventDetailTab,
+                    )
+                  }
+                  className="flex-1 flex flex-col min-h-0"
+                >
                   <div className="px-4 py-4 shrink-0 border-b">
                     <TabsList className="w-full grid grid-cols-2 h-10 rounded-xl">
-                      <TabsTrigger value="details" className="text-xs rounded-lg">
+                      <TabsTrigger
+                        value="details"
+                        className="text-xs rounded-lg"
+                      >
                         Details
                       </TabsTrigger>
                       <TabsTrigger value="chat" className="text-xs rounded-lg">
@@ -2084,13 +2365,19 @@ export default function EventsPage() {
                       </TabsTrigger>
                     </TabsList>
                   </div>
-                  <TabsContent value="details" className="flex-1 overflow-hidden mt-0 min-h-0">
+                  <TabsContent
+                    value="details"
+                    className="flex-1 overflow-hidden mt-0 min-h-0"
+                  >
                     {rsvpLoading ? (
                       <div className="flex flex-col h-full p-4">
                         <Skeleton className="h-10 w-full mb-4 rounded-xl" />
                         <div className="space-y-3">
                           {[1, 2, 3, 4, 5].map((i) => (
-                            <div key={i} className="flex items-center gap-3 p-3 rounded-xl">
+                            <div
+                              key={i}
+                              className="flex items-center gap-3 p-3 rounded-xl"
+                            >
                               <Skeleton className="h-10 w-10 rounded-xl" />
                               <div className="flex-1 space-y-2">
                                 <Skeleton className="h-4 w-32" />
@@ -2123,17 +2410,43 @@ export default function EventsPage() {
                             {/* RSVP Lists */}
                             <Tabs defaultValue="all" className="flex-1">
                               <TabsList className="w-full grid grid-cols-4 h-10 rounded-xl mb-4">
-                                <TabsTrigger value="all" className="text-xs rounded-lg">
-                                  All ({goingCoaches.length + goingAthletes.length + notGoingCoaches.length + notGoingAthletes.length + pendingCoaches.length + pendingAthletes.length})
+                                <TabsTrigger
+                                  value="all"
+                                  className="text-xs rounded-lg"
+                                >
+                                  All (
+                                  {goingCoaches.length +
+                                    goingAthletes.length +
+                                    notGoingCoaches.length +
+                                    notGoingAthletes.length +
+                                    pendingCoaches.length +
+                                    pendingAthletes.length}
+                                  )
                                 </TabsTrigger>
-                                <TabsTrigger value="going" className="text-xs rounded-lg">
-                                  Going ({goingCoaches.length + goingAthletes.length})
+                                <TabsTrigger
+                                  value="going"
+                                  className="text-xs rounded-lg"
+                                >
+                                  Going (
+                                  {goingCoaches.length + goingAthletes.length})
                                 </TabsTrigger>
-                                <TabsTrigger value="not_going" className="text-xs rounded-lg">
-                                  Can't ({notGoingCoaches.length + notGoingAthletes.length})
+                                <TabsTrigger
+                                  value="not_going"
+                                  className="text-xs rounded-lg"
+                                >
+                                  Can't (
+                                  {notGoingCoaches.length +
+                                    notGoingAthletes.length}
+                                  )
                                 </TabsTrigger>
-                                <TabsTrigger value="pending" className="text-xs rounded-lg">
-                                  Pending ({pendingCoaches.length + pendingAthletes.length})
+                                <TabsTrigger
+                                  value="pending"
+                                  className="text-xs rounded-lg"
+                                >
+                                  Pending (
+                                  {pendingCoaches.length +
+                                    pendingAthletes.length}
+                                  )
                                 </TabsTrigger>
                               </TabsList>
                               <TabsContent value="all" className="mt-0">
@@ -2142,9 +2455,18 @@ export default function EventsPage() {
                                   {(() => {
                                     // Combine all coaches with their status
                                     const allCoaches = [
-                                      ...goingCoaches.map(c => ({ ...c, displayStatus: 'going' as const })),
-                                      ...notGoingCoaches.map(c => ({ ...c, displayStatus: 'not_going' as const })),
-                                      ...pendingCoaches.map(c => ({ ...c, displayStatus: 'pending' as const })),
+                                      ...goingCoaches.map((c) => ({
+                                        ...c,
+                                        displayStatus: "going" as const,
+                                      })),
+                                      ...notGoingCoaches.map((c) => ({
+                                        ...c,
+                                        displayStatus: "not_going" as const,
+                                      })),
+                                      ...pendingCoaches.map((c) => ({
+                                        ...c,
+                                        displayStatus: "pending" as const,
+                                      })),
                                     ].sort((a, b) => {
                                       const nameA = a.name || a.email || "";
                                       const nameB = b.name || b.email || "";
@@ -2153,9 +2475,18 @@ export default function EventsPage() {
 
                                     // Combine all athletes with their status
                                     const allAthletes = [
-                                      ...goingAthletes.map(a => ({ ...a, displayStatus: 'going' as const })),
-                                      ...notGoingAthletes.map(a => ({ ...a, displayStatus: 'not_going' as const })),
-                                      ...pendingAthletes.map(a => ({ ...a, displayStatus: 'pending' as const })),
+                                      ...goingAthletes.map((a) => ({
+                                        ...a,
+                                        displayStatus: "going" as const,
+                                      })),
+                                      ...notGoingAthletes.map((a) => ({
+                                        ...a,
+                                        displayStatus: "not_going" as const,
+                                      })),
+                                      ...pendingAthletes.map((a) => ({
+                                        ...a,
+                                        displayStatus: "pending" as const,
+                                      })),
                                     ].sort((a, b) => {
                                       const nameA = a.name || a.email || "";
                                       const nameB = b.name || b.email || "";
@@ -2163,125 +2494,152 @@ export default function EventsPage() {
                                     });
 
                                     // Helper function to render status badge
-                                    const renderStatusBadge = (status: 'going' | 'not_going' | 'pending') => {
-                                      if (status === 'going') {
-                                          return (
-                                                  <div className="flex items-center gap-1 text-emerald-600 bg-emerald-100 dark:bg-emerald-950/50 px-2.5 py-1 rounded-full text-xs font-medium">
-                                                    <IconCheck className="h-3 w-3" />
-                                                    Going
-                                                </div>
-                                              );
-                                      }
-                                      if (status === 'not_going') {
-                                              return (
-                                                  <div className="flex items-center gap-1 text-red-600 bg-red-100 dark:bg-red-950/50 px-2.5 py-1 rounded-full text-xs font-medium">
-                                                    <IconX className="h-3 w-3" />
-                                                    Can't
+                                    const renderStatusBadge = (
+                                      status: "going" | "not_going" | "pending",
+                                    ) => {
+                                      if (status === "going") {
+                                        return (
+                                          <div className="flex items-center gap-1 text-emerald-600 bg-emerald-100 dark:bg-emerald-950/50 px-2.5 py-1 rounded-full text-xs font-medium">
+                                            <IconCheck className="h-3 w-3" />
+                                            Going
                                           </div>
-                                          );
+                                        );
+                                      }
+                                      if (status === "not_going") {
+                                        return (
+                                          <div className="flex items-center gap-1 text-red-600 bg-red-100 dark:bg-red-950/50 px-2.5 py-1 rounded-full text-xs font-medium">
+                                            <IconX className="h-3 w-3" />
+                                            Can't
+                                          </div>
+                                        );
                                       }
                                       return (
                                         <div className="flex items-center gap-1 text-amber-600 bg-amber-100 dark:bg-amber-950/50 px-2.5 py-1 rounded-full text-xs font-medium">
                                           <IconBell className="h-3 w-3" />
                                           Pending
-                                      </div>
+                                        </div>
                                       );
                                     };
 
                                     // Helper function to render user item
-                                    const renderUserItem = (user: typeof allCoaches[0] | typeof allAthletes[0], isCoach: boolean) => {
-                                      const phoneNumber = user.phone || user.cellPhone;
-                                              return (
-                                                <div
+                                    const renderUserItem = (
+                                      user:
+                                        | (typeof allCoaches)[0]
+                                        | (typeof allAthletes)[0],
+                                      isCoach: boolean,
+                                    ) => {
+                                      const phoneNumber =
+                                        user.phone || user.cellPhone;
+                                      return (
+                                        <div
                                           key={user.id}
-                                                  className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 transition-colors group"
-                                                >
-                                                  <Avatar className="h-10 w-10 rounded-xl">
-                                            <AvatarImage src={user.avatarUrl || undefined} />
-                                                    <AvatarFallback className="rounded-xl text-xs bg-linear-to-br from-primary/20 to-primary/5">
-                                              {getInitials(user.name, user.email)}
-                                                    </AvatarFallback>
-                                                  </Avatar>
-                                                  <div className="flex-1 min-w-0">
-                                                    <p className="font-medium text-sm truncate">
-                                              {user.name || "Unnamed"}
-                                                    </p>
-                                                    <p className="text-xs text-muted-foreground truncate">
-                                              {user.email}
-                                                    </p>
-                                                  </div>
-                                          {renderStatusBadge(user.displayStatus)}
-                                                  <DropdownMenu>
-                                                    <DropdownMenuTrigger asChild>
-                                                      <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                      >
-                                                        <IconDotsVertical className="h-4 w-4" />
-                                                      </Button>
-                                                    </DropdownMenuTrigger>
-                                                    <DropdownMenuContent align="end" className="rounded-xl">
-                                                      <DropdownMenuItem asChild>
-                                                        <Link
-                                                  href={`/chat?userId=${user.id}`}
-                                                          className="flex items-center gap-2 cursor-pointer"
-                                                        >
-                                                          <IconMessageCircle className="h-4 w-4" />
-                                                          Chat
-                                                        </Link>
-                                                      </DropdownMenuItem>
-                                              {isCoach && phoneNumber && (
-                                                        <DropdownMenuItem asChild>
-                                                          <a
-                                                            href={`tel:${phoneNumber.replace(/\D/g, '')}`}
-                                                            className="flex items-center gap-2 cursor-pointer"
-                                                          >
-                                                            <IconPhone className="h-4 w-4" />
-                                                            Call
-                                                          </a>
-                                                        </DropdownMenuItem>
-                                                      )}
-                                              {isCoach && (
-                                                      <DropdownMenuItem asChild>
-                                                        <a
-                                                    href={`mailto:${user.email}`}
-                                                          className="flex items-center gap-2 cursor-pointer"
-                                                        >
-                                                          <IconMail className="h-4 w-4" />
-                                                          Email
-                                                        </a>
-                                                      </DropdownMenuItem>
+                                          className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 transition-colors group"
+                                        >
+                                          <Avatar className="h-10 w-10 rounded-xl">
+                                            <AvatarImage
+                                              src={user.avatarUrl || undefined}
+                                            />
+                                            <AvatarFallback className="rounded-xl text-xs bg-linear-to-br from-primary/20 to-primary/5">
+                                              {getInitials(
+                                                user.name,
+                                                user.email,
                                               )}
-                                                    </DropdownMenuContent>
-                                                  </DropdownMenu>
-                                                </div>
-                                              );
+                                            </AvatarFallback>
+                                          </Avatar>
+                                          <div className="flex-1 min-w-0">
+                                            <p className="font-medium text-sm truncate">
+                                              {user.name || "Unnamed"}
+                                            </p>
+                                            <p className="text-xs text-muted-foreground truncate">
+                                              {user.email}
+                                            </p>
+                                          </div>
+                                          {renderStatusBadge(
+                                            user.displayStatus,
+                                          )}
+                                          <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                              <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                                              >
+                                                <IconDotsVertical className="h-4 w-4" />
+                                              </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent
+                                              align="end"
+                                              className="rounded-xl"
+                                            >
+                                              <DropdownMenuItem asChild>
+                                                <Link
+                                                  href={`/chat?userId=${user.id}`}
+                                                  className="flex items-center gap-2 cursor-pointer"
+                                                >
+                                                  <IconMessageCircle className="h-4 w-4" />
+                                                  Chat
+                                                </Link>
+                                              </DropdownMenuItem>
+                                              {isCoach && phoneNumber && (
+                                                <DropdownMenuItem asChild>
+                                                  <a
+                                                    href={`tel:${phoneNumber.replace(/\D/g, "")}`}
+                                                    className="flex items-center gap-2 cursor-pointer"
+                                                  >
+                                                    <IconPhone className="h-4 w-4" />
+                                                    Call
+                                                  </a>
+                                                </DropdownMenuItem>
+                                              )}
+                                              {isCoach && (
+                                                <DropdownMenuItem asChild>
+                                                  <a
+                                                    href={`mailto:${user.email}`}
+                                                    className="flex items-center gap-2 cursor-pointer"
+                                                  >
+                                                    <IconMail className="h-4 w-4" />
+                                                    Email
+                                                  </a>
+                                                </DropdownMenuItem>
+                                              )}
+                                            </DropdownMenuContent>
+                                          </DropdownMenu>
+                                        </div>
+                                      );
                                     };
 
                                     return (
                                       <>
                                         {allCoaches.length > 0 && (
                                           <div>
-                                            <p className="text-xs font-medium text-muted-foreground mb-2">Coaches</p>
+                                            <p className="text-xs font-medium text-muted-foreground mb-2">
+                                              Coaches
+                                            </p>
                                             <div className="space-y-1">
-                                              {allCoaches.map((coach) => renderUserItem(coach, true))}
+                                              {allCoaches.map((coach) =>
+                                                renderUserItem(coach, true),
+                                              )}
+                                            </div>
                                           </div>
-                                        </div>
-                                      )}
+                                        )}
                                         {allAthletes.length > 0 && (
-                                        <div>
-                                          <p className="text-xs font-medium text-muted-foreground mb-2">Athletes</p>
-                                          <div className="space-y-1">
-                                              {allAthletes.map((athlete) => renderUserItem(athlete, false))}
-                                      </div>
-                                    </div>
-                                  )}
-                                        {allCoaches.length === 0 && allAthletes.length === 0 && (
-                                    <div className="text-center text-sm text-muted-foreground py-8">
-                                      No members found
-                                    </div>
-                                  )}
+                                          <div>
+                                            <p className="text-xs font-medium text-muted-foreground mb-2">
+                                              Athletes
+                                            </p>
+                                            <div className="space-y-1">
+                                              {allAthletes.map((athlete) =>
+                                                renderUserItem(athlete, false),
+                                              )}
+                                            </div>
+                                          </div>
+                                        )}
+                                        {allCoaches.length === 0 &&
+                                          allAthletes.length === 0 && (
+                                            <div className="text-center text-sm text-muted-foreground py-8">
+                                              No members found
+                                            </div>
+                                          )}
                                       </>
                                     );
                                   })()}
@@ -2291,33 +2649,43 @@ export default function EventsPage() {
                                 <div className="space-y-3">
                                   {goingCoaches.length > 0 && (
                                     <div>
-                                      <p className="text-xs font-medium text-muted-foreground mb-2">Coaches</p>
+                                      <p className="text-xs font-medium text-muted-foreground mb-2">
+                                        Coaches
+                                      </p>
                                       <div className="space-y-1">
                                         {goingCoaches.map((coach) => {
-                                          const phoneNumber = coach.phone || coach.cellPhone;
+                                          const phoneNumber =
+                                            coach.phone || coach.cellPhone;
                                           return (
-                                          <div
-                                            key={coach.id}
+                                            <div
+                                              key={coach.id}
                                               className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 transition-colors group"
                                             >
-                                            <Avatar className="h-10 w-10 rounded-xl">
-                                              <AvatarImage src={coach.avatarUrl || undefined} />
-                                              <AvatarFallback className="rounded-xl text-xs bg-linear-to-br from-primary/20 to-primary/5">
-                                                {getInitials(coach.name, coach.email)}
-                                              </AvatarFallback>
-                                            </Avatar>
-                                            <div className="flex-1 min-w-0">
-                                              <p className="font-medium text-sm truncate">
-                                                {coach.name || "Unnamed"}
-                                              </p>
-                                              <p className="text-xs text-muted-foreground truncate">
-                                                {coach.email}
-                                              </p>
-                                            </div>
-                                            <div className="flex items-center gap-1 text-emerald-600 bg-emerald-100 dark:bg-emerald-950/50 px-2.5 py-1 rounded-full text-xs font-medium">
-                                              <IconCheck className="h-3 w-3" />
-                                              Going
-                                            </div>
+                                              <Avatar className="h-10 w-10 rounded-xl">
+                                                <AvatarImage
+                                                  src={
+                                                    coach.avatarUrl || undefined
+                                                  }
+                                                />
+                                                <AvatarFallback className="rounded-xl text-xs bg-linear-to-br from-primary/20 to-primary/5">
+                                                  {getInitials(
+                                                    coach.name,
+                                                    coach.email,
+                                                  )}
+                                                </AvatarFallback>
+                                              </Avatar>
+                                              <div className="flex-1 min-w-0">
+                                                <p className="font-medium text-sm truncate">
+                                                  {coach.name || "Unnamed"}
+                                                </p>
+                                                <p className="text-xs text-muted-foreground truncate">
+                                                  {coach.email}
+                                                </p>
+                                              </div>
+                                              <div className="flex items-center gap-1 text-emerald-600 bg-emerald-100 dark:bg-emerald-950/50 px-2.5 py-1 rounded-full text-xs font-medium">
+                                                <IconCheck className="h-3 w-3" />
+                                                Going
+                                              </div>
                                               <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
                                                   <Button
@@ -2328,7 +2696,10 @@ export default function EventsPage() {
                                                     <IconDotsVertical className="h-4 w-4" />
                                                   </Button>
                                                 </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end" className="rounded-xl">
+                                                <DropdownMenuContent
+                                                  align="end"
+                                                  className="rounded-xl"
+                                                >
                                                   <DropdownMenuItem asChild>
                                                     <Link
                                                       href={`/chat?userId=${coach.id}`}
@@ -2341,7 +2712,7 @@ export default function EventsPage() {
                                                   {phoneNumber && (
                                                     <DropdownMenuItem asChild>
                                                       <a
-                                                        href={`tel:${phoneNumber.replace(/\D/g, '')}`}
+                                                        href={`tel:${phoneNumber.replace(/\D/g, "")}`}
                                                         className="flex items-center gap-2 cursor-pointer"
                                                       >
                                                         <IconPhone className="h-4 w-4" />
@@ -2360,7 +2731,7 @@ export default function EventsPage() {
                                                   </DropdownMenuItem>
                                                 </DropdownMenuContent>
                                               </DropdownMenu>
-                                          </div>
+                                            </div>
                                           );
                                         })}
                                       </div>
@@ -2368,7 +2739,9 @@ export default function EventsPage() {
                                   )}
                                   {goingAthletes.length > 0 && (
                                     <div>
-                                      <p className="text-xs font-medium text-muted-foreground mb-2">Athletes</p>
+                                      <p className="text-xs font-medium text-muted-foreground mb-2">
+                                        Athletes
+                                      </p>
                                       <div className="space-y-1">
                                         {goingAthletes.map((athlete) => (
                                           <div
@@ -2376,9 +2749,16 @@ export default function EventsPage() {
                                             className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 transition-colors group"
                                           >
                                             <Avatar className="h-10 w-10 rounded-xl">
-                                              <AvatarImage src={athlete.avatarUrl || undefined} />
+                                              <AvatarImage
+                                                src={
+                                                  athlete.avatarUrl || undefined
+                                                }
+                                              />
                                               <AvatarFallback className="rounded-xl text-xs bg-linear-to-br from-primary/20 to-primary/5">
-                                                {getInitials(athlete.name, athlete.email)}
+                                                {getInitials(
+                                                  athlete.name,
+                                                  athlete.email,
+                                                )}
                                               </AvatarFallback>
                                             </Avatar>
                                             <div className="flex-1 min-w-0">
@@ -2392,7 +2772,7 @@ export default function EventsPage() {
                                             <div className="flex items-center gap-1 text-emerald-600 bg-emerald-100 dark:bg-emerald-950/50 px-2.5 py-1 rounded-full text-xs font-medium">
                                               <IconCheck className="h-3 w-3" />
                                               Going
-                                          </div>
+                                            </div>
                                             <DropdownMenu>
                                               <DropdownMenuTrigger asChild>
                                                 <Button
@@ -2403,7 +2783,10 @@ export default function EventsPage() {
                                                   <IconDotsVertical className="h-4 w-4" />
                                                 </Button>
                                               </DropdownMenuTrigger>
-                                              <DropdownMenuContent align="end" className="rounded-xl">
+                                              <DropdownMenuContent
+                                                align="end"
+                                                className="rounded-xl"
+                                              >
                                                 <DropdownMenuItem asChild>
                                                   <Link
                                                     href={`/chat?userId=${athlete.id}`}
@@ -2420,184 +2803,55 @@ export default function EventsPage() {
                                       </div>
                                     </div>
                                   )}
-                                  {goingCoaches.length === 0 && goingAthletes.length === 0 && (
-                                    <div className="text-center text-sm text-muted-foreground py-8">
-                                      No one going yet
-                                    </div>
-                                  )}
+                                  {goingCoaches.length === 0 &&
+                                    goingAthletes.length === 0 && (
+                                      <div className="text-center text-sm text-muted-foreground py-8">
+                                        No one going yet
+                                      </div>
+                                    )}
                                 </div>
                               </TabsContent>
                               <TabsContent value="not_going" className="mt-0">
                                 <div className="space-y-3">
                                   {notGoingCoaches.length > 0 && (
                                     <div>
-                                      <p className="text-xs font-medium text-muted-foreground mb-2">Coaches</p>
+                                      <p className="text-xs font-medium text-muted-foreground mb-2">
+                                        Coaches
+                                      </p>
                                       <div className="space-y-1">
                                         {notGoingCoaches.map((coach) => {
-                                          const phoneNumber = coach.phone || coach.cellPhone;
+                                          const phoneNumber =
+                                            coach.phone || coach.cellPhone;
                                           return (
-                                          <div
-                                            key={coach.id}
-                                            className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 transition-colors group"
-                                          >
-                                            <Avatar className="h-10 w-10 rounded-xl">
-                                              <AvatarImage src={coach.avatarUrl || undefined} />
-                                              <AvatarFallback className="rounded-xl text-xs bg-linear-to-br from-primary/20 to-primary/5">
-                                                {getInitials(coach.name, coach.email)}
-                                              </AvatarFallback>
-                                            </Avatar>
-                                            <div className="flex-1 min-w-0">
-                                              <p className="font-medium text-sm truncate">
-                                                {coach.name || "Unnamed"}
-                                              </p>
-                                              <p className="text-xs text-muted-foreground truncate">
-                                                {coach.email}
-                                              </p>
-                                            </div>
-                                            <div className="flex items-center gap-1 text-red-600 bg-red-100 dark:bg-red-950/50 px-2.5 py-1 rounded-full text-xs font-medium">
-                                              <IconX className="h-3 w-3" />
-                                              Can't
-                                            </div>
-                                            <DropdownMenu>
-                                              <DropdownMenuTrigger asChild>
-                                                <Button
-                                                  variant="ghost"
-                                                  size="icon"
-                                                  className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                >
-                                                  <IconDotsVertical className="h-4 w-4" />
-                                                </Button>
-                                              </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end" className="rounded-xl">
-                                                <DropdownMenuItem asChild>
-                                                  <Link
-                                                      href={`/chat?userId=${coach.id}`}
-                                                    className="flex items-center gap-2 cursor-pointer"
-                                                  >
-                                                    <IconMessageCircle className="h-4 w-4" />
-                                                    Chat
-                                                  </Link>
-                                                </DropdownMenuItem>
-                                                  {phoneNumber && (
-                                                    <DropdownMenuItem asChild>
-                                                      <a
-                                                        href={`tel:${phoneNumber.replace(/\D/g, '')}`}
-                                                        className="flex items-center gap-2 cursor-pointer"
-                                                      >
-                                                        <IconPhone className="h-4 w-4" />
-                                                        Call
-                                                      </a>
-                                                    </DropdownMenuItem>
-                                                  )}
-                                                  <DropdownMenuItem asChild>
-                                                    <a
-                                                      href={`mailto:${coach.email}`}
-                                                      className="flex items-center gap-2 cursor-pointer"
-                                                    >
-                                                      <IconMail className="h-4 w-4" />
-                                                      Email
-                                                    </a>
-                                                  </DropdownMenuItem>
-                                              </DropdownMenuContent>
-                                            </DropdownMenu>
-                                          </div>
-                                          );
-                                        })}
-                                      </div>
-                                    </div>
-                                  )}
-                                  {notGoingAthletes.length > 0 && (
-                                    <div>
-                                      <p className="text-xs font-medium text-muted-foreground mb-2">Athletes</p>
-                                      <div className="space-y-1">
-                                        {notGoingAthletes.map((athlete) => (
-                                          <div
-                                            key={athlete.id}
-                                            className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 transition-colors group"
-                                          >
-                                            <Avatar className="h-10 w-10 rounded-xl">
-                                              <AvatarImage src={athlete.avatarUrl || undefined} />
-                                              <AvatarFallback className="rounded-xl text-xs bg-linear-to-br from-primary/20 to-primary/5">
-                                                {getInitials(athlete.name, athlete.email)}
-                                              </AvatarFallback>
-                                            </Avatar>
-                                            <div className="flex-1 min-w-0">
-                                              <p className="font-medium text-sm truncate">
-                                                {athlete.name || "Unnamed"}
-                                              </p>
-                                              <p className="text-xs text-muted-foreground truncate">
-                                                {athlete.email}
-                                              </p>
-                                            </div>
-                                            <div className="flex items-center gap-1 text-red-600 bg-red-100 dark:bg-red-950/50 px-2.5 py-1 rounded-full text-xs font-medium">
-                                              <IconX className="h-3 w-3" />
-                                              Can't
-                                            </div>
-                                            <DropdownMenu>
-                                              <DropdownMenuTrigger asChild>
-                                                <Button
-                                                  variant="ghost"
-                                                  size="icon"
-                                                  className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                >
-                                                  <IconDotsVertical className="h-4 w-4" />
-                                                </Button>
-                                              </DropdownMenuTrigger>
-                                              <DropdownMenuContent align="end" className="rounded-xl">
-                                                <DropdownMenuItem asChild>
-                                                  <Link
-                                                    href={`/chat?userId=${athlete.id}`}
-                                                    className="flex items-center gap-2 cursor-pointer"
-                                                  >
-                                                    <IconMessageCircle className="h-4 w-4" />
-                                                    Chat
-                                                  </Link>
-                                                </DropdownMenuItem>
-                                              </DropdownMenuContent>
-                                            </DropdownMenu>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  )}
-                                  {notGoingCoaches.length === 0 && notGoingAthletes.length === 0 && (
-                                    <div className="text-center text-sm text-muted-foreground py-8">
-                                      Everyone is going
-                                    </div>
-                                  )}
-                                </div>
-                              </TabsContent>
-                              <TabsContent value="pending" className="mt-0">
-                                <div className="space-y-3">
-                                  {pendingCoaches.length > 0 && (
-                                    <div>
-                                      <p className="text-xs font-medium text-muted-foreground mb-2">Coaches</p>
-                                      <div className="space-y-1">
-                                        {pendingCoaches.map((coach) => {
-                                          const phoneNumber = coach.phone || coach.cellPhone;
-                                          return (
-                                          <div
-                                            key={coach.id}
+                                            <div
+                                              key={coach.id}
                                               className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 transition-colors group"
                                             >
-                                            <Avatar className="h-10 w-10 rounded-xl">
-                                              <AvatarImage src={coach.avatarUrl || undefined} />
-                                              <AvatarFallback className="rounded-xl text-xs bg-linear-to-br from-primary/20 to-primary/5">
-                                                {getInitials(coach.name, coach.email)}
-                                              </AvatarFallback>
-                                            </Avatar>
-                                            <div className="flex-1 min-w-0">
-                                              <p className="font-medium text-sm truncate">
-                                                {coach.name || "Unnamed"}
-                                              </p>
-                                              <p className="text-xs text-muted-foreground truncate">
-                                                {coach.email}
-                                              </p>
-                                            </div>
-                                            <div className="flex items-center gap-1 text-amber-600 bg-amber-100 dark:bg-amber-950/50 px-2.5 py-1 rounded-full text-xs font-medium">
-                                              <IconBell className="h-3 w-3" />
-                                              Pending
-                                            </div>
+                                              <Avatar className="h-10 w-10 rounded-xl">
+                                                <AvatarImage
+                                                  src={
+                                                    coach.avatarUrl || undefined
+                                                  }
+                                                />
+                                                <AvatarFallback className="rounded-xl text-xs bg-linear-to-br from-primary/20 to-primary/5">
+                                                  {getInitials(
+                                                    coach.name,
+                                                    coach.email,
+                                                  )}
+                                                </AvatarFallback>
+                                              </Avatar>
+                                              <div className="flex-1 min-w-0">
+                                                <p className="font-medium text-sm truncate">
+                                                  {coach.name || "Unnamed"}
+                                                </p>
+                                                <p className="text-xs text-muted-foreground truncate">
+                                                  {coach.email}
+                                                </p>
+                                              </div>
+                                              <div className="flex items-center gap-1 text-red-600 bg-red-100 dark:bg-red-950/50 px-2.5 py-1 rounded-full text-xs font-medium">
+                                                <IconX className="h-3 w-3" />
+                                                Can't
+                                              </div>
                                               <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
                                                   <Button
@@ -2608,7 +2862,10 @@ export default function EventsPage() {
                                                     <IconDotsVertical className="h-4 w-4" />
                                                   </Button>
                                                 </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end" className="rounded-xl">
+                                                <DropdownMenuContent
+                                                  align="end"
+                                                  className="rounded-xl"
+                                                >
                                                   <DropdownMenuItem asChild>
                                                     <Link
                                                       href={`/chat?userId=${coach.id}`}
@@ -2621,7 +2878,7 @@ export default function EventsPage() {
                                                   {phoneNumber && (
                                                     <DropdownMenuItem asChild>
                                                       <a
-                                                        href={`tel:${phoneNumber.replace(/\D/g, '')}`}
+                                                        href={`tel:${phoneNumber.replace(/\D/g, "")}`}
                                                         className="flex items-center gap-2 cursor-pointer"
                                                       >
                                                         <IconPhone className="h-4 w-4" />
@@ -2640,27 +2897,34 @@ export default function EventsPage() {
                                                   </DropdownMenuItem>
                                                 </DropdownMenuContent>
                                               </DropdownMenu>
-                                          </div>
+                                            </div>
                                           );
                                         })}
                                       </div>
                                     </div>
                                   )}
-                                  {pendingAthletes.length > 0 && (
+                                  {notGoingAthletes.length > 0 && (
                                     <div>
-                                      <p className="text-xs font-medium text-muted-foreground mb-2">Athletes</p>
+                                      <p className="text-xs font-medium text-muted-foreground mb-2">
+                                        Athletes
+                                      </p>
                                       <div className="space-y-1">
-                                        {pendingAthletes.map((athlete) => {
-                                          const phoneNumber = athlete.phone || athlete.cellPhone;
-                                          return (
+                                        {notGoingAthletes.map((athlete) => (
                                           <div
                                             key={athlete.id}
                                             className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 transition-colors group"
                                           >
                                             <Avatar className="h-10 w-10 rounded-xl">
-                                              <AvatarImage src={athlete.avatarUrl || undefined} />
+                                              <AvatarImage
+                                                src={
+                                                  athlete.avatarUrl || undefined
+                                                }
+                                              />
                                               <AvatarFallback className="rounded-xl text-xs bg-linear-to-br from-primary/20 to-primary/5">
-                                                {getInitials(athlete.name, athlete.email)}
+                                                {getInitials(
+                                                  athlete.name,
+                                                  athlete.email,
+                                                )}
                                               </AvatarFallback>
                                             </Avatar>
                                             <div className="flex-1 min-w-0">
@@ -2671,9 +2935,9 @@ export default function EventsPage() {
                                                 {athlete.email}
                                               </p>
                                             </div>
-                                            <div className="flex items-center gap-1 text-amber-600 bg-amber-100 dark:bg-amber-950/50 px-2.5 py-1 rounded-full text-xs font-medium">
-                                              <IconBell className="h-3 w-3" />
-                                              Pending
+                                            <div className="flex items-center gap-1 text-red-600 bg-red-100 dark:bg-red-950/50 px-2.5 py-1 rounded-full text-xs font-medium">
+                                              <IconX className="h-3 w-3" />
+                                              Can't
                                             </div>
                                             <DropdownMenu>
                                               <DropdownMenuTrigger asChild>
@@ -2685,7 +2949,10 @@ export default function EventsPage() {
                                                   <IconDotsVertical className="h-4 w-4" />
                                                 </Button>
                                               </DropdownMenuTrigger>
-                                              <DropdownMenuContent align="end" className="rounded-xl">
+                                              <DropdownMenuContent
+                                                align="end"
+                                                className="rounded-xl"
+                                              >
                                                 <DropdownMenuItem asChild>
                                                   <Link
                                                     href={`/chat?userId=${athlete.id}`}
@@ -2695,39 +2962,210 @@ export default function EventsPage() {
                                                     Chat
                                                   </Link>
                                                 </DropdownMenuItem>
-                                                {phoneNumber && (
-                                                  <DropdownMenuItem asChild>
-                                                    <a
-                                                      href={`tel:${phoneNumber.replace(/\D/g, '')}`}
-                                                      className="flex items-center gap-2 cursor-pointer"
-                                                    >
-                                                      <IconPhone className="h-4 w-4" />
-                                                      Call
-                                                    </a>
-                                                  </DropdownMenuItem>
-                                                )}
-                                                <DropdownMenuItem asChild>
-                                                  <a
-                                                    href={`mailto:${athlete.email}`}
-                                                    className="flex items-center gap-2 cursor-pointer"
-                                                  >
-                                                    <IconMail className="h-4 w-4" />
-                                                    Email
-                                                  </a>
-                                                </DropdownMenuItem>
                                               </DropdownMenuContent>
                                             </DropdownMenu>
                                           </div>
-                                        );
-                                      })}
+                                        ))}
                                       </div>
                                     </div>
                                   )}
-                                  {pendingCoaches.length === 0 && pendingAthletes.length === 0 && (
-                                    <div className="text-center text-sm text-muted-foreground py-8">
-                                      Everyone has responded
+                                  {notGoingCoaches.length === 0 &&
+                                    notGoingAthletes.length === 0 && (
+                                      <div className="text-center text-sm text-muted-foreground py-8">
+                                        Everyone is going
+                                      </div>
+                                    )}
+                                </div>
+                              </TabsContent>
+                              <TabsContent value="pending" className="mt-0">
+                                <div className="space-y-3">
+                                  {pendingCoaches.length > 0 && (
+                                    <div>
+                                      <p className="text-xs font-medium text-muted-foreground mb-2">
+                                        Coaches
+                                      </p>
+                                      <div className="space-y-1">
+                                        {pendingCoaches.map((coach) => {
+                                          const phoneNumber =
+                                            coach.phone || coach.cellPhone;
+                                          return (
+                                            <div
+                                              key={coach.id}
+                                              className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 transition-colors group"
+                                            >
+                                              <Avatar className="h-10 w-10 rounded-xl">
+                                                <AvatarImage
+                                                  src={
+                                                    coach.avatarUrl || undefined
+                                                  }
+                                                />
+                                                <AvatarFallback className="rounded-xl text-xs bg-linear-to-br from-primary/20 to-primary/5">
+                                                  {getInitials(
+                                                    coach.name,
+                                                    coach.email,
+                                                  )}
+                                                </AvatarFallback>
+                                              </Avatar>
+                                              <div className="flex-1 min-w-0">
+                                                <p className="font-medium text-sm truncate">
+                                                  {coach.name || "Unnamed"}
+                                                </p>
+                                                <p className="text-xs text-muted-foreground truncate">
+                                                  {coach.email}
+                                                </p>
+                                              </div>
+                                              <div className="flex items-center gap-1 text-amber-600 bg-amber-100 dark:bg-amber-950/50 px-2.5 py-1 rounded-full text-xs font-medium">
+                                                <IconBell className="h-3 w-3" />
+                                                Pending
+                                              </div>
+                                              <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                  <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                  >
+                                                    <IconDotsVertical className="h-4 w-4" />
+                                                  </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent
+                                                  align="end"
+                                                  className="rounded-xl"
+                                                >
+                                                  <DropdownMenuItem asChild>
+                                                    <Link
+                                                      href={`/chat?userId=${coach.id}`}
+                                                      className="flex items-center gap-2 cursor-pointer"
+                                                    >
+                                                      <IconMessageCircle className="h-4 w-4" />
+                                                      Chat
+                                                    </Link>
+                                                  </DropdownMenuItem>
+                                                  {phoneNumber && (
+                                                    <DropdownMenuItem asChild>
+                                                      <a
+                                                        href={`tel:${phoneNumber.replace(/\D/g, "")}`}
+                                                        className="flex items-center gap-2 cursor-pointer"
+                                                      >
+                                                        <IconPhone className="h-4 w-4" />
+                                                        Call
+                                                      </a>
+                                                    </DropdownMenuItem>
+                                                  )}
+                                                  <DropdownMenuItem asChild>
+                                                    <a
+                                                      href={`mailto:${coach.email}`}
+                                                      className="flex items-center gap-2 cursor-pointer"
+                                                    >
+                                                      <IconMail className="h-4 w-4" />
+                                                      Email
+                                                    </a>
+                                                  </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                              </DropdownMenu>
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
                                     </div>
                                   )}
+                                  {pendingAthletes.length > 0 && (
+                                    <div>
+                                      <p className="text-xs font-medium text-muted-foreground mb-2">
+                                        Athletes
+                                      </p>
+                                      <div className="space-y-1">
+                                        {pendingAthletes.map((athlete) => {
+                                          const phoneNumber =
+                                            athlete.phone || athlete.cellPhone;
+                                          return (
+                                            <div
+                                              key={athlete.id}
+                                              className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 transition-colors group"
+                                            >
+                                              <Avatar className="h-10 w-10 rounded-xl">
+                                                <AvatarImage
+                                                  src={
+                                                    athlete.avatarUrl ||
+                                                    undefined
+                                                  }
+                                                />
+                                                <AvatarFallback className="rounded-xl text-xs bg-linear-to-br from-primary/20 to-primary/5">
+                                                  {getInitials(
+                                                    athlete.name,
+                                                    athlete.email,
+                                                  )}
+                                                </AvatarFallback>
+                                              </Avatar>
+                                              <div className="flex-1 min-w-0">
+                                                <p className="font-medium text-sm truncate">
+                                                  {athlete.name || "Unnamed"}
+                                                </p>
+                                                <p className="text-xs text-muted-foreground truncate">
+                                                  {athlete.email}
+                                                </p>
+                                              </div>
+                                              <div className="flex items-center gap-1 text-amber-600 bg-amber-100 dark:bg-amber-950/50 px-2.5 py-1 rounded-full text-xs font-medium">
+                                                <IconBell className="h-3 w-3" />
+                                                Pending
+                                              </div>
+                                              <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                  <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                  >
+                                                    <IconDotsVertical className="h-4 w-4" />
+                                                  </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent
+                                                  align="end"
+                                                  className="rounded-xl"
+                                                >
+                                                  <DropdownMenuItem asChild>
+                                                    <Link
+                                                      href={`/chat?userId=${athlete.id}`}
+                                                      className="flex items-center gap-2 cursor-pointer"
+                                                    >
+                                                      <IconMessageCircle className="h-4 w-4" />
+                                                      Chat
+                                                    </Link>
+                                                  </DropdownMenuItem>
+                                                  {phoneNumber && (
+                                                    <DropdownMenuItem asChild>
+                                                      <a
+                                                        href={`tel:${phoneNumber.replace(/\D/g, "")}`}
+                                                        className="flex items-center gap-2 cursor-pointer"
+                                                      >
+                                                        <IconPhone className="h-4 w-4" />
+                                                        Call
+                                                      </a>
+                                                    </DropdownMenuItem>
+                                                  )}
+                                                  <DropdownMenuItem asChild>
+                                                    <a
+                                                      href={`mailto:${athlete.email}`}
+                                                      className="flex items-center gap-2 cursor-pointer"
+                                                    >
+                                                      <IconMail className="h-4 w-4" />
+                                                      Email
+                                                    </a>
+                                                  </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                              </DropdownMenu>
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    </div>
+                                  )}
+                                  {pendingCoaches.length === 0 &&
+                                    pendingAthletes.length === 0 && (
+                                      <div className="text-center text-sm text-muted-foreground py-8">
+                                        Everyone has responded
+                                      </div>
+                                    )}
                                 </div>
                               </TabsContent>
                             </Tabs>
@@ -2736,7 +3174,10 @@ export default function EventsPage() {
                       </div>
                     )}
                   </TabsContent>
-                  <TabsContent value="chat" className="flex-1 overflow-hidden mt-0 min-h-0">
+                  <TabsContent
+                    value="chat"
+                    className="flex-1 overflow-hidden mt-0 min-h-0"
+                  >
                     {selectedEventForAthlete && athleteEventChannelId ? (
                       <EventChatContent
                         channelId={athleteEventChannelId}
@@ -2907,7 +3348,7 @@ export default function EventsPage() {
                 </div>
                 <div className="flex-1 min-h-0">
                   <CustomEventCalendar
-                    key={`${selectedEvent.id}-${selectedEvent.occurrences.filter(o => o.status === "canceled").length}`}
+                    key={`${selectedEvent.id}-${selectedEvent.occurrences.filter((o) => o.status === "canceled").length}`}
                     occurrences={selectedEvent.occurrences.map((o) => ({
                       ...o,
                       isCustom:
@@ -2937,99 +3378,95 @@ export default function EventsPage() {
             {/* Occurrences List */}
             <div className="w-72 flex flex-col bg-card border rounded-xl shadow-sm overflow-hidden min-h-0 h-full">
               {initialLoading ? (
-                <>
-                  <ScrollArea className="h-full">
-                    <div className="p-2 space-y-2">
-                      {[1, 2, 3].map((i) => (
-                        <Skeleton key={i} className="h-20 w-full rounded-xl" />
-                      ))}
-                    </div>
-                  </ScrollArea>
-                </>
+                <ScrollArea className="h-full">
+                  <div className="p-2 space-y-2">
+                    {[1, 2, 3].map((i) => (
+                      <Skeleton key={i} className="h-20 w-full rounded-xl" />
+                    ))}
+                  </div>
+                </ScrollArea>
               ) : selectedEvent ? (
-                <>
-                  <ScrollArea className="h-full">
-                    <div className="p-2">
-                      {displayedOccurrences.length === 0 ? (
-                        <div className="p-4 text-center text-sm text-muted-foreground">
-                          No upcoming sessions
-                        </div>
-                      ) : (
-                        displayedOccurrences.map((occ) => {
-                          const isPast = isPastDate(occ.date);
-                          const dateInfo = formatDate(occ.date);
-                          return (
-                            <button
-                              key={occ.id}
-                              type="button"
-                              onClick={() => selectOccurrence(occ)}
-                              className={`w-full text-left p-3 rounded-xl mb-1 transition-all flex items-center gap-3 ${
+                <ScrollArea className="h-full">
+                  <div className="p-2">
+                    {displayedOccurrences.length === 0 ? (
+                      <div className="p-4 text-center text-sm text-muted-foreground">
+                        No upcoming sessions
+                      </div>
+                    ) : (
+                      displayedOccurrences.map((occ) => {
+                        const isPast = isPastDate(occ.date);
+                        const dateInfo = formatDate(occ.date);
+                        return (
+                          <button
+                            key={occ.id}
+                            type="button"
+                            onClick={() => selectOccurrence(occ)}
+                            className={`w-full text-left p-3 rounded-xl mb-1 transition-all flex items-center gap-3 ${
+                              selectedOccurrence?.id === occ.id
+                                ? "bg-primary/10 ring-1 ring-primary"
+                                : "hover:bg-muted"
+                            } ${isPast ? "opacity-50" : ""} ${occ.status === "canceled" ? "opacity-40" : ""}`}
+                          >
+                            <div
+                              className={`h-14 w-14 rounded-xl flex flex-col items-center justify-center shrink-0 ${
                                 selectedOccurrence?.id === occ.id
-                                  ? "bg-primary/10 ring-1 ring-primary"
-                                  : "hover:bg-muted"
-                              } ${isPast ? "opacity-50" : ""} ${occ.status === "canceled" ? "opacity-40" : ""}`}
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-muted"
+                              }`}
                             >
-                              <div
-                                className={`h-14 w-14 rounded-xl flex flex-col items-center justify-center shrink-0 ${
-                                  selectedOccurrence?.id === occ.id
-                                    ? "bg-primary text-primary-foreground"
-                                    : "bg-muted"
-                                }`}
-                              >
-                                <span className="text-xl font-bold leading-none">
-                                  {dateInfo.day}
-                                </span>
-                                <span className="text-[10px] font-medium opacity-70 mt-0.5">
-                                  {dateInfo.month}
-                                </span>
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="font-medium text-sm whitespace-nowrap">
-                                  {dateInfo.weekday}
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                  {formatTime(selectedEvent.startTime)}
-                                </p>
-                              </div>
-                              <div className="flex flex-col items-end gap-1">
-                                {occ.status === "canceled" && (
-                                  <Badge
-                                    variant="destructive"
-                                    className="text-[10px]"
-                                  >
-                                    Canceled
-                                  </Badge>
-                                )}
-                                {(
-                                  occ as EventOccurrence & {
-                                    isCustom?: boolean;
-                                  }
-                                ).isCustom && (
-                                  <Badge
-                                    variant="outline"
-                                    className="text-[10px]"
-                                  >
-                                    Custom
-                                  </Badge>
-                                )}
-                              </div>
-                            </button>
-                          );
-                        })
-                      )}
-                      {pastOccurrences.length > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => setShowPastEvents(!showPastEvents)}
-                          className="w-full p-3 text-xs text-muted-foreground hover:text-foreground flex items-center justify-center gap-2"
-                        >
-                          <IconHistory className="h-4 w-4" />
-                          {showPastEvents ? "Hide" : "Show"} past sessions
-                        </button>
-                      )}
-                    </div>
-                  </ScrollArea>
-                </>
+                              <span className="text-xl font-bold leading-none">
+                                {dateInfo.day}
+                              </span>
+                              <span className="text-[10px] font-medium opacity-70 mt-0.5">
+                                {dateInfo.month}
+                              </span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm whitespace-nowrap">
+                                {dateInfo.weekday}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {formatTime(selectedEvent.startTime)}
+                              </p>
+                            </div>
+                            <div className="flex flex-col items-end gap-1">
+                              {occ.status === "canceled" && (
+                                <Badge
+                                  variant="destructive"
+                                  className="text-[10px]"
+                                >
+                                  Canceled
+                                </Badge>
+                              )}
+                              {(
+                                occ as EventOccurrence & {
+                                  isCustom?: boolean;
+                                }
+                              ).isCustom && (
+                                <Badge
+                                  variant="outline"
+                                  className="text-[10px]"
+                                >
+                                  Custom
+                                </Badge>
+                              )}
+                            </div>
+                          </button>
+                        );
+                      })
+                    )}
+                    {pastOccurrences.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setShowPastEvents(!showPastEvents)}
+                        className="w-full p-3 text-xs text-muted-foreground hover:text-foreground flex items-center justify-center gap-2"
+                      >
+                        <IconHistory className="h-4 w-4" />
+                        {showPastEvents ? "Hide" : "Show"} past sessions
+                      </button>
+                    )}
+                  </div>
+                </ScrollArea>
               ) : (
                 <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground">
                   Select an event
@@ -3053,29 +3490,40 @@ export default function EventsPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       {/* Going/Not Going buttons for coaches/head coaches */}
-                      {(currentUserRole === "coach" || currentUserRole === "owner") &&
+                      {(currentUserRole === "coach" ||
+                        currentUserRole === "owner") &&
                         selectedOccurrence.status !== "canceled" &&
                         eventDetailTab === "details" && (
                           <>
                             {(() => {
-                              const currentUserRsvp = occurrenceRsvps.find((r) => r.id === currentUserId);
-                              const currentUserRsvpStatus = currentUserRsvp?.status;
+                              const currentUserRsvp = occurrenceRsvps.find(
+                                (r) => r.id === currentUserId,
+                              );
+                              const currentUserRsvpStatus =
+                                currentUserRsvp?.status;
                               return (
                                 <>
                                   <Button
                                     size="sm"
                                     variant="outline"
                                     onClick={async () => {
-                                      const response = await fetch("/api/rsvp", {
-                                        method: "POST",
-                                        headers: { "Content-Type": "application/json" },
-                                        body: JSON.stringify({
-                                          occurrenceId: selectedOccurrence.id,
-                                          status: "going",
-                                        }),
-                                      });
+                                      const response = await fetch(
+                                        "/api/rsvp",
+                                        {
+                                          method: "POST",
+                                          headers: {
+                                            "Content-Type": "application/json",
+                                          },
+                                          body: JSON.stringify({
+                                            occurrenceId: selectedOccurrence.id,
+                                            status: "going",
+                                          }),
+                                        },
+                                      );
                                       if (response.ok) {
-                                        loadOccurrenceRsvps(selectedOccurrence.id);
+                                        loadOccurrenceRsvps(
+                                          selectedOccurrence.id,
+                                        );
                                       }
                                     }}
                                     className={`h-9 rounded-xl gap-1.5 px-3 ${
@@ -3085,22 +3533,31 @@ export default function EventsPage() {
                                     }`}
                                   >
                                     <IconCheck className="h-4 w-4" />
-                                    {currentUserRsvpStatus === "going" ? "Going!" : "Going"}
+                                    {currentUserRsvpStatus === "going"
+                                      ? "Going!"
+                                      : "Going"}
                                   </Button>
                                   <Button
                                     size="sm"
                                     variant="outline"
                                     onClick={async () => {
-                                      const response = await fetch("/api/rsvp", {
-                                        method: "POST",
-                                        headers: { "Content-Type": "application/json" },
-                                        body: JSON.stringify({
-                                          occurrenceId: selectedOccurrence.id,
-                                          status: "not_going",
-                                        }),
-                                      });
+                                      const response = await fetch(
+                                        "/api/rsvp",
+                                        {
+                                          method: "POST",
+                                          headers: {
+                                            "Content-Type": "application/json",
+                                          },
+                                          body: JSON.stringify({
+                                            occurrenceId: selectedOccurrence.id,
+                                            status: "not_going",
+                                          }),
+                                        },
+                                      );
                                       if (response.ok) {
-                                        loadOccurrenceRsvps(selectedOccurrence.id);
+                                        loadOccurrenceRsvps(
+                                          selectedOccurrence.id,
+                                        );
                                       }
                                     }}
                                     className={`h-9 rounded-xl gap-1.5 px-3 ${
@@ -3154,24 +3611,42 @@ export default function EventsPage() {
                         )}
                     </div>
                   </div>
-                  <Tabs value={eventDetailTab} onValueChange={(value) => setEventDetailTab(value as typeof eventDetailTab)} className="flex-1 flex flex-col min-h-0">
+                  <Tabs
+                    value={eventDetailTab}
+                    onValueChange={(value) =>
+                      setEventDetailTab(value as typeof eventDetailTab)
+                    }
+                    className="flex-1 flex flex-col min-h-0"
+                  >
                     <div className="px-4 py-4 shrink-0 border-b">
                       <TabsList className="w-full grid grid-cols-2 h-10 rounded-xl">
-                        <TabsTrigger value="details" className="text-xs rounded-lg">
+                        <TabsTrigger
+                          value="details"
+                          className="text-xs rounded-lg"
+                        >
                           Details
                         </TabsTrigger>
-                        <TabsTrigger value="chat" className="text-xs rounded-lg">
+                        <TabsTrigger
+                          value="chat"
+                          className="text-xs rounded-lg"
+                        >
                           Chat
                         </TabsTrigger>
                       </TabsList>
                     </div>
-                    <TabsContent value="details" className="flex-1 overflow-hidden mt-0 min-h-0">
+                    <TabsContent
+                      value="details"
+                      className="flex-1 overflow-hidden mt-0 min-h-0"
+                    >
                       {rsvpLoading ? (
                         <div className="flex flex-col h-full p-4">
                           <Skeleton className="h-10 w-full mb-4 rounded-xl" />
                           <div className="space-y-3">
                             {[1, 2, 3, 4, 5].map((i) => (
-                              <div key={i} className="flex items-center gap-3 p-3 rounded-xl">
+                              <div
+                                key={i}
+                                className="flex items-center gap-3 p-3 rounded-xl"
+                              >
                                 <Skeleton className="h-10 w-10 rounded-xl" />
                                 <div className="flex-1 space-y-2">
                                   <Skeleton className="h-4 w-32" />
@@ -3183,7 +3658,10 @@ export default function EventsPage() {
                           </div>
                         </div>
                       ) : (
-                        <Tabs defaultValue="all" className="h-full flex flex-col min-h-0">
+                        <Tabs
+                          defaultValue="all"
+                          className="h-full flex flex-col min-h-0"
+                        >
                           <div className="px-4 pt-4 shrink-0">
                             <TabsList className="w-full grid grid-cols-4 h-10 rounded-xl">
                               <TabsTrigger
@@ -3219,7 +3697,10 @@ export default function EventsPage() {
                             {gymMembersLoading ? (
                               <div className="space-y-3">
                                 {[1, 2, 3].map((i) => (
-                                  <div key={i} className="flex items-center gap-3 p-3 rounded-xl">
+                                  <div
+                                    key={i}
+                                    className="flex items-center gap-3 p-3 rounded-xl"
+                                  >
                                     <Skeleton className="h-10 w-10 rounded-xl" />
                                     <div className="flex-1 space-y-2">
                                       <Skeleton className="h-4 w-32" />
@@ -3249,7 +3730,9 @@ export default function EventsPage() {
                           >
                             <UserList
                               users={goingUsers.map((u) => {
-                                const member = gymMembers.find((m) => m.id === u.id);
+                                const member = gymMembers.find(
+                                  (m) => m.id === u.id,
+                                );
                                 // Use role from RSVP user object first, then fall back to gymMembers
                                 return {
                                   ...u,
@@ -3268,7 +3751,9 @@ export default function EventsPage() {
                           >
                             <UserList
                               users={notGoingUsers.map((u) => {
-                                const member = gymMembers.find((m) => m.id === u.id);
+                                const member = gymMembers.find(
+                                  (m) => m.id === u.id,
+                                );
                                 // Use role from RSVP user object first, then fall back to gymMembers
                                 return {
                                   ...u,
@@ -3297,7 +3782,10 @@ export default function EventsPage() {
                         </Tabs>
                       )}
                     </TabsContent>
-                    <TabsContent value="chat" className="flex-1 overflow-hidden mt-0 min-h-0">
+                    <TabsContent
+                      value="chat"
+                      className="flex-1 overflow-hidden mt-0 min-h-0"
+                    >
                       {selectedEvent && eventChannelId ? (
                         <EventChatContent
                           channelId={eventChannelId}
@@ -3320,24 +3808,44 @@ export default function EventsPage() {
                 </>
               ) : selectedEvent ? (
                 <div className="flex-1 flex flex-col min-h-0">
-                  <Tabs value={eventDetailTab} onValueChange={(value) => setEventDetailTab(value as typeof eventDetailTab)} className="flex-1 flex flex-col min-h-0">
+                  <Tabs
+                    value={eventDetailTab}
+                    onValueChange={(value) =>
+                      setEventDetailTab(value as typeof eventDetailTab)
+                    }
+                    className="flex-1 flex flex-col min-h-0"
+                  >
                     <div className="px-4 py-4 shrink-0 border-b">
                       <TabsList className="w-full grid grid-cols-2 h-10 rounded-xl">
-                        <TabsTrigger value="details" className="text-xs rounded-lg">
+                        <TabsTrigger
+                          value="details"
+                          className="text-xs rounded-lg"
+                        >
                           Details
                         </TabsTrigger>
-                        <TabsTrigger value="chat" className="text-xs rounded-lg">
+                        <TabsTrigger
+                          value="chat"
+                          className="text-xs rounded-lg"
+                        >
                           Chat
                         </TabsTrigger>
                       </TabsList>
                     </div>
-                    <TabsContent value="details" className="flex-1 overflow-auto mt-0 p-4 min-h-0">
+                    <TabsContent
+                      value="details"
+                      className="flex-1 overflow-auto mt-0 p-4 min-h-0"
+                    >
                       <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
                         <IconUsers className="h-12 w-12 mb-3 opacity-20" />
-                        <p className="text-sm">Select a session to view attendance</p>
+                        <p className="text-sm">
+                          Select a session to view attendance
+                        </p>
                       </div>
                     </TabsContent>
-                    <TabsContent value="chat" className="flex-1 overflow-hidden mt-0 min-h-0">
+                    <TabsContent
+                      value="chat"
+                      className="flex-1 overflow-hidden mt-0 min-h-0"
+                    >
                       {eventChannelId ? (
                         <EventChatContent
                           channelId={eventChannelId}
@@ -3364,8 +3872,6 @@ export default function EventsPage() {
           </>
         )}
       </div>
-
-      {/* Cancel Dialog */}
       <Dialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
         <DialogContent className="rounded-xl">
           <DialogHeader>
@@ -3430,8 +3936,6 @@ export default function EventsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Delete Event Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent className="rounded-xl max-w-[calc(100vw-2rem)] sm:max-w-lg">
           <DialogHeader className="text-left">
@@ -3463,14 +3967,10 @@ export default function EventsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Event Chat Dialog */}
       <Dialog open={eventChatDialogOpen} onOpenChange={setEventChatDialogOpen}>
         <DialogContent className="rounded-xl max-w-4xl h-[80vh] flex flex-col">
           <DialogHeader>
-            <DialogTitle>
-              {selectedEvent?.title} Chat
-            </DialogTitle>
+            <DialogTitle>{selectedEvent?.title} Chat</DialogTitle>
             <DialogDescription>
               Chat with other members about this event
             </DialogDescription>
@@ -3497,8 +3997,6 @@ export default function EventsPage() {
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* Add Custom Date Dialog */}
       <Dialog open={addDateDialogOpen} onOpenChange={setAddDateDialogOpen}>
         <DialogContent className="rounded-xl">
           <DialogHeader>
@@ -3546,7 +4044,12 @@ interface UserListProps {
   currentUserRole?: string | null;
 }
 
-function UserList({ users, getInitials, onEditRsvp, currentUserRole }: UserListProps) {
+function UserList({
+  users,
+  getInitials,
+  onEditRsvp,
+  currentUserRole,
+}: UserListProps) {
   // Filter to only include coaches/owners and athletes (exclude any other roles)
   const filteredUsers = users.filter((u) => {
     const role = u.role;
@@ -3562,7 +4065,9 @@ function UserList({ users, getInitials, onEditRsvp, currentUserRole }: UserListP
   }
 
   // Separate coaches and athletes
-  const coaches = filteredUsers.filter((u) => u.role === "coach" || u.role === "owner");
+  const coaches = filteredUsers.filter(
+    (u) => u.role === "coach" || u.role === "owner",
+  );
   const athletes = filteredUsers.filter((u) => u.role === "athlete" || !u.role);
 
   return (
@@ -3635,31 +4140,33 @@ function UserList({ users, getInitials, onEditRsvp, currentUserRole }: UserListP
                       View Profile
                     </Link>
                   </DropdownMenuItem>
-                  {(currentUserRole === "owner" || currentUserRole === "coach") && user.status === null && (
-                    <>
-                      <DropdownMenuSeparator />
-                      {(user.phone || user.cellPhone) && (
+                  {(currentUserRole === "owner" ||
+                    currentUserRole === "coach") &&
+                    user.status === null && (
+                      <>
+                        <DropdownMenuSeparator />
+                        {(user.phone || user.cellPhone) && (
+                          <DropdownMenuItem asChild>
+                            <a
+                              href={`tel:${(user.phone || user.cellPhone || "").replace(/\D/g, "")}`}
+                              className="flex items-center gap-2 cursor-pointer"
+                            >
+                              <IconPhone className="h-4 w-4" />
+                              Call
+                            </a>
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem asChild>
                           <a
-                            href={`tel:${(user.phone || user.cellPhone || "").replace(/\D/g, '')}`}
+                            href={`mailto:${user.email}`}
                             className="flex items-center gap-2 cursor-pointer"
                           >
-                            <IconPhone className="h-4 w-4" />
-                            Call
+                            <IconMail className="h-4 w-4" />
+                            Email
                           </a>
                         </DropdownMenuItem>
-                      )}
-                      <DropdownMenuItem asChild>
-                        <a
-                          href={`mailto:${user.email}`}
-                          className="flex items-center gap-2 cursor-pointer"
-                        >
-                          <IconMail className="h-4 w-4" />
-                          Email
-                        </a>
-                      </DropdownMenuItem>
-                    </>
-                  )}
+                      </>
+                    )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onClick={() => onEditRsvp(user.id, "going")}
@@ -3752,31 +4259,33 @@ function UserList({ users, getInitials, onEditRsvp, currentUserRole }: UserListP
                       View Profile
                     </Link>
                   </DropdownMenuItem>
-                  {(currentUserRole === "owner" || currentUserRole === "coach") && user.status === null && (
-                    <>
-                      <DropdownMenuSeparator />
-                      {(user.phone || user.cellPhone) && (
+                  {(currentUserRole === "owner" ||
+                    currentUserRole === "coach") &&
+                    user.status === null && (
+                      <>
+                        <DropdownMenuSeparator />
+                        {(user.phone || user.cellPhone) && (
+                          <DropdownMenuItem asChild>
+                            <a
+                              href={`tel:${(user.phone || user.cellPhone || "").replace(/\D/g, "")}`}
+                              className="flex items-center gap-2 cursor-pointer"
+                            >
+                              <IconPhone className="h-4 w-4" />
+                              Call
+                            </a>
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem asChild>
                           <a
-                            href={`tel:${(user.phone || user.cellPhone || "").replace(/\D/g, '')}`}
+                            href={`mailto:${user.email}`}
                             className="flex items-center gap-2 cursor-pointer"
                           >
-                            <IconPhone className="h-4 w-4" />
-                            Call
+                            <IconMail className="h-4 w-4" />
+                            Email
                           </a>
                         </DropdownMenuItem>
-                      )}
-                      <DropdownMenuItem asChild>
-                        <a
-                          href={`mailto:${user.email}`}
-                          className="flex items-center gap-2 cursor-pointer"
-                        >
-                          <IconMail className="h-4 w-4" />
-                          Email
-                        </a>
-                      </DropdownMenuItem>
-                    </>
-                  )}
+                      </>
+                    )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onClick={() => onEditRsvp(user.id, "going")}
