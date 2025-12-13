@@ -97,7 +97,7 @@ export function AppSidebar({ user, gymName, gymLogo, gymWebsite, ...props }: App
       roles: ["owner", "coach", "athlete"],
     },
     {
-      title: "Gym Settings",
+      title: "Club Settings",
       url: "/gym-settings",
       icon: IconBuilding,
       roles: ["owner"],
@@ -127,7 +127,7 @@ export function AppSidebar({ user, gymName, gymLogo, gymWebsite, ...props }: App
               <Link href="/dashboard" className="flex items-center gap-3">
                 <Avatar className="h-9 w-9 rounded-xl">
                   {gymLogo ? (
-                    <AvatarImage src={gymLogo} alt={gymName || "Gym"} />
+                    <AvatarImage src={gymLogo} alt={gymName || "Club"} />
                   ) : null}
                   <AvatarFallback className="rounded-xl bg-primary text-primary-foreground font-semibold">
                     {getGymInitials(gymName)}
@@ -150,7 +150,7 @@ export function AppSidebar({ user, gymName, gymLogo, gymWebsite, ...props }: App
               <SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton
-                    tooltip="Gym Website"
+                    tooltip="Club Website"
                     asChild
                   >
                     <a
@@ -160,7 +160,7 @@ export function AppSidebar({ user, gymName, gymLogo, gymWebsite, ...props }: App
                       className="flex items-center gap-2"
                     >
                       <IconWorldWww />
-                      <span>Gym Website</span>
+                      <span>Club Website</span>
                     </a>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

@@ -19,6 +19,13 @@ interface UserProfile {
   name: string | null;
   phone: string | null;
   address: string | null;
+  homePhone: string | null;
+  workPhone: string | null;
+  cellPhone: string | null;
+  emergencyContactName: string | null;
+  emergencyContactPhone: string | null;
+  emergencyContactRelationship: string | null;
+  emergencyContactEmail: string | null;
   avatarUrl: string | null;
   role: string;
   notifPreferences: {
@@ -47,6 +54,13 @@ export default function ProfilePage() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
+  const [homePhone, setHomePhone] = useState("");
+  const [workPhone, setWorkPhone] = useState("");
+  const [cellPhone, setCellPhone] = useState("");
+  const [emergencyContactName, setEmergencyContactName] = useState("");
+  const [emergencyContactPhone, setEmergencyContactPhone] = useState("");
+  const [emergencyContactRelationship, setEmergencyContactRelationship] = useState("");
+  const [emergencyContactEmail, setEmergencyContactEmail] = useState("");
   const [emailNotif, setEmailNotif] = useState(true);
   const [pushNotif, setPushNotif] = useState(true);
   const [reminders, setReminders] = useState(true);
@@ -111,6 +125,13 @@ export default function ProfilePage() {
       setName(data.user.name || "");
       setPhone(data.user.phone || "");
       setAddress(data.user.address || "");
+      setHomePhone(data.user.homePhone || "");
+      setWorkPhone(data.user.workPhone || "");
+      setCellPhone(data.user.cellPhone || "");
+      setEmergencyContactName(data.user.emergencyContactName || "");
+      setEmergencyContactPhone(data.user.emergencyContactPhone || "");
+      setEmergencyContactRelationship(data.user.emergencyContactRelationship || "");
+      setEmergencyContactEmail(data.user.emergencyContactEmail || "");
       setEmailNotif(data.user.notifPreferences?.email ?? true);
       setPushNotif(data.user.notifPreferences?.push ?? true);
       setReminders(data.user.notifPreferences?.reminders ?? true);
@@ -180,6 +201,13 @@ export default function ProfilePage() {
           name,
           phone,
           address,
+          homePhone,
+          workPhone,
+          cellPhone,
+          emergencyContactName,
+          emergencyContactPhone,
+          emergencyContactRelationship,
+          emergencyContactEmail,
           avatarUrl,
           notifPreferences: {
             email: emailNotif,
@@ -333,31 +361,18 @@ export default function ProfilePage() {
               <CardDescription>Update your personal details</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="name" className="text-sm">Full Name</Label>
-                  <Input
-                    id="name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="John Doe"
-                    className="rounded-xl h-11"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="phone" className="text-sm">Phone Number</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="+1 (555) 000-0000"
-                    className="rounded-xl h-11"
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="name" className="text-sm">Athlete Name</Label>
+                <Input
+                  id="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="John Doe"
+                  className="rounded-xl h-11"
+                />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="address" className="text-sm">Address</Label>
+                <Label htmlFor="address" className="text-sm">Athlete Address</Label>
                 <Input
                   id="address"
                   value={address}
@@ -366,12 +381,101 @@ export default function ProfilePage() {
                   className="rounded-xl h-11"
                 />
               </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="homePhone" className="text-sm">Home Phone Number</Label>
+                  <Input
+                    id="homePhone"
+                    type="tel"
+                    value={homePhone}
+                    onChange={(e) => setHomePhone(e.target.value)}
+                    placeholder="+1 (555) 000-0000"
+                    className="rounded-xl h-11"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="workPhone" className="text-sm">Work Phone Number</Label>
+                  <Input
+                    id="workPhone"
+                    type="tel"
+                    value={workPhone}
+                    onChange={(e) => setWorkPhone(e.target.value)}
+                    placeholder="+1 (555) 000-0000"
+                    className="rounded-xl h-11"
+                  />
+                </div>
+              </div>
               <div className="space-y-2">
-                <Label className="text-sm">Email</Label>
+                <Label htmlFor="cellPhone" className="text-sm">Cell Number</Label>
+                <Input
+                  id="cellPhone"
+                  type="tel"
+                  value={cellPhone}
+                  onChange={(e) => setCellPhone(e.target.value)}
+                  placeholder="+1 (555) 000-0000"
+                  className="rounded-xl h-11"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm">Email Address</Label>
                 <Input
                   value={profile.email}
                   disabled
                   className="rounded-xl h-11 bg-muted"
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Emergency Contact Information */}
+          <Card className="rounded-xl">
+            <CardHeader>
+              <CardTitle className="text-base">Emergency Contact</CardTitle>
+              <CardDescription>Emergency contact information</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="emergencyContactName" className="text-sm">Emergency Contact Name</Label>
+                <Input
+                  id="emergencyContactName"
+                  value={emergencyContactName}
+                  onChange={(e) => setEmergencyContactName(e.target.value)}
+                  placeholder="Jane Doe"
+                  className="rounded-xl h-11"
+                />
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="emergencyContactPhone" className="text-sm">Emergency Contact Phone</Label>
+                  <Input
+                    id="emergencyContactPhone"
+                    type="tel"
+                    value={emergencyContactPhone}
+                    onChange={(e) => setEmergencyContactPhone(e.target.value)}
+                    placeholder="+1 (555) 000-0000"
+                    className="rounded-xl h-11"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="emergencyContactRelationship" className="text-sm">Relationship to Athlete</Label>
+                  <Input
+                    id="emergencyContactRelationship"
+                    value={emergencyContactRelationship}
+                    onChange={(e) => setEmergencyContactRelationship(e.target.value)}
+                    placeholder="Parent, Guardian, etc."
+                    className="rounded-xl h-11"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="emergencyContactEmail" className="text-sm">Emergency Contact Email Address</Label>
+                <Input
+                  id="emergencyContactEmail"
+                  type="email"
+                  value={emergencyContactEmail}
+                  onChange={(e) => setEmergencyContactEmail(e.target.value)}
+                  placeholder="contact@example.com"
+                  className="rounded-xl h-11"
                 />
               </div>
             </CardContent>
@@ -415,9 +519,9 @@ export default function ProfilePage() {
                 <CardHeader>
                   <CardTitle className="text-base flex items-center gap-2">
                     <IconBuilding className="h-5 w-5" />
-                    Gym Settings
+                    Club Settings
                   </CardTitle>
-                  <CardDescription>Manage your gym information</CardDescription>
+                  <CardDescription>Manage your club information</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {/* Gym Logo Section */}
@@ -426,7 +530,7 @@ export default function ProfilePage() {
                       {gymLogoPreview || gym.logoUrl ? (
                         <img
                           src={gymLogoPreview || gym.logoUrl || ""}
-                          alt="Gym logo"
+                          alt="Club logo"
                           className="h-24 w-24 rounded-xl border-4 border-background shadow-lg object-cover"
                         />
                       ) : (
@@ -453,12 +557,12 @@ export default function ProfilePage() {
 
                   {/* Gym Name */}
                   <div className="space-y-2">
-                    <Label htmlFor="gymName" className="text-sm">Gym Name</Label>
+                    <Label htmlFor="gymName" className="text-sm">Club Name</Label>
                     <Input
                       id="gymName"
                       value={gymName}
                       onChange={(e) => setGymName(e.target.value)}
-                      placeholder="Gym Name"
+                      placeholder="Club Name"
                       className="rounded-xl h-11"
                       required
                     />

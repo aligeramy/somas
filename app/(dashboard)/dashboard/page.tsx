@@ -30,7 +30,7 @@ export default async function DashboardPage() {
   if (!dbUser || !dbUser.gymId) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center p-8">
-        <p className="text-muted-foreground">No gym associated with your account.</p>
+        <p className="text-muted-foreground">No club associated with your account.</p>
       </div>
     );
   }

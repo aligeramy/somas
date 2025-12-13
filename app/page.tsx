@@ -61,7 +61,7 @@ export default async function HomePage() {
       icon: BarChart3,
       title: "Analytics & Insights",
       description:
-        "Track attendance patterns and get insights into your gym operations.",
+        "Track attendance patterns and get insights into your club operations.",
     },
     {
       icon: Shield,
@@ -87,7 +87,7 @@ export default async function HomePage() {
               Titans of Mississauga
             </p>
             <p className="text-muted-foreground text-lg md:text-xl max-w-xl">
-              The modern platform for gym management and athlete coordination.
+              The modern platform for club management and athlete coordination.
               Streamline scheduling, communication, and team operations.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 mt-4">
@@ -109,7 +109,7 @@ export default async function HomePage() {
           <div className="mx-auto max-w-6xl">
             <div className="text-center mb-12">
               <h2 className="text-3xl font-bold tracking-tight md:text-4xl mb-4">
-                Everything you need to manage your gym
+                Everything you need to manage your club
               </h2>
               <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
                 Powerful features designed to help coaches and head coaches
@@ -146,7 +146,7 @@ export default async function HomePage() {
               Ready to get started?
             </h2>
             <p className="text-muted-foreground text-lg mb-8 max-w-2xl mx-auto">
-              Join gyms and coaches who are already using Titans of Mississauga to streamline
+              Join clubs and coaches who are already using Titans of Mississauga to streamline
               their operations and improve athlete coordination.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">

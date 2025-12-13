@@ -23,7 +23,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 
-interface GymProfile {
+interface ClubProfile {
   id: string;
   name: string;
   logoUrl: string | null;
@@ -45,19 +45,19 @@ interface Coach {
   createdAt: string;
 }
 
-export default function GymSettingsPage() {
+export default function ClubSettingsPage() {
   const supabase = createClient();
-  const [gym, setGym] = useState<GymProfile | null>(null);
+  const [club, setClub] = useState<ClubProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Gym fields
-  const [gymName, setGymName] = useState("");
-  const [gymWebsite, setGymWebsite] = useState("");
-  const [gymLogoFile, setGymLogoFile] = useState<File | null>(null);
-  const [gymLogoPreview, setGymLogoPreview] = useState<string | null>(null);
+  // Club fields
+  const [clubName, setClubName] = useState("");
+  const [clubWebsite, setClubWebsite] = useState("");
+  const [clubLogoFile, setClubLogoFile] = useState<File | null>(null);
+  const [clubLogoPreview, setClubLogoPreview] = useState<string | null>(null);
 
   // Coaches
   const [coaches, setCoaches] = useState<Coach[]>([]);
@@ -74,10 +74,10 @@ export default function GymSettingsPage() {
     onDrop: (acceptedFiles) => {
       if (acceptedFiles.length > 0) {
         const file = acceptedFiles[0];
-        setGymLogoFile(file);
+        setClubLogoFile(file);
         const reader = new FileReader();
         reader.onloadend = () => {
-          setGymLogoPreview(reader.result as string);
+          setClubLogoPreview(reader.result as string);
         };
         reader.readAsDataURL(file);
       }
@@ -99,26 +99,26 @@ export default function GymSettingsPage() {
     }
   }, []);
 
-  const loadGym = useCallback(async () => {
+  const loadClub = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch("/api/gym");
-      if (!response.ok) throw new Error("Failed to load gym");
+      const response = await fetch("/api/club");
+      if (!response.ok) throw new Error("Failed to load club");
       const data = await response.json();
-      setGym(data.gym);
-      setGymName(data.gym.name || "");
-      setGymWebsite(data.gym.website || "");
+      setClub(data.club);
+      setClubName(data.club.name || "");
+      setClubWebsite(data.club.website || "");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load gym");
+      setError(err instanceof Error ? err.message : "Failed to load club");
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    loadGym();
+    loadClub();
     loadCoaches();
-  }, [loadGym, loadCoaches]);
+  }, [loadClub, loadCoaches]);
 
 
   async function handleSave(e: React.FormEvent) {
@@ -128,22 +128,22 @@ export default function GymSettingsPage() {
     setSaving(true);
 
     try {
-      let logoUrl = gym?.logoUrl || null;
+      let logoUrl = club?.logoUrl || null;
 
-      // Upload gym logo if provided
-      if (gymLogoFile) {
+      // Upload club logo if provided
+      if (clubLogoFile) {
         const {
           data: { user: authUser },
         } = await supabase.auth.getUser();
         if (!authUser) throw new Error("Not authenticated");
 
-        const fileExt = gymLogoFile.name.split(".").pop();
+        const fileExt = clubLogoFile.name.split(".").pop();
         const fileName = `${authUser.id}-${Date.now()}.${fileExt}`;
         const filePath = `logos/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
           .from("logos")
-          .upload(filePath, gymLogoFile, {
+          .upload(filePath, clubLogoFile, {
             cacheControl: "3600",
             upsert: false,
           });
@@ -158,21 +158,21 @@ export default function GymSettingsPage() {
         logoUrl = publicUrl;
       }
 
-      const gymResponse = await fetch("/api/gym", {
+      const clubResponse = await fetch("/api/club", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: gymName,
+          name: clubName,
           logoUrl,
-          website: gymWebsite.trim() || null,
+          website: clubWebsite.trim() || null,
         }),
       });
 
-      if (!gymResponse.ok) throw new Error("Failed to save gym");
+      if (!clubResponse.ok) throw new Error("Failed to save club");
       
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
-      await loadGym(); // Reload to get updated data
+      await loadClub(); // Reload to get updated data
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save");
     } finally {
@@ -239,7 +239,7 @@ export default function GymSettingsPage() {
     );
   }
 
-  if (!gym) {
+  if (!club) {
     return (
       <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
         <PageHeader title="Club Settings" />
@@ -273,10 +273,10 @@ export default function GymSettingsPage() {
             </div>
           )}
 
-          {/* Gym Logo Section */}
+          {/* Club Logo Section */}
           <Card className="rounded-xl">
             <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
+              <CardTitle className="text-base flex items-center gap-2">
                 <IconBuilding className="h-5 w-5" />
                 Club Logo
               </CardTitle>
@@ -285,16 +285,16 @@ export default function GymSettingsPage() {
             <CardContent>
               <div className="flex items-center gap-4">
                 <div className="relative">
-                  {gymLogoPreview || gym.logoUrl ? (
+                  {clubLogoPreview || club.logoUrl ? (
                     <img
-                      src={gymLogoPreview || gym.logoUrl || ""}
+                      src={clubLogoPreview || club.logoUrl || ""}
                       alt="Club logo"
                       className="h-24 w-24 rounded-xl border-4 border-background shadow-lg object-cover"
                     />
                   ) : (
                     <div className="h-24 w-24 rounded-xl border-4 border-background shadow-lg bg-muted flex items-center justify-center">
                       <span className="text-3xl font-bold">
-                        {gymName[0]?.toUpperCase() || "G"}
+                        {clubName[0]?.toUpperCase() || "C"}
                       </span>
                     </div>
                   )}
@@ -315,7 +315,7 @@ export default function GymSettingsPage() {
             </CardContent>
           </Card>
 
-          {/* Gym Information */}
+          {/* Club Information */}
           <Card className="rounded-xl">
             <CardHeader>
               <CardTitle className="text-base">Club Information</CardTitle>
@@ -323,23 +323,23 @@ export default function GymSettingsPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="gymName" className="text-sm">Club Name</Label>
+                <Label htmlFor="clubName" className="text-sm">Club Name</Label>
                 <Input
-                  id="gymName"
-                  value={gymName}
-                  onChange={(e) => setGymName(e.target.value)}
+                  id="clubName"
+                  value={clubName}
+                  onChange={(e) => setClubName(e.target.value)}
                   placeholder="Club Name"
                   className="rounded-xl h-11"
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="gymWebsite" className="text-sm">Website</Label>
+                <Label htmlFor="clubWebsite" className="text-sm">Website</Label>
                 <Input
-                  id="gymWebsite"
+                  id="clubWebsite"
                   type="url"
-                  value={gymWebsite}
-                  onChange={(e) => setGymWebsite(e.target.value)}
+                  value={clubWebsite}
+                  onChange={(e) => setClubWebsite(e.target.value)}
                   placeholder="https://example.com"
                   className="rounded-xl h-11"
                 />

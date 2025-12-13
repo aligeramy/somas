@@ -112,9 +112,9 @@ export default function HelpPage() {
                     <IconBuilding className="h-4 w-4 text-purple-600 dark:text-purple-400" />
                   </div>
                   <div className="space-y-1">
-                    <h3 className="font-medium text-sm">Gym Settings (Head Coaches Only)</h3>
+                    <h3 className="font-medium text-sm">Club Settings (Head Coaches Only)</h3>
                     <p className="text-sm text-muted-foreground">
-                      Configure your gym's information, logo, and other settings.
+                      Configure your club's information, logo, and other settings.
                     </p>
                   </div>
                 </div>
@@ -184,7 +184,7 @@ export default function HelpPage() {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground">
-                If you need additional assistance or have questions not covered here, please contact your gym administrator 
+                If you need additional assistance or have questions not covered here, please contact your club administrator 
                 or reach out to support through your organization's preferred channel.
               </p>
             </CardContent>

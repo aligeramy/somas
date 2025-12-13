@@ -28,7 +28,25 @@ export async function GET(
     }
 
     const [member] = await db
-      .select()
+      .select({
+        id: users.id,
+        email: users.email,
+        name: users.name,
+        phone: users.phone,
+        address: users.address,
+        homePhone: users.homePhone,
+        workPhone: users.workPhone,
+        cellPhone: users.cellPhone,
+        emergencyContactName: users.emergencyContactName,
+        emergencyContactPhone: users.emergencyContactPhone,
+        emergencyContactRelationship: users.emergencyContactRelationship,
+        emergencyContactEmail: users.emergencyContactEmail,
+        role: users.role,
+        avatarUrl: users.avatarUrl,
+        onboarded: users.onboarded,
+        createdAt: users.createdAt,
+        updatedAt: users.updatedAt,
+      })
       .from(users)
       .where(and(eq(users.id, id), eq(users.gymId, dbUser.gymId)))
       .limit(1);
@@ -83,7 +101,19 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const { name, phone, address, role } = body;
+    const { 
+      name, 
+      phone, 
+      address, 
+      homePhone,
+      workPhone,
+      cellPhone,
+      emergencyContactName,
+      emergencyContactPhone,
+      emergencyContactRelationship,
+      emergencyContactEmail,
+      role 
+    } = body;
 
     // Validate role change
     if (role) {
@@ -104,6 +134,13 @@ export async function PUT(
         name: name ?? undefined,
         phone: phone ?? undefined,
         address: address ?? undefined,
+        homePhone: homePhone ?? undefined,
+        workPhone: workPhone ?? undefined,
+        cellPhone: cellPhone ?? undefined,
+        emergencyContactName: emergencyContactName ?? undefined,
+        emergencyContactPhone: emergencyContactPhone ?? undefined,
+        emergencyContactRelationship: emergencyContactRelationship ?? undefined,
+        emergencyContactEmail: emergencyContactEmail ?? undefined,
         role: role ?? undefined,
         updatedAt: new Date(),
       })

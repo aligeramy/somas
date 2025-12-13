@@ -181,7 +181,7 @@ export function MobileBottomNav({ userRole, gymWebsite }: MobileBottomNavProps) 
                   )}
                 >
                   <IconWorldWww className="h-5 w-5" />
-                  <span className="font-medium">Gym Website</span>
+                  <span className="font-medium">Club Website</span>
                 </a>
               )}
             </div>

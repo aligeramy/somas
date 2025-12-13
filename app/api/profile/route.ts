@@ -32,6 +32,13 @@ export async function GET() {
         name: dbUser.name,
         phone: dbUser.phone,
         address: dbUser.address,
+        homePhone: dbUser.homePhone,
+        workPhone: dbUser.workPhone,
+        cellPhone: dbUser.cellPhone,
+        emergencyContactName: dbUser.emergencyContactName,
+        emergencyContactPhone: dbUser.emergencyContactPhone,
+        emergencyContactRelationship: dbUser.emergencyContactRelationship,
+        emergencyContactEmail: dbUser.emergencyContactEmail,
         avatarUrl: dbUser.avatarUrl,
         role: dbUser.role,
         notifPreferences: dbUser.notifPreferences || {},
@@ -58,7 +65,20 @@ export async function PUT(request: Request) {
     }
 
     const body = await request.json();
-    const { name, phone, address, notifPreferences, avatarUrl } = body;
+    const { 
+      name, 
+      phone, 
+      address, 
+      homePhone,
+      workPhone,
+      cellPhone,
+      emergencyContactName,
+      emergencyContactPhone,
+      emergencyContactRelationship,
+      emergencyContactEmail,
+      notifPreferences, 
+      avatarUrl 
+    } = body;
 
     const [updatedUser] = await db
       .update(users)
@@ -66,6 +86,13 @@ export async function PUT(request: Request) {
         name: name || null,
         phone: phone || null,
         address: address || null,
+        homePhone: homePhone || null,
+        workPhone: workPhone || null,
+        cellPhone: cellPhone || null,
+        emergencyContactName: emergencyContactName || null,
+        emergencyContactPhone: emergencyContactPhone || null,
+        emergencyContactRelationship: emergencyContactRelationship || null,
+        emergencyContactEmail: emergencyContactEmail || null,
         avatarUrl: avatarUrl !== undefined ? (avatarUrl || null) : undefined,
         notifPreferences: notifPreferences || {},
         updatedAt: new Date(),
@@ -80,6 +107,13 @@ export async function PUT(request: Request) {
         name: updatedUser.name,
         phone: updatedUser.phone,
         address: updatedUser.address,
+        homePhone: updatedUser.homePhone,
+        workPhone: updatedUser.workPhone,
+        cellPhone: updatedUser.cellPhone,
+        emergencyContactName: updatedUser.emergencyContactName,
+        emergencyContactPhone: updatedUser.emergencyContactPhone,
+        emergencyContactRelationship: updatedUser.emergencyContactRelationship,
+        emergencyContactEmail: updatedUser.emergencyContactEmail,
         avatarUrl: updatedUser.avatarUrl,
         role: updatedUser.role,
         notifPreferences: updatedUser.notifPreferences,

@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Titans of Mississauga",
-  description: "Gym management and athlete coordination platform",
+  description: "Club management and athlete coordination platform",
 };
 
 export default function RootLayout({

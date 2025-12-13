@@ -133,8 +133,8 @@ export function LoginForm({
           </form>
           <div className="bg-muted relative hidden md:block overflow-hidden aspect-[3/4]">
             <Image
-              src="/portrait.png"
-              alt="Gym background"
+              src="/portrait.jpg"
+              alt="Club background"
               fill
               className="object-cover object-center"
               sizes="(max-width: 768px) 0vw, 50vw"

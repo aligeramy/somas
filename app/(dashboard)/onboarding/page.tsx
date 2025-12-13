@@ -103,9 +103,9 @@ export default function OnboardingPage() {
     <div className="flex min-h-screen items-center justify-center p-6">
       <Card className="w-full max-w-2xl">
         <CardHeader>
-          <CardTitle>Complete Your Gym Setup</CardTitle>
+          <CardTitle>Complete Your Club Setup</CardTitle>
           <CardDescription>
-            Set up your gym profile to get started with Titans of Mississauga
+            Set up your club profile to get started with Titans of Mississauga
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -117,12 +117,12 @@ export default function OnboardingPage() {
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="gymName">Gym Name *</Label>
+              <Label htmlFor="gymName">Club Name *</Label>
               <Input
                 id="gymName"
                 value={gymName}
                 onChange={(e) => setGymName(e.target.value)}
-                placeholder="Enter your gym name"
+                placeholder="Enter your club name"
                 required
               />
             </div>

@@ -8,7 +8,9 @@ import {
   IconPlus,
   IconTrash,
   IconUpload,
+  IconArrowRight,
 } from "@tabler/icons-react";
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { PageHeader } from "@/components/page-header";
@@ -56,6 +58,13 @@ interface User {
   name: string | null;
   phone: string | null;
   address: string | null;
+  homePhone?: string | null;
+  workPhone?: string | null;
+  cellPhone?: string | null;
+  emergencyContactName?: string | null;
+  emergencyContactPhone?: string | null;
+  emergencyContactRelationship?: string | null;
+  emergencyContactEmail?: string | null;
   role: "owner" | "coach" | "athlete";
   avatarUrl: string | null;
   onboarded: boolean;
@@ -87,6 +96,13 @@ export default function RosterPage() {
     name: "",
     phone: "",
     address: "",
+    homePhone: "",
+    workPhone: "",
+    cellPhone: "",
+    emergencyContactName: "",
+    emergencyContactPhone: "",
+    emergencyContactRelationship: "",
+    emergencyContactEmail: "",
     role: "",
   });
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -229,6 +245,13 @@ export default function RosterPage() {
       name: member.name || "",
       phone: member.phone || "",
       address: member.address || "",
+      homePhone: member.homePhone || "",
+      workPhone: member.workPhone || "",
+      cellPhone: member.cellPhone || "",
+      emergencyContactName: member.emergencyContactName || "",
+      emergencyContactPhone: member.emergencyContactPhone || "",
+      emergencyContactRelationship: member.emergencyContactRelationship || "",
+      emergencyContactEmail: member.emergencyContactEmail || "",
       role: member.role,
     });
     setIsEditDialogOpen(true);
@@ -245,6 +268,13 @@ export default function RosterPage() {
       const updateData = editingMember.role === "owner" 
         ? restForm 
         : { ...restForm, role };
+      
+      // Convert empty strings to null for optional fields
+      Object.keys(updateData).forEach(key => {
+        if (updateData[key as keyof typeof updateData] === "") {
+          updateData[key as keyof typeof updateData] = null as any;
+        }
+      });
 
       const response = await fetch(`/api/roster/${editingMember.id}`, {
         method: "PUT",
@@ -513,7 +543,10 @@ export default function RosterPage() {
                       key={member.id}
                       className="flex items-center justify-between p-3 rounded-xl hover:bg-muted/50 transition-colors group"
                     >
-                      <div className="flex items-center gap-3">
+                      <Link
+                        href={`/roster/${member.id}`}
+                        className="flex items-center gap-3 flex-1 cursor-pointer"
+                      >
                         <Avatar className="h-12 w-12 rounded-xl">
                           <AvatarImage
                             src={member.avatarUrl || undefined}
@@ -525,7 +558,7 @@ export default function RosterPage() {
                               : member.email.charAt(0)}
                           </AvatarFallback>
                         </Avatar>
-                        <div>
+                        <div className="flex-1">
                           <p className="font-medium">
                             {member.name || "Unnamed"}
                           </p>
@@ -542,7 +575,8 @@ export default function RosterPage() {
                             )}
                           </div>
                         </div>
-                      </div>
+                        <IconArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </Link>
                       <div className="flex items-center gap-2">
                         <Badge
                           variant={
@@ -572,6 +606,7 @@ export default function RosterPage() {
                                   variant="ghost"
                                   size="icon"
                                   className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  onClick={(e) => e.stopPropagation()}
                                 >
                                   <IconDotsVertical className="h-4 w-4" />
                                 </Button>
@@ -581,7 +616,10 @@ export default function RosterPage() {
                                 className="rounded-xl"
                               >
                                 <DropdownMenuItem
-                                  onClick={() => openEditDialog(member)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openEditDialog(member);
+                                  }}
                                   className="gap-2"
                                 >
                                   <IconEdit className="h-4 w-4" />
@@ -591,7 +629,10 @@ export default function RosterPage() {
                                   <>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem
-                                      onClick={() => openDeleteDialog(member)}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        openDeleteDialog(member);
+                                      }}
                                       className="gap-2 text-destructive focus:text-destructive"
                                     >
                                       <IconTrash className="h-4 w-4" />
@@ -622,78 +663,151 @@ export default function RosterPage() {
               Update {editingMember?.name || editingMember?.email}'s information
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            {error && (
-              <div className="bg-destructive/10 text-destructive rounded-xl p-3 text-sm">
-                {error}
-              </div>
-            )}
-            <div className="space-y-2">
-              <Label>Name</Label>
-              <Input
-                value={editForm.name}
-                onChange={(e) =>
-                  setEditForm({ ...editForm, name: e.target.value })
-                }
-                placeholder="Full name"
-                className="h-11 rounded-xl"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Phone</Label>
-              <Input
-                value={editForm.phone}
-                onChange={(e) =>
-                  setEditForm({ ...editForm, phone: e.target.value })
-                }
-                placeholder="Phone number"
-                className="h-11 rounded-xl"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Address</Label>
-              <Input
-                value={editForm.address}
-                onChange={(e) =>
-                  setEditForm({ ...editForm, address: e.target.value })
-                }
-                placeholder="Address"
-                className="h-11 rounded-xl"
-              />
-            </div>
-            {isOwner && editingMember?.role !== "owner" && (
+          <ScrollArea className="max-h-[70vh]">
+            <div className="space-y-4 py-4 pr-4">
+              {error && (
+                <div className="bg-destructive/10 text-destructive rounded-xl p-3 text-sm">
+                  {error}
+                </div>
+              )}
               <div className="space-y-2">
-                <Label>Role</Label>
-                <Select
-                  value={editForm.role}
-                  onValueChange={(value) =>
-                    setEditForm({ ...editForm, role: value })
-                  }
-                >
-                  <SelectTrigger className="h-11 rounded-xl">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl">
-                    <SelectItem value="athlete">Athlete</SelectItem>
-                    <SelectItem value="coach">Coach</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-            {editingMember?.role === "owner" && (
-              <div className="space-y-2">
-                <Label>Role</Label>
+                <Label>Athlete Name</Label>
                 <Input
-                  value="Head Coach"
-                  disabled
-                  className="h-11 rounded-xl bg-muted"
+                  value={editForm.name}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, name: e.target.value })
+                  }
+                  placeholder="Full name"
+                  className="h-11 rounded-xl"
                 />
-                <p className="text-xs text-muted-foreground">
-                  Head Coach role cannot be changed
-                </p>
               </div>
-            )}
-          </div>
+              <div className="space-y-2">
+                <Label>Athlete Address</Label>
+                <Input
+                  value={editForm.address}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, address: e.target.value })
+                  }
+                  placeholder="Address"
+                  className="h-11 rounded-xl"
+                />
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Home Phone Number</Label>
+                  <Input
+                    value={editForm.homePhone}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, homePhone: e.target.value })
+                    }
+                    placeholder="Home phone"
+                    className="h-11 rounded-xl"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Work Phone Number</Label>
+                  <Input
+                    value={editForm.workPhone}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, workPhone: e.target.value })
+                    }
+                    placeholder="Work phone"
+                    className="h-11 rounded-xl"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Cell Number</Label>
+                <Input
+                  value={editForm.cellPhone}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, cellPhone: e.target.value })
+                  }
+                  placeholder="Cell phone"
+                  className="h-11 rounded-xl"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Emergency Contact Name</Label>
+                <Input
+                  value={editForm.emergencyContactName}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, emergencyContactName: e.target.value })
+                  }
+                  placeholder="Emergency contact name"
+                  className="h-11 rounded-xl"
+                />
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Emergency Contact Phone</Label>
+                  <Input
+                    value={editForm.emergencyContactPhone}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, emergencyContactPhone: e.target.value })
+                    }
+                    placeholder="Emergency contact phone"
+                    className="h-11 rounded-xl"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Relationship to Athlete</Label>
+                  <Input
+                    value={editForm.emergencyContactRelationship}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, emergencyContactRelationship: e.target.value })
+                    }
+                    placeholder="Parent, Guardian, etc."
+                    className="h-11 rounded-xl"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Emergency Contact Email Address</Label>
+                <Input
+                  type="email"
+                  value={editForm.emergencyContactEmail}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, emergencyContactEmail: e.target.value })
+                  }
+                  placeholder="Emergency contact email"
+                  className="h-11 rounded-xl"
+                />
+              </div>
+              {isOwner && editingMember?.role !== "owner" && (
+                <div className="space-y-2">
+                  <Label>Role</Label>
+                  <Select
+                    value={editForm.role}
+                    onValueChange={(value) =>
+                      setEditForm({ ...editForm, role: value })
+                    }
+                  >
+                    <SelectTrigger className="h-11 rounded-xl">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl">
+                      <SelectItem value="athlete">Athlete</SelectItem>
+                      <SelectItem value="coach">Coach</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              {editingMember?.role === "owner" && (
+                <div className="space-y-2">
+                  <Label>Role</Label>
+                  <Input
+                    value="Head Coach"
+                    disabled
+                    className="h-11 rounded-xl bg-muted"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Head Coach role cannot be changed
+                  </p>
+                </div>
+              )}
+            </div>
+          </ScrollArea>
           <DialogFooter>
             <Button
               variant="outline"
