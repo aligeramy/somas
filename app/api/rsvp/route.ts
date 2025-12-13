@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { db } from "@/lib/db";
 import { users, rsvps, eventOccurrences, events } from "@/drizzle/schema";
-import { eq, and, asc, gte, lte, desc } from "drizzle-orm";
+import { eq, and, or, asc, gte, lte, desc, inArray } from "drizzle-orm";
 
 export async function POST(request: Request) {
   try {
@@ -137,6 +137,9 @@ export async function GET(request: Request) {
           name: users.name,
           email: users.email,
           avatarUrl: users.avatarUrl,
+          role: users.role,
+          phone: users.phone,
+          cellPhone: users.cellPhone,
         },
       })
         .from(rsvps)
@@ -149,6 +152,92 @@ export async function GET(request: Request) {
       }));
 
       return NextResponse.json({ rsvps: formattedRsvps });
+    }
+
+    // Get summary counts for multiple occurrences (for athlete view or owner/coach view)
+    const summaryOccurrences = searchParams.get("summaryOccurrences");
+    if (summaryOccurrences) {
+      const occurrenceIds = summaryOccurrences.split(",");
+      
+      // For owner/coach, filter by gymId for security
+      let rsvpsList;
+      if (dbUser.role === "owner" || dbUser.role === "coach") {
+        if (!dbUser.gymId) {
+          return NextResponse.json({ error: "User must belong to a gym" }, { status: 400 });
+        }
+        // Get all RSVPs for these occurrences, filtered by gymId
+        rsvpsList = await db.select({
+          occurrenceId: rsvps.occurrenceId,
+          status: rsvps.status,
+          userId: users.id,
+          userName: users.name,
+          userAvatarUrl: users.avatarUrl,
+          userRole: users.role,
+        })
+          .from(rsvps)
+          .innerJoin(users, eq(rsvps.userId, users.id))
+          .innerJoin(eventOccurrences, eq(rsvps.occurrenceId, eventOccurrences.id))
+          .innerJoin(events, eq(eventOccurrences.eventId, events.id))
+          .where(
+            and(
+              inArray(rsvps.occurrenceId, occurrenceIds),
+              eq(events.gymId, dbUser.gymId),
+              or(eq(rsvps.status, "going"), eq(rsvps.status, "not_going"))
+            )
+          );
+      } else {
+        // For athletes, just filter by occurrenceIds
+        rsvpsList = await db.select({
+          occurrenceId: rsvps.occurrenceId,
+          status: rsvps.status,
+          userId: users.id,
+          userName: users.name,
+          userAvatarUrl: users.avatarUrl,
+          userRole: users.role,
+        })
+          .from(rsvps)
+          .innerJoin(users, eq(rsvps.userId, users.id))
+          .where(
+            and(
+              inArray(rsvps.occurrenceId, occurrenceIds),
+              or(eq(rsvps.status, "going"), eq(rsvps.status, "not_going"))
+            )
+          );
+      }
+
+      // Group by occurrence
+      const summaryMap: Record<string, { 
+        goingCount: number; 
+        notGoingCount: number;
+        coaches: Array<{ id: string; name: string | null; avatarUrl: string | null }> 
+      }> = {};
+      
+      for (const occId of occurrenceIds) {
+        summaryMap[occId] = { goingCount: 0, notGoingCount: 0, coaches: [] };
+      }
+      
+      for (const rsvp of rsvpsList) {
+        if (summaryMap[rsvp.occurrenceId]) {
+          // Count athletes separately for going and not going
+          if (rsvp.userRole === "athlete") {
+            if (rsvp.status === "going") {
+              summaryMap[rsvp.occurrenceId].goingCount++;
+            } else if (rsvp.status === "not_going") {
+              summaryMap[rsvp.occurrenceId].notGoingCount++;
+            }
+          }
+          // For athlete view, include coaches
+          if (dbUser.role === "athlete" && (rsvp.userRole === "coach" || rsvp.userRole === "owner") && rsvp.status === "going") {
+            summaryMap[rsvp.occurrenceId].coaches.push({
+              id: rsvp.userId,
+              name: rsvp.userName,
+              avatarUrl: rsvp.userAvatarUrl,
+            });
+          }
+        }
+      }
+
+      return NextResponse.json({ summary: summaryMap });
     }
 
     // If owner or coach, get all RSVPs for their gym
@@ -192,6 +281,7 @@ export async function GET(request: Request) {
           name: users.name,
           email: users.email,
           avatarUrl: users.avatarUrl,
+          role: users.role,
         },
         occurrence: eventOccurrences,
         event: events,

@@ -43,32 +43,41 @@ export async function GET(request: Request) {
     }
 
     // Additional security check: verify user has access to this channel type
+    // Owners and coaches have access to all channels in their gym
+    const isOwnerOrCoach = dbUser.role === "owner" || dbUser.role === "coach";
+    
     if (channel.type === "global") {
       // Global channels are accessible to all gym members - already verified above
     } else if (channel.type === "dm") {
-      // For DM channels: check if user has sent messages OR channel name matches user's name/email
-      const userHasMessages = await db
-        .select()
-        .from(messages)
-        .where(and(eq(messages.channelId, channelId), eq(messages.senderId, user.id)))
-        .limit(1);
-      
-      const channelNameMatchesUser = 
-        channel.name === (dbUser.name || dbUser.email);
-      
-      if (userHasMessages.length === 0 && !channelNameMatchesUser) {
-        return NextResponse.json({ error: "Access denied" }, { status: 403 });
+      // Owners and coaches can access all DM channels
+      if (!isOwnerOrCoach) {
+        // For athletes: check if user has sent messages OR channel name matches user's name/email
+        const userHasMessages = await db
+          .select()
+          .from(messages)
+          .where(and(eq(messages.channelId, channelId), eq(messages.senderId, user.id)))
+          .limit(1);
+        
+        const channelNameMatchesUser = 
+          channel.name === (dbUser.name || dbUser.email);
+        
+        if (userHasMessages.length === 0 && !channelNameMatchesUser) {
+          return NextResponse.json({ error: "Access denied" }, { status: 403 });
+        }
       }
     } else if (channel.type === "group") {
-      // For group channels: check if user has sent messages
-      const userHasMessages = await db
-        .select()
-        .from(messages)
-        .where(and(eq(messages.channelId, channelId), eq(messages.senderId, user.id)))
-        .limit(1);
-      
-      if (userHasMessages.length === 0) {
-        return NextResponse.json({ error: "Access denied" }, { status: 403 });
+      // Owners and coaches can access all group channels
+      if (!isOwnerOrCoach) {
+        // For athletes: check if user has sent messages
+        const userHasMessages = await db
+          .select()
+          .from(messages)
+          .where(and(eq(messages.channelId, channelId), eq(messages.senderId, user.id)))
+          .limit(1);
+        
+        if (userHasMessages.length === 0) {
+          return NextResponse.json({ error: "Access denied" }, { status: 403 });
+        }
       }
     }
 
@@ -154,34 +163,36 @@ export async function POST(request: Request) {
     }
 
     // Additional security check: verify user has access to this channel type
+    // Owners and coaches have access to all channels in their gym
+    const isOwnerOrCoach = dbUser.role === "owner" || dbUser.role === "coach";
+    
     if (channel.type === "global") {
       // Global channels are accessible to all gym members - already verified above
     } else if (channel.type === "dm") {
-      // For DM channels: check if user has sent messages OR channel name matches user's name/email
-      const userHasMessages = await db
-        .select()
-        .from(messages)
-        .where(and(eq(messages.channelId, channelId), eq(messages.senderId, user.id)))
-        .limit(1);
-      
-      const channelNameMatchesUser = 
-        channel.name === (dbUser.name || dbUser.email);
-      
-      if (userHasMessages.length === 0 && !channelNameMatchesUser) {
-        console.log("[POST /api/chat/messages] Access denied to DM channel:", { channelId, channelName: channel.name, userName: dbUser.name, userEmail: dbUser.email });
-        return NextResponse.json({ error: "Access denied" }, { status: 403 });
+      // Owners and coaches can access all DM channels
+      if (!isOwnerOrCoach) {
+        // For athletes: check if user has sent messages OR channel name matches user's name/email
+        const userHasMessages = await db
+          .select()
+          .from(messages)
+          .where(and(eq(messages.channelId, channelId), eq(messages.senderId, user.id)))
+          .limit(1);
+        
+        const channelNameMatchesUser = 
+          channel.name === (dbUser.name || dbUser.email);
+        
+        if (userHasMessages.length === 0 && !channelNameMatchesUser) {
+          console.log("[POST /api/chat/messages] Access denied to DM channel:", { channelId, channelName: channel.name, userName: dbUser.name, userEmail: dbUser.email });
+          return NextResponse.json({ error: "Access denied" }, { status: 403 });
+        }
       }
     } else if (channel.type === "group") {
-      // For group channels: check if user has sent messages
-      const userHasMessages = await db
-        .select()
-        .from(messages)
-        .where(and(eq(messages.channelId, channelId), eq(messages.senderId, user.id)))
-        .limit(1);
-      
-      if (userHasMessages.length === 0) {
-        console.log("[POST /api/chat/messages] Access denied to group channel:", { channelId });
-        return NextResponse.json({ error: "Access denied" }, { status: 403 });
+      // Owners and coaches can access all group channels
+      // For POST requests: allow all gym members to send messages (sending is how you join a group)
+      // The GET handler will still restrict reading messages until they've participated
+      if (!isOwnerOrCoach) {
+        // Allow sending - this is how users join group channels
+        // No need to check for previous messages since sending the first message grants access
       }
     }
 

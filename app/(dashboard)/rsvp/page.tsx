@@ -10,6 +10,7 @@ import {
 } from "@tabler/icons-react";
 import { useCallback, useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -54,6 +55,7 @@ interface RSVP {
     name: string | null;
     email: string;
     avatarUrl: string | null;
+    role?: string;
   };
 }
 
@@ -70,6 +72,11 @@ interface RosterMember {
   role: string;
 }
 
+interface OccurrenceSummary {
+  goingCount: number;
+  coaches: Array<{ id: string; name: string | null; avatarUrl: string | null }>;
+}
+
 export default function RSVPPage() {
   const router = useRouter();
   const [events, setEvents] = useState<EventOccurrence[]>([]);
@@ -82,6 +89,7 @@ export default function RSVPPage() {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState<"month" | "year">("month");
+  const [occurrenceSummaries, setOccurrenceSummaries] = useState<Record<string, OccurrenceSummary>>({});
 
   const loadData = useCallback(async () => {
     try {
@@ -176,6 +184,19 @@ export default function RSVPPage() {
     }
   }, []);
 
+  const loadOccurrenceSummaries = useCallback(async (occurrenceIds: string[]) => {
+    if (occurrenceIds.length === 0) return;
+    try {
+      const response = await fetch(`/api/rsvp?summaryOccurrences=${occurrenceIds.join(",")}`);
+      if (response.ok) {
+        const data = await response.json();
+        setOccurrenceSummaries(data.summary || {});
+      }
+    } catch (err) {
+      console.error("Failed to load occurrence summaries:", err);
+    }
+  }, []);
+
   useEffect(() => {
     loadData();
   }, [loadData]);
@@ -191,6 +212,14 @@ export default function RSVPPage() {
   useEffect(() => {
     loadHistoricalData();
   }, [loadHistoricalData]);
+
+  // Load occurrence summaries for athletes
+  useEffect(() => {
+    if (userInfo?.role === "athlete" && events.length > 0) {
+      const occurrenceIds = events.map((e) => e.id);
+      loadOccurrenceSummaries(occurrenceIds);
+    }
+  }, [userInfo, events, loadOccurrenceSummaries]);
 
   async function handleRSVP(
     occurrenceId: string,
@@ -496,14 +525,25 @@ export default function RSVPPage() {
                     const notGoing = occRsvps.filter(
                       (r) => r.status === "not_going",
                     );
+                    // Filter coaches from going RSVPs
+                    const goingCoaches = going.filter(
+                      (r) => r.user?.role === "coach" || r.user?.role === "owner"
+                    );
+                    // Count athletes going
+                    const goingAthletes = going.filter(
+                      (r) => r.user?.role === "athlete"
+                    );
                     const isCanceled = occ.status === "canceled";
                     const dateInfo = formatDate(occ.date);
 
                     return (
-                      <div
+                      <Link
                         key={occ.id}
-                        className={`flex items-center gap-4 p-4 rounded-xl border hover:bg-muted/30 transition-colors ${
-                          isCanceled ? "opacity-50" : ""
+                        href={isCanceled ? "#" : `/events?eventId=${occ.event.id}&occurrenceId=${occ.id}`}
+                        className={`flex items-center gap-4 p-4 rounded-xl border transition-colors ${
+                          isCanceled 
+                            ? "opacity-50 cursor-default" 
+                            : "hover:bg-muted/30 cursor-pointer"
                         }`}
                       >
                         <div className="h-16 w-16 rounded-xl bg-muted flex flex-col items-center justify-center shrink-0">
@@ -543,41 +583,39 @@ export default function RSVPPage() {
                               {formatTime(occ.event.startTime)}
                             </span>
                           </div>
+                          {/* Coaches and athletes */}
+                          {(goingCoaches.length > 0 || goingAthletes.length > 0) && (
+                            <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                              {goingCoaches.map((r) => (
+                                <Badge
+                                  key={r.id}
+                                  variant="secondary"
+                                  className="text-[10px] rounded-md flex items-center gap-1"
+                                >
+                                  <IconCheck className="h-3 w-3" />
+                                  {r.user?.name || r.user?.email}
+                                </Badge>
+                              ))}
+                              {goingCoaches.length > 0 && goingAthletes.length > 0 && (
+                                <span className="text-muted-foreground">•</span>
+                              )}
+                              {goingAthletes.length > 0 && (
+                                <span className="text-sm text-emerald-600 font-medium">
+                                  {goingAthletes.length} GOING
+                                </span>
+                              )}
+                            </div>
+                          )}
                         </div>
                         <div className="flex items-center gap-3">
-                          <div className="flex -space-x-2">
-                            {going.slice(0, 4).map((r) => (
-                              <Avatar
-                                key={r.id}
-                                className="h-8 w-8 rounded-xl border border-background"
-                              >
-                                <AvatarImage src={r.user?.avatarUrl || undefined} />
-                                <AvatarFallback className="rounded-xl text-[10px] bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300">
-                                  {getInitials(
-                                    r.user?.name || null,
-                                    r.user?.email || "",
-                                  )}
-                                </AvatarFallback>
-                              </Avatar>
-                            ))}
-                            {going.length > 4 && (
-                              <div className="h-8 w-8 rounded-xl bg-muted flex items-center justify-center text-xs font-medium border border-background">
-                                +{going.length - 4}
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2 text-sm">
-                            <span className="flex items-center gap-1 text-emerald-600">
-                              <IconCheck className="h-4 w-4" />
-                              {going.length}
-                            </span>
-                            <span className="flex items-center gap-1 text-muted-foreground">
+                          {notGoing.length > 0 && (
+                            <div className="flex items-center gap-1 text-sm text-muted-foreground">
                               <IconX className="h-4 w-4" />
                               {notGoing.length}
-                            </span>
-                          </div>
+                            </div>
+                          )}
                         </div>
-                      </div>
+                      </Link>
                     );
                   })
                 )}
@@ -595,7 +633,7 @@ export default function RSVPPage() {
                       setSelectedUserId(value === "all" ? null : value)
                     }
                   >
-                    <SelectTrigger className="w-[200px]">
+                    <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select person" />
                     </SelectTrigger>
                     <SelectContent>
@@ -656,7 +694,7 @@ export default function RSVPPage() {
                             setTimeRange(value)
                           }
                         >
-                          <SelectTrigger className="w-[120px]">
+                          <SelectTrigger className="w-full">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -880,67 +918,108 @@ export default function RSVPPage() {
                         isCanceled ? "opacity-50" : "hover:bg-muted/30"
                       }`}
                     >
-                      <div
-                        className={`h-16 w-16 rounded-xl flex flex-col items-center justify-center shrink-0 ${
-                          rsvpStatus === "going"
-                            ? "bg-emerald-100 dark:bg-emerald-950/50"
-                            : rsvpStatus === "not_going"
-                              ? "bg-red-100 dark:bg-red-950/50"
-                              : "bg-muted"
-                        }`}
+                      <Link
+                        href={isCanceled ? "#" : `/events?eventId=${occ.event.id}&occurrenceId=${occ.id}`}
+                        className="flex items-center gap-4 flex-1 min-w-0"
+                        onClick={(e) => {
+                          // Prevent navigation if clicking on buttons or badges
+                          const target = e.target as HTMLElement;
+                          if (target.closest('button') || target.closest('[role="button"]')) {
+                            e.preventDefault();
+                          }
+                        }}
                       >
-                        <span
-                          className={`text-2xl font-bold leading-none ${
+                        <div
+                          className={`h-16 w-16 rounded-xl flex flex-col items-center justify-center shrink-0 ${
                             rsvpStatus === "going"
-                              ? "text-emerald-600 dark:text-emerald-400"
+                              ? "bg-emerald-100 dark:bg-emerald-950/50"
                               : rsvpStatus === "not_going"
-                                ? "text-red-600 dark:text-red-400"
-                                : ""
+                                ? "bg-red-100 dark:bg-red-950/50"
+                                : "bg-muted"
                           }`}
                         >
-                          {dateInfo.day}
-                        </span>
-                        <span className="text-[10px] font-medium text-muted-foreground mt-0.5">
-                          {dateInfo.month}
-                        </span>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium">{occ.event.title}</p>
-                          {dateInfo.relative && (
-                            <Badge
-                              variant="secondary"
-                              className="text-[10px] rounded-md"
-                            >
-                              {dateInfo.relative}
-                            </Badge>
-                          )}
-                          {isCanceled && (
-                            <Badge
-                              variant="destructive"
-                              className="text-[10px] rounded-md"
-                            >
-                              Canceled
-                            </Badge>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
-                          <span className="whitespace-nowrap">
-                            {dateInfo.weekday}
+                          <span
+                            className={`text-2xl font-bold leading-none ${
+                              rsvpStatus === "going"
+                                ? "text-emerald-600 dark:text-emerald-400"
+                                : rsvpStatus === "not_going"
+                                  ? "text-red-600 dark:text-red-400"
+                                  : ""
+                            }`}
+                          >
+                            {dateInfo.day}
                           </span>
-                          <span className="flex items-center gap-1">
-                            <IconClock className="h-3 w-3" />
-                            {formatTime(occ.event.startTime)} -{" "}
-                            {formatTime(occ.event.endTime)}
+                          <span className="text-[10px] font-medium text-muted-foreground mt-0.5">
+                            {dateInfo.month}
                           </span>
                         </div>
-                      </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium">{occ.event.title}</p>
+                            {dateInfo.relative && (
+                              <Badge
+                                variant="secondary"
+                                className="text-[10px] rounded-md"
+                              >
+                                {dateInfo.relative}
+                              </Badge>
+                            )}
+                            {isCanceled && (
+                              <Badge
+                                variant="destructive"
+                                className="text-[10px] rounded-md"
+                              >
+                                Canceled
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
+                            <span className="whitespace-nowrap">
+                              {dateInfo.weekday}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <IconClock className="h-3 w-3" />
+                              {formatTime(occ.event.startTime)} -{" "}
+                              {formatTime(occ.event.endTime)}
+                            </span>
+                          </div>
+                          {/* Attendance summary - count and coach badges */}
+                          {occurrenceSummaries[occ.id] && (
+                            <div className="flex items-center gap-2 mt-2 flex-wrap">
+                              <span className="text-xs text-emerald-600 font-medium">
+                                {occurrenceSummaries[occ.id].goingCount} going
+                              </span>
+                              {occurrenceSummaries[occ.id].coaches.length > 0 && (
+                                <>
+                                  <span className="text-xs text-muted-foreground">•</span>
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    {occurrenceSummaries[occ.id].coaches.map((coach) => (
+                                      <Badge
+                                        key={coach.id}
+                                        variant="secondary"
+                                        className="text-[10px] rounded-md flex items-center gap-1"
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        <IconCheck className="h-3 w-3" />
+                                        {coach.name || "Coach"}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </Link>
                       {!isCanceled && (
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 shrink-0">
                           <Button
                             size="sm"
                             variant={rsvpStatus === "going" ? "default" : "outline"}
-                            onClick={() => handleRSVP(occ.id, "going")}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRSVP(occ.id, "going");
+                            }}
                             disabled={isUpdating}
                             className={`h-9 rounded-xl ${
                               rsvpStatus === "going"
@@ -956,7 +1035,10 @@ export default function RSVPPage() {
                             variant={
                               rsvpStatus === "not_going" ? "secondary" : "outline"
                             }
-                            onClick={() => handleRSVP(occ.id, "not_going")}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRSVP(occ.id, "not_going");
+                            }}
                             disabled={isUpdating}
                             className="h-9 rounded-xl"
                           >

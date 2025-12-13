@@ -12,7 +12,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { PageHeader } from "@/components/page-header";
-import { IconCheck, IconX, IconChevronLeft, IconChevronRight, IconClock } from "@tabler/icons-react";
+import { IconCheck, IconX, IconChevronLeft, IconChevronRight, IconClock, IconEdit, IconEye, IconPhone, IconMail, IconMessage, IconDotsVertical } from "@tabler/icons-react";
+import Link from "next/link";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import { format, isSameDay, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek, addMonths, subMonths } from "date-fns";
 
 interface EventOccurrence {
@@ -38,6 +47,15 @@ interface UserInfo {
   role: string;
 }
 
+interface CoachAttendee {
+  id: string;
+  name: string | null;
+  email: string;
+  avatarUrl: string | null;
+  phone: string | null;
+  cellPhone: string | null;
+}
+
 export default function CalendarPage() {
   const [month, setMonth] = useState<Date>(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -48,6 +66,8 @@ export default function CalendarPage() {
   const [loading, setLoading] = useState(true);
   const [rsvpDialogOpen, setRsvpDialogOpen] = useState(false);
   const [updatingRsvp, setUpdatingRsvp] = useState<string | null>(null);
+  const [coachAttendees, setCoachAttendees] = useState<Record<string, CoachAttendee[]>>({});
+  const [loadingAttendees, setLoadingAttendees] = useState(false);
 
   const loadData = useCallback(async () => {
     try {
@@ -136,12 +156,54 @@ export default function CalendarPage() {
     return rsvp ? (rsvp.status as "going" | "not_going") : null;
   }
 
+  async function loadCoachAttendeesForOccurrences(occurrenceIds: string[]) {
+    if (occurrenceIds.length === 0) return;
+    setLoadingAttendees(true);
+    try {
+      const attendeesMap: Record<string, CoachAttendee[]> = {};
+      
+      // Fetch RSVPs for each occurrence
+      await Promise.all(
+        occurrenceIds.map(async (occId) => {
+          const response = await fetch(`/api/rsvp?occurrenceId=${occId}`);
+          if (response.ok) {
+            const data = await response.json();
+            // Filter to only coaches/owners who are going
+            const coaches = (data.rsvps || [])
+              .filter((r: { status: string; user: { role?: string } }) => 
+                r.status === "going" && (r.user?.role === "coach" || r.user?.role === "owner")
+              )
+              .map((r: { user: { id: string; name: string | null; email: string; avatarUrl: string | null; phone?: string | null; cellPhone?: string | null } }) => ({
+                id: r.user.id,
+                name: r.user.name,
+                email: r.user.email,
+                avatarUrl: r.user.avatarUrl,
+                phone: r.user.phone || null,
+                cellPhone: r.user.cellPhone || null,
+              }));
+            attendeesMap[occId] = coaches;
+          }
+        })
+      );
+      
+      setCoachAttendees(attendeesMap);
+    } catch (err) {
+      console.error("Error loading coach attendees:", err);
+    } finally {
+      setLoadingAttendees(false);
+    }
+  }
+
   function handleDayClick(date: Date) {
     const occurrences = getOccurrencesForDate(date);
     if (occurrences.length > 0) {
       setSelectedDate(date);
       setSelectedOccurrences(occurrences);
       setRsvpDialogOpen(true);
+      // Load coach attendees for athletes
+      if (isAthlete) {
+        loadCoachAttendeesForOccurrences(occurrences.map(o => o.id));
+      }
     }
   }
 
@@ -156,7 +218,35 @@ export default function CalendarPage() {
         body: JSON.stringify({ occurrenceId, status }),
       });
       if (!response.ok) throw new Error("Failed to RSVP");
-      await loadData();
+      
+      const data = await response.json();
+      
+      // Optimistically update the RSVP state without refetching everything
+      if (data.rsvp) {
+        setRsvps((prevRsvps) => {
+          const existingIndex = prevRsvps.findIndex((r) => r.occurrenceId === occurrenceId);
+          if (existingIndex >= 0) {
+            // Update existing RSVP
+            const updated = [...prevRsvps];
+            updated[existingIndex] = {
+              id: data.rsvp.id,
+              status: data.rsvp.status,
+              occurrenceId: data.rsvp.occurrenceId,
+            };
+            return updated;
+          } else {
+            // Add new RSVP
+            return [
+              ...prevRsvps,
+              {
+                id: data.rsvp.id,
+                status: data.rsvp.status,
+                occurrenceId: data.rsvp.occurrenceId,
+              },
+            ];
+          }
+        });
+      }
     } catch (err) {
       console.error("Error RSVPing:", err);
     } finally {
@@ -359,6 +449,8 @@ export default function CalendarPage() {
               const isCanceled = occ.status === "canceled";
               const isUpdating = updatingRsvp === occ.id;
 
+              const isCoachOrOwner = userInfo?.role === "coach" || userInfo?.role === "owner";
+
               return (
                 <div
                   key={occ.id}
@@ -388,31 +480,137 @@ export default function CalendarPage() {
                           {rsvpStatus === "going" ? "Going" : "Can't Go"}
                         </Badge>
                       )}
+                      {/* Show coach attendees for athletes */}
+                      {isAthlete && !isCanceled && coachAttendees[occ.id]?.length > 0 && (
+                        <div className="mt-3 pt-3 border-t">
+                          <p className="text-xs text-muted-foreground mb-2">Coaches attending:</p>
+                          <div className="space-y-2">
+                            {coachAttendees[occ.id].map((coach) => (
+                              <div key={coach.id} className="flex items-center gap-2 group">
+                                <Avatar className="h-6 w-6">
+                                  <AvatarImage src={coach.avatarUrl || undefined} />
+                                  <AvatarFallback className="text-[10px]">
+                                    {coach.name?.charAt(0) || "C"}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <span className="text-sm flex-1">{coach.name || coach.email}</span>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    >
+                                      <IconDotsVertical className="h-3 w-3" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="rounded-xl">
+                                    <DropdownMenuItem asChild>
+                                      <Link
+                                        href={`/chat?userId=${coach.id}`}
+                                        className="flex items-center gap-2 cursor-pointer"
+                                      >
+                                        <IconMessage className="h-4 w-4" />
+                                        Chat
+                                      </Link>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    {(coach.cellPhone || coach.phone) && (
+                                      <DropdownMenuItem asChild>
+                                        <a
+                                          href={`tel:${coach.cellPhone || coach.phone}`}
+                                          className="flex items-center gap-2 cursor-pointer"
+                                        >
+                                          <IconPhone className="h-4 w-4" />
+                                          Call
+                                        </a>
+                                      </DropdownMenuItem>
+                                    )}
+                                    {(coach.cellPhone || coach.phone) && (
+                                      <DropdownMenuItem asChild>
+                                        <a
+                                          href={`sms:${coach.cellPhone || coach.phone}`}
+                                          className="flex items-center gap-2 cursor-pointer"
+                                        >
+                                          <IconMessage className="h-4 w-4" />
+                                          Text
+                                        </a>
+                                      </DropdownMenuItem>
+                                    )}
+                                    <DropdownMenuItem asChild>
+                                      <a
+                                        href={`mailto:${coach.email}`}
+                                        className="flex items-center gap-2 cursor-pointer"
+                                      >
+                                        <IconMail className="h-4 w-4" />
+                                        Email
+                                      </a>
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {isAthlete && loadingAttendees && (
+                        <div className="mt-3 pt-3 border-t">
+                          <p className="text-xs text-muted-foreground">Loading coaches...</p>
+                        </div>
+                      )}
                     </div>
-                    {isAthlete && !isCanceled && (
-                      <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex flex-col items-end gap-2 shrink-0">
+                      {isAthlete && !isCanceled && (
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            variant={rsvpStatus === "going" ? "default" : "outline"}
+                            onClick={() => handleRSVP(occ.id, "going")}
+                            disabled={isUpdating}
+                            className={`h-8 rounded-lg ${
+                              rsvpStatus === "going" ? "bg-emerald-600 hover:bg-emerald-700" : ""
+                            }`}
+                          >
+                            <IconCheck className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant={rsvpStatus === "not_going" ? "secondary" : "outline"}
+                            onClick={() => handleRSVP(occ.id, "not_going")}
+                            disabled={isUpdating}
+                            className="h-8 rounded-lg"
+                          >
+                            <IconX className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2">
                         <Button
                           size="sm"
-                          variant={rsvpStatus === "going" ? "default" : "outline"}
-                          onClick={() => handleRSVP(occ.id, "going")}
-                          disabled={isUpdating}
-                          className={`h-8 rounded-lg ${
-                            rsvpStatus === "going" ? "bg-emerald-600 hover:bg-emerald-700" : ""
-                          }`}
+                          variant="ghost"
+                          asChild
+                          className="h-8 rounded-lg gap-1 text-xs"
                         >
-                          <IconCheck className="h-3 w-3" />
+                          <Link href={`/events?eventId=${occ.event.id}&occurrenceId=${occ.id}`}>
+                            <IconEye className="h-3 w-3" />
+                            View Details
+                          </Link>
                         </Button>
-                        <Button
-                          size="sm"
-                          variant={rsvpStatus === "not_going" ? "secondary" : "outline"}
-                          onClick={() => handleRSVP(occ.id, "not_going")}
-                          disabled={isUpdating}
-                          className="h-8 rounded-lg"
-                        >
-                          <IconX className="h-3 w-3" />
-                        </Button>
+                        {isCoachOrOwner && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            asChild
+                            className="h-8 rounded-lg gap-1 text-xs"
+                          >
+                            <Link href={`/events/${occ.event.id}/edit`}>
+                              <IconEdit className="h-3 w-3" />
+                              Edit
+                            </Link>
+                          </Button>
+                        )}
                       </div>
-                    )}
+                    </div>
                   </div>
                 </div>
               );

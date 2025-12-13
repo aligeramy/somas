@@ -24,7 +24,12 @@ export async function GET(request: Request) {
       );
     }
 
-    // Get all users in the gym
+    // Check if this is for events (allows athletes to see other athletes)
+    const { searchParams } = new URL(request.url);
+    const forEvents = searchParams.get("forEvents") === "true";
+
+    // Get users in the gym
+    // Athletes can only see coaches/owners, not other athletes (unless forEvents=true)
     const roster = await db
       .select({
         id: users.id,
@@ -45,10 +50,19 @@ export async function GET(request: Request) {
         createdAt: users.createdAt,
       })
       .from(users)
-      .where(eq(users.gymId, dbUser.gymId))
+      .where(
+        dbUser.role === "athlete"
+          ? eq(users.gymId, dbUser.gymId) // Will filter in code below
+          : eq(users.gymId, dbUser.gymId)
+      )
       .orderBy(asc(users.createdAt));
 
-    return NextResponse.json({ roster });
+    // Filter: Athletes can only see coaches/owners (unless forEvents=true)
+    const filteredRoster = dbUser.role === "athlete" && !forEvents
+      ? roster.filter((user) => user.role === "coach" || user.role === "owner")
+      : roster;
+
+    return NextResponse.json({ roster: filteredRoster });
   } catch (error) {
     console.error("Roster fetch error:", error);
     return NextResponse.json(

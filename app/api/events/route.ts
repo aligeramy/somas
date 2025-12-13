@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { db } from "@/lib/db";
-import { users, events, eventOccurrences, gyms } from "@/drizzle/schema";
-import { eq, and, gte, desc, asc } from "drizzle-orm";
+import { users, events, eventOccurrences } from "@/drizzle/schema";
+import { eq, and, gte, desc, asc, sql } from "drizzle-orm";
 
 export async function POST(request: Request) {
   try {
@@ -29,7 +29,24 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const { title, startTime, endTime, recurrenceRule, recurrenceEndDate, recurrenceCount } = await request.json();
+    const { title, description, location, startTime, endTime, recurrenceRule, recurrenceEndDate, recurrenceCount, startDate, reminderDays: reminderDaysRaw } = await request.json();
+    
+    // Parse reminderDays - handle string or array input
+    let reminderDays: number[] | null = null;
+    if (reminderDaysRaw) {
+      if (typeof reminderDaysRaw === 'string') {
+        try {
+          const parsed = JSON.parse(reminderDaysRaw);
+          if (Array.isArray(parsed)) {
+            reminderDays = parsed.map(n => typeof n === 'number' ? Math.round(n) : parseInt(String(n), 10)).filter(n => !isNaN(n));
+          }
+        } catch {
+          reminderDays = null;
+        }
+      } else if (Array.isArray(reminderDaysRaw)) {
+        reminderDays = reminderDaysRaw.map(n => typeof n === 'number' ? Math.round(n) : parseInt(String(n), 10)).filter(n => !isNaN(n));
+      }
+    }
 
     if (!title || !startTime || !endTime) {
       return NextResponse.json(
@@ -38,17 +55,48 @@ export async function POST(request: Request) {
       );
     }
 
-    // Create event
+    // Validate that recurrence end date is after start date/time
+    if (recurrenceEndDate && startDate) {
+      const startDateTime = new Date(startDate);
+      const [hours, minutes] = startTime.split(":").map(Number);
+      startDateTime.setHours(hours, minutes, 0, 0);
+      
+      const endDateTime = new Date(recurrenceEndDate);
+      
+      if (endDateTime <= startDateTime) {
+        return NextResponse.json(
+          { error: "The 'End on date' must be after the start date and time" },
+          { status: 400 },
+        );
+      }
+    }
+
+    // Create event - handle reminderDays as PostgreSQL integer[] array
     const [event] = await db.insert(events).values({
       gymId: dbUser.gymId,
       title,
+      description: description || null,
+      location: location || null,
       startTime,
       endTime,
       recurrenceRule: recurrenceRule || null,
+      recurrenceEndDate: recurrenceEndDate ? new Date(recurrenceEndDate) : null,
+      recurrenceCount: recurrenceCount || null,
+      reminderDays: reminderDays && reminderDays.length > 0 
+        ? sql`${`{${reminderDays.join(',')}}`}::integer[]`
+        : null,
     }).returning();
 
     // Generate occurrences
-    await generateEventOccurrences(event.id, recurrenceRule, startTime, recurrenceEndDate, recurrenceCount);
+    const occurrenceStartDate = startDate ? new Date(startDate) : new Date();
+    await generateEventOccurrences(
+      event.id,
+      recurrenceRule,
+      startTime,
+      occurrenceStartDate,
+      recurrenceEndDate ? new Date(recurrenceEndDate) : null,
+      recurrenceCount
+    );
 
     return NextResponse.json({ success: true, event });
   } catch (error) {
@@ -64,76 +112,59 @@ async function generateEventOccurrences(
   eventId: string,
   recurrenceRule: string | null,
   startTime: string,
-  recurrenceEndDate?: string | null,
+  startDate: Date,
+  recurrenceEndDate?: Date | null,
   recurrenceCount?: number | null,
 ) {
   const occurrences = [];
-  const now = new Date();
-  let endDate = new Date();
+  let endDate = new Date(startDate);
   
   // Determine end date based on recurrence settings
   if (recurrenceEndDate) {
-    // Specific end date provided
     endDate = new Date(recurrenceEndDate);
   } else if (recurrenceCount) {
-    // Count-based: will be handled in the loop
-    endDate = new Date();
-    endDate.setFullYear(endDate.getFullYear() + 2); // Set a far future date, loop will stop at count
+    endDate = new Date(startDate);
+    endDate.setFullYear(endDate.getFullYear() + 2);
   } else {
-    // Forever: generate at least 1 year
     endDate.setFullYear(endDate.getFullYear() + 1);
   }
 
+  // For non-recurring events, create a single occurrence
   if (!recurrenceRule) {
-    return; // No recurrence, no occurrences
+    const [hours, minutes] = startTime.split(":").map(Number);
+    const occurrenceDate = new Date(startDate);
+    occurrenceDate.setHours(hours, minutes, 0, 0);
+    
+    if (occurrenceDate >= new Date()) {
+      await db.insert(eventOccurrences).values({
+        eventId,
+        date: occurrenceDate,
+        status: "scheduled" as const,
+      }).onConflictDoNothing();
+    }
+    return;
   }
 
-  // Parse RRULE (simplified)
+  // Parse RRULE
   let frequency = "WEEKLY";
-  let byDay = "MO";
 
   if (recurrenceRule.includes("FREQ=DAILY")) {
     frequency = "DAILY";
   } else if (recurrenceRule.includes("FREQ=WEEKLY")) {
     frequency = "WEEKLY";
-    const byDayMatch = recurrenceRule.match(/BYDAY=(\w+)/);
-    if (byDayMatch) {
-      byDay = byDayMatch[1];
-    }
   } else if (recurrenceRule.includes("FREQ=MONTHLY")) {
     frequency = "MONTHLY";
   }
 
-  const dayMap: Record<string, number> = {
-    MO: 1,
-    TU: 2,
-    WE: 3,
-    TH: 4,
-    FR: 5,
-    SA: 6,
-    SU: 0,
-  };
-
-  let currentDate = new Date(now);
-
-  // Find next occurrence date
-  if (frequency === "WEEKLY") {
-    const targetDay = dayMap[byDay];
-    const currentDay = currentDate.getDay();
-    let daysUntil = (targetDay - currentDay + 7) % 7;
-    if (daysUntil === 0) daysUntil = 7;
-    currentDate.setDate(currentDate.getDate() + daysUntil);
-  } else if (frequency === "DAILY") {
-    currentDate.setDate(currentDate.getDate() + 1);
-  } else if (frequency === "MONTHLY") {
-    currentDate.setMonth(currentDate.getMonth() + 1);
-  }
+  // Always use the selected date as the first occurrence
+  // This respects the user's date selection regardless of recurrence pattern
+  const currentDate = new Date(startDate);
 
   // Generate occurrences
-  let occurrenceCount = 0;
+  let count = 0;
+  const now = new Date();
   while (currentDate <= endDate) {
-    // Stop if we've reached the count limit
-    if (recurrenceCount && occurrenceCount >= recurrenceCount) {
+    if (recurrenceCount && count >= recurrenceCount) {
       break;
     }
 
@@ -147,10 +178,8 @@ async function generateEventOccurrences(
         date: occurrenceDate,
         status: "scheduled" as const,
       });
-      occurrenceCount++;
+      count++;
     }
-
-    // Move to next occurrence
     if (frequency === "DAILY") {
       currentDate.setDate(currentDate.getDate() + 1);
     } else if (frequency === "WEEKLY") {
@@ -166,7 +195,7 @@ async function generateEventOccurrences(
   }
 }
 
-export async function GET(request: Request) {
+export async function GET(_request: Request) {
   try {
     const supabase = await createClient();
     const {

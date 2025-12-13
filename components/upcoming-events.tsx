@@ -46,7 +46,7 @@ export function UpcomingEvents({ occurrences }: UpcomingEventsProps) {
       <Card className="border-dashed">
         <CardContent className="flex flex-col items-center justify-center py-12">
           <IconCalendar className="h-10 w-10 text-muted-foreground/30 mb-3" />
-          <p className="text-sm text-muted-foreground mb-4">No upcoming events this week</p>
+          <p className="text-sm text-muted-foreground mb-4">No upcoming events</p>
           <Button variant="outline" size="sm" asChild>
             <Link href="/events">Create an event</Link>
           </Button>
@@ -59,7 +59,7 @@ export function UpcomingEvents({ occurrences }: UpcomingEventsProps) {
     <Card>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-lg font-semibold">This Week</CardTitle>
+          <CardTitle className="text-lg font-semibold">Upcoming Events</CardTitle>
           <Button variant="ghost" size="sm" asChild className="text-muted-foreground">
             <Link href="/events">
               View all

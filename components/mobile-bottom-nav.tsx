@@ -133,6 +133,7 @@ export function MobileBottomNav({ userRole, gymWebsite }: MobileBottomNavProps) 
           <SheetTrigger asChild>
             <button
               type="button"
+              suppressHydrationWarning
               className={cn(
                 "flex flex-col items-center justify-center gap-1 flex-1 h-full transition-colors",
                 isMoreActive

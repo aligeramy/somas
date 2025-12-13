@@ -52,12 +52,23 @@ export default function AthleteDetailPage() {
   const [athlete, setAthlete] = useState<AthleteDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchAthleteDetails();
+    // Get current user role first
+    fetch("/api/user-info")
+      .then((res) => res.json())
+      .then((data) => {
+        setCurrentUserRole(data.role);
+        // Then fetch athlete details
+        fetchAthleteDetails(data.role);
+      })
+      .catch(() => {
+        fetchAthleteDetails(null);
+      });
   }, [athleteId]);
 
-  async function fetchAthleteDetails() {
+  async function fetchAthleteDetails(userRole: string | null) {
     try {
       setLoading(true);
       setError(null);
@@ -67,6 +78,14 @@ export default function AthleteDetailPage() {
         throw new Error(result.error || "Failed to fetch athlete details");
       }
       const result = await response.json();
+      
+      // Check if athlete is trying to access another athlete
+      if (userRole === "athlete" && result.member.role === "athlete") {
+        setError("Access denied");
+        setAthlete(null);
+        return;
+      }
+      
       setAthlete(result.member);
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
@@ -200,10 +219,13 @@ export default function AthleteDetailPage() {
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground">Email Address</p>
-                  <div className="flex items-center gap-2">
-                    <IconMail className="h-4 w-4 text-muted-foreground" />
-                    <p className="text-sm">{athlete.email}</p>
-                  </div>
+                  <a
+                    href={`mailto:${athlete.email}`}
+                    className="flex items-center gap-2 text-sm text-primary hover:underline"
+                  >
+                    <IconMail className="h-4 w-4" />
+                    {athlete.email}
+                  </a>
                 </div>
                 {athlete.address && (
                   <div className="space-y-1">
@@ -220,37 +242,49 @@ export default function AthleteDetailPage() {
                 {athlete.homePhone && (
                   <div className="space-y-1">
                     <p className="text-xs text-muted-foreground">Home Phone</p>
-                    <div className="flex items-center gap-2">
-                      <IconPhone className="h-4 w-4 text-muted-foreground" />
-                      <p className="text-sm">{athlete.homePhone}</p>
-                    </div>
+                    <a
+                      href={`tel:${athlete.homePhone}`}
+                      className="flex items-center gap-2 text-sm text-primary hover:underline"
+                    >
+                      <IconPhone className="h-4 w-4" />
+                      {athlete.homePhone}
+                    </a>
                   </div>
                 )}
                 {athlete.workPhone && (
                   <div className="space-y-1">
                     <p className="text-xs text-muted-foreground">Work Phone</p>
-                    <div className="flex items-center gap-2">
-                      <IconBriefcase className="h-4 w-4 text-muted-foreground" />
-                      <p className="text-sm">{athlete.workPhone}</p>
-                    </div>
+                    <a
+                      href={`tel:${athlete.workPhone}`}
+                      className="flex items-center gap-2 text-sm text-primary hover:underline"
+                    >
+                      <IconBriefcase className="h-4 w-4" />
+                      {athlete.workPhone}
+                    </a>
                   </div>
                 )}
                 {athlete.cellPhone && (
                   <div className="space-y-1">
                     <p className="text-xs text-muted-foreground">Cell Number</p>
-                    <div className="flex items-center gap-2">
-                      <IconDeviceMobile className="h-4 w-4 text-muted-foreground" />
-                      <p className="text-sm">{athlete.cellPhone}</p>
-                    </div>
+                    <a
+                      href={`tel:${athlete.cellPhone}`}
+                      className="flex items-center gap-2 text-sm text-primary hover:underline"
+                    >
+                      <IconDeviceMobile className="h-4 w-4" />
+                      {athlete.cellPhone}
+                    </a>
                   </div>
                 )}
                 {athlete.phone && !athlete.homePhone && !athlete.workPhone && !athlete.cellPhone && (
                   <div className="space-y-1">
                     <p className="text-xs text-muted-foreground">Phone</p>
-                    <div className="flex items-center gap-2">
-                      <IconPhone className="h-4 w-4 text-muted-foreground" />
-                      <p className="text-sm">{athlete.phone}</p>
-                    </div>
+                    <a
+                      href={`tel:${athlete.phone}`}
+                      className="flex items-center gap-2 text-sm text-primary hover:underline"
+                    >
+                      <IconPhone className="h-4 w-4" />
+                      {athlete.phone}
+                    </a>
                   </div>
                 )}
               </div>
@@ -298,10 +332,13 @@ export default function AthleteDetailPage() {
                       <p className="text-xs text-muted-foreground">
                         Emergency Contact Phone
                       </p>
-                      <div className="flex items-center gap-2">
-                        <IconPhone className="h-4 w-4 text-muted-foreground" />
-                        <p className="text-sm">{athlete.emergencyContactPhone}</p>
-                      </div>
+                      <a
+                        href={`tel:${athlete.emergencyContactPhone}`}
+                        className="flex items-center gap-2 text-sm text-primary hover:underline"
+                      >
+                        <IconPhone className="h-4 w-4" />
+                        {athlete.emergencyContactPhone}
+                      </a>
                     </div>
                   )}
                   {athlete.emergencyContactEmail && (
@@ -309,10 +346,13 @@ export default function AthleteDetailPage() {
                       <p className="text-xs text-muted-foreground">
                         Emergency Contact Email
                       </p>
-                      <div className="flex items-center gap-2">
-                        <IconMail className="h-4 w-4 text-muted-foreground" />
-                        <p className="text-sm">{athlete.emergencyContactEmail}</p>
-                      </div>
+                      <a
+                        href={`mailto:${athlete.emergencyContactEmail}`}
+                        className="flex items-center gap-2 text-sm text-primary hover:underline"
+                      >
+                        <IconMail className="h-4 w-4" />
+                        {athlete.emergencyContactEmail}
+                      </a>
                     </div>
                   )}
                 </div>
@@ -338,4 +378,5 @@ export default function AthleteDetailPage() {
     </div>
   );
 }
+
 

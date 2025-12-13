@@ -20,7 +20,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageHeader } from "@/components/page-header";
 import { IconArrowLeft, IconBell, IconCalendar, IconClock, IconMapPin, IconList } from "@tabler/icons-react";
 import Link from "next/link";
-import { addDays, addWeeks, addMonths, format, isSameDay, startOfToday } from "date-fns";
+import { addDays, addWeeks, addMonths, format, isSameDay, startOfToday, parseISO } from "date-fns";
 
 const DAYS_OF_WEEK = [
   { value: "MO", label: "Monday", index: 1 },
@@ -50,25 +50,33 @@ export default function NewEventPage() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
-  const [startTime, setStartTime] = useState("");
-  const [endTime, setEndTime] = useState("");
-  const [recurrence, setRecurrence] = useState<"none" | "daily" | "weekly" | "monthly">("weekly");
+  const [startDate, setStartDate] = useState<Date>(startOfToday());
+  const [startTime, setStartTime] = useState("18:00");
+  const [endTime, setEndTime] = useState("21:00");
+  const [recurrence, setRecurrence] = useState<"none" | "daily" | "weekly" | "monthly">("none");
   const [dayOfWeek, setDayOfWeek] = useState("MO");
   const [reminderDays, setReminderDays] = useState<number[]>([7, 1, 0.02]);
   const [endType, setEndType] = useState<"never" | "date" | "count">("never");
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
   const [occurrenceCount, setOccurrenceCount] = useState("12");
+  
+  // Helper to parse date input without timezone issues
+  function parseDateInput(dateStr: string): Date {
+    // Parse as local date by adding time component
+    const [year, month, day] = dateStr.split('-').map(Number);
+    return new Date(year, month - 1, day);
+  }
 
   // Generate preview dates
   const previewDates = useMemo(() => {
     if (recurrence === "none") {
-      return [startOfToday()];
+      return [startDate];
     }
 
     const dates: Date[] = [];
-    let currentDate = startOfToday();
+    let currentDate = new Date(startDate);
     const maxDates = endType === "count" ? parseInt(occurrenceCount) || 12 : 52;
-    const maxEndDate = endType === "date" && endDate ? endDate : addMonths(currentDate, 12);
+    const maxEndDate = endType === "date" && endDate ? endDate : addMonths(startDate, 12);
 
     // Find the first occurrence based on day of week for weekly
     if (recurrence === "weekly") {
@@ -91,7 +99,7 @@ export default function NewEventPage() {
     }
 
     return dates;
-  }, [recurrence, dayOfWeek, endType, endDate, occurrenceCount]);
+  }, [recurrence, dayOfWeek, endType, endDate, occurrenceCount, startDate]);
 
   function toggleReminder(value: number) {
     setReminderDays((prev) =>
@@ -123,6 +131,7 @@ export default function NewEventPage() {
           title,
           description: description || null,
           location: location || null,
+          startDate: startDate.toISOString(),
           startTime,
           endTime,
           recurrenceRule: recurrenceRule || null,
@@ -249,6 +258,17 @@ export default function NewEventPage() {
                     <CardDescription>When does this event happen?</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="startDate" className="text-sm font-medium">Start Date *</Label>
+                      <Input
+                        id="startDate"
+                        type="date"
+                        value={format(startDate, "yyyy-MM-dd")}
+                        onChange={(e) => e.target.value && setStartDate(parseDateInput(e.target.value))}
+                        className="h-11 rounded-xl"
+                        required
+                      />
+                    </div>
                     <div className="grid gap-4 sm:grid-cols-2">
                       <div className="space-y-2">
                         <Label htmlFor="startTime" className="text-sm font-medium">Start Time *</Label>
@@ -357,11 +377,11 @@ export default function NewEventPage() {
                             }`}>
                               {endType === "date" && <div className="h-full w-full rounded-full bg-primary-foreground scale-50" />}
                             </div>
-                            <span className="text-sm flex-1">On date</span>
+                            <span className="text-sm flex-1">End on date</span>
                             <Input
                               type="date"
                               value={endDate ? format(endDate, "yyyy-MM-dd") : ""}
-                              onChange={(e) => setEndDate(e.target.value ? new Date(e.target.value) : undefined)}
+                              onChange={(e) => setEndDate(e.target.value ? parseDateInput(e.target.value) : undefined)}
                               className="h-9 w-40 rounded-lg"
                               onClick={(e) => e.stopPropagation()}
                             />

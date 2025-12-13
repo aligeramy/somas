@@ -12,6 +12,7 @@ import {
   IconNews,
   IconBell,
   IconWorldWww,
+  IconUserCircle,
 } from "@tabler/icons-react"
 import Link from "next/link"
 
@@ -61,7 +62,7 @@ export function AppSidebar({ user, gymName, gymLogo, gymWebsite, ...props }: App
       title: "Events",
       url: "/events",
       icon: IconCalendar,
-      roles: ["owner", "coach"],
+      roles: ["owner", "coach", "athlete"],
     },
     {
       title: "Chat",
@@ -95,6 +96,12 @@ export function AppSidebar({ user, gymName, gymLogo, gymWebsite, ...props }: App
       url: "/blog",
       icon: IconNews,
       roles: ["owner", "coach", "athlete"],
+    },
+    {
+      title: "Profile",
+      url: "/profile",
+      icon: IconUserCircle,
+      roles: ["athlete"],
     },
     {
       title: "Club Settings",
@@ -174,7 +181,7 @@ export function AppSidebar({ user, gymName, gymLogo, gymWebsite, ...props }: App
           name: user.name || undefined,
           email: user.email,
           avatar: user.avatar || undefined,
-        }} />
+        }} userRole={user.role} />
       </SidebarFooter>
     </Sidebar>
   )

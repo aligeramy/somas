@@ -8,7 +8,6 @@ import {
   IconPlus,
   IconTrash,
   IconUpload,
-  IconArrowRight,
 } from "@tabler/icons-react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
@@ -51,6 +50,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 interface User {
   id: string;
@@ -81,6 +88,13 @@ export default function RosterPage() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
+  const [homePhone, setHomePhone] = useState("");
+  const [workPhone, setWorkPhone] = useState("");
+  const [cellPhone, setCellPhone] = useState("");
+  const [emergencyContactName, setEmergencyContactName] = useState("");
+  const [emergencyContactPhone, setEmergencyContactPhone] = useState("");
+  const [emergencyContactRelationship, setEmergencyContactRelationship] = useState("");
+  const [emergencyContactEmail, setEmergencyContactEmail] = useState("");
   const [role, setRole] = useState<"coach" | "athlete">("athlete");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -215,6 +229,13 @@ export default function RosterPage() {
             name: name.trim() || undefined,
             phone: phone.trim() || undefined,
             address: address.trim() || undefined,
+            homePhone: homePhone.trim() || undefined,
+            workPhone: workPhone.trim() || undefined,
+            cellPhone: cellPhone.trim() || undefined,
+            emergencyContactName: emergencyContactName.trim() || undefined,
+            emergencyContactPhone: emergencyContactPhone.trim() || undefined,
+            emergencyContactRelationship: emergencyContactRelationship.trim() || undefined,
+            emergencyContactEmail: emergencyContactEmail.trim() || undefined,
           },
         }),
       });
@@ -230,6 +251,13 @@ export default function RosterPage() {
       setName("");
       setPhone("");
       setAddress("");
+      setHomePhone("");
+      setWorkPhone("");
+      setCellPhone("");
+      setEmergencyContactName("");
+      setEmergencyContactPhone("");
+      setEmergencyContactRelationship("");
+      setEmergencyContactEmail("");
       setIsAddMemberDialogOpen(false);
       fetchRoster();
     } catch (err) {
@@ -333,6 +361,7 @@ export default function RosterPage() {
       <PageHeader
         title="Roster Management"
         description="Manage your gym's coaches and athletes"
+        className="shrink-0"
       >
         <Dialog
           open={isImportRosterDialogOpen}
@@ -388,31 +417,57 @@ export default function RosterPage() {
 
         <Dialog
           open={isAddMemberDialogOpen}
-          onOpenChange={setIsAddMemberDialogOpen}
+          onOpenChange={(open) => {
+            setIsAddMemberDialogOpen(open);
+            if (!open) {
+              // Reset all fields when dialog closes
+              setEmail("");
+              setName("");
+              setPhone("");
+              setAddress("");
+              setHomePhone("");
+              setWorkPhone("");
+              setCellPhone("");
+              setEmergencyContactName("");
+              setEmergencyContactPhone("");
+              setEmergencyContactRelationship("");
+              setEmergencyContactEmail("");
+              setError(null);
+              setSuccess(null);
+            }
+          }}
         >
           <DialogTrigger asChild>
             <Button className="rounded-xl">
               <IconPlus className="mr-2 h-4 w-4" /> Add Member
             </Button>
           </DialogTrigger>
-          <DialogContent className="rounded-xl">
-            <DialogHeader>
-              <DialogTitle>Add New Member</DialogTitle>
+          <DialogContent className="!rounded-none !max-w-none !w-screen !h-screen !max-h-screen !m-0 !p-0 !inset-0 !translate-x-0 !translate-y-0 !top-0 !left-0 flex flex-col">
+            <div className="flex-1 min-h-0 flex flex-col">
+              <DialogHeader className="shrink-0 px-6 pt-6 pb-4 border-b bg-background">
+                <DialogTitle className="text-2xl">Add New Member</DialogTitle>
               <DialogDescription>
                 Invite a single coach or athlete by email.
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleManualInvite} className="space-y-4">
+              <div className="flex-1 min-h-0 overflow-y-auto">
+                <div className="p-6 pb-24 max-w-5xl mx-auto">
+                  <form id="add-member-form" onSubmit={handleManualInvite} className="space-y-8">
               {error && (
-                <div className="bg-destructive/10 text-destructive rounded-xl p-3 text-sm">
+                      <div className="bg-destructive/10 text-destructive rounded-xl p-4 text-sm">
                   {error}
                 </div>
               )}
               {success && (
-                <div className="bg-green-500/10 text-green-600 rounded-xl p-3 text-sm">
+                      <div className="bg-green-500/10 text-green-600 rounded-xl p-4 text-sm">
                   {success}
                 </div>
               )}
+                    
+                    {/* Basic Information */}
+                    <div className="bg-muted/30 rounded-xl p-6">
+                      <h3 className="font-semibold text-lg mb-6 text-foreground">Basic Information</h3>
+                      <div className="grid grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="email">Email *</Label>
                 <Input
@@ -425,6 +480,7 @@ export default function RosterPage() {
                   required
                 />
               </div>
+                        
               <div className="space-y-2">
                 <Label htmlFor="name">Name</Label>
                 <Input
@@ -436,8 +492,33 @@ export default function RosterPage() {
                   className="h-11 rounded-xl"
                 />
               </div>
+                        
               <div className="space-y-2">
-                <Label htmlFor="phone">Phone</Label>
+                          <Label htmlFor="role">Role</Label>
+                          <Select
+                            value={role}
+                            onValueChange={(value) =>
+                              setRole(value as "coach" | "athlete")
+                            }
+                          >
+                            <SelectTrigger className="h-11 rounded-xl">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-xl">
+                              <SelectItem value="athlete">Athlete</SelectItem>
+                              <SelectItem value="coach">Coach</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Contact Information */}
+                    <div className="bg-muted/30 rounded-xl p-6">
+                      <h3 className="font-semibold text-lg mb-6 text-foreground">Contact Information</h3>
+                      <div className="grid grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                          <Label htmlFor="phone">Primary Phone</Label>
                 <Input
                   id="phone"
                   type="tel"
@@ -447,6 +528,7 @@ export default function RosterPage() {
                   className="h-11 rounded-xl"
                 />
               </div>
+                        
               <div className="space-y-2">
                 <Label htmlFor="address">Address</Label>
                 <Input
@@ -454,41 +536,132 @@ export default function RosterPage() {
                   type="text"
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
-                  placeholder="Address"
+                            placeholder="Street address"
                   className="h-11 rounded-xl"
                 />
               </div>
+                        
               <div className="space-y-2">
-                <Label htmlFor="role">Role</Label>
-                <Select
-                  value={role}
-                  onValueChange={(value) =>
-                    setRole(value as "coach" | "athlete")
-                  }
-                >
-                  <SelectTrigger className="h-11 rounded-xl">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl">
-                    <SelectItem value="athlete">Athlete</SelectItem>
-                    <SelectItem value="coach">Coach</SelectItem>
-                  </SelectContent>
-                </Select>
+                          <Label htmlFor="cellPhone">Cell Phone</Label>
+                          <Input
+                            id="cellPhone"
+                            type="tel"
+                            value={cellPhone}
+                            onChange={(e) => setCellPhone(e.target.value)}
+                            placeholder="Cell phone"
+                            className="h-11 rounded-xl"
+                          />
               </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="homePhone">Home Phone</Label>
+                          <Input
+                            id="homePhone"
+                            type="tel"
+                            value={homePhone}
+                            onChange={(e) => setHomePhone(e.target.value)}
+                            placeholder="Home phone"
+                            className="h-11 rounded-xl"
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="workPhone">Work Phone</Label>
+                          <Input
+                            id="workPhone"
+                            type="tel"
+                            value={workPhone}
+                            onChange={(e) => setWorkPhone(e.target.value)}
+                            placeholder="Work phone"
+                            className="h-11 rounded-xl"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Emergency Contact */}
+                    <div className="bg-muted/30 rounded-xl p-6">
+                      <h3 className="font-semibold text-lg mb-6 text-foreground">Emergency Contact</h3>
+                      <div className="grid grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                          <Label htmlFor="emergencyContactName">Name</Label>
+                          <Input
+                            id="emergencyContactName"
+                            type="text"
+                            value={emergencyContactName}
+                            onChange={(e) => setEmergencyContactName(e.target.value)}
+                            placeholder="Emergency contact name"
+                            className="h-11 rounded-xl"
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="emergencyContactRelationship">Relationship</Label>
+                          <Input
+                            id="emergencyContactRelationship"
+                            type="text"
+                            value={emergencyContactRelationship}
+                            onChange={(e) => setEmergencyContactRelationship(e.target.value)}
+                            placeholder="e.g., Parent, Spouse"
+                            className="h-11 rounded-xl"
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="emergencyContactPhone">Phone</Label>
+                          <Input
+                            id="emergencyContactPhone"
+                            type="tel"
+                            value={emergencyContactPhone}
+                            onChange={(e) => setEmergencyContactPhone(e.target.value)}
+                            placeholder="Emergency contact phone"
+                            className="h-11 rounded-xl"
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="emergencyContactEmail">Email</Label>
+                          <Input
+                            id="emergencyContactEmail"
+                            type="email"
+                            value={emergencyContactEmail}
+                            onChange={(e) => setEmergencyContactEmail(e.target.value)}
+                            placeholder="Emergency contact email"
+                            className="h-11 rounded-xl"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </form>
+                </div>
+              </div>
+              <div className="shrink-0 px-6 py-4 border-t bg-background sticky bottom-0 z-10">
+                <div className="flex justify-end gap-3">
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsAddMemberDialogOpen(false)}
+                    className="rounded-xl"
+                  >
+                    Cancel
+                  </Button>
               <Button
                 type="submit"
+                    form="add-member-form"
                 disabled={loading || !email}
-                className="w-full h-11 rounded-xl"
+                    className="rounded-xl"
               >
                 {loading ? "Sending..." : "Send Invitation"}
               </Button>
-            </form>
+                </div>
+              </div>
+            </div>
           </DialogContent>
         </Dialog>
       </PageHeader>
 
-      <div className="flex-1 overflow-auto min-h-0">
-        <div className="space-y-6">
+      <div className="flex-1 overflow-hidden min-h-0">
+        <div className="h-full overflow-auto">
+          <div className="space-y-4 p-4">
         {loading && roster.length === 0 ? (
           <Card className="rounded-xl">
             <CardHeader>
@@ -527,76 +700,114 @@ export default function RosterPage() {
             </CardContent>
           </Card>
         ) : (
-          <Card className="rounded-xl">
-            <CardHeader>
+          <Card className="rounded-xl h-full flex flex-col">
+            <CardHeader className="shrink-0">
               <CardTitle>Current Members</CardTitle>
               <CardDescription>
                 {roster.length} member{roster.length !== 1 ? "s" : ""} in your
                 gym
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <ScrollArea className="h-[calc(100vh-400px)] min-h-[300px]">
-                <div className="space-y-2">
-                  {roster.map((member) => (
-                    <div
-                      key={member.id}
-                      className="flex items-center justify-between p-3 rounded-xl hover:bg-muted/50 transition-colors group"
-                    >
+            <CardContent className="p-0 flex-1 min-h-0 overflow-hidden">
+              <ScrollArea className="h-full">
+                <div className="p-4">
+                  {/* Coaches Section */}
+                  {roster.filter((m) => m.role === "coach" || m.role === "owner").length > 0 && (
+                    <div className="mb-6">
+                      <h3 className="font-semibold text-sm text-muted-foreground mb-3">
+                        Coaches ({roster.filter((m) => m.role === "coach" || m.role === "owner").length})
+                      </h3>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-[200px]">Name</TableHead>
+                            <TableHead className="w-[200px]">Email</TableHead>
+                            <TableHead className="w-[150px]">Phone</TableHead>
+                            <TableHead className="w-[100px] text-right">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {roster
+                            .filter((m) => m.role === "coach" || m.role === "owner")
+                            .map((member) => (
+                              <TableRow key={member.id} className="group">
+                                <TableCell>
                       <Link
                         href={`/roster/${member.id}`}
-                        className="flex items-center gap-3 flex-1 cursor-pointer"
+                                    className="flex items-center gap-3 hover:underline"
                       >
-                        <Avatar className="h-12 w-12 rounded-xl">
+                                    <Avatar className="h-8 w-8 rounded-lg shrink-0">
                           <AvatarImage
                             src={member.avatarUrl || undefined}
                             alt={member.name || member.email}
                           />
-                          <AvatarFallback className="rounded-xl">
+                                      <AvatarFallback className="rounded-lg text-xs font-semibold">
                             {member.name
-                              ? member.name.charAt(0)
-                              : member.email.charAt(0)}
+                                          ? member.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+                                          : member.email.charAt(0).toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
-                        <div className="flex-1">
-                          <p className="font-medium">
+                                    <div className="min-w-0">
+                                      <div className="font-medium text-sm">
                             {member.name || "Unnamed"}
-                          </p>
-                          <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                            <span className="flex items-center gap-1">
-                              <IconMail className="h-3 w-3" />
-                              {member.email}
-                            </span>
-                            {member.phone && (
-                              <span className="hidden md:flex items-center gap-1">
-                                <IconPhone className="h-3 w-3" />
-                                {member.phone}
-                              </span>
-                            )}
                           </div>
-                        </div>
-                        <IconArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </Link>
-                      <div className="flex items-center gap-2">
                         <Badge
                           variant={
                             member.role === "owner"
                               ? "default"
-                              : member.role === "coach"
-                                ? "secondary"
-                                : "outline"
+                                            : "secondary"
                           }
-                          className="rounded-lg"
+                                        className="rounded-md text-[10px] mt-0.5 px-1.5 py-0"
                         >
                           {formatRoleDisplay(member.role)}
                         </Badge>
-                        {!member.onboarded && (
-                          <Badge variant="outline" className="rounded-lg">
-                            Pending
-                          </Badge>
-                        )}
-
-                        {/* Actions - Head coaches can edit anyone, coaches can edit athletes */}
+                                    </div>
+                                  </Link>
+                                </TableCell>
+                                <TableCell>
+                                  <a
+                                    href={`mailto:${member.email}`}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground hover:underline"
+                                  >
+                                    <IconMail className="h-3.5 w-3.5 shrink-0" />
+                                    <span className="truncate">{member.email}</span>
+                                  </a>
+                                </TableCell>
+                                <TableCell>
+                                  {member.phone ? (
+                                    <a
+                                      href={`tel:${member.phone.replace(/\D/g, '')}`}
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground hover:underline"
+                                    >
+                                      <IconPhone className="h-3.5 w-3.5 shrink-0" />
+                                      <span>{member.phone}</span>
+                                    </a>
+                                  ) : (
+                                    <span className="text-sm text-muted-foreground">—</span>
+                                  )}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <div className="flex items-center justify-end gap-2">
+                                    <a
+                                      href={`mailto:${member.email}`}
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="h-8 w-8 rounded-lg bg-muted hover:bg-primary/10 flex items-center justify-center transition-colors opacity-0 group-hover:opacity-100"
+                                      title="Email"
+                                    >
+                                      <IconMail className="h-4 w-4 text-muted-foreground" />
+                                    </a>
+                                    {member.phone && (
+                                      <a
+                                        href={`tel:${member.phone.replace(/\D/g, '')}`}
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="h-8 w-8 rounded-lg bg-muted hover:bg-primary/10 flex items-center justify-center transition-colors opacity-0 group-hover:opacity-100"
+                                        title="Call"
+                                      >
+                                        <IconPhone className="h-4 w-4 text-muted-foreground" />
+                                      </a>
+                                    )}
                         {(isOwner ||
                           (currentUserRole === "coach" &&
                             member.role === "athlete")) && (
@@ -644,13 +855,247 @@ export default function RosterPage() {
                             </DropdownMenu>
                           )}
                       </div>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                        </TableBody>
+                      </Table>
                     </div>
-                  ))}
+                  )}
+
+                  {/* Athletes Section */}
+                  {roster.filter((m) => m.role === "athlete").length > 0 && (
+                    <div>
+                      <h3 className="font-semibold text-sm text-muted-foreground mb-3">
+                        Athletes ({roster.filter((m) => m.role === "athlete").length})
+                      </h3>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-[200px]">Name</TableHead>
+                            <TableHead className="w-[200px]">Email</TableHead>
+                            <TableHead className="w-[180px]">Phone</TableHead>
+                            <TableHead className="w-[200px]">Address</TableHead>
+                            <TableHead className="w-[200px]">Emergency Contact</TableHead>
+                            <TableHead className="w-[120px] text-right">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {roster
+                            .filter((m) => m.role === "athlete")
+                            .map((member) => (
+                              <TableRow key={member.id} className="group">
+                                <TableCell>
+                                  <Link
+                                    href={`/roster/${member.id}`}
+                                    className="flex items-center gap-3 hover:underline"
+                                  >
+                                    <Avatar className="h-8 w-8 rounded-lg shrink-0">
+                                      <AvatarImage
+                                        src={member.avatarUrl || undefined}
+                                        alt={member.name || member.email}
+                                      />
+                                      <AvatarFallback className="rounded-lg text-xs font-semibold">
+                                        {member.name
+                                          ? member.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+                                          : member.email.charAt(0).toUpperCase()}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    <div className="min-w-0">
+                                      <div className="font-medium text-sm">
+                                        {member.name || "Unnamed"}
+                                      </div>
+                                      <Badge
+                                        variant="outline"
+                                        className="rounded-md text-[10px] mt-0.5 px-1.5 py-0"
+                                      >
+                                        Athlete
+                                      </Badge>
+                                    </div>
+                                  </Link>
+                                </TableCell>
+                                <TableCell>
+                                  <a
+                                    href={`mailto:${member.email}`}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground hover:underline"
+                                  >
+                                    <IconMail className="h-3.5 w-3.5 shrink-0" />
+                                    <span className="truncate">{member.email}</span>
+                                  </a>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex flex-col gap-1 text-sm">
+                                    {member.cellPhone && (
+                                      <a
+                                        href={`tel:${member.cellPhone.replace(/\D/g, '')}`}
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="flex items-center gap-1 text-muted-foreground hover:text-foreground hover:underline"
+                                      >
+                                        <IconPhone className="h-3 w-3 shrink-0" />
+                                        <span>Cell: {member.cellPhone}</span>
+                                      </a>
+                                    )}
+                                    {member.homePhone && (
+                                      <a
+                                        href={`tel:${member.homePhone.replace(/\D/g, '')}`}
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="flex items-center gap-1 text-muted-foreground hover:text-foreground hover:underline"
+                                      >
+                                        <IconPhone className="h-3 w-3 shrink-0" />
+                                        <span>Home: {member.homePhone}</span>
+                                      </a>
+                                    )}
+                                    {member.workPhone && (
+                                      <a
+                                        href={`tel:${member.workPhone.replace(/\D/g, '')}`}
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="flex items-center gap-1 text-muted-foreground hover:text-foreground hover:underline"
+                                      >
+                                        <IconPhone className="h-3 w-3 shrink-0" />
+                                        <span>Work: {member.workPhone}</span>
+                                      </a>
+                                    )}
+                                    {member.phone && !member.cellPhone && !member.homePhone && !member.workPhone && (
+                                      <a
+                                        href={`tel:${member.phone.replace(/\D/g, '')}`}
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="flex items-center gap-1 text-muted-foreground hover:text-foreground hover:underline"
+                                      >
+                                        <IconPhone className="h-3 w-3 shrink-0" />
+                                        <span>{member.phone}</span>
+                                      </a>
+                                    )}
+                                    {!member.cellPhone && !member.homePhone && !member.workPhone && !member.phone && (
+                                      <span className="text-muted-foreground">—</span>
+                                    )}
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  {member.address ? (
+                                    <span className="text-sm text-muted-foreground truncate block max-w-[200px]">
+                                      {member.address}
+                                    </span>
+                                  ) : (
+                                    <span className="text-sm text-muted-foreground">—</span>
+                                  )}
+                                </TableCell>
+                                <TableCell>
+                                  {member.emergencyContactName ? (
+                                    <div className="flex flex-col gap-1 text-sm">
+                                      <span className="text-muted-foreground">
+                                        {member.emergencyContactName}
+                                        {member.emergencyContactRelationship && (
+                                          <span className="text-muted-foreground/70">
+                                            {" "}({member.emergencyContactRelationship})
+                                          </span>
+                                        )}
+                                      </span>
+                                      {member.emergencyContactPhone && (
+                                        <a
+                                          href={`tel:${member.emergencyContactPhone.replace(/\D/g, '')}`}
+                                          onClick={(e) => e.stopPropagation()}
+                                          className="flex items-center gap-1 text-muted-foreground hover:text-foreground hover:underline"
+                                        >
+                                          <IconPhone className="h-3 w-3 shrink-0" />
+                                          <span>{member.emergencyContactPhone}</span>
+                                        </a>
+                                      )}
+                                      {member.emergencyContactEmail && (
+                                        <a
+                                          href={`mailto:${member.emergencyContactEmail}`}
+                                          onClick={(e) => e.stopPropagation()}
+                                          className="flex items-center gap-1 text-muted-foreground hover:text-foreground hover:underline"
+                                        >
+                                          <IconMail className="h-3 w-3 shrink-0" />
+                                          <span className="truncate">{member.emergencyContactEmail}</span>
+                                        </a>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <span className="text-sm text-muted-foreground">—</span>
+                                  )}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <div className="flex items-center justify-end gap-2">
+                                    <a
+                                      href={`mailto:${member.email}`}
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="h-8 w-8 rounded-lg bg-muted hover:bg-primary/10 flex items-center justify-center transition-colors opacity-0 group-hover:opacity-100"
+                                      title="Email"
+                                    >
+                                      <IconMail className="h-4 w-4 text-muted-foreground" />
+                                    </a>
+                                    {(member.cellPhone || member.phone) && (
+                                      <a
+                                        href={`tel:${(member.cellPhone || member.phone || '').replace(/\D/g, '')}`}
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="h-8 w-8 rounded-lg bg-muted hover:bg-primary/10 flex items-center justify-center transition-colors opacity-0 group-hover:opacity-100"
+                                        title="Call"
+                                      >
+                                        <IconPhone className="h-4 w-4 text-muted-foreground" />
+                                      </a>
+                                    )}
+                                    {(isOwner ||
+                                      (currentUserRole === "coach" &&
+                                        member.role === "athlete")) && (
+                                      <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                                            onClick={(e) => e.stopPropagation()}
+                                          >
+                                            <IconDotsVertical className="h-4 w-4" />
+                                          </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent
+                                          align="end"
+                                          className="rounded-xl"
+                                        >
+                                          <DropdownMenuItem
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              openEditDialog(member);
+                                            }}
+                                            className="gap-2"
+                                          >
+                                            <IconEdit className="h-4 w-4" />
+                                            Edit Member
+                                          </DropdownMenuItem>
+                                          {isOwner && member.role !== "owner" && (
+                                            <>
+                                              <DropdownMenuSeparator />
+                                              <DropdownMenuItem
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  openDeleteDialog(member);
+                                                }}
+                                                className="gap-2 text-destructive focus:text-destructive"
+                                              >
+                                                <IconTrash className="h-4 w-4" />
+                                                Remove from Gym
+                                              </DropdownMenuItem>
+                                            </>
+                                          )}
+                                        </DropdownMenuContent>
+                                      </DropdownMenu>
+                                    )}
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
                 </div>
               </ScrollArea>
             </CardContent>
           </Card>
         )}
+          </div>
         </div>
       </div>
 

@@ -377,7 +377,7 @@ export default function AthleteAttendancePage() {
                     setTimeRange(value)
                   }
                 >
-                  <SelectTrigger className="w-[120px]">
+                  <SelectTrigger className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -515,3 +515,5 @@ export default function AthleteAttendancePage() {
     </div>
   );
 }
+
+

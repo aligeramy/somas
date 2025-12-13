@@ -66,16 +66,74 @@ export default async function DashboardPage() {
 
     const rsvpMap = new Map(userRsvps.map((r) => [r.occurrenceId, r.status]));
 
-    const occurrencesWithRsvp = upcomingOccurrences.map(({ occurrence, event }) => ({
-      id: occurrence.id,
-      date: occurrence.date instanceof Date ? occurrence.date.toISOString() : occurrence.date,
-      status: occurrence.status,
-      eventId: event.id,
-      eventTitle: event.title,
-      startTime: event.startTime,
-      endTime: event.endTime,
-      rsvpStatus: rsvpMap.get(occurrence.id) || null,
-    }));
+    // Get RSVPs for each upcoming occurrence with user data including roles
+    const occurrenceIds = upcomingOccurrences.map(({ occurrence }) => occurrence.id);
+    const occurrenceRsvps = occurrenceIds.length > 0
+      ? await db
+          .select({
+            occurrenceId: rsvps.occurrenceId,
+            status: rsvps.status,
+            user: {
+              id: users.id,
+              name: users.name,
+              email: users.email,
+              avatarUrl: users.avatarUrl,
+              role: users.role,
+            },
+          })
+          .from(rsvps)
+          .innerJoin(users, eq(rsvps.userId, users.id))
+          .where(inArray(rsvps.occurrenceId, occurrenceIds))
+      : [];
+
+    // Group RSVPs by occurrence, separating coaches and athletes
+    const rsvpsByOccurrence = new Map<string, {
+      goingCoaches: Array<{ id: string; name: string | null; email: string }>;
+      goingAthletes: Array<{ id: string; name: string | null; email: string }>;
+    }>();
+    
+    occurrenceRsvps.forEach((rsvp) => {
+      if (rsvp.status === "going") {
+        const current = rsvpsByOccurrence.get(rsvp.occurrenceId) || { 
+          goingCoaches: [], 
+          goingAthletes: [] 
+        };
+        // Separate coaches and athletes
+        if (rsvp.user.role === "coach" || rsvp.user.role === "owner") {
+          current.goingCoaches.push({
+            id: rsvp.user.id,
+            name: rsvp.user.name,
+            email: rsvp.user.email,
+          });
+        } else if (rsvp.user.role === "athlete") {
+          current.goingAthletes.push({
+            id: rsvp.user.id,
+            name: rsvp.user.name,
+            email: rsvp.user.email,
+          });
+        }
+        rsvpsByOccurrence.set(rsvp.occurrenceId, current);
+      }
+    });
+
+    const occurrencesWithRsvp = upcomingOccurrences.map(({ occurrence, event }) => {
+      const rsvpData = rsvpsByOccurrence.get(occurrence.id) || { 
+        goingCoaches: [], 
+        goingAthletes: [] 
+      };
+      return {
+        id: occurrence.id,
+        date: occurrence.date instanceof Date ? occurrence.date.toISOString() : occurrence.date,
+        status: occurrence.status,
+        eventId: event.id,
+        eventTitle: event.title,
+        startTime: event.startTime,
+        endTime: event.endTime,
+        rsvpStatus: rsvpMap.get(occurrence.id) || null,
+        goingCoaches: rsvpData.goingCoaches,
+        goingAthletesCount: rsvpData.goingAthletes.length,
+      };
+    });
 
     return (
       <AthleteDashboard
@@ -98,9 +156,6 @@ export default async function DashboardPage() {
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const nextWeek = new Date();
-  nextWeek.setDate(today.getDate() + 7);
-  nextWeek.setHours(23, 59, 59, 999);
 
   const upcomingOccurrences = await db
     .select({
@@ -112,8 +167,7 @@ export default async function DashboardPage() {
     .where(
       and(
         eq(events.gymId, dbUser.gymId),
-        gte(eventOccurrences.date, today),
-        sql`${eventOccurrences.date} <= ${nextWeek.toISOString()}`
+        gte(eventOccurrences.date, today)
       )
     )
     .orderBy(asc(eventOccurrences.date))
@@ -131,7 +185,7 @@ export default async function DashboardPage() {
       )
     );
 
-  // Get RSVPs for each upcoming occurrence with user data
+  // Get RSVPs for each upcoming occurrence with user data including roles
   const occurrenceIds = upcomingOccurrences.map(({ occurrence }) => occurrence.id);
   const occurrenceRsvps = occurrenceIds.length > 0
     ? await db
@@ -143,6 +197,7 @@ export default async function DashboardPage() {
             name: users.name,
             email: users.email,
             avatarUrl: users.avatarUrl,
+            role: users.role,
           },
         })
         .from(rsvps)
@@ -150,16 +205,39 @@ export default async function DashboardPage() {
         .where(inArray(rsvps.occurrenceId, occurrenceIds))
     : [];
 
-  // Group RSVPs by occurrence with user data
+  // Group RSVPs by occurrence with user data, separating coaches and athletes
   const rsvpsByOccurrence = new Map<string, {
-    going: Array<{ id: string; name: string | null; email: string; avatarUrl: string | null }>;
-    notGoing: Array<{ id: string; name: string | null; email: string; avatarUrl: string | null }>;
+    going: Array<{ id: string; name: string | null; email: string; avatarUrl: string | null; role: string }>;
+    notGoing: Array<{ id: string; name: string | null; email: string; avatarUrl: string | null; role: string }>;
+    goingCoaches: Array<{ id: string; name: string | null; email: string; avatarUrl: string | null }>;
+    goingAthletes: Array<{ id: string; name: string | null; email: string; avatarUrl: string | null }>;
   }>();
   
   occurrenceRsvps.forEach((rsvp) => {
-    const current = rsvpsByOccurrence.get(rsvp.occurrenceId) || { going: [], notGoing: [] };
+    const current = rsvpsByOccurrence.get(rsvp.occurrenceId) || { 
+      going: [], 
+      notGoing: [], 
+      goingCoaches: [], 
+      goingAthletes: [] 
+    };
     if (rsvp.status === "going") {
       current.going.push(rsvp.user);
+      // Separate coaches and athletes
+      if (rsvp.user.role === "coach" || rsvp.user.role === "owner") {
+        current.goingCoaches.push({
+          id: rsvp.user.id,
+          name: rsvp.user.name,
+          email: rsvp.user.email,
+          avatarUrl: rsvp.user.avatarUrl,
+        });
+      } else if (rsvp.user.role === "athlete") {
+        current.goingAthletes.push({
+          id: rsvp.user.id,
+          name: rsvp.user.name,
+          email: rsvp.user.email,
+          avatarUrl: rsvp.user.avatarUrl,
+        });
+      }
     } else if (rsvp.status === "not_going") {
       current.notGoing.push(rsvp.user);
     }
@@ -376,8 +454,10 @@ function DashboardContent({
   stats: Array<{ label: string; value: number; icon: React.ComponentType<{ className?: string }>; color: string }>;
   upcomingOccurrences: Array<{ occurrence: any; event: any }>;
   rsvpsByOccurrence: Map<string, {
-    going: Array<{ id: string; name: string | null; email: string; avatarUrl: string | null }>;
-    notGoing: Array<{ id: string; name: string | null; email: string; avatarUrl: string | null }>;
+    going: Array<{ id: string; name: string | null; email: string; avatarUrl: string | null; role: string }>;
+    notGoing: Array<{ id: string; name: string | null; email: string; avatarUrl: string | null; role: string }>;
+    goingCoaches: Array<{ id: string; name: string | null; email: string; avatarUrl: string | null }>;
+    goingAthletes: Array<{ id: string; name: string | null; email: string; avatarUrl: string | null }>;
   }>;
   formatDate: (date: Date | string | null) => { day: string; month: string; weekday: string };
   formatTime: (time: string | null) => string;
@@ -453,7 +533,7 @@ function DashboardContent({
           <Card className="rounded-xl">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base font-semibold">This Week</CardTitle>
+                <CardTitle className="text-base font-semibold">Upcoming Events</CardTitle>
                 <Button variant="ghost" size="sm" asChild className="text-muted-foreground rounded-xl">
                   <Link href="/events">
                     View all
@@ -466,7 +546,7 @@ function DashboardContent({
               {upcomingOccurrences.length === 0 ? (
                 <div className="py-8 text-center">
                   <IconCalendar className="h-10 w-10 mx-auto mb-3 text-muted-foreground/30" />
-                  <p className="text-sm text-muted-foreground mb-4">No upcoming events this week</p>
+                  <p className="text-sm text-muted-foreground mb-4">No upcoming events</p>
                   <Button variant="outline" size="sm" asChild className="rounded-xl">
                     <Link href="/events/new">Create an event</Link>
                   </Button>
@@ -476,19 +556,26 @@ function DashboardContent({
                   {upcomingOccurrences.map(({ occurrence, event }) => {
                     const dateInfo = formatDate(occurrence.date);
                     const isCanceled = occurrence.status === "canceled";
-                    const rsvpData = rsvpsByOccurrence.get(occurrence.id) || { going: [], notGoing: [] };
+                    const rsvpData = rsvpsByOccurrence.get(occurrence.id) || { 
+                      going: [], 
+                      notGoing: [], 
+                      goingCoaches: [], 
+                      goingAthletes: [] 
+                    };
                     const isCoachOrOwner = userRole === "owner" || userRole === "coach";
+                    const goingCoaches = rsvpData.goingCoaches || [];
+                    const goingAthletes = rsvpData.goingAthletes || [];
 
                     return (
                       <div
                         key={occurrence.id}
-                        className={`group relative flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 transition-colors ${
+                        className={`group relative flex items-start gap-3 p-3 rounded-xl hover:bg-muted/50 transition-colors ${
                           isCanceled ? "opacity-50" : ""
                         }`}
                       >
                         <Link
                           href={`/events?eventId=${event.id}&occurrenceId=${occurrence.id}`}
-                          className="flex items-center gap-3 flex-1 min-w-0"
+                          className="flex items-start gap-3 flex-1 min-w-0"
                         >
                           <div className="h-12 w-12 rounded-xl bg-muted flex flex-col items-center justify-center shrink-0">
                             <span className="text-lg font-bold leading-none">{dateInfo.day}</span>
@@ -496,34 +583,39 @@ function DashboardContent({
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="font-medium text-sm truncate">{event.title}</p>
-                            <p className="text-xs text-muted-foreground flex items-center gap-1">
+                            <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
                               <IconClock className="h-3 w-3" />
                               {formatTime(event.startTime)} - {formatTime(event.endTime)}
                             </p>
+                            {/* Coaches and athletes */}
+                            {(goingCoaches.length > 0 || goingAthletes.length > 0) && (
+                              <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                                {goingCoaches.map((coach) => (
+                                  <Badge
+                                    key={coach.id}
+                                    variant="secondary"
+                                    className="text-[10px] rounded-md flex items-center gap-1"
+                                  >
+                                    <IconCheck className="h-3 w-3" />
+                                    {coach.name || coach.email}
+                                  </Badge>
+                                ))}
+                                {goingCoaches.length > 0 && goingAthletes.length > 0 && (
+                                  <span className="text-muted-foreground">•</span>
+                                )}
+                                {goingAthletes.length > 0 && (
+                                  <span className="text-sm text-emerald-600 font-medium">
+                                    {goingAthletes.length} GOING
+                                  </span>
+                                )}
+                              </div>
+                            )}
                           </div>
-                          <div className="flex items-center gap-3">
-                            {(rsvpData.going.length > 0 || rsvpData.notGoing.length > 0) && (
-                              <div className="flex items-center gap-3">
-                                {rsvpData.going.length > 0 && (
-                                  <div className="flex items-center gap-1.5">
-                                    <StackedAvatars
-                                      users={rsvpData.going}
-                                      getInitials={getInitials}
-                                      variant="going"
-                                    />
-                                    <span className="text-xs text-emerald-600 font-medium">{rsvpData.going.length}</span>
-                                  </div>
-                                )}
-                                {rsvpData.notGoing.length > 0 && (
-                                  <div className="flex items-center gap-1.5">
-                                    <StackedAvatars
-                                      users={rsvpData.notGoing}
-                                      getInitials={getInitials}
-                                      variant="notGoing"
-                                    />
-                                    <span className="text-xs text-red-600 font-medium">{rsvpData.notGoing.length}</span>
-                                  </div>
-                                )}
+                          <div className="flex flex-col items-end gap-2 shrink-0">
+                            {rsvpData.notGoing.length > 0 && (
+                              <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                                <IconX className="h-4 w-4" />
+                                {rsvpData.notGoing.length}
                               </div>
                             )}
                             {isCanceled && (

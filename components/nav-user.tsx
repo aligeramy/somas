@@ -40,12 +40,14 @@ import {
 
 export function NavUser({
   user,
+  userRole,
 }: {
   user: {
     name?: string
     email: string
     avatar?: string
   }
+  userRole?: string
 }) {
   const { isMobile } = useSidebar()
   const router = useRouter()
@@ -131,12 +133,14 @@ export function NavUser({
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem asChild>
-                <Link href="/profile">
-                  <IconUserCircle className="mr-2 h-4 w-4" />
-                  Profile
-                </Link>
-              </DropdownMenuItem>
+              {userRole !== "athlete" && (
+                <DropdownMenuItem asChild>
+                  <Link href="/profile">
+                    <IconUserCircle className="mr-2 h-4 w-4" />
+                    Profile
+                  </Link>
+                </DropdownMenuItem>
+              )}
               <DropdownMenuSub>
                 <DropdownMenuSubTrigger>
                   {theme === "dark" ? (

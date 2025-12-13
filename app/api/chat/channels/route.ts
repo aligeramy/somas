@@ -57,6 +57,9 @@ export async function GET(request: Request) {
       )
       .orderBy(channels.createdAt);
 
+    // Owners and coaches can see all channels in their gym
+    const isOwnerOrCoach = dbUser.role === "owner" || dbUser.role === "coach";
+    
     // Get channels where the user has sent messages (for DM and group filtering)
     const userMessageChannels = await db
       .selectDistinct({ channelId: messages.channelId })
@@ -69,6 +72,11 @@ export async function GET(request: Request) {
 
     // Filter channels based on type and user participation
     const filteredChannels = allChannels.filter((channel) => {
+      // Owners and coaches can see all channels
+      if (isOwnerOrCoach) {
+        return true;
+      }
+
       // Always show global channels
       if (channel.type === "global") {
         return true;

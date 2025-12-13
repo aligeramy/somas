@@ -16,6 +16,8 @@ interface Occurrence {
   startTime: string;
   endTime: string;
   rsvpStatus: string | null;
+  goingCoaches: Array<{ id: string; name: string | null; email: string }>;
+  goingAthletesCount: number;
 }
 
 interface AthleteDashboardProps {
@@ -138,6 +140,28 @@ export function AthleteDashboard({ userName, occurrences }: AthleteDashboardProp
                             {formatTime(nextEvent.startTime)} - {formatTime(nextEvent.endTime)}
                           </span>
                         </p>
+                        
+                        {/* Coaches and Athletes */}
+                        <div className="flex items-center gap-2 mt-3 flex-wrap">
+                          {nextEvent.goingCoaches.length > 0 && (
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              {nextEvent.goingCoaches.map((coach) => (
+                                <Badge
+                                  key={coach.id}
+                                  variant="secondary"
+                                  className="text-xs rounded-md"
+                                >
+                                  {coach.name || coach.email}
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+                          {nextEvent.goingAthletesCount > 0 && (
+                            <span className="text-sm text-emerald-600 font-medium">
+                              {nextEvent.goingAthletesCount} going
+                            </span>
+                          )}
+                        </div>
 
                         {/* RSVP Buttons */}
                         <div className="flex gap-2 mt-4">
@@ -204,6 +228,27 @@ export function AthleteDashboard({ userName, occurrences }: AthleteDashboardProp
                                 <IconClock className="h-3 w-3" />
                                 {formatTime(occ.startTime)}
                               </p>
+                              {/* Coaches and Athletes */}
+                              <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                                {occ.goingCoaches.length > 0 && (
+                                  <div className="flex items-center gap-1 flex-wrap">
+                                    {occ.goingCoaches.map((coach) => (
+                                      <Badge
+                                        key={coach.id}
+                                        variant="secondary"
+                                        className="text-[10px] rounded-md"
+                                      >
+                                        {coach.name || coach.email}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                )}
+                                {occ.goingAthletesCount > 0 && (
+                                  <span className="text-xs text-emerald-600 font-medium">
+                                    {occ.goingAthletesCount} going
+                                  </span>
+                                )}
+                              </div>
                             </div>
 
                             {/* RSVP Buttons */}

@@ -2,6 +2,7 @@ import { relations } from "drizzle-orm";
 import {
   boolean,
   index,
+  integer,
   jsonb,
   pgEnum,
   pgTable,
@@ -85,10 +86,10 @@ export const events = pgTable(
     location: varchar("location", { length: 255 }),
     recurrenceRule: text("recurrenceRule"),
     recurrenceEndDate: timestamp("recurrenceEndDate"), // When recurrence ends
-    recurrenceCount: varchar("recurrenceCount", { length: 10 }).$type<number>(), // Number of occurrences
+    recurrenceCount: integer("recurrenceCount"), // Number of occurrences
     startTime: varchar("startTime", { length: 10 }).notNull(),
     endTime: varchar("endTime", { length: 10 }).notNull(),
-    reminderDays: jsonb("reminderDays").default([7, 1, 0.02]), // 7 days, 1 day, 30 min (0.02 = 30min/1440min)
+    reminderDays: integer("reminderDays").array(), // PostgreSQL integer[] array - days before event to send reminders
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().notNull(),
   },

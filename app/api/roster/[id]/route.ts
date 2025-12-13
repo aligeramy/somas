@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { db } from "@/lib/db";
 import { users } from "@/drizzle/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 
 // GET - Get single roster member
 export async function GET(
@@ -53,6 +53,11 @@ export async function GET(
 
     if (!member) {
       return NextResponse.json({ error: "Member not found" }, { status: 404 });
+    }
+
+    // Athletes can only access coaches/owners, not other athletes
+    if (dbUser.role === "athlete" && member.role === "athlete") {
+      return NextResponse.json({ error: "Access denied" }, { status: 403 });
     }
 
     return NextResponse.json({ member });
@@ -121,10 +126,29 @@ export async function PUT(
       if (dbUser.role !== "owner") {
         return NextResponse.json({ error: "Only head coaches can change member roles" }, { status: 403 });
       }
-      // Can't change head coach role
+      
       const [targetMember] = await db.select().from(users).where(eq(users.id, id)).limit(1);
-      if (targetMember?.role === "owner") {
-        return NextResponse.json({ error: "Cannot change head coach role" }, { status: 400 });
+      
+      if (!targetMember) {
+        return NextResponse.json({ error: "Member not found" }, { status: 404 });
+      }
+
+      // If demoting a head coach to coach, ensure at least one head coach remains
+      if (targetMember.role === "owner" && role === "coach") {
+        // Count current head coaches in the gym
+        const headCoachCount = await db
+          .select({ count: sql<number>`count(*)` })
+          .from(users)
+          .where(and(eq(users.gymId, dbUser.gymId), eq(users.role, "owner")));
+
+        const count = Number(headCoachCount[0]?.count || 0);
+        
+        // Must have at least one head coach remaining
+        if (count <= 1) {
+          return NextResponse.json({ 
+            error: "Cannot demote the last head coach. At least one head coach must remain." 
+          }, { status: 400 });
+        }
       }
     }
 

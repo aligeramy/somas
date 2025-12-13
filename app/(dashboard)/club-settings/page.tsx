@@ -22,6 +22,13 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { IconDotsVertical } from "@tabler/icons-react";
 
 interface ClubProfile {
   id: string;
@@ -41,7 +48,7 @@ interface Coach {
   name: string | null;
   phone: string | null;
   avatarUrl: string | null;
-  role: "coach";
+  role: "coach" | "owner";
   createdAt: string;
 }
 
@@ -65,6 +72,8 @@ export default function ClubSettingsPage() {
   const [isAddCoachDialogOpen, setIsAddCoachDialogOpen] = useState(false);
   const [coachEmail, setCoachEmail] = useState("");
   const [invitingCoach, setInvitingCoach] = useState(false);
+  const [currentUserRole, setCurrentUserRole] = useState<"owner" | "coach" | "athlete" | null>(null);
+  const [changingRole, setChangingRole] = useState<string | null>(null);
 
   const { getRootProps: getLogoRootProps, getInputProps: getLogoInputProps } = useDropzone({
     accept: {
@@ -90,12 +99,24 @@ export default function ClubSettingsPage() {
       const response = await fetch("/api/roster");
       if (!response.ok) throw new Error("Failed to load coaches");
       const data = await response.json();
-      const coachesList = data.roster.filter((user: Coach) => user.role === "coach");
+      // Include both coaches and owners (head coaches)
+      const coachesList = data.roster.filter((user: Coach) => user.role === "coach" || user.role === "owner");
       setCoaches(coachesList);
     } catch (err) {
       console.error("Failed to load coaches:", err);
     } finally {
       setLoadingCoaches(false);
+    }
+  }, []);
+
+  const loadCurrentUserRole = useCallback(async () => {
+    try {
+      const response = await fetch("/api/user-info");
+      if (!response.ok) throw new Error("Failed to load user role");
+      const data = await response.json();
+      setCurrentUserRole(data.role);
+    } catch (err) {
+      console.error("Failed to load user role:", err);
     }
   }, []);
 
@@ -118,7 +139,8 @@ export default function ClubSettingsPage() {
   useEffect(() => {
     loadClub();
     loadCoaches();
-  }, [loadClub, loadCoaches]);
+    loadCurrentUserRole();
+  }, [loadClub, loadCoaches, loadCurrentUserRole]);
 
 
   async function handleSave(e: React.FormEvent) {
@@ -226,6 +248,37 @@ export default function ClubSettingsPage() {
       return name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
     }
     return email[0].toUpperCase();
+  }
+
+  async function handleRoleChange(coachId: string, newRole: "coach" | "owner") {
+    setChangingRole(coachId);
+    setError(null);
+    
+    try {
+      const response = await fetch(`/api/roster/${coachId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role: newRole }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to change role");
+      }
+
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 3000);
+      await loadCoaches(); // Reload coaches list
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to change role");
+    } finally {
+      setChangingRole(null);
+    }
+  }
+
+  function formatRole(role: "coach" | "owner") {
+    return role === "owner" ? "Head Coach" : "Coach";
   }
 
   if (loading) {
@@ -446,9 +499,47 @@ export default function ClubSettingsPage() {
                             </div>
                           )}
                         </div>
-                        <Badge variant="secondary" className="rounded-lg">
-                          Coach
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge 
+                            variant={coach.role === "owner" ? "default" : "secondary"} 
+                            className="rounded-lg"
+                          >
+                            {formatRole(coach.role)}
+                          </Badge>
+                          {currentUserRole === "owner" && (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0"
+                                  disabled={changingRole === coach.id}
+                                >
+                                  <IconDotsVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="rounded-xl">
+                                {coach.role === "coach" ? (
+                                  <DropdownMenuItem
+                                    onClick={() => handleRoleChange(coach.id, "owner")}
+                                    disabled={changingRole === coach.id}
+                                    className="rounded-lg"
+                                  >
+                                    Promote to Head Coach
+                                  </DropdownMenuItem>
+                                ) : (
+                                  <DropdownMenuItem
+                                    onClick={() => handleRoleChange(coach.id, "coach")}
+                                    disabled={changingRole === coach.id}
+                                    className="rounded-lg"
+                                  >
+                                    Demote to Coach
+                                  </DropdownMenuItem>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
