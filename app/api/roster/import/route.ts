@@ -1,11 +1,12 @@
 import { randomBytes } from "node:crypto";
-import { and, eq, gt } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { parse } from "papaparse";
 import { Resend } from "resend";
-import { gyms, invitations, users } from "@/drizzle/schema";
-import { InvitationEmail } from "@/emails/invitation";
+import { gyms, users } from "@/drizzle/schema";
+import { WelcomeEmail } from "@/emails/welcome";
 import { db } from "@/lib/db";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -76,7 +77,8 @@ export async function POST(request: Request) {
       );
     }
 
-    const invitationsList: Array<typeof invitations.$inferSelect> = [];
+    const supabaseAdmin = createAdminClient();
+    const createdUsers: Array<{ email: string; userId: string }> = [];
     const errors: Array<{
       row?: Record<string, string>;
       email?: string;
@@ -85,13 +87,15 @@ export async function POST(request: Request) {
 
     for (const row of data) {
       try {
-        // Extract email and role from row
-        // Support both "email" and "Email" keys, and "role" and "Role"
+        // Extract data from row
         const email =
           row.email ||
           row.Email ||
           row["email address"] ||
           row["Email Address"];
+        const name = row.name || row.Name || row["full name"] || row["Full Name"];
+        const phone = row.phone || row.Phone || row["phone number"];
+        const address = row.address || row.Address;
         const roleRaw =
           row.role ||
           row.Role ||
@@ -114,7 +118,7 @@ export async function POST(request: Request) {
             ? "coach"
             : "athlete";
 
-        // Check if user already exists
+        // Check if user already exists in database
         const [existingUser] = await db
           .select()
           .from(users)
@@ -126,60 +130,73 @@ export async function POST(request: Request) {
           continue;
         }
 
-        // Check for existing invitation
-        const [existingInvitation] = await db
-          .select()
-          .from(invitations)
-          .where(
-            and(
-              eq(invitations.email, email),
-              eq(invitations.gymId, dbUser.gymId),
-              eq(invitations.used, false),
-              gt(invitations.expiresAt, new Date()),
-            ),
-          )
-          .limit(1);
+        // Generate random password (32 characters)
+        const randomPassword = randomBytes(16).toString("hex");
 
-        if (existingInvitation) {
-          errors.push({ email, error: "Invitation already sent" });
+        // Create user in Supabase Auth with admin client
+        const { data: authData, error: authError } =
+          await supabaseAdmin.auth.admin.createUser({
+            email,
+            password: randomPassword,
+            email_confirm: true, // Auto-confirm email so they can login
+            user_metadata: {
+              name: name || null,
+            },
+          });
+
+        if (authError || !authData.user) {
+          errors.push({
+            email,
+            error: authError?.message || "Failed to create user in auth",
+          });
           continue;
         }
 
-        // Generate token
-        const token = randomBytes(32).toString("hex");
-        const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
+        // Create user record in database first
+        await db.insert(users).values({
+          id: authData.user.id,
+          email,
+          name: name || null,
+          phone: phone || null,
+          address: address || null,
+          role: role as "coach" | "athlete",
+          gymId: dbUser.gymId,
+          onboarded: false, // They need to complete onboarding
+        });
 
-        // Create invitation
-        const [invitation] = await db
-          .insert(invitations)
-          .values({
-            gymId: dbUser.gymId,
+        // Generate password reset token for setup link
+        const { data: resetData, error: resetError } =
+          await supabaseAdmin.auth.admin.generateLink({
+            type: "recovery",
             email,
-            role: role as "coach" | "athlete",
-            token,
-            invitedById: user.id,
-            expiresAt,
-          })
-          .returning();
+          });
 
-        // Send email
-        const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL}/register?token=${token}&email=${encodeURIComponent(email)}`;
+        if (resetError || !resetData.properties?.hashed_token) {
+          errors.push({
+            email,
+            error: `Failed to generate password setup link: ${resetError?.message || "Unknown error"}`,
+          });
+          // Continue anyway - user is created, they can use password reset
+        }
+
+        // Send welcome email with password setup link
+        const setupUrl = resetData?.properties?.hashed_token
+          ? `${process.env.NEXT_PUBLIC_APP_URL}/setup-password?token=${resetData.properties.hashed_token}&email=${encodeURIComponent(email)}`
+          : `${process.env.NEXT_PUBLIC_APP_URL}/setup-password?email=${encodeURIComponent(email)}`;
 
         await resend.emails.send({
           from: `${process.env.RESEND_FROM_NAME} <${process.env.RESEND_FROM_EMAIL}>`,
           to: email,
-          subject: `Invitation to join ${gym.name} on Titans of Mississauga`,
-          react: InvitationEmail({
+          subject: `Welcome to ${gym.name}!`,
+          react: WelcomeEmail({
             gymName: gym.name,
             gymLogoUrl: gym.logoUrl,
-            inviterName: dbUser.name || "A team member",
-            inviteUrl,
-            role,
+            userName: name || email,
+            setupUrl,
           }),
         });
 
-        invitationsList.push(invitation);
+        createdUsers.push({ email, userId: authData.user.id });
       } catch (error) {
         errors.push({
           row,
@@ -190,10 +207,10 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      invitations: invitationsList.length,
+      created: createdUsers.length,
       errors: errors.length,
       details: {
-        invitations: invitationsList,
+        users: createdUsers,
         errors: errors.length > 0 ? errors : undefined,
       },
     });

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,12 +17,39 @@ import { createClient } from "@/lib/supabase/client";
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const [gymName, setGymName] = useState("");
-  const [logoFile, setLogoFile] = useState<File | null>(null);
-  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loadingProfile, setLoadingProfile] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const supabase = createClient();
+
+  useEffect(() => {
+    loadUserProfile();
+  }, []);
+
+  async function loadUserProfile() {
+    try {
+      setLoadingProfile(true);
+      const response = await fetch("/api/profile");
+      if (response.ok) {
+        const data = await response.json();
+        // Pre-populate fields if user already has data (from import)
+        if (data.user.name) setName(data.user.name);
+        if (data.user.phone) setPhone(data.user.phone);
+        if (data.user.address) setAddress(data.user.address);
+        if (data.user.avatarUrl) setAvatarPreview(data.user.avatarUrl);
+      }
+    } catch (_err) {
+      // Ignore errors, user might not exist yet
+      console.log("Could not load existing profile");
+    } finally {
+      setLoadingProfile(false);
+    }
+  }
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: {
@@ -32,10 +59,10 @@ export default function OnboardingPage() {
     onDrop: (acceptedFiles) => {
       if (acceptedFiles.length > 0) {
         const file = acceptedFiles[0];
-        setLogoFile(file);
+        setAvatarFile(file);
         const reader = new FileReader();
         reader.onloadend = () => {
-          setLogoPreview(reader.result as string);
+          setAvatarPreview(reader.result as string);
         };
         reader.readAsDataURL(file);
       }
@@ -57,38 +84,40 @@ export default function OnboardingPage() {
         return;
       }
 
-      let logoUrl = null;
+      let avatarUrl = null;
 
-      // Upload logo if provided
-      if (logoFile) {
-        const fileExt = logoFile.name.split(".").pop();
+      // Upload avatar if provided
+      if (avatarFile) {
+        const fileExt = avatarFile.name.split(".").pop();
         const fileName = `${user.id}-${Date.now()}.${fileExt}`;
-        const filePath = `logos/${fileName}`;
+        const filePath = `avatars/${fileName}`;
 
-        const { error: uploadError, data } = await supabase.storage
-          .from("logos")
-          .upload(filePath, logoFile, {
+        const { error: uploadError } = await supabase.storage
+          .from("avatars")
+          .upload(filePath, avatarFile, {
             cacheControl: "3600",
             upsert: false,
           });
 
         if (uploadError) {
-          throw new Error(`Failed to upload logo: ${uploadError.message}`);
+          throw new Error(`Failed to upload avatar: ${uploadError.message}`);
         }
 
         const {
           data: { publicUrl },
-        } = supabase.storage.from("logos").getPublicUrl(filePath);
-        logoUrl = publicUrl;
+        } = supabase.storage.from("avatars").getPublicUrl(filePath);
+        avatarUrl = publicUrl;
       }
 
-      // Create gym and update user
-      const response = await fetch("/api/onboarding", {
+      // Update user profile
+      const response = await fetch("/api/profile-setup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          gymName,
-          logoUrl,
+          name,
+          phone: phone || null,
+          address: address || null,
+          avatarUrl,
         }),
       });
 
@@ -105,13 +134,28 @@ export default function OnboardingPage() {
     }
   }
 
+  if (loadingProfile) {
+    return (
+      <div className="flex min-h-screen items-center justify-center p-4 md:p-6">
+        <Card className="w-full max-w-2xl">
+          <CardContent className="pt-6">
+            <div className="animate-pulse text-muted-foreground text-center">
+              Loading...
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex min-h-screen items-center justify-center p-6">
+    <div className="flex min-h-screen items-center justify-center p-4 md:p-6">
       <Card className="w-full max-w-2xl">
         <CardHeader>
-          <CardTitle>Complete Your Club Setup</CardTitle>
+          <CardTitle>Complete Your Profile</CardTitle>
           <CardDescription>
-            Set up your club profile to get started with Titans of Mississauga
+            Welcome! Please complete your profile to get started. You can edit
+            any pre-filled information.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -123,33 +167,54 @@ export default function OnboardingPage() {
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="gymName">Club Name *</Label>
+              <Label htmlFor="name">Name *</Label>
               <Input
-                id="gymName"
-                value={gymName}
-                onChange={(e) => setGymName(e.target.value)}
-                placeholder="Enter your club name"
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Enter your name"
                 required
               />
             </div>
 
             <div className="space-y-2">
-              <Label>Logo (Optional)</Label>
+              <Label htmlFor="phone">Phone</Label>
+              <Input
+                id="phone"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="Enter your phone number"
+                type="tel"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="address">Address</Label>
+              <Input
+                id="address"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="Enter your address"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Profile Photo (Optional)</Label>
               <div
                 {...getRootProps()}
-                className={`border border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+                className={`border border-dashed rounded-lg p-6 md:p-8 text-center cursor-pointer transition-colors ${
                   isDragActive
                     ? "border-primary bg-primary/5"
                     : "border-muted-foreground/25 hover:border-muted-foreground/50"
                 }`}
               >
                 <input {...getInputProps()} />
-                {logoPreview ? (
+                {avatarPreview ? (
                   <div className="space-y-2">
                     <img
-                      src={logoPreview}
-                      alt="Logo preview"
-                      className="mx-auto max-h-32"
+                      src={avatarPreview}
+                      alt="Avatar preview"
+                      className="mx-auto max-h-32 rounded-full"
                     />
                     <p className="text-sm text-muted-foreground">
                       Click or drag to replace
@@ -159,8 +224,8 @@ export default function OnboardingPage() {
                   <div className="space-y-2">
                     <p className="text-sm text-muted-foreground">
                       {isDragActive
-                        ? "Drop the logo here"
-                        : "Drag & drop a logo here, or click to select"}
+                        ? "Drop the photo here"
+                        : "Drag & drop a photo here, or click to select"}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       PNG, JPG, GIF up to 5MB
@@ -170,8 +235,8 @@ export default function OnboardingPage() {
               </div>
             </div>
 
-            <Button type="submit" disabled={loading || !gymName}>
-              {loading ? "Setting up..." : "Complete Setup"}
+            <Button type="submit" disabled={loading || !name} className="w-full">
+              {loading ? "Saving..." : "Complete Profile"}
             </Button>
           </form>
         </CardContent>
