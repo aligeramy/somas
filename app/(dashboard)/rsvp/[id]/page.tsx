@@ -1,27 +1,38 @@
 "use client";
 
 import {
+  IconArrowLeft,
   IconCheck,
   IconClock,
   IconX,
-  IconChartBar,
-  IconArrowLeft,
 } from "@tabler/icons-react";
-import { useCallback, useEffect, useState, useMemo } from "react";
-import { useRouter, useParams } from "next/navigation";
+import {
+  eachMonthOfInterval,
+  endOfMonth,
+  format,
+  startOfMonth,
+  subMonths,
+} from "date-fns";
+import { useParams, useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { PageHeader } from "@/components/page-header";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
   SelectContent,
@@ -29,7 +40,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { format, startOfMonth, endOfMonth, eachMonthOfInterval, subMonths } from "date-fns";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface EventOccurrence {
   id: string;
@@ -77,13 +88,13 @@ export default function AthleteAttendancePage() {
   const loadAthleteData = useCallback(async () => {
     try {
       setLoading(true);
-      
+
       // Load roster to get athlete info
       const rosterRes = await fetch("/api/roster");
       if (rosterRes.ok) {
         const rosterData = await rosterRes.json();
         const foundAthlete = (rosterData.roster || []).find(
-          (member: RosterMember) => member.id === athleteId
+          (member: RosterMember) => member.id === athleteId,
         );
         if (foundAthlete) {
           setAthlete(foundAthlete);
@@ -94,7 +105,9 @@ export default function AthleteAttendancePage() {
       }
 
       // Load historical RSVPs for this athlete
-      const rsvpsRes = await fetch(`/api/rsvp?includePast=true&userId=${athleteId}`);
+      const rsvpsRes = await fetch(
+        `/api/rsvp?includePast=true&userId=${athleteId}`,
+      );
       if (rsvpsRes.ok) {
         const rsvpsData = await rsvpsRes.json();
         setHistoricalRsvps(rsvpsData.rsvps || []);
@@ -194,8 +207,9 @@ export default function AthleteAttendancePage() {
         });
 
         const going = monthRsvps.filter((r) => r.status === "going").length;
-        const notGoing = monthRsvps.filter((r) => r.status === "not_going")
-          .length;
+        const notGoing = monthRsvps.filter(
+          (r) => r.status === "not_going",
+        ).length;
 
         return {
           month: format(month, "MMM yyyy"),
@@ -222,8 +236,9 @@ export default function AthleteAttendancePage() {
           });
 
           const going = yearRsvps.filter((r) => r.status === "going").length;
-          const notGoing = yearRsvps.filter((r) => r.status === "not_going")
-            .length;
+          const notGoing = yearRsvps.filter(
+            (r) => r.status === "not_going",
+          ).length;
 
           return {
             month: year.toString(),
@@ -238,11 +253,11 @@ export default function AthleteAttendancePage() {
   const chartConfig = {
     going: {
       label: "Attended",
-      color: "hsl(var(--chart-1))",
+      color: "hsl(217, 91%, 60%)",
     },
     notGoing: {
       label: "Missed",
-      color: "hsl(var(--chart-2))",
+      color: "hsl(0, 84%, 60%)",
     },
   };
 
@@ -299,13 +314,21 @@ export default function AthleteAttendancePage() {
   // Sort RSVPs by date (most recent first)
   const sortedRsvps = [...historicalRsvps].sort((a, b) => {
     if (!a.occurrence?.date || !b.occurrence?.date) return 0;
-    return new Date(b.occurrence.date).getTime() - new Date(a.occurrence.date).getTime();
+    return (
+      new Date(b.occurrence.date).getTime() -
+      new Date(a.occurrence.date).getTime()
+    );
   });
 
   return (
     <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
       <PageHeader title="Athlete Attendance">
-        <Button variant="ghost" size="sm" onClick={() => router.back()} className="rounded-xl">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => router.back()}
+          className="rounded-xl"
+        >
           <IconArrowLeft className="h-4 w-4 mr-2" />
           Back
         </Button>
@@ -327,7 +350,9 @@ export default function AthleteAttendancePage() {
                   <h2 className="text-xl font-semibold">
                     {athlete.name || athlete.email}
                   </h2>
-                  <p className="text-sm text-muted-foreground">{athlete.email}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {athlete.email}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -433,17 +458,17 @@ export default function AthleteAttendancePage() {
                     return (
                       <div
                         key={rsvp.id}
-                        className="flex items-center gap-4 p-4 rounded-xl border hover:bg-muted/30 transition-colors"
+                        className="flex items-center gap-3 p-3 md:p-4 rounded-xl border hover:bg-muted/30 transition-colors"
                       >
                         <div
-                          className={`h-16 w-16 rounded-xl flex flex-col items-center justify-center shrink-0 ${
+                          className={`h-12 w-12 md:h-16 md:w-16 rounded-lg md:rounded-xl flex flex-col items-center justify-center shrink-0 ${
                             isGoing
                               ? "bg-emerald-100 dark:bg-emerald-950/50"
                               : "bg-red-100 dark:bg-red-950/50"
                           }`}
                         >
                           <span
-                            className={`text-2xl font-bold leading-none ${
+                            className={`text-lg md:text-2xl font-bold leading-none ${
                               isGoing
                                 ? "text-emerald-600 dark:text-emerald-400"
                                 : "text-red-600 dark:text-red-400"
@@ -451,16 +476,16 @@ export default function AthleteAttendancePage() {
                           >
                             {dateInfo.day}
                           </span>
-                          <span className="text-[10px] font-medium text-muted-foreground mt-0.5">
+                          <span className="text-[9px] md:text-[10px] font-medium text-muted-foreground mt-0.5">
                             {dateInfo.month}
                           </span>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className="font-medium">{occ.event.title}</p>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="font-medium text-sm md:text-base truncate">{occ.event.title}</p>
                             <Badge
                               variant={isGoing ? "default" : "secondary"}
-                              className={`text-[10px] rounded-md ${
+                              className={`text-[9px] md:text-[10px] rounded-md shrink-0 ${
                                 isGoing
                                   ? "bg-emerald-600"
                                   : "bg-red-100 text-red-700 dark:bg-red-950/50 dark:text-red-300"
@@ -481,25 +506,28 @@ export default function AthleteAttendancePage() {
                             {occ.status === "canceled" && (
                               <Badge
                                 variant="destructive"
-                                className="text-[10px] rounded-md"
+                                className="text-[9px] md:text-[10px] rounded-md shrink-0"
                               >
                                 Canceled
                               </Badge>
                             )}
                           </div>
-                          <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
+                          <div className="flex items-center gap-2 md:gap-3 mt-1 text-xs md:text-sm text-muted-foreground flex-wrap">
                             <span className="whitespace-nowrap">
                               {dateInfo.weekday}
                             </span>
                             {dateInfo.relative && (
-                              <Badge variant="secondary" className="text-[10px]">
+                              <Badge
+                                variant="secondary"
+                                className="text-[9px] md:text-[10px] shrink-0"
+                              >
                                 {dateInfo.relative}
                               </Badge>
                             )}
                             <span className="flex items-center gap-1">
                               <IconClock className="h-3 w-3" />
-                              {formatTime(occ.event.startTime)} -{" "}
-                              {formatTime(occ.event.endTime)}
+                              {formatTime(occ.event.startTime)}
+                              <span className="hidden sm:inline"> - {formatTime(occ.event.endTime)}</span>
                             </span>
                           </div>
                         </div>
@@ -515,5 +543,3 @@ export default function AthleteAttendancePage() {
     </div>
   );
 }
-
-

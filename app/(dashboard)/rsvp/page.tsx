@@ -449,11 +449,11 @@ export default function RSVPPage() {
   const chartConfig = {
     going: {
       label: "Attended",
-      color: "hsl(var(--chart-1))",
+      color: "hsl(217, 91%, 60%)",
     },
     notGoing: {
       label: "Missed",
-      color: "hsl(var(--chart-2))",
+      color: "hsl(0, 84%, 60%)",
     },
   };
 
@@ -572,27 +572,27 @@ export default function RSVPPage() {
                             ? "#"
                             : `/events?eventId=${occ.event.id}&occurrenceId=${occ.id}`
                         }
-                        className={`flex items-center gap-4 p-4 rounded-xl border transition-colors ${
+                        className={`flex items-center gap-3 p-3 md:p-4 rounded-xl border transition-colors ${
                           isCanceled
                             ? "opacity-50 cursor-default"
                             : "hover:bg-muted/30 cursor-pointer"
                         }`}
                       >
-                        <div className="h-16 w-16 rounded-xl bg-muted flex flex-col items-center justify-center shrink-0">
-                          <span className="text-2xl font-bold leading-none">
+                        <div className="h-12 w-12 md:h-16 md:w-16 rounded-lg md:rounded-xl bg-muted flex flex-col items-center justify-center shrink-0">
+                          <span className="text-lg md:text-2xl font-bold leading-none">
                             {dateInfo.day}
                           </span>
-                          <span className="text-[10px] font-medium text-muted-foreground mt-0.5">
+                          <span className="text-[9px] md:text-[10px] font-medium text-muted-foreground mt-0.5">
                             {dateInfo.month}
                           </span>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className="font-medium">{occ.event.title}</p>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="font-medium text-sm md:text-base truncate">{occ.event.title}</p>
                             {dateInfo.relative && (
                               <Badge
                                 variant="secondary"
-                                className="text-[10px] rounded-md"
+                                className="text-[9px] md:text-[10px] rounded-md shrink-0"
                               >
                                 {dateInfo.relative}
                               </Badge>
@@ -600,13 +600,13 @@ export default function RSVPPage() {
                             {isCanceled && (
                               <Badge
                                 variant="destructive"
-                                className="text-[10px] rounded-md"
+                                className="text-[9px] md:text-[10px] rounded-md shrink-0"
                               >
                                 Canceled
                               </Badge>
                             )}
                           </div>
-                          <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
+                          <div className="flex items-center gap-2 md:gap-3 mt-1 text-xs md:text-sm text-muted-foreground flex-wrap">
                             <span className="whitespace-nowrap">
                               {dateInfo.weekday}
                             </span>
@@ -619,38 +619,45 @@ export default function RSVPPage() {
                           {(goingCoaches.length > 0 ||
                             goingAthletes.length > 0) && (
                             <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                              {goingCoaches.map((r) => (
+                              {goingCoaches.slice(0, 2).map((r) => (
                                 <Badge
                                   key={r.id}
                                   variant="secondary"
-                                  className="text-[10px] rounded-md flex items-center gap-1"
+                                  className="text-[9px] md:text-[10px] rounded-md flex items-center gap-1 shrink-0"
                                 >
                                   <IconCheck className="h-3 w-3" />
-                                  {r.user?.name || r.user?.email}
+                                  <span className="hidden sm:inline">{r.user?.name || r.user?.email}</span>
+                                  <span className="sm:hidden">{r.user?.name?.split(' ')[0] || r.user?.email?.split('@')[0]}</span>
                                 </Badge>
                               ))}
+                              {goingCoaches.length > 2 && (
+                                <Badge
+                                  variant="secondary"
+                                  className="text-[9px] md:text-[10px] rounded-md shrink-0"
+                                >
+                                  +{goingCoaches.length - 2}
+                                </Badge>
+                              )}
                               {goingCoaches.length > 0 &&
                                 goingAthletes.length > 0 && (
-                                  <span className="text-muted-foreground">
+                                  <span className="text-muted-foreground hidden sm:inline">
                                     •
                                   </span>
                                 )}
                               {goingAthletes.length > 0 && (
-                                <span className="text-sm text-emerald-600 font-medium">
-                                  {goingAthletes.length} GOING
+                                <span className="text-xs md:text-sm text-emerald-600 font-medium">
+                                  {goingAthletes.length} Going
                                 </span>
                               )}
                             </div>
                           )}
                         </div>
-                        <div className="flex items-center gap-3">
-                          {notGoing.length > 0 && (
-                            <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                              <IconX className="h-4 w-4" />
-                              {notGoing.length}
-                            </div>
-                          )}
-                        </div>
+                        {notGoing.length > 0 && (
+                          <div className="flex items-center gap-1 text-xs md:text-sm text-muted-foreground shrink-0">
+                            <IconX className="h-3 w-3 md:h-4 md:w-4" />
+                            <span className="hidden sm:inline">{notGoing.length}</span>
+                          </div>
+                        )}
                       </Link>
                     );
                   })
@@ -664,8 +671,8 @@ export default function RSVPPage() {
             className="flex-1 overflow-auto mt-0 min-h-0"
           >
             <ScrollArea className="h-full">
-              <div className="p-4 space-y-4">
-                <div className="flex items-center gap-3">
+              <div className="px-4 space-y-4">
+                <div className="flex items-center gap-3 pt-4">
                   <Select
                     value={selectedUserId || "all"}
                     onValueChange={(value) =>
@@ -768,56 +775,54 @@ export default function RSVPPage() {
                     </CardContent>
                   </Card>
                 ) : (
-                  <div className="space-y-2">
-                    {attendanceByPerson.length === 0 ? (
-                      <div className="text-center py-12 text-muted-foreground">
-                        <p>No attendance data available</p>
-                      </div>
-                    ) : (
-                      attendanceByPerson.map((item) => (
-                        <Card
-                          key={item.user.id}
-                          className="hover:bg-muted/30 transition-colors cursor-pointer"
-                          onClick={() => router.push(`/rsvp/${item.user.id}`)}
-                        >
-                          <CardContent className="p-4">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-3">
-                                <Avatar className="h-10 w-10">
-                                  <AvatarImage
-                                    src={item.user.avatarUrl || undefined}
-                                  />
-                                  <AvatarFallback>
-                                    {getInitials(
-                                      item.user.name,
-                                      item.user.email,
-                                    )}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <div>
-                                  <p className="font-medium">
-                                    {item.user.name || item.user.email}
-                                  </p>
-                                  <p className="text-sm text-muted-foreground">
-                                    {item.going} attended, {item.notGoing}{" "}
-                                    missed
-                                  </p>
-                                </div>
-                              </div>
-                              <div className="text-right">
-                                <p className="text-2xl font-bold">
-                                  {item.rate}%
+                  <Card>
+                    <CardContent className="p-0">
+                      {attendanceByPerson.length === 0 ? (
+                        <div className="text-center py-12 text-muted-foreground">
+                          <p>No attendance data available</p>
+                        </div>
+                      ) : (
+                        <div className="divide-y">
+                          {attendanceByPerson.map((item) => (
+                            <div
+                              key={item.user.id}
+                              className="flex items-center gap-4 p-3 md:p-4 hover:bg-muted/30 transition-colors cursor-pointer"
+                              onClick={() => router.push(`/rsvp/${item.user.id}`)}
+                            >
+                              <Avatar className="h-8 w-8 shrink-0 md:h-10 md:w-10">
+                                <AvatarImage
+                                  src={item.user.avatarUrl || undefined}
+                                />
+                                <AvatarFallback>
+                                  {getInitials(
+                                    item.user.name,
+                                    item.user.email,
+                                  )}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium truncate text-sm md:text-base">
+                                  {item.user.name || item.user.email}
                                 </p>
-                                <p className="text-xs text-muted-foreground">
-                                  Attendance
+                              </div>
+                              <div className="text-right shrink-0 text-xs md:text-sm text-muted-foreground">
+                                <span className="text-emerald-600 font-medium">
+                                  {item.going}
+                                </span>
+                                <span className="mx-1">/</span>
+                                <span>{item.total}</span>
+                              </div>
+                              <div className="text-right shrink-0 w-16 md:w-20">
+                                <p className="text-sm md:text-base font-semibold">
+                                  {item.rate}%
                                 </p>
                               </div>
                             </div>
-                          </CardContent>
-                        </Card>
-                      ))
-                    )}
-                  </div>
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
                 )}
               </div>
             </ScrollArea>
@@ -882,7 +887,7 @@ export default function RSVPPage() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <ChartContainer config={chartConfig}>
+                    <ChartContainer config={chartConfig} className="aspect-[4/1]">
                       <AreaChart data={chartData}>
                         <defs>
                           <linearGradient
@@ -976,7 +981,7 @@ export default function RSVPPage() {
                   return (
                     <div
                       key={occ.id}
-                      className={`flex items-center gap-4 p-4 rounded-xl border transition-colors ${
+                      className={`flex items-center gap-3 p-3 md:p-4 rounded-xl border transition-colors ${
                         isCanceled ? "opacity-50" : "hover:bg-muted/30"
                       }`}
                     >
@@ -986,7 +991,7 @@ export default function RSVPPage() {
                             ? "#"
                             : `/events?eventId=${occ.event.id}&occurrenceId=${occ.id}`
                         }
-                        className="flex items-center gap-4 flex-1 min-w-0"
+                        className="flex items-center gap-3 flex-1 min-w-0"
                         onClick={(e) => {
                           // Prevent navigation if clicking on buttons or badges
                           const target = e.target as HTMLElement;
@@ -999,7 +1004,7 @@ export default function RSVPPage() {
                         }}
                       >
                         <div
-                          className={`h-16 w-16 rounded-xl flex flex-col items-center justify-center shrink-0 ${
+                          className={`h-12 w-12 md:h-16 md:w-16 rounded-lg md:rounded-xl flex flex-col items-center justify-center shrink-0 ${
                             rsvpStatus === "going"
                               ? "bg-emerald-100 dark:bg-emerald-950/50"
                               : rsvpStatus === "not_going"
@@ -1008,7 +1013,7 @@ export default function RSVPPage() {
                           }`}
                         >
                           <span
-                            className={`text-2xl font-bold leading-none ${
+                            className={`text-lg md:text-2xl font-bold leading-none ${
                               rsvpStatus === "going"
                                 ? "text-emerald-600 dark:text-emerald-400"
                                 : rsvpStatus === "not_going"
@@ -1018,17 +1023,17 @@ export default function RSVPPage() {
                           >
                             {dateInfo.day}
                           </span>
-                          <span className="text-[10px] font-medium text-muted-foreground mt-0.5">
+                          <span className="text-[9px] md:text-[10px] font-medium text-muted-foreground mt-0.5">
                             {dateInfo.month}
                           </span>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className="font-medium">{occ.event.title}</p>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="font-medium text-sm md:text-base truncate">{occ.event.title}</p>
                             {dateInfo.relative && (
                               <Badge
                                 variant="secondary"
-                                className="text-[10px] rounded-md"
+                                className="text-[9px] md:text-[10px] rounded-md shrink-0"
                               >
                                 {dateInfo.relative}
                               </Badge>
@@ -1036,47 +1041,56 @@ export default function RSVPPage() {
                             {isCanceled && (
                               <Badge
                                 variant="destructive"
-                                className="text-[10px] rounded-md"
+                                className="text-[9px] md:text-[10px] rounded-md shrink-0"
                               >
                                 Canceled
                               </Badge>
                             )}
                           </div>
-                          <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
+                          <div className="flex items-center gap-2 md:gap-3 mt-1 text-xs md:text-sm text-muted-foreground flex-wrap">
                             <span className="whitespace-nowrap">
                               {dateInfo.weekday}
                             </span>
                             <span className="flex items-center gap-1">
                               <IconClock className="h-3 w-3" />
-                              {formatTime(occ.event.startTime)} -{" "}
-                              {formatTime(occ.event.endTime)}
+                              {formatTime(occ.event.startTime)}
+                              <span className="hidden sm:inline"> - {formatTime(occ.event.endTime)}</span>
                             </span>
                           </div>
                           {/* Attendance summary - count and coach badges */}
                           {occurrenceSummaries[occ.id] && (
                             <div className="flex items-center gap-2 mt-2 flex-wrap">
-                              <span className="text-xs text-emerald-600 font-medium">
+                              <span className="text-[10px] md:text-xs text-emerald-600 font-medium">
                                 {occurrenceSummaries[occ.id].goingCount} going
                               </span>
                               {occurrenceSummaries[occ.id].coaches.length >
                                 0 && (
                                 <>
-                                  <span className="text-xs text-muted-foreground">
+                                  <span className="text-[10px] md:text-xs text-muted-foreground hidden sm:inline">
                                     •
                                   </span>
                                   <div className="flex items-center gap-1.5 flex-wrap">
-                                    {occurrenceSummaries[occ.id].coaches.map(
+                                    {occurrenceSummaries[occ.id].coaches.slice(0, 2).map(
                                       (coach) => (
                                         <Badge
                                           key={coach.id}
                                           variant="secondary"
-                                          className="text-[10px] rounded-md flex items-center gap-1"
+                                          className="text-[9px] md:text-[10px] rounded-md flex items-center gap-1 shrink-0"
                                           onClick={(e) => e.stopPropagation()}
                                         >
                                           <IconCheck className="h-3 w-3" />
-                                          {coach.name || "Coach"}
+                                          <span className="hidden sm:inline">{coach.name || "Coach"}</span>
+                                          <span className="sm:hidden">{coach.name?.split(' ')[0] || "C"}</span>
                                         </Badge>
                                       ),
+                                    )}
+                                    {occurrenceSummaries[occ.id].coaches.length > 2 && (
+                                      <Badge
+                                        variant="secondary"
+                                        className="text-[9px] md:text-[10px] rounded-md shrink-0"
+                                      >
+                                        +{occurrenceSummaries[occ.id].coaches.length - 2}
+                                      </Badge>
                                     )}
                                   </div>
                                 </>
@@ -1086,7 +1100,7 @@ export default function RSVPPage() {
                         </div>
                       </Link>
                       {!isCanceled && (
-                        <div className="flex items-center gap-2 shrink-0">
+                        <div className="flex items-center gap-1.5 md:gap-2 shrink-0">
                           <Button
                             size="sm"
                             variant={
@@ -1097,14 +1111,14 @@ export default function RSVPPage() {
                               handleRSVP(occ.id, "going");
                             }}
                             disabled={isUpdating}
-                            className={`h-9 rounded-xl ${
+                            className={`h-8 md:h-9 rounded-xl text-xs md:text-sm px-2 md:px-3 ${
                               rsvpStatus === "going"
                                 ? "bg-emerald-600 hover:bg-emerald-700"
                                 : ""
                             }`}
                           >
-                            <IconCheck className="h-4 w-4 mr-1" />
-                            Going
+                            <IconCheck className="h-3 w-3 md:h-4 md:w-4 md:mr-1" />
+                            <span className="hidden sm:inline">Going</span>
                           </Button>
                           <Button
                             size="sm"
@@ -1118,10 +1132,10 @@ export default function RSVPPage() {
                               handleRSVP(occ.id, "not_going");
                             }}
                             disabled={isUpdating}
-                            className="h-9 rounded-xl"
+                            className="h-8 md:h-9 rounded-xl text-xs md:text-sm px-2 md:px-3"
                           >
-                            <IconX className="h-4 w-4 mr-1" />
-                            Can't Go
+                            <IconX className="h-3 w-3 md:h-4 md:w-4 md:mr-1" />
+                            <span className="hidden sm:inline">Can't Go</span>
                           </Button>
                         </div>
                       )}
@@ -1158,17 +1172,17 @@ export default function RSVPPage() {
                     return (
                       <div
                         key={rsvp.id}
-                        className="flex items-center gap-4 p-4 rounded-xl border hover:bg-muted/30 transition-colors"
+                        className="flex items-center gap-3 p-3 md:p-4 rounded-xl border hover:bg-muted/30 transition-colors"
                       >
                         <div
-                          className={`h-16 w-16 rounded-xl flex flex-col items-center justify-center shrink-0 ${
+                          className={`h-12 w-12 md:h-16 md:w-16 rounded-lg md:rounded-xl flex flex-col items-center justify-center shrink-0 ${
                             isGoing
                               ? "bg-emerald-100 dark:bg-emerald-950/50"
                               : "bg-red-100 dark:bg-red-950/50"
                           }`}
                         >
                           <span
-                            className={`text-2xl font-bold leading-none ${
+                            className={`text-lg md:text-2xl font-bold leading-none ${
                               isGoing
                                 ? "text-emerald-600 dark:text-emerald-400"
                                 : "text-red-600 dark:text-red-400"
@@ -1176,16 +1190,16 @@ export default function RSVPPage() {
                           >
                             {dateInfo.day}
                           </span>
-                          <span className="text-[10px] font-medium text-muted-foreground mt-0.5">
+                          <span className="text-[9px] md:text-[10px] font-medium text-muted-foreground mt-0.5">
                             {dateInfo.month}
                           </span>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className="font-medium">{occ.event.title}</p>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="font-medium text-sm md:text-base truncate">{occ.event.title}</p>
                             <Badge
                               variant={isGoing ? "default" : "secondary"}
-                              className={`text-[10px] rounded-md ${
+                              className={`text-[9px] md:text-[10px] rounded-md shrink-0 ${
                                 isGoing
                                   ? "bg-emerald-600"
                                   : "bg-red-100 text-red-700 dark:bg-red-950/50 dark:text-red-300"
@@ -1194,14 +1208,14 @@ export default function RSVPPage() {
                               {isGoing ? "Attended" : "Missed"}
                             </Badge>
                           </div>
-                          <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
+                          <div className="flex items-center gap-2 md:gap-3 mt-1 text-xs md:text-sm text-muted-foreground flex-wrap">
                             <span className="whitespace-nowrap">
                               {dateInfo.weekday}
                             </span>
                             <span className="flex items-center gap-1">
                               <IconClock className="h-3 w-3" />
-                              {formatTime(occ.event.startTime)} -{" "}
-                              {formatTime(occ.event.endTime)}
+                              {formatTime(occ.event.startTime)}
+                              <span className="hidden sm:inline"> - {formatTime(occ.event.endTime)}</span>
                             </span>
                           </div>
                         </div>

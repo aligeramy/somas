@@ -1,11 +1,11 @@
-"use client"
+"use client";
 
-import { SidebarTrigger } from "@/components/ui/sidebar"
+import { SidebarTrigger } from "@/components/ui/sidebar";
 
 interface PageHeaderProps {
-  title: string
-  description?: string
-  children?: React.ReactNode
+  title: string;
+  description?: string;
+  children?: React.ReactNode;
 }
 
 export function PageHeader({ title, children }: PageHeaderProps) {
@@ -43,7 +43,10 @@ export function PageHeader({ title, children }: PageHeaderProps) {
                   }
                 }
               `}</style>
-              <div data-page-header className="flex items-center gap-2 [&_button]:md:px-3 [&_button]:md:gap-2 [&_button]:md:size-auto [&_button]:md:h-8 [&_button]:md:w-auto [&_button_svg]:md:mr-2">
+              <div
+                data-page-header
+                className="flex items-center gap-2 [&_button]:md:px-3 [&_button]:md:gap-2 [&_button]:md:size-auto [&_button]:md:h-8 [&_button]:md:w-auto [&_button_svg]:md:mr-2"
+              >
                 {children}
               </div>
             </>
@@ -52,6 +55,5 @@ export function PageHeader({ title, children }: PageHeaderProps) {
       </header>
       <hr className="mt-4 border-border" />
     </div>
-  )
+  );
 }
-

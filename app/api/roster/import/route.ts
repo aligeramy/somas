@@ -1,12 +1,12 @@
+import { randomBytes } from "node:crypto";
+import { and, eq, gt } from "drizzle-orm";
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { db } from "@/lib/db";
-import { users, invitations, gyms } from "@/drizzle/schema";
-import { eq, and, gt } from "drizzle-orm";
 import { parse } from "papaparse";
-import { randomBytes } from "crypto";
 import { Resend } from "resend";
+import { gyms, invitations, users } from "@/drizzle/schema";
 import { InvitationEmail } from "@/emails/invitation";
+import { db } from "@/lib/db";
+import { createClient } from "@/lib/supabase/server";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -21,7 +21,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const [dbUser] = await db.select().from(users).where(eq(users.id, user.id)).limit(1);
+    const [dbUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, user.id))
+      .limit(1);
 
     if (!dbUser || !dbUser.gymId) {
       return NextResponse.json(
@@ -31,13 +35,14 @@ export async function POST(request: Request) {
     }
 
     // Get gym info
-    const [gym] = await db.select().from(gyms).where(eq(gyms.id, dbUser.gymId)).limit(1);
+    const [gym] = await db
+      .select()
+      .from(gyms)
+      .where(eq(gyms.id, dbUser.gymId))
+      .limit(1);
 
     if (!gym) {
-      return NextResponse.json(
-        { error: "Gym not found" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Gym not found" }, { status: 400 });
     }
 
     // Only head coaches can import roster
@@ -49,10 +54,7 @@ export async function POST(request: Request) {
     const file = formData.get("file") as File;
 
     if (!file) {
-      return NextResponse.json(
-        { error: "File is required" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "File is required" }, { status: 400 });
     }
 
     const text = await file.text();
@@ -75,14 +77,21 @@ export async function POST(request: Request) {
     }
 
     const invitationsList: Array<typeof invitations.$inferSelect> = [];
-    const errors: Array<{ row?: Record<string, string>; email?: string; error: string }> = [];
+    const errors: Array<{
+      row?: Record<string, string>;
+      email?: string;
+      error: string;
+    }> = [];
 
     for (const row of data) {
       try {
         // Extract email and role from row
         // Support both "email" and "Email" keys, and "role" and "Role"
         const email =
-          row.email || row.Email || row["email address"] || row["Email Address"];
+          row.email ||
+          row.Email ||
+          row["email address"] ||
+          row["Email Address"];
         const roleRaw =
           row.role ||
           row.Role ||
@@ -106,7 +115,11 @@ export async function POST(request: Request) {
             : "athlete";
 
         // Check if user already exists
-        const [existingUser] = await db.select().from(users).where(eq(users.email, email)).limit(1);
+        const [existingUser] = await db
+          .select()
+          .from(users)
+          .where(eq(users.email, email))
+          .limit(1);
 
         if (existingUser) {
           errors.push({ email, error: "User already exists" });
@@ -114,15 +127,16 @@ export async function POST(request: Request) {
         }
 
         // Check for existing invitation
-        const [existingInvitation] = await db.select()
+        const [existingInvitation] = await db
+          .select()
           .from(invitations)
           .where(
             and(
               eq(invitations.email, email),
               eq(invitations.gymId, dbUser.gymId),
               eq(invitations.used, false),
-              gt(invitations.expiresAt, new Date())
-            )
+              gt(invitations.expiresAt, new Date()),
+            ),
           )
           .limit(1);
 
@@ -137,14 +151,17 @@ export async function POST(request: Request) {
         expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
 
         // Create invitation
-        const [invitation] = await db.insert(invitations).values({
-          gymId: dbUser.gymId,
-          email,
-          role: role as "coach" | "athlete",
-          token,
-          invitedById: user.id,
-          expiresAt,
-        }).returning();
+        const [invitation] = await db
+          .insert(invitations)
+          .values({
+            gymId: dbUser.gymId,
+            email,
+            role: role as "coach" | "athlete",
+            token,
+            invitedById: user.id,
+            expiresAt,
+          })
+          .returning();
 
         // Send email
         const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL}/register?token=${token}&email=${encodeURIComponent(email)}`;
@@ -188,4 +205,3 @@ export async function POST(request: Request) {
     );
   }
 }
-

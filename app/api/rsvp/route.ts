@@ -1,8 +1,8 @@
+import { and, asc, desc, eq, gte, inArray, lte, or } from "drizzle-orm";
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { eventOccurrences, events, rsvps, users } from "@/drizzle/schema";
 import { db } from "@/lib/db";
-import { users, rsvps, eventOccurrences, events } from "@/drizzle/schema";
-import { eq, and, or, asc, gte, lte, desc, inArray } from "drizzle-orm";
+import { createClient } from "@/lib/supabase/server";
 
 export async function POST(request: Request) {
   try {
@@ -15,14 +15,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const [dbUser] = await db.select().from(users).where(eq(users.id, user.id)).limit(1);
+    const [dbUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, user.id))
+      .limit(1);
 
     if (!dbUser) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     // Athletes, coaches, and owners can RSVP
-    if (dbUser.role !== "athlete" && dbUser.role !== "coach" && dbUser.role !== "owner") {
+    if (
+      dbUser.role !== "athlete" &&
+      dbUser.role !== "coach" &&
+      dbUser.role !== "owner"
+    ) {
       return NextResponse.json(
         { error: "Only athletes, coaches, and owners can RSVP" },
         { status: 403 },
@@ -39,7 +47,8 @@ export async function POST(request: Request) {
     }
 
     // Verify occurrence exists and is in the future
-    const [occurrence] = await db.select()
+    const [occurrence] = await db
+      .select()
       .from(eventOccurrences)
       .where(eq(eventOccurrences.id, occurrenceId))
       .limit(1);
@@ -66,34 +75,39 @@ export async function POST(request: Request) {
     }
 
     // Create or update RSVP
-    const [existingRsvp] = await db.select()
+    const [existingRsvp] = await db
+      .select()
       .from(rsvps)
       .where(
-        and(
-          eq(rsvps.userId, user.id),
-          eq(rsvps.occurrenceId, occurrenceId)
-        )
+        and(eq(rsvps.userId, user.id), eq(rsvps.occurrenceId, occurrenceId)),
       )
       .limit(1);
 
     let rsvp;
     if (existingRsvp) {
-      const updated = await db.update(rsvps)
+      const updated = await db
+        .update(rsvps)
         .set({ status: (status || "going") as "going" | "not_going" })
         .where(eq(rsvps.id, existingRsvp.id))
         .returning();
       rsvp = updated[0];
     } else {
-      const inserted = await db.insert(rsvps).values({
-        userId: user.id,
-        occurrenceId,
-        status: (status || "going") as "going" | "not_going",
-      }).returning();
+      const inserted = await db
+        .insert(rsvps)
+        .values({
+          userId: user.id,
+          occurrenceId,
+          status: (status || "going") as "going" | "not_going",
+        })
+        .returning();
       rsvp = inserted[0];
     }
-    
+
     if (!rsvp) {
-      return NextResponse.json({ error: "Failed to create RSVP" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Failed to create RSVP" },
+        { status: 500 },
+      );
     }
 
     return NextResponse.json({ success: true, rsvp });
@@ -114,7 +128,11 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const [dbUser] = await db.select().from(users).where(eq(users.id, user.id)).limit(1);
+    const [dbUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, user.id))
+      .limit(1);
 
     if (!dbUser) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
@@ -130,18 +148,19 @@ export async function GET(request: Request) {
 
     if (occurrenceId) {
       // Get RSVPs for a specific occurrence
-      const rsvpsList = await db.select({
-        rsvp: rsvps,
-        user: {
-          id: users.id,
-          name: users.name,
-          email: users.email,
-          avatarUrl: users.avatarUrl,
-          role: users.role,
-          phone: users.phone,
-          cellPhone: users.cellPhone,
-        },
-      })
+      const rsvpsList = await db
+        .select({
+          rsvp: rsvps,
+          user: {
+            id: users.id,
+            name: users.name,
+            email: users.email,
+            avatarUrl: users.avatarUrl,
+            role: users.role,
+            phone: users.phone,
+            cellPhone: users.cellPhone,
+          },
+        })
         .from(rsvps)
         .innerJoin(users, eq(rsvps.userId, users.id))
         .where(eq(rsvps.occurrenceId, occurrenceId));
@@ -158,64 +177,79 @@ export async function GET(request: Request) {
     const summaryOccurrences = searchParams.get("summaryOccurrences");
     if (summaryOccurrences) {
       const occurrenceIds = summaryOccurrences.split(",");
-      
+
       // For owner/coach, filter by gymId for security
       let rsvpsList;
       if (dbUser.role === "owner" || dbUser.role === "coach") {
         if (!dbUser.gymId) {
-          return NextResponse.json({ error: "User must belong to a gym" }, { status: 400 });
+          return NextResponse.json(
+            { error: "User must belong to a gym" },
+            { status: 400 },
+          );
         }
         // Get all RSVPs for these occurrences, filtered by gymId
-        rsvpsList = await db.select({
-          occurrenceId: rsvps.occurrenceId,
-          status: rsvps.status,
-          userId: users.id,
-          userName: users.name,
-          userAvatarUrl: users.avatarUrl,
-          userRole: users.role,
-        })
+        rsvpsList = await db
+          .select({
+            occurrenceId: rsvps.occurrenceId,
+            status: rsvps.status,
+            userId: users.id,
+            userName: users.name,
+            userAvatarUrl: users.avatarUrl,
+            userRole: users.role,
+          })
           .from(rsvps)
           .innerJoin(users, eq(rsvps.userId, users.id))
-          .innerJoin(eventOccurrences, eq(rsvps.occurrenceId, eventOccurrences.id))
+          .innerJoin(
+            eventOccurrences,
+            eq(rsvps.occurrenceId, eventOccurrences.id),
+          )
           .innerJoin(events, eq(eventOccurrences.eventId, events.id))
           .where(
             and(
               inArray(rsvps.occurrenceId, occurrenceIds),
               eq(events.gymId, dbUser.gymId),
-              or(eq(rsvps.status, "going"), eq(rsvps.status, "not_going"))
-            )
+              or(eq(rsvps.status, "going"), eq(rsvps.status, "not_going")),
+            ),
           );
       } else {
         // For athletes, just filter by occurrenceIds
-        rsvpsList = await db.select({
-          occurrenceId: rsvps.occurrenceId,
-          status: rsvps.status,
-          userId: users.id,
-          userName: users.name,
-          userAvatarUrl: users.avatarUrl,
-          userRole: users.role,
-        })
+        rsvpsList = await db
+          .select({
+            occurrenceId: rsvps.occurrenceId,
+            status: rsvps.status,
+            userId: users.id,
+            userName: users.name,
+            userAvatarUrl: users.avatarUrl,
+            userRole: users.role,
+          })
           .from(rsvps)
           .innerJoin(users, eq(rsvps.userId, users.id))
           .where(
             and(
               inArray(rsvps.occurrenceId, occurrenceIds),
-              or(eq(rsvps.status, "going"), eq(rsvps.status, "not_going"))
-            )
+              or(eq(rsvps.status, "going"), eq(rsvps.status, "not_going")),
+            ),
           );
       }
 
       // Group by occurrence
-      const summaryMap: Record<string, { 
-        goingCount: number; 
-        notGoingCount: number;
-        coaches: Array<{ id: string; name: string | null; avatarUrl: string | null }> 
-      }> = {};
-      
+      const summaryMap: Record<
+        string,
+        {
+          goingCount: number;
+          notGoingCount: number;
+          coaches: Array<{
+            id: string;
+            name: string | null;
+            avatarUrl: string | null;
+          }>;
+        }
+      > = {};
+
       for (const occId of occurrenceIds) {
         summaryMap[occId] = { goingCount: 0, notGoingCount: 0, coaches: [] };
       }
-      
+
       for (const rsvp of rsvpsList) {
         if (summaryMap[rsvp.occurrenceId]) {
           // Count athletes separately for going and not going
@@ -227,7 +261,11 @@ export async function GET(request: Request) {
             }
           }
           // For athlete view, include coaches
-          if (dbUser.role === "athlete" && (rsvp.userRole === "coach" || rsvp.userRole === "owner") && rsvp.status === "going") {
+          if (
+            dbUser.role === "athlete" &&
+            (rsvp.userRole === "coach" || rsvp.userRole === "owner") &&
+            rsvp.status === "going"
+          ) {
             summaryMap[rsvp.occurrenceId].coaches.push({
               id: rsvp.userId,
               name: rsvp.userName,
@@ -244,17 +282,20 @@ export async function GET(request: Request) {
     // Otherwise, get only user's RSVPs
     if (dbUser.role === "owner" || dbUser.role === "coach") {
       if (!dbUser.gymId) {
-        return NextResponse.json({ error: "User must belong to a gym" }, { status: 400 });
+        return NextResponse.json(
+          { error: "User must belong to a gym" },
+          { status: 400 },
+        );
       }
 
       // Build where conditions
       const conditions = [eq(events.gymId, dbUser.gymId)];
-      
+
       // Filter by eventId if provided
       if (eventId) {
         conditions.push(eq(events.id, eventId));
       }
-      
+
       // Filter by userId if provided
       if (userId) {
         conditions.push(eq(rsvps.userId, userId));
@@ -274,45 +315,55 @@ export async function GET(request: Request) {
       }
 
       // Get all RSVPs for events in this gym
-      const rsvpsList = await db.select({
-        rsvp: rsvps,
-        user: {
-          id: users.id,
-          name: users.name,
-          email: users.email,
-          avatarUrl: users.avatarUrl,
-          role: users.role,
-        },
-        occurrence: eventOccurrences,
-        event: events,
-      })
+      const rsvpsList = await db
+        .select({
+          rsvp: rsvps,
+          user: {
+            id: users.id,
+            name: users.name,
+            email: users.email,
+            avatarUrl: users.avatarUrl,
+            role: users.role,
+          },
+          occurrence: eventOccurrences,
+          event: events,
+        })
         .from(rsvps)
         .innerJoin(users, eq(rsvps.userId, users.id))
-        .innerJoin(eventOccurrences, eq(rsvps.occurrenceId, eventOccurrences.id))
+        .innerJoin(
+          eventOccurrences,
+          eq(rsvps.occurrenceId, eventOccurrences.id),
+        )
         .innerJoin(events, eq(eventOccurrences.eventId, events.id))
         .where(and(...conditions))
-        .orderBy(includePast ? desc(eventOccurrences.date) : asc(eventOccurrences.date));
+        .orderBy(
+          includePast
+            ? desc(eventOccurrences.date)
+            : asc(eventOccurrences.date),
+        );
 
-      const formattedRsvps = rsvpsList.map(({ rsvp, user, occurrence, event }) => ({
-        ...rsvp,
-        user,
-        occurrence: {
-          ...occurrence,
-          event,
-        },
-      }));
+      const formattedRsvps = rsvpsList.map(
+        ({ rsvp, user, occurrence, event }) => ({
+          ...rsvp,
+          user,
+          occurrence: {
+            ...occurrence,
+            event,
+          },
+        }),
+      );
 
       return NextResponse.json({ rsvps: formattedRsvps });
     }
 
     // Get user's RSVPs (for athletes)
     const conditions = [eq(rsvps.userId, user.id)];
-    
+
     // Filter by eventId if provided
     if (eventId) {
       conditions.push(eq(events.id, eventId));
     }
-    
+
     // Filter by date range if provided
     if (startDate) {
       conditions.push(gte(eventOccurrences.date, new Date(startDate)));
@@ -326,16 +377,19 @@ export async function GET(request: Request) {
       conditions.push(gte(eventOccurrences.date, new Date()));
     }
 
-    const rsvpsList = await db.select({
-      rsvp: rsvps,
-      occurrence: eventOccurrences,
-      event: events,
-    })
+    const rsvpsList = await db
+      .select({
+        rsvp: rsvps,
+        occurrence: eventOccurrences,
+        event: events,
+      })
       .from(rsvps)
       .innerJoin(eventOccurrences, eq(rsvps.occurrenceId, eventOccurrences.id))
       .innerJoin(events, eq(eventOccurrences.eventId, events.id))
       .where(and(...conditions))
-      .orderBy(includePast ? desc(eventOccurrences.date) : asc(eventOccurrences.date));
+      .orderBy(
+        includePast ? desc(eventOccurrences.date) : asc(eventOccurrences.date),
+      );
 
     const formattedRsvps = rsvpsList.map(({ rsvp, occurrence, event }) => ({
       ...rsvp,
@@ -354,4 +408,3 @@ export async function GET(request: Request) {
     );
   }
 }
-

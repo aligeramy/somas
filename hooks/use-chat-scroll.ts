@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 
-export function useChatScroll<T>(dep: T) {
+export function useChatScroll<T>(_dep: T) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -11,8 +11,10 @@ export function useChatScroll<T>(dep: T) {
       if (ref.current) {
         // Find the ScrollArea viewport element (Radix UI ScrollArea)
         const scrollArea = ref.current.closest('[data-slot="scroll-area"]');
-        const viewport = scrollArea?.querySelector('[data-slot="scroll-area-viewport"]') as HTMLElement;
-        
+        const viewport = scrollArea?.querySelector(
+          '[data-slot="scroll-area-viewport"]',
+        ) as HTMLElement;
+
         if (viewport) {
           // Always scroll instantly to ensure we're at the bottom
           viewport.scrollTop = viewport.scrollHeight;
@@ -28,11 +30,7 @@ export function useChatScroll<T>(dep: T) {
       // Small delay to ensure content is rendered
       setTimeout(scrollToBottom, 0);
     });
-  }, [dep]);
+  }, []);
 
   return ref;
 }
-
-
-
-

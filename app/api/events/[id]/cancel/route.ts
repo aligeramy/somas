@@ -1,8 +1,8 @@
+import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { eventOccurrences, events, users } from "@/drizzle/schema";
 import { db } from "@/lib/db";
-import { users, eventOccurrences, events } from "@/drizzle/schema";
-import { eq, and } from "drizzle-orm";
+import { createClient } from "@/lib/supabase/server";
 
 export async function POST(
   request: Request,
@@ -18,7 +18,11 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const [dbUser] = await db.select().from(users).where(eq(users.id, user.id)).limit(1);
+    const [dbUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, user.id))
+      .limit(1);
 
     if (!dbUser || !dbUser.gymId) {
       return NextResponse.json(
@@ -44,21 +48,17 @@ export async function POST(
     }
 
     // Verify occurrence belongs to user's gym
-    const [occurrence] = await db.select({
-      id: eventOccurrences.id,
-      eventId: eventOccurrences.eventId,
-      date: eventOccurrences.date,
-      status: eventOccurrences.status,
-      gymId: events.gymId,
-    })
+    const [occurrence] = await db
+      .select({
+        id: eventOccurrences.id,
+        eventId: eventOccurrences.eventId,
+        date: eventOccurrences.date,
+        status: eventOccurrences.status,
+        gymId: events.gymId,
+      })
       .from(eventOccurrences)
       .innerJoin(events, eq(eventOccurrences.eventId, events.id))
-      .where(
-        and(
-          eq(eventOccurrences.id, occurrenceId),
-          eq(events.id, eventId)
-        )
-      )
+      .where(and(eq(eventOccurrences.id, occurrenceId), eq(events.id, eventId)))
       .limit(1);
 
     if (!occurrence) {
@@ -75,14 +75,15 @@ export async function POST(
     // Toggle status based on restore flag
     const newStatus = restore ? "scheduled" : "canceled";
 
-    await db.update(eventOccurrences)
-      .set({ 
+    await db
+      .update(eventOccurrences)
+      .set({
         status: newStatus,
         updatedAt: new Date(),
       })
       .where(eq(eventOccurrences.id, occurrenceId));
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       success: true,
       status: newStatus,
     });

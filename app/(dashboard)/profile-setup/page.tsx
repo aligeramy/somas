@@ -1,17 +1,23 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useDropzone } from "react-dropzone";
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useDropzone } from "react-dropzone";
 import { createClient } from "@/lib/supabase/client";
 
 export default function ProfileSetupPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const _searchParams = useSearchParams();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
@@ -24,7 +30,7 @@ export default function ProfileSetupPage() {
 
   useEffect(() => {
     loadUserProfile();
-  }, []);
+  }, [loadUserProfile]);
 
   async function loadUserProfile() {
     try {
@@ -38,7 +44,7 @@ export default function ProfileSetupPage() {
         if (data.user.address) setAddress(data.user.address);
         if (data.user.avatarUrl) setAvatarPreview(data.user.avatarUrl);
       }
-    } catch (err) {
+    } catch (_err) {
       // Ignore errors, user might not exist yet
       console.log("Could not load existing profile");
     } finally {
@@ -149,7 +155,8 @@ export default function ProfileSetupPage() {
         <CardHeader>
           <CardTitle>Complete Your Profile</CardTitle>
           <CardDescription>
-            Set up your profile to get started with Titans of Mississauga. You can edit any pre-filled information.
+            Set up your profile to get started with Titans of Mississauga. You
+            can edit any pre-filled information.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -238,5 +245,3 @@ export default function ProfileSetupPage() {
     </div>
   );
 }
-
-

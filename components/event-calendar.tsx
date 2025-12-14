@@ -1,16 +1,16 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { Calendar } from "@/components/ui/calendar";
-import { Button } from "@/components/ui/button";
+import { IconCheck, IconPlus, IconX } from "@tabler/icons-react";
+import { format, parseISO } from "date-fns";
+import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { IconX, IconCheck, IconPlus } from "@tabler/icons-react";
-import { format, isSameDay, parseISO, startOfMonth, endOfMonth, eachDayOfInterval } from "date-fns";
 
 interface EventOccurrence {
   id: string;
@@ -126,11 +126,16 @@ export function EventCalendar({
     },
   };
 
-  const selectedOccurrence = selectedDate ? getOccurrenceForDate(selectedDate) : null;
+  const selectedOccurrence = selectedDate
+    ? getOccurrenceForDate(selectedDate)
+    : null;
 
   return (
     <div className={`flex flex-col h-full ${className || ""}`}>
-      <Popover open={!!selectedDate && !readOnly} onOpenChange={(open) => !open && setSelectedDate(null)}>
+      <Popover
+        open={!!selectedDate && !readOnly}
+        onOpenChange={(open) => !open && setSelectedDate(null)}
+      >
         <PopoverTrigger asChild>
           <div className="flex-1 flex items-center justify-center p-6">
             <Calendar
@@ -157,34 +162,45 @@ export function EventCalendar({
         <PopoverContent className="w-64 p-3 rounded-xl" align="start">
           <div className="space-y-3">
             <div className="text-sm">
-              <p className="font-medium">{selectedDate && format(selectedDate, "EEEE, MMM d")}</p>
+              <p className="font-medium">
+                {selectedDate && format(selectedDate, "EEEE, MMM d")}
+              </p>
               {selectedOccurrence ? (
                 <Badge
-                  variant={selectedOccurrence.status === "scheduled" ? "default" : "destructive"}
+                  variant={
+                    selectedOccurrence.status === "scheduled"
+                      ? "default"
+                      : "destructive"
+                  }
                   className="mt-1"
                 >
-                  {selectedOccurrence.status === "scheduled" ? "Scheduled" : "Canceled"}
+                  {selectedOccurrence.status === "scheduled"
+                    ? "Scheduled"
+                    : "Canceled"}
                   {selectedOccurrence.isCustom && " (Custom)"}
                 </Badge>
               ) : (
-                <p className="text-muted-foreground text-xs mt-1">No event scheduled</p>
+                <p className="text-muted-foreground text-xs mt-1">
+                  No event scheduled
+                </p>
               )}
             </div>
 
             <div className="flex flex-col gap-2">
               {selectedOccurrence ? (
                 <>
-                  {selectedOccurrence.status === "scheduled" && onToggleDate && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="w-full justify-start gap-2 rounded-lg text-destructive hover:text-destructive"
-                      onClick={handleToggle}
-                    >
-                      <IconX className="h-4 w-4" />
-                      Cancel this session
-                    </Button>
-                  )}
+                  {selectedOccurrence.status === "scheduled" &&
+                    onToggleDate && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="w-full justify-start gap-2 rounded-lg text-destructive hover:text-destructive"
+                        onClick={handleToggle}
+                      >
+                        <IconX className="h-4 w-4" />
+                        Cancel this session
+                      </Button>
+                    )}
                   {selectedOccurrence.status === "canceled" && onToggleDate && (
                     <Button
                       size="sm"
@@ -244,4 +260,3 @@ export function EventCalendar({
     </div>
   );
 }
-

@@ -1,8 +1,36 @@
 "use client";
 
-import { useState, useMemo, useCallback, useEffect } from "react";
-import { Button } from "@/components/ui/button";
+import {
+  IconCheck,
+  IconChevronLeft,
+  IconChevronRight,
+  IconClock,
+  IconDotsVertical,
+  IconEdit,
+  IconEye,
+  IconMail,
+  IconMessage,
+  IconPhone,
+  IconX,
+} from "@tabler/icons-react";
+import {
+  addMonths,
+  eachDayOfInterval,
+  endOfMonth,
+  endOfWeek,
+  format,
+  isSameDay,
+  parseISO,
+  startOfMonth,
+  startOfWeek,
+  subMonths,
+} from "date-fns";
+import Link from "next/link";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { PageHeader } from "@/components/page-header";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -11,18 +39,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { PageHeader } from "@/components/page-header";
-import { IconCheck, IconX, IconChevronLeft, IconChevronRight, IconClock, IconEdit, IconEye, IconPhone, IconMail, IconMessage, IconDotsVertical } from "@tabler/icons-react";
-import Link from "next/link";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuTrigger,
   DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { format, isSameDay, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek, addMonths, subMonths } from "date-fns";
 
 interface EventOccurrence {
   id: string;
@@ -59,14 +82,18 @@ interface CoachAttendee {
 export default function CalendarPage() {
   const [month, setMonth] = useState<Date>(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [selectedOccurrences, setSelectedOccurrences] = useState<EventOccurrence[]>([]);
+  const [selectedOccurrences, setSelectedOccurrences] = useState<
+    EventOccurrence[]
+  >([]);
   const [events, setEvents] = useState<EventOccurrence[]>([]);
   const [rsvps, setRsvps] = useState<RSVP[]>([]);
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [rsvpDialogOpen, setRsvpDialogOpen] = useState(false);
   const [updatingRsvp, setUpdatingRsvp] = useState<string | null>(null);
-  const [coachAttendees, setCoachAttendees] = useState<Record<string, CoachAttendee[]>>({});
+  const [coachAttendees, setCoachAttendees] = useState<
+    Record<string, CoachAttendee[]>
+  >({});
   const [loadingAttendees, setLoadingAttendees] = useState(false);
 
   const loadData = useCallback(async () => {
@@ -141,7 +168,10 @@ export default function CalendarPage() {
       if (!map.has(dateKey)) {
         map.set(dateKey, []);
       }
-      map.get(dateKey)!.push(occ);
+      const existing = map.get(dateKey);
+      if (existing) {
+        existing.push(occ);
+      }
     });
     return map;
   }, [events]);
@@ -161,7 +191,7 @@ export default function CalendarPage() {
     setLoadingAttendees(true);
     try {
       const attendeesMap: Record<string, CoachAttendee[]> = {};
-      
+
       // Fetch RSVPs for each occurrence
       await Promise.all(
         occurrenceIds.map(async (occId) => {
@@ -170,22 +200,35 @@ export default function CalendarPage() {
             const data = await response.json();
             // Filter to only coaches/owners who are going
             const coaches = (data.rsvps || [])
-              .filter((r: { status: string; user: { role?: string } }) => 
-                r.status === "going" && (r.user?.role === "coach" || r.user?.role === "owner")
+              .filter(
+                (r: { status: string; user: { role?: string } }) =>
+                  r.status === "going" &&
+                  (r.user?.role === "coach" || r.user?.role === "owner"),
               )
-              .map((r: { user: { id: string; name: string | null; email: string; avatarUrl: string | null; phone?: string | null; cellPhone?: string | null } }) => ({
-                id: r.user.id,
-                name: r.user.name,
-                email: r.user.email,
-                avatarUrl: r.user.avatarUrl,
-                phone: r.user.phone || null,
-                cellPhone: r.user.cellPhone || null,
-              }));
+              .map(
+                (r: {
+                  user: {
+                    id: string;
+                    name: string | null;
+                    email: string;
+                    avatarUrl: string | null;
+                    phone?: string | null;
+                    cellPhone?: string | null;
+                  };
+                }) => ({
+                  id: r.user.id,
+                  name: r.user.name,
+                  email: r.user.email,
+                  avatarUrl: r.user.avatarUrl,
+                  phone: r.user.phone || null,
+                  cellPhone: r.user.cellPhone || null,
+                }),
+              );
             attendeesMap[occId] = coaches;
           }
-        })
+        }),
       );
-      
+
       setCoachAttendees(attendeesMap);
     } catch (err) {
       console.error("Error loading coach attendees:", err);
@@ -202,14 +245,17 @@ export default function CalendarPage() {
       setRsvpDialogOpen(true);
       // Load coach attendees for athletes
       if (isAthlete) {
-        loadCoachAttendeesForOccurrences(occurrences.map(o => o.id));
+        loadCoachAttendeesForOccurrences(occurrences.map((o) => o.id));
       }
     }
   }
 
-  async function handleRSVP(occurrenceId: string, status: "going" | "not_going") {
+  async function handleRSVP(
+    occurrenceId: string,
+    status: "going" | "not_going",
+  ) {
     if (userInfo?.role !== "athlete") return;
-    
+
     try {
       setUpdatingRsvp(occurrenceId);
       const response = await fetch("/api/rsvp", {
@@ -218,13 +264,15 @@ export default function CalendarPage() {
         body: JSON.stringify({ occurrenceId, status }),
       });
       if (!response.ok) throw new Error("Failed to RSVP");
-      
+
       const data = await response.json();
-      
+
       // Optimistically update the RSVP state without refetching everything
       if (data.rsvp) {
         setRsvps((prevRsvps) => {
-          const existingIndex = prevRsvps.findIndex((r) => r.occurrenceId === occurrenceId);
+          const existingIndex = prevRsvps.findIndex(
+            (r) => r.occurrenceId === occurrenceId,
+          );
           if (existingIndex >= 0) {
             // Update existing RSVP
             const updated = [...prevRsvps];
@@ -298,8 +346,11 @@ export default function CalendarPage() {
 
   return (
     <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
-      <PageHeader title="Calendar" description="View all events and RSVP directly from the calendar" />
-      
+      <PageHeader
+        title="Calendar"
+        description="View all events and RSVP directly from the calendar"
+      />
+
       <div className="flex-1 overflow-auto min-h-0 p-4">
         <div className="max-w-5xl mx-auto">
           {/* Calendar Header */}
@@ -345,12 +396,15 @@ export default function CalendarPage() {
               const isDayToday = isToday(day);
               const hasEvents = occurrences.length > 0;
 
-              let dayClasses = "h-20 rounded-xl flex flex-col items-center justify-center text-sm font-medium transition-all cursor-pointer border border-border p-1 ";
-              
+              let dayClasses =
+                "h-20 rounded-xl flex flex-col items-center justify-center text-sm font-medium transition-all cursor-pointer border border-border p-1 ";
+
               if (!isCurrent) {
-                dayClasses += "text-muted-foreground/40 border-muted/50 hover:bg-muted/30 hover:text-muted-foreground/60 ";
+                dayClasses +=
+                  "text-muted-foreground/40 border-muted/50 hover:bg-muted/30 hover:text-muted-foreground/60 ";
               } else {
-                dayClasses += "text-foreground hover:bg-muted hover:text-foreground ";
+                dayClasses +=
+                  "text-foreground hover:bg-muted hover:text-foreground ";
               }
 
               if (isDayToday && isCurrent) {
@@ -358,26 +412,41 @@ export default function CalendarPage() {
               }
 
               if (hasEvents && isCurrent) {
-                dayClasses += "bg-primary/10 border-primary/50 hover:bg-primary/20 ";
+                dayClasses +=
+                  "bg-primary/10 border-primary/50 hover:bg-primary/20 ";
               }
 
               // Check if user has RSVP'd to any occurrence on this day
-              const hasRsvp = isAthlete && occurrences.some(occ => {
-                const rsvpStatus = getRSVPStatus(occ.id);
-                return rsvpStatus !== null;
-              });
+              const _hasRsvp =
+                isAthlete &&
+                occurrences.some((occ) => {
+                  const rsvpStatus = getRSVPStatus(occ.id);
+                  return rsvpStatus !== null;
+                });
 
               return (
                 <div
                   key={idx}
                   className={dayClasses}
                   onClick={() => hasEvents && handleDayClick(day)}
+                  onKeyDown={(e) => {
+                    if ((e.key === "Enter" || e.key === " ") && hasEvents) {
+                      e.preventDefault();
+                      handleDayClick(day);
+                    }
+                  }}
+                  role={hasEvents ? "button" : undefined}
+                  tabIndex={hasEvents ? 0 : undefined}
                 >
-                  <span className="text-base font-semibold">{format(day, "d")}</span>
+                  <span className="text-base font-semibold">
+                    {format(day, "d")}
+                  </span>
                   {hasEvents && (
                     <div className="flex flex-wrap gap-0.5 justify-center mt-0.5">
-                      {occurrences.slice(0, 3).map((occ, occIdx) => {
-                        const rsvpStatus = isAthlete ? getRSVPStatus(occ.id) : null;
+                      {occurrences.slice(0, 3).map((occ) => {
+                        const rsvpStatus = isAthlete
+                          ? getRSVPStatus(occ.id)
+                          : null;
                         return (
                           <div
                             key={occ.id}
@@ -395,7 +464,10 @@ export default function CalendarPage() {
                         );
                       })}
                       {occurrences.length > 3 && (
-                        <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground" title={`+${occurrences.length - 3} more`} />
+                        <div
+                          className="h-1.5 w-1.5 rounded-full bg-muted-foreground"
+                          title={`+${occurrences.length - 3} more`}
+                        />
                       )}
                     </div>
                   )}
@@ -449,7 +521,8 @@ export default function CalendarPage() {
               const isCanceled = occ.status === "canceled";
               const isUpdating = updatingRsvp === occ.id;
 
-              const isCoachOrOwner = userInfo?.role === "coach" || userInfo?.role === "owner";
+              const isCoachOrOwner =
+                userInfo?.role === "coach" || userInfo?.role === "owner";
 
               return (
                 <div
@@ -460,11 +533,14 @@ export default function CalendarPage() {
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-sm mb-1">{occ.event.title}</h3>
+                      <h3 className="font-semibold text-sm mb-1">
+                        {occ.event.title}
+                      </h3>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <IconClock className="h-3 w-3" />
                         <span>
-                          {formatTime(occ.event.startTime)} - {formatTime(occ.event.endTime)}
+                          {formatTime(occ.event.startTime)} -{" "}
+                          {formatTime(occ.event.endTime)}
                         </span>
                       </div>
                       {isCanceled && (
@@ -474,88 +550,106 @@ export default function CalendarPage() {
                       )}
                       {isAthlete && rsvpStatus && !isCanceled && (
                         <Badge
-                          variant={rsvpStatus === "going" ? "default" : "secondary"}
+                          variant={
+                            rsvpStatus === "going" ? "default" : "secondary"
+                          }
                           className="mt-2 text-xs"
                         >
                           {rsvpStatus === "going" ? "Going" : "Can't Go"}
                         </Badge>
                       )}
                       {/* Show coach attendees for athletes */}
-                      {isAthlete && !isCanceled && coachAttendees[occ.id]?.length > 0 && (
-                        <div className="mt-3 pt-3 border-t">
-                          <p className="text-xs text-muted-foreground mb-2">Coaches attending:</p>
-                          <div className="space-y-2">
-                            {coachAttendees[occ.id].map((coach) => (
-                              <div key={coach.id} className="flex items-center gap-2 group">
-                                <Avatar className="h-6 w-6">
-                                  <AvatarImage src={coach.avatarUrl || undefined} />
-                                  <AvatarFallback className="text-[10px]">
-                                    {coach.name?.charAt(0) || "C"}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <span className="text-sm flex-1">{coach.name || coach.email}</span>
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                                    >
-                                      <IconDotsVertical className="h-3 w-3" />
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end" className="rounded-xl">
-                                    <DropdownMenuItem asChild>
-                                      <Link
-                                        href={`/chat?userId=${coach.id}`}
-                                        className="flex items-center gap-2 cursor-pointer"
+                      {isAthlete &&
+                        !isCanceled &&
+                        coachAttendees[occ.id]?.length > 0 && (
+                          <div className="mt-3 pt-3 border-t">
+                            <p className="text-xs text-muted-foreground mb-2">
+                              Coaches attending:
+                            </p>
+                            <div className="space-y-2">
+                              {coachAttendees[occ.id].map((coach) => (
+                                <div
+                                  key={coach.id}
+                                  className="flex items-center gap-2 group"
+                                >
+                                  <Avatar className="h-6 w-6">
+                                    <AvatarImage
+                                      src={coach.avatarUrl || undefined}
+                                    />
+                                    <AvatarFallback className="text-[10px]">
+                                      {coach.name?.charAt(0) || "C"}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <span className="text-sm flex-1">
+                                    {coach.name || coach.email}
+                                  </span>
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
                                       >
-                                        <IconMessage className="h-4 w-4" />
-                                        Chat
-                                      </Link>
-                                    </DropdownMenuItem>
-                                    <DropdownMenuSeparator />
-                                    {(coach.cellPhone || coach.phone) && (
+                                        <IconDotsVertical className="h-3 w-3" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent
+                                      align="end"
+                                      className="rounded-xl"
+                                    >
                                       <DropdownMenuItem asChild>
-                                        <a
-                                          href={`tel:${coach.cellPhone || coach.phone}`}
-                                          className="flex items-center gap-2 cursor-pointer"
-                                        >
-                                          <IconPhone className="h-4 w-4" />
-                                          Call
-                                        </a>
-                                      </DropdownMenuItem>
-                                    )}
-                                    {(coach.cellPhone || coach.phone) && (
-                                      <DropdownMenuItem asChild>
-                                        <a
-                                          href={`sms:${coach.cellPhone || coach.phone}`}
+                                        <Link
+                                          href={`/chat?userId=${coach.id}`}
                                           className="flex items-center gap-2 cursor-pointer"
                                         >
                                           <IconMessage className="h-4 w-4" />
-                                          Text
+                                          Chat
+                                        </Link>
+                                      </DropdownMenuItem>
+                                      <DropdownMenuSeparator />
+                                      {(coach.cellPhone || coach.phone) && (
+                                        <DropdownMenuItem asChild>
+                                          <a
+                                            href={`tel:${coach.cellPhone || coach.phone}`}
+                                            className="flex items-center gap-2 cursor-pointer"
+                                          >
+                                            <IconPhone className="h-4 w-4" />
+                                            Call
+                                          </a>
+                                        </DropdownMenuItem>
+                                      )}
+                                      {(coach.cellPhone || coach.phone) && (
+                                        <DropdownMenuItem asChild>
+                                          <a
+                                            href={`sms:${coach.cellPhone || coach.phone}`}
+                                            className="flex items-center gap-2 cursor-pointer"
+                                          >
+                                            <IconMessage className="h-4 w-4" />
+                                            Text
+                                          </a>
+                                        </DropdownMenuItem>
+                                      )}
+                                      <DropdownMenuItem asChild>
+                                        <a
+                                          href={`mailto:${coach.email}`}
+                                          className="flex items-center gap-2 cursor-pointer"
+                                        >
+                                          <IconMail className="h-4 w-4" />
+                                          Email
                                         </a>
                                       </DropdownMenuItem>
-                                    )}
-                                    <DropdownMenuItem asChild>
-                                      <a
-                                        href={`mailto:${coach.email}`}
-                                        className="flex items-center gap-2 cursor-pointer"
-                                      >
-                                        <IconMail className="h-4 w-4" />
-                                        Email
-                                      </a>
-                                    </DropdownMenuItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              </div>
-                            ))}
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                </div>
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )}
                       {isAthlete && loadingAttendees && (
                         <div className="mt-3 pt-3 border-t">
-                          <p className="text-xs text-muted-foreground">Loading coaches...</p>
+                          <p className="text-xs text-muted-foreground">
+                            Loading coaches...
+                          </p>
                         </div>
                       )}
                     </div>
@@ -564,18 +658,26 @@ export default function CalendarPage() {
                         <div className="flex items-center gap-2">
                           <Button
                             size="sm"
-                            variant={rsvpStatus === "going" ? "default" : "outline"}
+                            variant={
+                              rsvpStatus === "going" ? "default" : "outline"
+                            }
                             onClick={() => handleRSVP(occ.id, "going")}
                             disabled={isUpdating}
                             className={`h-8 rounded-lg ${
-                              rsvpStatus === "going" ? "bg-emerald-600 hover:bg-emerald-700" : ""
+                              rsvpStatus === "going"
+                                ? "bg-emerald-600 hover:bg-emerald-700"
+                                : ""
                             }`}
                           >
                             <IconCheck className="h-3 w-3" />
                           </Button>
                           <Button
                             size="sm"
-                            variant={rsvpStatus === "not_going" ? "secondary" : "outline"}
+                            variant={
+                              rsvpStatus === "not_going"
+                                ? "secondary"
+                                : "outline"
+                            }
                             onClick={() => handleRSVP(occ.id, "not_going")}
                             disabled={isUpdating}
                             className="h-8 rounded-lg"
@@ -591,7 +693,9 @@ export default function CalendarPage() {
                           asChild
                           className="h-8 rounded-lg gap-1 text-xs"
                         >
-                          <Link href={`/events?eventId=${occ.event.id}&occurrenceId=${occ.id}`}>
+                          <Link
+                            href={`/events?eventId=${occ.event.id}&occurrenceId=${occ.id}`}
+                          >
                             <IconEye className="h-3 w-3" />
                             View Details
                           </Link>

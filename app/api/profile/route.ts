@@ -1,8 +1,8 @@
-import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { db } from "@/lib/db";
-import { users } from "@/drizzle/schema";
 import { eq } from "drizzle-orm";
+import { NextResponse } from "next/server";
+import { users } from "@/drizzle/schema";
+import { db } from "@/lib/db";
+import { createClient } from "@/lib/supabase/server";
 
 export async function GET() {
   try {
@@ -48,7 +48,7 @@ export async function GET() {
     console.error("Profile fetch error:", error);
     return NextResponse.json(
       { error: "Failed to fetch profile" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -65,10 +65,10 @@ export async function PUT(request: Request) {
     }
 
     const body = await request.json();
-    const { 
-      name, 
-      phone, 
-      address, 
+    const {
+      name,
+      phone,
+      address,
       homePhone,
       workPhone,
       cellPhone,
@@ -76,8 +76,8 @@ export async function PUT(request: Request) {
       emergencyContactPhone,
       emergencyContactRelationship,
       emergencyContactEmail,
-      notifPreferences, 
-      avatarUrl 
+      notifPreferences,
+      avatarUrl,
     } = body;
 
     const [updatedUser] = await db
@@ -93,7 +93,7 @@ export async function PUT(request: Request) {
         emergencyContactPhone: emergencyContactPhone || null,
         emergencyContactRelationship: emergencyContactRelationship || null,
         emergencyContactEmail: emergencyContactEmail || null,
-        avatarUrl: avatarUrl !== undefined ? (avatarUrl || null) : undefined,
+        avatarUrl: avatarUrl !== undefined ? avatarUrl || null : undefined,
         notifPreferences: notifPreferences || {},
         updatedAt: new Date(),
       })
@@ -123,8 +123,7 @@ export async function PUT(request: Request) {
     console.error("Profile update error:", error);
     return NextResponse.json(
       { error: "Failed to update profile" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-

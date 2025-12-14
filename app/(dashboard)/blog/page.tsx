@@ -1,20 +1,21 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { IconEdit, IconPhoto, IconPlus, IconTrash } from "@tabler/icons-react";
+import { format } from "date-fns";
+import Link from "next/link";
+import { useCallback, useEffect, useState } from "react";
+import { useDropzone } from "react-dropzone";
 import { PageHeader } from "@/components/page-header";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { RichTextEditor } from "@/components/rich-text-editor";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -23,11 +24,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { IconPlus, IconEdit, IconTrash, IconPhoto } from "@tabler/icons-react";
-import { useDropzone } from "react-dropzone";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { createClient } from "@/lib/supabase/client";
-import { format } from "date-fns";
-import Link from "next/link";
 
 interface BlogPost {
   id: string;
@@ -61,7 +67,9 @@ export default function BlogPage() {
   // Form state
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-  const [type, setType] = useState<"about" | "schedule" | "event" | "general">("general");
+  const [type, setType] = useState<"about" | "schedule" | "event" | "general">(
+    "general",
+  );
   const [eventId, setEventId] = useState<string>("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -223,10 +231,12 @@ export default function BlogPage() {
     }
   }
 
-
   return (
     <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
-      <PageHeader title="Blog Posts" description="Share information with your team">
+      <PageHeader
+        title="Blog Posts"
+        description="Share information with your team"
+      >
         <Button onClick={openCreateDialog} className="rounded-xl">
           <IconPlus className="mr-2 h-4 w-4" />
           New Post
@@ -259,7 +269,9 @@ export default function BlogPage() {
             <Card className="rounded-xl">
               <CardContent className="pt-6 text-center text-muted-foreground">
                 <p>No posts yet</p>
-                <p className="text-sm mt-1">Create your first post to share information with your team</p>
+                <p className="text-sm mt-1">
+                  Create your first post to share information with your team
+                </p>
               </CardContent>
             </Card>
           ) : (
@@ -288,7 +300,8 @@ export default function BlogPage() {
                           </Link>
                         </CardTitle>
                         <CardDescription className="mt-1">
-                          by {post.author.name || "Unknown"} • {format(new Date(post.createdAt), "MMM d, yyyy")}
+                          by {post.author.name || "Unknown"} •{" "}
+                          {format(new Date(post.createdAt), "MMM d, yyyy")}
                         </CardDescription>
                       </div>
                       <div className="flex gap-2">
@@ -342,7 +355,9 @@ export default function BlogPage() {
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
         <DialogContent className="rounded-xl max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editingPost ? "Edit Post" : "Create New Post"}</DialogTitle>
+            <DialogTitle>
+              {editingPost ? "Edit Post" : "Create New Post"}
+            </DialogTitle>
             <DialogDescription>
               Share information with your team members
             </DialogDescription>
@@ -365,7 +380,12 @@ export default function BlogPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="type">Type *</Label>
-              <Select value={type} onValueChange={(v) => setType(v as "about" | "schedule" | "event" | "general")}>
+              <Select
+                value={type}
+                onValueChange={(v) =>
+                  setType(v as "about" | "schedule" | "event" | "general")
+                }
+              >
                 <SelectTrigger className="rounded-xl">
                   <SelectValue />
                 </SelectTrigger>
@@ -422,7 +442,9 @@ export default function BlogPage() {
                       alt="Preview"
                       className="mx-auto max-h-48 rounded-lg"
                     />
-                    <p className="text-sm text-muted-foreground">Click or drag to replace</p>
+                    <p className="text-sm text-muted-foreground">
+                      Click or drag to replace
+                    </p>
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -445,8 +467,16 @@ export default function BlogPage() {
             >
               Cancel
             </Button>
-            <Button onClick={handleSave} disabled={saving} className="rounded-xl">
-              {saving ? "Saving..." : editingPost ? "Update Post" : "Create Post"}
+            <Button
+              onClick={handleSave}
+              disabled={saving}
+              className="rounded-xl"
+            >
+              {saving
+                ? "Saving..."
+                : editingPost
+                  ? "Update Post"
+                  : "Create Post"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -454,4 +484,3 @@ export default function BlogPage() {
     </div>
   );
 }
-

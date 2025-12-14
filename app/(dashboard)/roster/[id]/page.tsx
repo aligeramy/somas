@@ -1,7 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import {
+  IconArrowLeft,
+  IconBriefcase,
+  IconDeviceMobile,
+  IconHome,
+  IconMail,
+  IconPhone,
+  IconUser,
+} from "@tabler/icons-react";
+import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
 import { PageHeader } from "@/components/page-header";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -14,17 +24,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  IconArrowLeft,
-  IconMail,
-  IconPhone,
-  IconHome,
-  IconBriefcase,
-  IconDeviceMobile,
-  IconUser,
-  IconEdit,
-} from "@tabler/icons-react";
-import Link from "next/link";
 
 interface AthleteDetails {
   id: string;
@@ -47,12 +46,41 @@ interface AthleteDetails {
 
 export default function AthleteDetailPage() {
   const params = useParams();
-  const router = useRouter();
+  const _router = useRouter();
   const athleteId = params.id as string;
   const [athlete, setAthlete] = useState<AthleteDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
+  const [_currentUserRole, setCurrentUserRole] = useState<string | null>(null);
+
+  const fetchAthleteDetails = useCallback(
+    async (userRole: string | null) => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await fetch(`/api/roster/${athleteId}`);
+        if (!response.ok) {
+          const result = await response.json();
+          throw new Error(result.error || "Failed to fetch athlete details");
+        }
+        const result = await response.json();
+
+        // Check if athlete is trying to access another athlete
+        if (userRole === "athlete" && result.member.role === "athlete") {
+          setError("Access denied");
+          setAthlete(null);
+          return;
+        }
+
+        setAthlete(result.member);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "An error occurred");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [athleteId],
+  );
 
   useEffect(() => {
     // Get current user role first
@@ -66,33 +94,7 @@ export default function AthleteDetailPage() {
       .catch(() => {
         fetchAthleteDetails(null);
       });
-  }, [athleteId]);
-
-  async function fetchAthleteDetails(userRole: string | null) {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await fetch(`/api/roster/${athleteId}`);
-      if (!response.ok) {
-        const result = await response.json();
-        throw new Error(result.error || "Failed to fetch athlete details");
-      }
-      const result = await response.json();
-      
-      // Check if athlete is trying to access another athlete
-      if (userRole === "athlete" && result.member.role === "athlete") {
-        setError("Access denied");
-        setAthlete(null);
-        return;
-      }
-      
-      setAthlete(result.member);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
-    } finally {
-      setLoading(false);
-    }
-  }
+  }, [fetchAthleteDetails]);
 
   function getInitials(name: string | null, email: string) {
     if (name) {
@@ -203,7 +205,9 @@ export default function AthleteDetailPage() {
                       </Badge>
                     )}
                   </div>
-                  <p className="text-sm text-muted-foreground">{athlete.email}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {athlete.email}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -275,18 +279,21 @@ export default function AthleteDetailPage() {
                     </a>
                   </div>
                 )}
-                {athlete.phone && !athlete.homePhone && !athlete.workPhone && !athlete.cellPhone && (
-                  <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground">Phone</p>
-                    <a
-                      href={`tel:${athlete.phone}`}
-                      className="flex items-center gap-2 text-sm text-primary hover:underline"
-                    >
-                      <IconPhone className="h-4 w-4" />
-                      {athlete.phone}
-                    </a>
-                  </div>
-                )}
+                {athlete.phone &&
+                  !athlete.homePhone &&
+                  !athlete.workPhone &&
+                  !athlete.cellPhone && (
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground">Phone</p>
+                      <a
+                        href={`tel:${athlete.phone}`}
+                        className="flex items-center gap-2 text-sm text-primary hover:underline"
+                      >
+                        <IconPhone className="h-4 w-4" />
+                        {athlete.phone}
+                      </a>
+                    </div>
+                  )}
               </div>
             </CardContent>
           </Card>
@@ -311,7 +318,9 @@ export default function AthleteDetailPage() {
                       </p>
                       <div className="flex items-center gap-2">
                         <IconUser className="h-4 w-4 text-muted-foreground" />
-                        <p className="text-sm">{athlete.emergencyContactName}</p>
+                        <p className="text-sm">
+                          {athlete.emergencyContactName}
+                        </p>
                       </div>
                     </div>
                   )}
@@ -378,5 +387,3 @@ export default function AthleteDetailPage() {
     </div>
   );
 }
-
-

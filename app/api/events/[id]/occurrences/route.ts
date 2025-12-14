@@ -1,13 +1,13 @@
+import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { eventOccurrences, events, users } from "@/drizzle/schema";
 import { db } from "@/lib/db";
-import { users, events, eventOccurrences } from "@/drizzle/schema";
-import { eq, and } from "drizzle-orm";
+import { createClient } from "@/lib/supabase/server";
 
 // POST - Add custom occurrence
 export async function POST(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id: eventId } = await params;
@@ -20,14 +20,24 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const [dbUser] = await db.select().from(users).where(eq(users.id, user.id)).limit(1);
+    const [dbUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, user.id))
+      .limit(1);
 
     if (!dbUser || !dbUser.gymId) {
-      return NextResponse.json({ error: "User must belong to a gym" }, { status: 400 });
+      return NextResponse.json(
+        { error: "User must belong to a gym" },
+        { status: 400 },
+      );
     }
 
     if (dbUser.role !== "owner" && dbUser.role !== "coach") {
-      return NextResponse.json({ error: "Only head coaches and coaches can add occurrences" }, { status: 403 });
+      return NextResponse.json(
+        { error: "Only head coaches and coaches can add occurrences" },
+        { status: 403 },
+      );
     }
 
     // Verify event belongs to user's gym
@@ -63,7 +73,10 @@ export async function POST(
     });
 
     if (exists) {
-      return NextResponse.json({ error: "Occurrence already exists for this date" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Occurrence already exists for this date" },
+        { status: 400 },
+      );
     }
 
     // Create custom occurrence
@@ -81,14 +94,17 @@ export async function POST(
     return NextResponse.json({ occurrence });
   } catch (error) {
     console.error("Add occurrence error:", error);
-    return NextResponse.json({ error: "Failed to add occurrence" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to add occurrence" },
+      { status: 500 },
+    );
   }
 }
 
 // DELETE - Remove custom occurrence
 export async function DELETE(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id: eventId } = await params;
@@ -101,20 +117,33 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const [dbUser] = await db.select().from(users).where(eq(users.id, user.id)).limit(1);
+    const [dbUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, user.id))
+      .limit(1);
 
     if (!dbUser || !dbUser.gymId) {
-      return NextResponse.json({ error: "User must belong to a gym" }, { status: 400 });
+      return NextResponse.json(
+        { error: "User must belong to a gym" },
+        { status: 400 },
+      );
     }
 
     if (dbUser.role !== "owner" && dbUser.role !== "coach") {
-      return NextResponse.json({ error: "Only head coaches and coaches can remove occurrences" }, { status: 403 });
+      return NextResponse.json(
+        { error: "Only head coaches and coaches can remove occurrences" },
+        { status: 403 },
+      );
     }
 
     const { occurrenceId } = await request.json();
 
     if (!occurrenceId) {
-      return NextResponse.json({ error: "Occurrence ID is required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Occurrence ID is required" },
+        { status: 400 },
+      );
     }
 
     // Verify occurrence belongs to event in user's gym
@@ -128,32 +157,39 @@ export async function DELETE(
       .where(
         and(
           eq(eventOccurrences.id, occurrenceId),
-          eq(events.gymId, dbUser.gymId)
-        )
+          eq(events.gymId, dbUser.gymId),
+        ),
       )
       .limit(1);
 
     if (!occurrence) {
-      return NextResponse.json({ error: "Occurrence not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Occurrence not found" },
+        { status: 404 },
+      );
     }
 
     // Only allow deletion of custom occurrences
     if (!occurrence.occurrence.isCustom) {
       return NextResponse.json(
-        { error: "Only custom occurrences can be deleted. Use cancel for recurring ones." },
-        { status: 400 }
+        {
+          error:
+            "Only custom occurrences can be deleted. Use cancel for recurring ones.",
+        },
+        { status: 400 },
       );
     }
 
-    await db.delete(eventOccurrences).where(eq(eventOccurrences.id, occurrenceId));
+    await db
+      .delete(eventOccurrences)
+      .where(eq(eventOccurrences.id, occurrenceId));
 
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Remove occurrence error:", error);
-    return NextResponse.json({ error: "Failed to remove occurrence" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to remove occurrence" },
+      { status: 500 },
+    );
   }
 }
-
-
-
-

@@ -1,8 +1,27 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { Button } from "@/components/ui/button";
+import {
+  IconCheck,
+  IconChevronLeft,
+  IconChevronRight,
+  IconPlus,
+  IconX,
+} from "@tabler/icons-react";
+import {
+  addMonths,
+  eachDayOfInterval,
+  endOfMonth,
+  endOfWeek,
+  format,
+  isSameDay,
+  parseISO,
+  startOfMonth,
+  startOfWeek,
+  subMonths,
+} from "date-fns";
+import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Popover,
   PopoverContent,
@@ -13,8 +32,6 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { IconX, IconCheck, IconPlus, IconChevronLeft, IconChevronRight } from "@tabler/icons-react";
-import { format, isSameDay, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek, addMonths, subMonths } from "date-fns";
 
 interface EventOccurrence {
   id: string;
@@ -33,7 +50,10 @@ interface CustomEventCalendarProps {
   onToggleDate?: (date: Date, currentStatus: string | null) => void;
   onAddCustomDate?: (date: Date) => void;
   onRemoveDate?: (occurrenceId: string) => void;
-  onRsvp?: (occurrenceId: string, status: "going" | "not_going") => Promise<void>;
+  onRsvp?: (
+    occurrenceId: string,
+    status: "going" | "not_going",
+  ) => Promise<void>;
   onCancel?: (occurrenceId: string) => Promise<void>;
   readOnly?: boolean;
   className?: string;
@@ -57,7 +77,7 @@ export function CustomEventCalendar({
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [rsvping, setRsvping] = useState<string | null>(null);
   const [canceling, setCanceling] = useState<string | null>(null);
-  
+
   const isAdmin = currentUserRole === "owner" || currentUserRole === "coach";
 
   // Create a map of dates to occurrences
@@ -102,7 +122,11 @@ export function CustomEventCalendar({
     setSelectedDate(null);
   }
 
-  async function handleRsvp(occurrenceId: string, status: "going" | "not_going", e: React.MouseEvent) {
+  async function handleRsvp(
+    occurrenceId: string,
+    status: "going" | "not_going",
+    e: React.MouseEvent,
+  ) {
     e.stopPropagation();
     if (!onRsvp || rsvping) return;
     setRsvping(occurrenceId);
@@ -166,9 +190,7 @@ export function CustomEventCalendar({
         >
           <IconChevronLeft className="h-5 w-5" />
         </Button>
-        <h2 className="text-2xl font-semibold">
-          {format(month, "MMMM yyyy")}
-        </h2>
+        <h2 className="text-2xl font-semibold">{format(month, "MMMM yyyy")}</h2>
         <Button
           variant="ghost"
           size="icon"
@@ -211,12 +233,15 @@ export function CustomEventCalendar({
           const canInteract = isScheduled && !isPast && !readOnly;
           const dateKey = format(day, "yyyy-MM-dd");
 
-          let dayClasses = "h-20 rounded-xl flex flex-col items-center justify-center text-sm font-medium transition-all cursor-pointer border border-border relative group ";
-          
+          let dayClasses =
+            "h-20 rounded-xl flex flex-col items-center justify-center text-sm font-medium transition-all cursor-pointer border border-border relative group ";
+
           if (!isCurrent) {
-            dayClasses += "text-muted-foreground/40 border-muted/50 hover:bg-muted/30 hover:text-muted-foreground/60 ";
+            dayClasses +=
+              "text-muted-foreground/40 border-muted/50 hover:bg-muted/30 hover:text-muted-foreground/60 ";
           } else {
-            dayClasses += "text-foreground hover:bg-muted hover:text-foreground ";
+            dayClasses +=
+              "text-foreground hover:bg-muted hover:text-foreground ";
           }
 
           if (isDayToday && isCurrent) {
@@ -225,9 +250,11 @@ export function CustomEventCalendar({
 
           if (occ) {
             if (occ.status === "scheduled") {
-              dayClasses += "bg-primary text-primary-foreground border-primary hover:bg-primary/90 hover:text-primary-foreground ";
+              dayClasses +=
+                "bg-primary text-primary-foreground border-primary hover:bg-primary/90 hover:text-primary-foreground ";
             } else if (occ.status === "canceled") {
-              dayClasses += "bg-destructive/20 text-destructive line-through border-destructive/50 hover:bg-destructive/30 hover:text-destructive ";
+              dayClasses +=
+                "bg-destructive/20 text-destructive line-through border-destructive/50 hover:bg-destructive/30 hover:text-destructive ";
             }
             if (occ.isCustom) {
               dayClasses += "border border-dashed border-primary ";
@@ -239,13 +266,17 @@ export function CustomEventCalendar({
           }
 
           return (
-            <Popover key={dateKey} open={!!isSelected && !readOnly} onOpenChange={(open) => {
-              if (open) {
-                setSelectedDate(day);
-              } else {
-                setSelectedDate(null);
-              }
-            }}>
+            <Popover
+              key={dateKey}
+              open={!!isSelected && !readOnly}
+              onOpenChange={(open) => {
+                if (open) {
+                  setSelectedDate(day);
+                } else {
+                  setSelectedDate(null);
+                }
+              }}
+            >
               <PopoverTrigger asChild>
                 <button
                   type="button"
@@ -258,11 +289,13 @@ export function CustomEventCalendar({
                     }
                   }}
                 >
-                  <span className="text-xs font-semibold">{format(day, "d")}</span>
+                  <span className="text-xs font-semibold">
+                    {format(day, "d")}
+                  </span>
                   {occ && occ.status === "scheduled" && (
                     <div className="h-1 w-1 rounded-full bg-primary-foreground/50 mt-0.5" />
                   )}
-                  
+
                   {/* RSVP and Cancel buttons in day box */}
                   {canInteract && (
                     <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 backdrop-blur-sm rounded-xl p-1 z-10">
@@ -272,10 +305,12 @@ export function CustomEventCalendar({
                             <TooltipTrigger asChild>
                               <Button
                                 size="icon"
-                                variant={userRsvp === "going" ? "default" : "secondary"}
+                                variant={
+                                  userRsvp === "going" ? "default" : "secondary"
+                                }
                                 className={`h-6 w-6 rounded-md text-[10px] p-0 shrink-0 ${
-                                  userRsvp === "going" 
-                                    ? "bg-emerald-600 hover:bg-emerald-700 text-white" 
+                                  userRsvp === "going"
+                                    ? "bg-emerald-600 hover:bg-emerald-700 text-white"
                                     : "bg-background/90 hover:bg-background text-foreground"
                                 }`}
                                 onClick={(e) => handleRsvp(occ.id, "going", e)}
@@ -292,13 +327,19 @@ export function CustomEventCalendar({
                             <TooltipTrigger asChild>
                               <Button
                                 size="icon"
-                                variant={userRsvp === "not_going" ? "destructive" : "secondary"}
+                                variant={
+                                  userRsvp === "not_going"
+                                    ? "destructive"
+                                    : "secondary"
+                                }
                                 className={`h-6 w-6 rounded-md text-[10px] p-0 shrink-0 ${
-                                  userRsvp === "not_going" 
-                                    ? "bg-red-600 hover:bg-red-700 text-white" 
+                                  userRsvp === "not_going"
+                                    ? "bg-red-600 hover:bg-red-700 text-white"
                                     : "bg-background/90 hover:bg-background text-foreground"
                                 }`}
-                                onClick={(e) => handleRsvp(occ.id, "not_going", e)}
+                                onClick={(e) =>
+                                  handleRsvp(occ.id, "not_going", e)
+                                }
                                 disabled={rsvping === occ.id}
                               >
                                 <IconX className="h-3.5 w-3.5" />
@@ -323,7 +364,7 @@ export function CustomEventCalendar({
                       )}
                     </div>
                   )}
-                  
+
                   {/* Show RSVP status badge when not hovering */}
                   {canInteract && !isSelected && userRsvp && (
                     <div className="absolute bottom-1 left-1/2 -translate-x-1/2 opacity-100 group-hover:opacity-0 transition-opacity">
@@ -337,20 +378,28 @@ export function CustomEventCalendar({
                   )}
                 </button>
               </PopoverTrigger>
-              <PopoverContent className="w-64 p-3 rounded-xl" side="top" align="center">
+              <PopoverContent
+                className="w-64 p-3 rounded-xl"
+                side="top"
+                align="center"
+              >
                 <div className="space-y-3">
                   <div className="text-sm">
                     <p className="font-medium">{format(day, "EEEE, MMM d")}</p>
                     {occ ? (
                       <Badge
-                        variant={occ.status === "scheduled" ? "default" : "destructive"}
+                        variant={
+                          occ.status === "scheduled" ? "default" : "destructive"
+                        }
                         className="mt-1"
                       >
                         {occ.status === "scheduled" ? "Scheduled" : "Canceled"}
                         {occ.isCustom && " (Custom)"}
                       </Badge>
                     ) : (
-                      <p className="text-muted-foreground text-xs mt-1">No event scheduled</p>
+                      <p className="text-muted-foreground text-xs mt-1">
+                        No event scheduled
+                      </p>
                     )}
                   </div>
 
@@ -430,4 +479,3 @@ export function CustomEventCalendar({
     </div>
   );
 }
-

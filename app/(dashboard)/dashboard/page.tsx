@@ -1,19 +1,39 @@
+import {
+  IconCalendar,
+  IconCheck,
+  IconChevronRight,
+  IconClock,
+  IconPlus,
+  IconUsers,
+  IconX,
+} from "@tabler/icons-react";
+import { and, asc, desc, eq, gte, inArray, sql } from "drizzle-orm";
+import Link from "next/link";
 import { Suspense } from "react";
-import { createClient } from "@/lib/supabase/server";
-import { db } from "@/lib/db";
-import { users, events, eventOccurrences, rsvps, notices, blogPosts } from "@/drizzle/schema";
-import { eq, and, gte, asc, sql, inArray, desc } from "drizzle-orm";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AthleteDashboard } from "@/components/athlete-dashboard";
+import { EventActionsDropdown } from "@/components/event-actions-dropdown";
+import { PageHeader } from "@/components/page-header";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import Link from "next/link";
-import { IconChevronRight, IconUsers, IconCalendar, IconCheck, IconClock, IconPlus, IconX } from "@tabler/icons-react";
-import { PageHeader } from "@/components/page-header";
-import { AthleteDashboard } from "@/components/athlete-dashboard";
-import { EventActionsDropdown } from "@/components/event-actions-dropdown";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  blogPosts,
+  eventOccurrences,
+  events,
+  notices,
+  rsvps,
+  users,
+} from "@/drizzle/schema";
+import { db } from "@/lib/db";
+import { createClient } from "@/lib/supabase/server";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -25,12 +45,18 @@ export default async function DashboardPage() {
     return null;
   }
 
-  const [dbUser] = await db.select().from(users).where(eq(users.id, authUser.id)).limit(1);
+  const [dbUser] = await db
+    .select()
+    .from(users)
+    .where(eq(users.id, authUser.id))
+    .limit(1);
 
   if (!dbUser || !dbUser.gymId) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center p-8">
-        <p className="text-muted-foreground">No club associated with your account.</p>
+        <p className="text-muted-foreground">
+          No club associated with your account.
+        </p>
       </div>
     );
   }
@@ -52,8 +78,8 @@ export default async function DashboardPage() {
         and(
           eq(events.gymId, dbUser.gymId),
           gte(eventOccurrences.date, today),
-          eq(eventOccurrences.status, "scheduled")
-        )
+          eq(eventOccurrences.status, "scheduled"),
+        ),
       )
       .orderBy(asc(eventOccurrences.date))
       .limit(10);
@@ -67,36 +93,46 @@ export default async function DashboardPage() {
     const rsvpMap = new Map(userRsvps.map((r) => [r.occurrenceId, r.status]));
 
     // Get RSVPs for each upcoming occurrence with user data including roles
-    const occurrenceIds = upcomingOccurrences.map(({ occurrence }) => occurrence.id);
-    const occurrenceRsvps = occurrenceIds.length > 0
-      ? await db
-          .select({
-            occurrenceId: rsvps.occurrenceId,
-            status: rsvps.status,
-            user: {
-              id: users.id,
-              name: users.name,
-              email: users.email,
-              avatarUrl: users.avatarUrl,
-              role: users.role,
-            },
-          })
-          .from(rsvps)
-          .innerJoin(users, eq(rsvps.userId, users.id))
-          .where(inArray(rsvps.occurrenceId, occurrenceIds))
-      : [];
+    const occurrenceIds = upcomingOccurrences.map(
+      ({ occurrence }) => occurrence.id,
+    );
+    const occurrenceRsvps =
+      occurrenceIds.length > 0
+        ? await db
+            .select({
+              occurrenceId: rsvps.occurrenceId,
+              status: rsvps.status,
+              user: {
+                id: users.id,
+                name: users.name,
+                email: users.email,
+                avatarUrl: users.avatarUrl,
+                role: users.role,
+              },
+            })
+            .from(rsvps)
+            .innerJoin(users, eq(rsvps.userId, users.id))
+            .where(inArray(rsvps.occurrenceId, occurrenceIds))
+        : [];
 
     // Group RSVPs by occurrence, separating coaches and athletes
-    const rsvpsByOccurrence = new Map<string, {
-      goingCoaches: Array<{ id: string; name: string | null; email: string }>;
-      goingAthletes: Array<{ id: string; name: string | null; email: string }>;
-    }>();
-    
+    const rsvpsByOccurrence = new Map<
+      string,
+      {
+        goingCoaches: Array<{ id: string; name: string | null; email: string }>;
+        goingAthletes: Array<{
+          id: string;
+          name: string | null;
+          email: string;
+        }>;
+      }
+    >();
+
     occurrenceRsvps.forEach((rsvp) => {
       if (rsvp.status === "going") {
-        const current = rsvpsByOccurrence.get(rsvp.occurrenceId) || { 
-          goingCoaches: [], 
-          goingAthletes: [] 
+        const current = rsvpsByOccurrence.get(rsvp.occurrenceId) || {
+          goingCoaches: [],
+          goingAthletes: [],
         };
         // Separate coaches and athletes
         if (rsvp.user.role === "coach" || rsvp.user.role === "owner") {
@@ -116,29 +152,52 @@ export default async function DashboardPage() {
       }
     });
 
-    const occurrencesWithRsvp = upcomingOccurrences.map(({ occurrence, event }) => {
-      const rsvpData = rsvpsByOccurrence.get(occurrence.id) || { 
-        goingCoaches: [], 
-        goingAthletes: [] 
-      };
-      return {
-        id: occurrence.id,
-        date: occurrence.date instanceof Date ? occurrence.date.toISOString() : occurrence.date,
-        status: occurrence.status,
-        eventId: event.id,
-        eventTitle: event.title,
-        startTime: event.startTime,
-        endTime: event.endTime,
-        rsvpStatus: rsvpMap.get(occurrence.id) || null,
-        goingCoaches: rsvpData.goingCoaches,
-        goingAthletesCount: rsvpData.goingAthletes.length,
-      };
-    });
+    const occurrencesWithRsvp = upcomingOccurrences.map(
+      ({ occurrence, event }) => {
+        const rsvpData = rsvpsByOccurrence.get(occurrence.id) || {
+          goingCoaches: [],
+          goingAthletes: [],
+        };
+        return {
+          id: occurrence.id,
+          date:
+            occurrence.date instanceof Date
+              ? occurrence.date.toISOString()
+              : occurrence.date,
+          status: occurrence.status,
+          eventId: event.id,
+          eventTitle: event.title,
+          startTime: event.startTime,
+          endTime: event.endTime,
+          rsvpStatus: rsvpMap.get(occurrence.id) || null,
+          goingCoaches: rsvpData.goingCoaches,
+          goingAthletesCount: rsvpData.goingAthletes.length,
+        };
+      },
+    );
+
+    // Get active notice for athletes
+    const [activeNotice] = await db
+      .select({
+        id: notices.id,
+        title: notices.title,
+        content: notices.content,
+        createdAt: notices.createdAt,
+        author: {
+          id: users.id,
+          name: users.name,
+        },
+      })
+      .from(notices)
+      .innerJoin(users, eq(notices.authorId, users.id))
+      .where(and(eq(notices.gymId, dbUser.gymId), eq(notices.active, true)))
+      .limit(1);
 
     return (
       <AthleteDashboard
         userName={dbUser.name}
         occurrences={occurrencesWithRsvp}
+        activeNotice={activeNotice || null}
       />
     );
   }
@@ -165,10 +224,7 @@ export default async function DashboardPage() {
     .from(eventOccurrences)
     .innerJoin(events, eq(eventOccurrences.eventId, events.id))
     .where(
-      and(
-        eq(events.gymId, dbUser.gymId),
-        gte(eventOccurrences.date, today)
-      )
+      and(eq(events.gymId, dbUser.gymId), gte(eventOccurrences.date, today)),
     )
     .orderBy(asc(eventOccurrences.date))
     .limit(5);
@@ -179,46 +235,74 @@ export default async function DashboardPage() {
     .innerJoin(eventOccurrences, eq(rsvps.occurrenceId, eventOccurrences.id))
     .innerJoin(events, eq(eventOccurrences.eventId, events.id))
     .where(
-      and(
-        eq(events.gymId, dbUser.gymId),
-        gte(eventOccurrences.date, today)
-      )
+      and(eq(events.gymId, dbUser.gymId), gte(eventOccurrences.date, today)),
     );
 
   // Get RSVPs for each upcoming occurrence with user data including roles
-  const occurrenceIds = upcomingOccurrences.map(({ occurrence }) => occurrence.id);
-  const occurrenceRsvps = occurrenceIds.length > 0
-    ? await db
-        .select({
-          occurrenceId: rsvps.occurrenceId,
-          status: rsvps.status,
-          user: {
-            id: users.id,
-            name: users.name,
-            email: users.email,
-            avatarUrl: users.avatarUrl,
-            role: users.role,
-          },
-        })
-        .from(rsvps)
-        .innerJoin(users, eq(rsvps.userId, users.id))
-        .where(inArray(rsvps.occurrenceId, occurrenceIds))
-    : [];
+  const occurrenceIds = upcomingOccurrences.map(
+    ({ occurrence }) => occurrence.id,
+  );
+  const occurrenceRsvps =
+    occurrenceIds.length > 0
+      ? await db
+          .select({
+            occurrenceId: rsvps.occurrenceId,
+            status: rsvps.status,
+            user: {
+              id: users.id,
+              name: users.name,
+              email: users.email,
+              avatarUrl: users.avatarUrl,
+              role: users.role,
+            },
+          })
+          .from(rsvps)
+          .innerJoin(users, eq(rsvps.userId, users.id))
+          .where(inArray(rsvps.occurrenceId, occurrenceIds))
+      : [];
 
   // Group RSVPs by occurrence with user data, separating coaches and athletes
-  const rsvpsByOccurrence = new Map<string, {
-    going: Array<{ id: string; name: string | null; email: string; avatarUrl: string | null; role: string }>;
-    notGoing: Array<{ id: string; name: string | null; email: string; avatarUrl: string | null; role: string }>;
-    goingCoaches: Array<{ id: string; name: string | null; email: string; avatarUrl: string | null }>;
-    goingAthletes: Array<{ id: string; name: string | null; email: string; avatarUrl: string | null }>;
-  }>();
-  
+  const rsvpsByOccurrence = new Map<
+    string,
+    {
+      going: Array<{
+        id: string;
+        name: string | null;
+        email: string;
+        avatarUrl: string | null;
+        role: string;
+      }>;
+      notGoing: Array<{
+        id: string;
+        name: string | null;
+        email: string;
+        avatarUrl: string | null;
+        role: string;
+      }>;
+      goingCoaches: Array<{
+        id: string;
+        name: string | null;
+        email: string;
+        avatarUrl: string | null;
+      }>;
+      goingAthletes: Array<{
+        id: string;
+        name: string | null;
+        email: string;
+        avatarUrl: string | null;
+      }>;
+    }
+  >();
+
+  // Track current user's RSVP status for each occurrence
+  const currentUserRsvpMap = new Map<string, "going" | "not_going">();
+
   occurrenceRsvps.forEach((rsvp) => {
-    const current = rsvpsByOccurrence.get(rsvp.occurrenceId) || { 
-      going: [], 
-      notGoing: [], 
-      goingCoaches: [], 
-      goingAthletes: [] 
+    const current = rsvpsByOccurrence.get(rsvp.occurrenceId) || {
+      going: [],
+      notGoing: [],
+      goingCoaches: [],
+      goingAthletes: [],
     };
     if (rsvp.status === "going") {
       current.going.push(rsvp.user);
@@ -242,6 +326,11 @@ export default async function DashboardPage() {
       current.notGoing.push(rsvp.user);
     }
     rsvpsByOccurrence.set(rsvp.occurrenceId, current);
+
+    // Track current user's RSVP status
+    if (rsvp.user.id === dbUser.id) {
+      currentUserRsvpMap.set(rsvp.occurrenceId, rsvp.status as "going" | "not_going");
+    }
   });
 
   // Get active notice
@@ -284,15 +373,22 @@ export default async function DashboardPage() {
 
   function getInitials(name: string | null, email: string) {
     if (name) {
-      return name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
+      return name
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2);
     }
     return email[0].toUpperCase();
   }
 
   function formatDate(dateValue: Date | string | null) {
     if (!dateValue) return { day: "", month: "", weekday: "" };
-    const date = typeof dateValue === "string" ? new Date(dateValue) : dateValue;
-    if (Number.isNaN(date.getTime())) return { day: "", month: "", weekday: "" };
+    const date =
+      typeof dateValue === "string" ? new Date(dateValue) : dateValue;
+    if (Number.isNaN(date.getTime()))
+      return { day: "", month: "", weekday: "" };
     return {
       day: date.getDate().toString(),
       month: date.toLocaleDateString("en-US", { month: "short" }).toUpperCase(),
@@ -303,7 +399,7 @@ export default async function DashboardPage() {
   function formatTime(time: string | null) {
     if (!time) return "";
     const [hours, minutes] = time.split(":");
-    const hour = parseInt(hours);
+    const hour = parseInt(hours, 10);
     if (Number.isNaN(hour)) return time;
     const ampm = hour >= 12 ? "PM" : "AM";
     const displayHour = hour % 12 || 12;
@@ -321,20 +417,22 @@ export default async function DashboardPage() {
       label: "Active Events",
       value: Number(totalEvents[0]?.count || 0),
       icon: IconCalendar,
-      color: "bg-violet-100 text-violet-600 dark:bg-violet-950/50 dark:text-violet-400",
+      color:
+        "bg-violet-100 text-violet-600 dark:bg-violet-950/50 dark:text-violet-400",
     },
     {
       label: "Upcoming RSVPs",
       value: Number(recentRsvps[0]?.count || 0),
       icon: IconCheck,
-      color: "bg-emerald-100 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400",
+      color:
+        "bg-emerald-100 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400",
     },
   ];
 
   return (
     <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
-      <PageHeader 
-        title={`Welcome back${dbUser.name ? `, ${dbUser.name.split(" ")[0]}` : ""}`} 
+      <PageHeader
+        title={`Welcome back${dbUser.name ? `, ${dbUser.name.split(" ")[0]}` : ""}`}
         description="Here's what's happening with your team"
       >
         <Button size="sm" className="gap-2 rounded-xl" asChild>
@@ -357,6 +455,7 @@ export default async function DashboardPage() {
           activeNotice={activeNotice || null}
           latestPosts={latestPosts}
           userRole={dbUser.role}
+          currentUserRsvpMap={currentUserRsvpMap}
         />
       </Suspense>
     </div>
@@ -368,7 +467,7 @@ function DashboardSkeleton() {
     <div className="flex-1 overflow-auto min-h-0">
       <div className="space-y-6">
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="hidden lg:grid grid-cols-3 gap-2 sm:gap-4">
           {[1, 2, 3].map((i) => (
             <Card key={i} className="rounded-xl border-0 shadow-sm">
               <CardContent className="p-5">
@@ -393,7 +492,10 @@ function DashboardSkeleton() {
             <CardContent className="pt-0">
               <div className="space-y-2">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="flex items-center gap-3 p-3 rounded-xl">
+                  <div
+                    key={i}
+                    className="flex items-center gap-3 p-3 rounded-xl"
+                  >
                     <Skeleton className="h-12 w-12 rounded-xl" />
                     <div className="flex-1 space-y-2">
                       <Skeleton className="h-4 w-32" />
@@ -416,7 +518,10 @@ function DashboardSkeleton() {
             <CardContent className="pt-0">
               <div className="space-y-2">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="flex items-center gap-3 p-3 rounded-xl">
+                  <div
+                    key={i}
+                    className="flex items-center gap-3 p-3 rounded-xl"
+                  >
                     <Skeleton className="h-16 w-16 rounded-lg" />
                     <div className="flex-1 space-y-2">
                       <div className="flex items-center gap-2">
@@ -449,22 +554,72 @@ function DashboardContent({
   activeNotice,
   latestPosts,
   userRole,
+  currentUserRsvpMap,
 }: {
   dbUser: { name: string | null; email: string };
-  stats: Array<{ label: string; value: number; icon: React.ComponentType<{ className?: string }>; color: string }>;
-  upcomingOccurrences: Array<{ occurrence: any; event: any }>;
-  rsvpsByOccurrence: Map<string, {
-    going: Array<{ id: string; name: string | null; email: string; avatarUrl: string | null; role: string }>;
-    notGoing: Array<{ id: string; name: string | null; email: string; avatarUrl: string | null; role: string }>;
-    goingCoaches: Array<{ id: string; name: string | null; email: string; avatarUrl: string | null }>;
-    goingAthletes: Array<{ id: string; name: string | null; email: string; avatarUrl: string | null }>;
+  stats: Array<{
+    label: string;
+    value: number;
+    icon: React.ComponentType<{ className?: string }>;
+    color: string;
   }>;
-  formatDate: (date: Date | string | null) => { day: string; month: string; weekday: string };
+  upcomingOccurrences: Array<{ occurrence: any; event: any }>;
+  rsvpsByOccurrence: Map<
+    string,
+    {
+      going: Array<{
+        id: string;
+        name: string | null;
+        email: string;
+        avatarUrl: string | null;
+        role: string;
+      }>;
+      notGoing: Array<{
+        id: string;
+        name: string | null;
+        email: string;
+        avatarUrl: string | null;
+        role: string;
+      }>;
+      goingCoaches: Array<{
+        id: string;
+        name: string | null;
+        email: string;
+        avatarUrl: string | null;
+      }>;
+      goingAthletes: Array<{
+        id: string;
+        name: string | null;
+        email: string;
+        avatarUrl: string | null;
+      }>;
+    }
+  >;
+  formatDate: (date: Date | string | null) => {
+    day: string;
+    month: string;
+    weekday: string;
+  };
   formatTime: (time: string | null) => string;
   getInitials: (name: string | null, email: string) => string;
-  activeNotice: { id: string; title: string; content: string; createdAt: Date | string; author: { id: string; name: string | null } } | null;
-  latestPosts: Array<{ id: string; title: string; content: string; type: string; imageUrl: string | null; createdAt: Date | string; author: { id: string; name: string | null; avatarUrl: string | null } }>;
+  activeNotice: {
+    id: string;
+    title: string;
+    content: string;
+    createdAt: Date | string;
+    author: { id: string; name: string | null };
+  } | null;
+  latestPosts: Array<{
+    id: string;
+    title: string;
+    content: string;
+    type: string;
+    imageUrl: string | null;
+    createdAt: Date | string;
+    author: { id: string; name: string | null; avatarUrl: string | null };
+  }>;
   userRole: string;
+  currentUserRsvpMap: Map<string, "going" | "not_going">;
 }) {
   return (
     <div className="flex-1 overflow-auto min-h-0">
@@ -472,60 +627,44 @@ function DashboardContent({
         {/* Active Notice */}
         {activeNotice && (
           <Card className="rounded-xl border border-primary/20 bg-primary/5">
-            <CardContent className="p-4">
-              <div className="flex items-start gap-3">
-                <Badge variant="default" className="rounded-lg shrink-0">Notice</Badge>
-                <div className="flex-1 min-w-0 space-y-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="font-semibold text-sm">{activeNotice.title}</h3>
-                    <span className="text-xs text-muted-foreground">
-                      by {activeNotice.author.name || "Admin"}
-                    </span>
-                  </div>
-                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">{activeNotice.content}</p>
+            <CardContent className="px-4 py-2">
+              <div className="flex-1 min-w-0 space-y-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="font-semibold text-sm leading-tight">
+                    {activeNotice.title}
+                  </h3>
+                  <Badge variant="default" className="rounded-lg text-xs">
+                    Notice
+                  </Badge>
                 </div>
+                <p className="text-sm text-muted-foreground line-clamp-2">
+                  {activeNotice.content}
+                </p>
               </div>
             </CardContent>
           </Card>
         )}
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="hidden lg:grid grid-cols-3 gap-2 sm:gap-4">
           {stats.map((stat) => (
             <Card key={stat.label} className="rounded-xl border shadow-sm">
-              <CardContent className="p-5">
-                <div className={`inline-flex items-center justify-center h-10 w-10 rounded-xl ${stat.color} mb-3`}>
-                  <stat.icon className="h-5 w-5" />
+              <CardContent className="p-3 sm:p-5">
+                <div
+                  className={`inline-flex items-center justify-center h-8 w-8 sm:h-10 sm:w-10 rounded-xl ${stat.color} mb-2 sm:mb-3`}
+                >
+                  <stat.icon className="h-4 w-4 sm:h-5 sm:w-5" />
                 </div>
-                <p className="text-3xl font-semibold tracking-tight">{stat.value}</p>
-                <p className="text-sm text-muted-foreground mt-1">{stat.label}</p>
+                <p className="text-2xl sm:text-3xl font-semibold tracking-tight">
+                  {stat.value}
+                </p>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                  {stat.label}
+                </p>
               </CardContent>
             </Card>
           ))}
         </div>
-
-        {/* Quick Access - Calendar */}
-        <Card className="rounded-xl border shadow-sm bg-gradient-to-br from-primary/5 to-primary/10">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="inline-flex items-center justify-center h-10 w-10 rounded-xl bg-primary text-primary-foreground">
-                  <IconCalendar className="h-5 w-5" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-base">View Calendar</h3>
-                  <p className="text-sm text-muted-foreground">See all events and RSVP directly</p>
-                </div>
-              </div>
-              <Button variant="default" size="sm" asChild className="rounded-xl">
-                <Link href="/calendar">
-                  Open Calendar
-                  <IconChevronRight className="h-4 w-4 ml-1" />
-                </Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
 
         {/* Content Grid */}
         <div className="grid gap-6 lg:grid-cols-2">
@@ -533,8 +672,15 @@ function DashboardContent({
           <Card className="rounded-xl">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base font-semibold">Upcoming Events</CardTitle>
-                <Button variant="ghost" size="sm" asChild className="text-muted-foreground rounded-xl">
+                <CardTitle className="text-base font-semibold">
+                  Upcoming Events
+                </CardTitle>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  asChild
+                  className="text-muted-foreground rounded-xl"
+                >
                   <Link href="/events">
                     View all
                     <IconChevronRight className="h-4 w-4 ml-1" />
@@ -546,8 +692,15 @@ function DashboardContent({
               {upcomingOccurrences.length === 0 ? (
                 <div className="py-8 text-center">
                   <IconCalendar className="h-10 w-10 mx-auto mb-3 text-muted-foreground/30" />
-                  <p className="text-sm text-muted-foreground mb-4">No upcoming events</p>
-                  <Button variant="outline" size="sm" asChild className="rounded-xl">
+                  <p className="text-sm text-muted-foreground mb-4">
+                    No upcoming events
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    asChild
+                    className="rounded-xl"
+                  >
                     <Link href="/events/new">Create an event</Link>
                   </Button>
                 </div>
@@ -556,13 +709,14 @@ function DashboardContent({
                   {upcomingOccurrences.map(({ occurrence, event }) => {
                     const dateInfo = formatDate(occurrence.date);
                     const isCanceled = occurrence.status === "canceled";
-                    const rsvpData = rsvpsByOccurrence.get(occurrence.id) || { 
-                      going: [], 
-                      notGoing: [], 
-                      goingCoaches: [], 
-                      goingAthletes: [] 
+                    const rsvpData = rsvpsByOccurrence.get(occurrence.id) || {
+                      going: [],
+                      notGoing: [],
+                      goingCoaches: [],
+                      goingAthletes: [],
                     };
-                    const isCoachOrOwner = userRole === "owner" || userRole === "coach";
+                    const isCoachOrOwner =
+                      userRole === "owner" || userRole === "coach";
                     const goingCoaches = rsvpData.goingCoaches || [];
                     const goingAthletes = rsvpData.goingAthletes || [];
 
@@ -578,18 +732,28 @@ function DashboardContent({
                           className="flex items-start gap-3 flex-1 min-w-0"
                         >
                           <div className="h-12 w-12 rounded-xl bg-muted flex flex-col items-center justify-center shrink-0">
-                            <span className="text-lg font-bold leading-none">{dateInfo.day}</span>
-                            <span className="text-[9px] font-medium text-muted-foreground">{dateInfo.month}</span>
+                            <span className="text-lg font-bold leading-none">
+                              {dateInfo.day}
+                            </span>
+                            <span className="text-[9px] font-medium text-muted-foreground">
+                              {dateInfo.month}
+                            </span>
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="font-medium text-sm truncate">{event.title}</p>
+                            <p className="font-medium text-sm truncate">
+                              {event.title}
+                            </p>
                             <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
                               <IconClock className="h-3 w-3" />
-                              {formatTime(event.startTime)} - {formatTime(event.endTime)}
+                              {formatTime(event.startTime)} -{" "}
+                              {formatTime(event.endTime)}
                             </p>
                             {/* Coaches and athletes */}
-                            {(goingCoaches.length > 0 || goingAthletes.length > 0) && (
+                            {(goingCoaches.length > 0 ||
+                              goingAthletes.length > 0 ||
+                              rsvpData.notGoing.length > 0) && (
                               <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                                {/* Coaches badges */}
                                 {goingCoaches.map((coach) => (
                                   <Badge
                                     key={coach.id}
@@ -600,32 +764,105 @@ function DashboardContent({
                                     {coach.name || coach.email}
                                   </Badge>
                                 ))}
-                                {goingCoaches.length > 0 && goingAthletes.length > 0 && (
-                                  <span className="text-muted-foreground">•</span>
-                                )}
-                                {goingAthletes.length > 0 && (
-                                  <span className="text-sm text-emerald-600 font-medium">
-                                    {goingAthletes.length} GOING
-                                  </span>
+                                {rsvpData.notGoing
+                                  .filter(
+                                    (user) =>
+                                      user.role === "coach" ||
+                                      user.role === "owner",
+                                  )
+                                  .map((coach) => (
+                                    <Badge
+                                      key={coach.id}
+                                      variant="secondary"
+                                      className="text-[10px] rounded-md flex items-center gap-1"
+                                    >
+                                      <IconX className="h-3 w-3" />
+                                      {coach.name || coach.email}
+                                    </Badge>
+                                  ))}
+                                {/* Athletes avatars */}
+                                {(goingAthletes.length > 0 ||
+                                  rsvpData.notGoing.filter(
+                                    (user) => user.role === "athlete",
+                                  ).length > 0) && (
+                                  <>
+                                    {(goingCoaches.length > 0 ||
+                                      rsvpData.notGoing.filter(
+                                        (user) =>
+                                          user.role === "coach" ||
+                                          user.role === "owner",
+                                      ).length > 0) && (
+                                      <span className="text-muted-foreground">
+                                        •
+                                      </span>
+                                    )}
+                                    {/* Going athletes */}
+                                    {goingAthletes.map((athlete) => (
+                                      <Avatar
+                                        key={athlete.id}
+                                        className="h-6 w-6 border border-emerald-500"
+                                      >
+                                        <AvatarImage
+                                          src={athlete.avatarUrl || undefined}
+                                        />
+                                        <AvatarFallback className="text-[9px] bg-muted">
+                                          {getInitials(athlete.name, athlete.email)}
+                                        </AvatarFallback>
+                                      </Avatar>
+                                    ))}
+                                    {/* Middle dot between going and not going athletes */}
+                                    {goingAthletes.length > 0 &&
+                                      rsvpData.notGoing.filter(
+                                        (user) => user.role === "athlete",
+                                      ).length > 0 && (
+                                        <span className="text-muted-foreground">
+                                          •
+                                        </span>
+                                      )}
+                                    {/* Not going athletes */}
+                                    {rsvpData.notGoing
+                                      .filter((user) => user.role === "athlete")
+                                      .map((athlete) => (
+                                        <Avatar
+                                          key={athlete.id}
+                                          className="h-6 w-6 border border-red-500"
+                                        >
+                                          <AvatarImage
+                                            src={athlete.avatarUrl || undefined}
+                                          />
+                                          <AvatarFallback className="text-[9px] bg-muted">
+                                            {getInitials(
+                                              athlete.name,
+                                              athlete.email,
+                                            )}
+                                          </AvatarFallback>
+                                        </Avatar>
+                                      ))}
+                                  </>
                                 )}
                               </div>
                             )}
                           </div>
                           <div className="flex flex-col items-end gap-2 shrink-0">
-                            {rsvpData.notGoing.length > 0 && (
-                              <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                                <IconX className="h-4 w-4" />
-                                {rsvpData.notGoing.length}
-                              </div>
-                            )}
                             {isCanceled && (
-                              <Badge variant="destructive" className="text-[10px] rounded-md">Canceled</Badge>
+                              <Badge
+                                variant="destructive"
+                                className="text-[10px] rounded-md"
+                              >
+                                Canceled
+                              </Badge>
                             )}
                           </div>
                         </Link>
                         {isCoachOrOwner && (
                           <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                            <EventActionsDropdown eventId={event.id} occurrenceId={occurrence.id} isCanceled={isCanceled} />
+                            <EventActionsDropdown
+                              eventId={event.id}
+                              occurrenceId={occurrence.id}
+                              isCanceled={isCanceled}
+                              userRole={userRole}
+                              currentRsvpStatus={currentUserRsvpMap.get(occurrence.id) || null}
+                            />
                           </div>
                         )}
                       </div>
@@ -640,8 +877,15 @@ function DashboardContent({
           <Card className="rounded-xl">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base font-semibold">Latest Posts</CardTitle>
-                <Button variant="ghost" size="sm" asChild className="text-muted-foreground rounded-xl">
+                <CardTitle className="text-base font-semibold">
+                  Latest Posts
+                </CardTitle>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  asChild
+                  className="text-muted-foreground rounded-xl"
+                >
                   <Link href="/blog">
                     View all
                     <IconChevronRight className="h-4 w-4 ml-1" />
@@ -653,8 +897,15 @@ function DashboardContent({
               {latestPosts.length === 0 ? (
                 <div className="py-8 text-center">
                   <IconCalendar className="h-10 w-10 mx-auto mb-3 text-muted-foreground/30" />
-                  <p className="text-sm text-muted-foreground mb-4">No blog posts yet</p>
-                  <Button variant="outline" size="sm" asChild className="rounded-xl">
+                  <p className="text-sm text-muted-foreground mb-4">
+                    No blog posts yet
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    asChild
+                    className="rounded-xl"
+                  >
                     <Link href="/blog">View blog</Link>
                   </Button>
                 </div>
@@ -677,14 +928,19 @@ function DashboardContent({
                         )}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
-                            <Badge variant="outline" className="rounded-lg text-xs">
+                            <Badge
+                              variant="outline"
+                              className="rounded-lg text-xs"
+                            >
                               {post.type}
                             </Badge>
                             <span className="text-xs text-muted-foreground">
                               {post.author.name}
                             </span>
                           </div>
-                          <h3 className="font-semibold text-sm truncate">{post.title}</h3>
+                          <h3 className="font-semibold text-sm truncate">
+                            {post.title}
+                          </h3>
                           <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
                             {post.content}
                           </p>
@@ -702,12 +958,17 @@ function DashboardContent({
   );
 }
 
-function StackedAvatars({
+function _StackedAvatars({
   users,
   getInitials,
   variant,
 }: {
-  users: Array<{ id: string; name: string | null; email: string; avatarUrl: string | null }>;
+  users: Array<{
+    id: string;
+    name: string | null;
+    email: string;
+    avatarUrl: string | null;
+  }>;
   getInitials: (name: string | null, email: string) => string;
   variant: "going" | "notGoing";
 }) {
@@ -717,7 +978,8 @@ function StackedAvatars({
   const Icon = variant === "going" ? IconCheck : IconX;
   const iconColor = variant === "going" ? "text-emerald-600" : "text-red-600";
 
-  const borderColor = variant === "going" ? "border-emerald-500" : "border-red-500";
+  const borderColor =
+    variant === "going" ? "border-emerald-500" : "border-red-500";
 
   return (
     <TooltipProvider>
@@ -767,4 +1029,3 @@ function StackedAvatars({
     </TooltipProvider>
   );
 }
-

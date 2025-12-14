@@ -1,8 +1,8 @@
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { channels, chatNotifications, messages, users } from "@/drizzle/schema";
 import { db } from "@/lib/db";
-import { chatNotifications, channels, users, messages } from "@/drizzle/schema";
-import { eq, and, isNull, sql } from "drizzle-orm";
+import { createClient } from "@/lib/supabase/server";
 
 export async function GET() {
   try {
@@ -15,12 +15,16 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const [dbUser] = await db.select().from(users).where(eq(users.id, user.id)).limit(1);
+    const [dbUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, user.id))
+      .limit(1);
 
     if (!dbUser || !dbUser.gymId) {
       return NextResponse.json(
         { error: "User must belong to a gym" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -36,9 +40,7 @@ export async function GET() {
       .from(messages)
       .where(eq(messages.senderId, user.id));
 
-    const userChannelIds = new Set(
-      userMessageChannels.map((m) => m.channelId)
-    );
+    const userChannelIds = new Set(userMessageChannels.map((m) => m.channelId));
 
     // Filter channels based on type and user participation (same logic as GET /api/chat/channels)
     const accessibleChannels = allGymChannels.filter((channel) => {
@@ -50,7 +52,7 @@ export async function GET() {
       // For DM channels: only show if user has sent messages OR channel name matches user's name/email
       if (channel.type === "dm") {
         const userIsParticipant = userChannelIds.has(channel.id);
-        const channelNameMatchesUser = 
+        const channelNameMatchesUser =
           channel.name === (dbUser.name || dbUser.email);
         return userIsParticipant || channelNameMatchesUser;
       }
@@ -81,8 +83,8 @@ export async function GET() {
       .where(
         and(
           eq(chatNotifications.userId, user.id),
-          isNull(chatNotifications.readAt)
-        )
+          isNull(chatNotifications.readAt),
+        ),
       )
       .groupBy(chatNotifications.channelId);
 
@@ -95,12 +97,14 @@ export async function GET() {
     }
 
     // Calculate total unread chats (channels with unread messages that user can access)
-    const totalUnreadChats = Array.from(countsMap.values()).filter(count => count > 0).length;
+    const totalUnreadChats = Array.from(countsMap.values()).filter(
+      (count) => count > 0,
+    ).length;
 
     // Calculate total unread messages
     const totalUnreadMessages = Array.from(countsMap.values()).reduce(
       (sum, count) => sum + count,
-      0
+      0,
     );
 
     // Return counts per channel and totals (only for accessible channels)
@@ -118,7 +122,7 @@ export async function GET() {
     console.error("Get unread counts error:", error);
     return NextResponse.json(
       { error: "Failed to get unread counts" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

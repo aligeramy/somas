@@ -1,13 +1,13 @@
+import { and, eq, gte, inArray, sql } from "drizzle-orm";
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { eventOccurrences, events, rsvps, users } from "@/drizzle/schema";
 import { db } from "@/lib/db";
-import { users, events, eventOccurrences, rsvps } from "@/drizzle/schema";
-import { eq, and, gte, lt, inArray, sql } from "drizzle-orm";
+import { createClient } from "@/lib/supabase/server";
 
 // GET - Get single event with occurrences
 export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
@@ -20,10 +20,17 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const [dbUser] = await db.select().from(users).where(eq(users.id, user.id)).limit(1);
+    const [dbUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, user.id))
+      .limit(1);
 
     if (!dbUser || !dbUser.gymId) {
-      return NextResponse.json({ error: "User must belong to a gym" }, { status: 400 });
+      return NextResponse.json(
+        { error: "User must belong to a gym" },
+        { status: 400 },
+      );
     }
 
     const [event] = await db
@@ -60,7 +67,7 @@ async function generateEventOccurrences(
 ) {
   const occurrences = [];
   let endDate = new Date(startDate);
-  
+
   // Determine end date based on recurrence settings
   if (recurrenceEndDate) {
     endDate = new Date(recurrenceEndDate);
@@ -76,13 +83,16 @@ async function generateEventOccurrences(
     const [hours, minutes] = startTime.split(":").map(Number);
     const occurrenceDate = new Date(startDate);
     occurrenceDate.setHours(hours, minutes, 0, 0);
-    
+
     if (occurrenceDate >= new Date()) {
-      await db.insert(eventOccurrences).values({
-        eventId,
-        date: occurrenceDate,
-        status: "scheduled" as const,
-      }).onConflictDoNothing();
+      await db
+        .insert(eventOccurrences)
+        .values({
+          eventId,
+          date: occurrenceDate,
+          status: "scheduled" as const,
+        })
+        .onConflictDoNothing();
     }
     return;
   }
@@ -140,7 +150,7 @@ async function generateEventOccurrences(
 // PUT - Update event
 export async function PUT(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
@@ -153,29 +163,50 @@ export async function PUT(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const [dbUser] = await db.select().from(users).where(eq(users.id, user.id)).limit(1);
+    const [dbUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, user.id))
+      .limit(1);
 
     if (!dbUser || !dbUser.gymId) {
-      return NextResponse.json({ error: "User must belong to a gym" }, { status: 400 });
+      return NextResponse.json(
+        { error: "User must belong to a gym" },
+        { status: 400 },
+      );
     }
 
     if (dbUser.role !== "owner" && dbUser.role !== "coach") {
-      return NextResponse.json({ error: "Only head coaches and coaches can edit events" }, { status: 403 });
+      return NextResponse.json(
+        { error: "Only head coaches and coaches can edit events" },
+        { status: 403 },
+      );
     }
 
     const body = await request.json();
-    const { title, description, location, startTime, endTime, recurrenceRule, recurrenceEndDate, recurrenceCount, reminderDays: reminderDaysRaw, startDate } = body;
-    
+    const {
+      title,
+      description,
+      location,
+      startTime,
+      endTime,
+      recurrenceRule,
+      recurrenceEndDate,
+      recurrenceCount,
+      reminderDays: reminderDaysRaw,
+      startDate,
+    } = body;
+
     // Parse reminderDays - handle string, array, or null/undefined
     let reminderDays: number[] | null = null;
     if (reminderDaysRaw !== undefined && reminderDaysRaw !== null) {
-      if (typeof reminderDaysRaw === 'string') {
+      if (typeof reminderDaysRaw === "string") {
         // Handle JSON stringified arrays (could be "[7,1]" or double-encoded)
         let parsed: any = null;
         try {
           parsed = JSON.parse(reminderDaysRaw);
           // If JSON.parse returns a string, it might be double-encoded, try parsing again
-          if (typeof parsed === 'string') {
+          if (typeof parsed === "string") {
             try {
               parsed = JSON.parse(parsed);
             } catch {
@@ -183,33 +214,52 @@ export async function PUT(
             }
           }
           if (Array.isArray(parsed)) {
-            reminderDays = parsed.map(n => typeof n === 'number' ? n : parseFloat(String(n))).filter(n => !isNaN(n));
+            reminderDays = parsed
+              .map((n) => (typeof n === "number" ? n : parseFloat(String(n))))
+              .filter((n) => !Number.isNaN(n));
           }
-        } catch (parseError) {
+        } catch (_parseError) {
           // If JSON.parse fails, try to parse as array literal string like "[7,1]"
           const trimmed = reminderDaysRaw.trim();
-          if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+          if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
             try {
               const innerContent = trimmed.slice(1, -1).trim();
-              const values = innerContent ? innerContent.split(',').map(s => s.trim()) : [];
-              reminderDays = values.map(s => {
-                const num = parseFloat(s);
-                return isNaN(num) ? null : num;
-              }).filter(n => n !== null) as number[];
+              const values = innerContent
+                ? innerContent.split(",").map((s) => s.trim())
+                : [];
+              reminderDays = values
+                .map((s) => {
+                  const num = parseFloat(s);
+                  return Number.isNaN(num) ? null : num;
+                })
+                .filter((n) => n !== null) as number[];
             } catch (splitError) {
-              console.error('Failed to parse reminderDays string:', reminderDaysRaw, splitError);
+              console.error(
+                "Failed to parse reminderDays string:",
+                reminderDaysRaw,
+                splitError,
+              );
               reminderDays = null;
             }
           } else {
-            console.warn('reminderDays is a string but not in array format:', reminderDaysRaw);
+            console.warn(
+              "reminderDays is a string but not in array format:",
+              reminderDaysRaw,
+            );
             reminderDays = null;
           }
         }
       } else if (Array.isArray(reminderDaysRaw)) {
         // Ensure all elements are numbers
-        reminderDays = reminderDaysRaw.map(n => typeof n === 'number' ? n : parseFloat(String(n))).filter(n => !isNaN(n));
+        reminderDays = reminderDaysRaw
+          .map((n) => (typeof n === "number" ? n : parseFloat(String(n))))
+          .filter((n) => !Number.isNaN(n));
       } else {
-        console.warn('reminderDays has unexpected type:', typeof reminderDaysRaw, reminderDaysRaw);
+        console.warn(
+          "reminderDays has unexpected type:",
+          typeof reminderDaysRaw,
+          reminderDaysRaw,
+        );
         reminderDays = null;
       }
     }
@@ -219,9 +269,9 @@ export async function PUT(
       const startDateTime = new Date(startDate);
       const [hours, minutes] = startTime.split(":").map(Number);
       startDateTime.setHours(hours, minutes, 0, 0);
-      
+
       const endDateTime = new Date(recurrenceEndDate);
-      
+
       if (endDateTime <= startDateTime) {
         return NextResponse.json(
           { error: "The 'End on date' must be after the start date and time" },
@@ -242,10 +292,12 @@ export async function PUT(
     }
 
     // Check if recurrence-related fields changed
-    const recurrenceChanged = 
+    const recurrenceChanged =
       existingEvent.recurrenceRule !== recurrenceRule ||
       existingEvent.startTime !== startTime ||
-      (recurrenceEndDate && existingEvent.recurrenceEndDate?.toISOString() !== new Date(recurrenceEndDate).toISOString()) ||
+      (recurrenceEndDate &&
+        existingEvent.recurrenceEndDate?.toISOString() !==
+          new Date(recurrenceEndDate).toISOString()) ||
       (!recurrenceEndDate && existingEvent.recurrenceEndDate);
 
     // Build update object - include reminderDays conditionally
@@ -260,26 +312,34 @@ export async function PUT(
       recurrenceCount: recurrenceCount || null,
       updatedAt: new Date(),
     };
-    
+
     // Handle reminderDays - database column is integer[] (PostgreSQL array), NOT jsonb
     // PostgreSQL arrays use {1,2,3} format, not [1,2,3]
     if (reminderDaysRaw !== undefined) {
       if (Array.isArray(reminderDays) && reminderDays.length > 0) {
         // Ensure all values are integers (reminderDays should be whole numbers)
         const validIntegers = reminderDays
-          .map(n => typeof n === 'number' ? Math.round(n) : parseInt(String(n), 10))
-          .filter(n => !isNaN(n));
+          .map((n) =>
+            typeof n === "number" ? Math.round(n) : parseInt(String(n), 10),
+          )
+          .filter((n) => !Number.isNaN(n));
         if (validIntegers.length > 0) {
           // Use PostgreSQL array literal format: {1,2,3}
-          const pgArrayLiteral = `{${validIntegers.join(',')}}`;
+          const pgArrayLiteral = `{${validIntegers.join(",")}}`;
           updateData.reminderDays = sql`${pgArrayLiteral}::integer[]`;
         } else {
           updateData.reminderDays = null;
         }
-      } else if (reminderDays === null || (Array.isArray(reminderDays) && reminderDays.length === 0)) {
+      } else if (
+        reminderDays === null ||
+        (Array.isArray(reminderDays) && reminderDays.length === 0)
+      ) {
         updateData.reminderDays = null;
       } else {
-        console.warn('reminderDays parsing failed, preserving existing value. Raw:', reminderDaysRaw);
+        console.warn(
+          "reminderDays parsing failed, preserving existing value. Raw:",
+          reminderDaysRaw,
+        );
       }
     }
 
@@ -306,11 +366,11 @@ export async function PUT(
         .where(
           and(
             eq(eventOccurrences.eventId, id),
-            gte(eventOccurrences.date, today)
-          )
+            gte(eventOccurrences.date, today),
+          ),
         );
 
-      const futureOccurrenceIds = futureOccurrences.map(o => o.id);
+      const futureOccurrenceIds = futureOccurrences.map((o) => o.id);
 
       if (futureOccurrenceIds.length > 0) {
         // Delete RSVPs for future occurrences
@@ -319,12 +379,14 @@ export async function PUT(
         }
 
         // Delete future occurrences
-        await db.delete(eventOccurrences).where(
-          and(
-            eq(eventOccurrences.eventId, id),
-            gte(eventOccurrences.date, today)
-          )
-        );
+        await db
+          .delete(eventOccurrences)
+          .where(
+            and(
+              eq(eventOccurrences.eventId, id),
+              gte(eventOccurrences.date, today),
+            ),
+          );
       }
 
       // Generate new occurrences based on updated recurrence
@@ -335,21 +397,24 @@ export async function PUT(
         startTime,
         occurrenceStartDate,
         recurrenceEndDate ? new Date(recurrenceEndDate) : null,
-        recurrenceCount
+        recurrenceCount,
       );
     }
 
     return NextResponse.json({ event: updatedEvent });
   } catch (error) {
     console.error("Update event error:", error);
-    return NextResponse.json({ error: "Failed to update event" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to update event" },
+      { status: 500 },
+    );
   }
 }
 
 // DELETE - Delete event and all occurrences
 export async function DELETE(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
@@ -362,14 +427,24 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const [dbUser] = await db.select().from(users).where(eq(users.id, user.id)).limit(1);
+    const [dbUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, user.id))
+      .limit(1);
 
     if (!dbUser || !dbUser.gymId) {
-      return NextResponse.json({ error: "User must belong to a gym" }, { status: 400 });
+      return NextResponse.json(
+        { error: "User must belong to a gym" },
+        { status: 400 },
+      );
     }
 
     if (dbUser.role !== "owner" && dbUser.role !== "coach") {
-      return NextResponse.json({ error: "Only head coaches and coaches can delete events" }, { status: 403 });
+      return NextResponse.json(
+        { error: "Only head coaches and coaches can delete events" },
+        { status: 403 },
+      );
     }
 
     // Verify event belongs to user's gym
@@ -405,10 +480,9 @@ export async function DELETE(
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Delete event error:", error);
-    return NextResponse.json({ error: "Failed to delete event" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to delete event" },
+      { status: 500 },
+    );
   }
 }
-
-
-
-

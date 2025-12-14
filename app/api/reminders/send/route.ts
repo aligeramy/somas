@@ -1,10 +1,17 @@
+import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { db } from "@/lib/db";
-import { users, events, eventOccurrences, rsvps, gyms, reminderLogs } from "@/drizzle/schema";
-import { eq, and, isNull } from "drizzle-orm";
 import { Resend } from "resend";
+import {
+  eventOccurrences,
+  events,
+  gyms,
+  reminderLogs,
+  rsvps,
+  users,
+} from "@/drizzle/schema";
 import { RsvpReminderEmail } from "@/emails/rsvp-reminder";
+import { db } from "@/lib/db";
+import { createClient } from "@/lib/supabase/server";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -20,7 +27,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const [dbUser] = await db.select().from(users).where(eq(users.id, user.id)).limit(1);
+    const [dbUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, user.id))
+      .limit(1);
 
     if (!dbUser) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
@@ -83,12 +94,7 @@ export async function POST(request: Request) {
     const allAthletes = await db
       .select()
       .from(users)
-      .where(
-        and(
-          eq(users.gymId, dbUser.gymId!),
-          eq(users.role, "athlete")
-        )
-      );
+      .where(and(eq(users.gymId, dbUser.gymId!), eq(users.role, "athlete")));
 
     // Get existing RSVPs for this occurrence
     const existingRsvps = await db
@@ -100,7 +106,7 @@ export async function POST(request: Request) {
 
     // Filter to pending users (or specific userIds if provided)
     let targetUsers = allAthletes.filter((a) => !respondedUserIds.has(a.id));
-    
+
     if (userIds && userIds.length > 0) {
       targetUsers = targetUsers.filter((u) => userIds.includes(u.id));
     }
@@ -116,10 +122,10 @@ export async function POST(request: Request) {
     // Format date for email
     const eventDate = new Date(occurrenceData.occurrence.date);
     const dateStr = `${eventDate.getDate()} ${eventDate.toLocaleDateString("en-US", { month: "short" })}`;
-    
+
     const formatTime = (time: string) => {
       const [hours, minutes] = time.split(":");
-      const hour = parseInt(hours);
+      const hour = parseInt(hours, 10);
       const ampm = hour >= 12 ? "PM" : "AM";
       const displayHour = hour % 12 || 12;
       return `${displayHour}:${minutes} ${ampm}`;
@@ -154,11 +160,14 @@ export async function POST(request: Request) {
         });
 
         // Log the reminder
-        await db.insert(reminderLogs).values({
-          occurrenceId,
-          userId: targetUser.id,
-          reminderType: "manual",
-        }).onConflictDoNothing();
+        await db
+          .insert(reminderLogs)
+          .values({
+            occurrenceId,
+            userId: targetUser.id,
+            reminderType: "manual",
+          })
+          .onConflictDoNothing();
 
         sent++;
       } catch (err) {
@@ -175,7 +184,9 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error("Send reminder error:", error);
-    return NextResponse.json({ error: "Failed to send reminders" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to send reminders" },
+      { status: 500 },
+    );
   }
 }
-

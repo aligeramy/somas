@@ -7,10 +7,9 @@ interface MobileBottomNavWrapperProps {
   gymWebsite: string | null;
 }
 
-export function MobileBottomNavWrapper({ userRole, gymWebsite }: MobileBottomNavWrapperProps) {
+export function MobileBottomNavWrapper({
+  userRole,
+  gymWebsite,
+}: MobileBottomNavWrapperProps) {
   return <MobileBottomNav userRole={userRole} gymWebsite={gymWebsite} />;
 }
-
-
-
-

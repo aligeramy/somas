@@ -1,8 +1,8 @@
+import { and, eq, isNull } from "drizzle-orm";
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { channels, chatNotifications, messages, users } from "@/drizzle/schema";
 import { db } from "@/lib/db";
-import { chatNotifications, channels, users, messages } from "@/drizzle/schema";
-import { eq, and, isNull } from "drizzle-orm";
+import { createClient } from "@/lib/supabase/server";
 
 export async function POST(request: Request) {
   try {
@@ -15,12 +15,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const [dbUser] = await db.select().from(users).where(eq(users.id, user.id)).limit(1);
+    const [dbUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, user.id))
+      .limit(1);
 
     if (!dbUser || !dbUser.gymId) {
       return NextResponse.json(
         { error: "User must belong to a gym" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -29,7 +33,7 @@ export async function POST(request: Request) {
     if (!channelId) {
       return NextResponse.json(
         { error: "Channel ID is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -52,12 +56,17 @@ export async function POST(request: Request) {
       const userHasMessages = await db
         .select()
         .from(messages)
-        .where(and(eq(messages.channelId, channelId), eq(messages.senderId, user.id)))
+        .where(
+          and(
+            eq(messages.channelId, channelId),
+            eq(messages.senderId, user.id),
+          ),
+        )
         .limit(1);
-      
-      const channelNameMatchesUser = 
+
+      const channelNameMatchesUser =
         channel.name === (dbUser.name || dbUser.email);
-      
+
       if (userHasMessages.length === 0 && !channelNameMatchesUser) {
         return NextResponse.json({ error: "Access denied" }, { status: 403 });
       }
@@ -66,9 +75,14 @@ export async function POST(request: Request) {
       const userHasMessages = await db
         .select()
         .from(messages)
-        .where(and(eq(messages.channelId, channelId), eq(messages.senderId, user.id)))
+        .where(
+          and(
+            eq(messages.channelId, channelId),
+            eq(messages.senderId, user.id),
+          ),
+        )
         .limit(1);
-      
+
       if (userHasMessages.length === 0) {
         return NextResponse.json({ error: "Access denied" }, { status: 403 });
       }
@@ -82,8 +96,8 @@ export async function POST(request: Request) {
         and(
           eq(chatNotifications.userId, user.id),
           eq(chatNotifications.channelId, channelId),
-          isNull(chatNotifications.readAt)
-        )
+          isNull(chatNotifications.readAt),
+        ),
       );
 
     return NextResponse.json({ success: true });
@@ -91,7 +105,7 @@ export async function POST(request: Request) {
     console.error("Mark as read error:", error);
     return NextResponse.json(
       { error: "Failed to mark messages as read" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

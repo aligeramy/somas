@@ -1,8 +1,8 @@
-import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { db } from "@/lib/db";
-import { users, gyms, channels } from "@/drizzle/schema";
 import { eq } from "drizzle-orm";
+import { NextResponse } from "next/server";
+import { channels, gyms, users } from "@/drizzle/schema";
+import { db } from "@/lib/db";
+import { createClient } from "@/lib/supabase/server";
 
 export async function POST(request: Request) {
   try {
@@ -25,10 +25,18 @@ export async function POST(request: Request) {
     }
 
     // Check if user already has a gym
-    const [existingUser] = await db.select().from(users).where(eq(users.id, user.id)).limit(1);
+    const [existingUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, user.id))
+      .limit(1);
 
     if (existingUser?.gymId) {
-      const [existingGym] = await db.select().from(gyms).where(eq(gyms.id, existingUser.gymId)).limit(1);
+      const [existingGym] = await db
+        .select()
+        .from(gyms)
+        .where(eq(gyms.id, existingUser.gymId))
+        .limit(1);
       if (existingGym) {
         return NextResponse.json(
           { error: "User already has a gym" },
@@ -38,18 +46,24 @@ export async function POST(request: Request) {
     }
 
     // Create gym
-    const [gym] = await db.insert(gyms).values({
-      name: gymName,
-      logoUrl: logoUrl || null,
-      createdById: user.id,
-    }).returning();
+    const [gym] = await db
+      .insert(gyms)
+      .values({
+        name: gymName,
+        logoUrl: logoUrl || null,
+        createdById: user.id,
+      })
+      .returning();
 
     // Update user
-    await db.update(users).set({
-      gymId: gym.id,
-      role: "owner",
-      onboarded: true,
-    }).where(eq(users.id, user.id));
+    await db
+      .update(users)
+      .set({
+        gymId: gym.id,
+        role: "owner",
+        onboarded: true,
+      })
+      .where(eq(users.id, user.id));
 
     // Create global channel for the gym
     await db.insert(channels).values({
@@ -68,4 +82,3 @@ export async function POST(request: Request) {
     );
   }
 }
-

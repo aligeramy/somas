@@ -1,12 +1,12 @@
-import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { db } from "@/lib/db";
-import { users, notices } from "@/drizzle/schema";
 import { eq } from "drizzle-orm";
+import { NextResponse } from "next/server";
+import { notices, users } from "@/drizzle/schema";
+import { db } from "@/lib/db";
+import { createClient } from "@/lib/supabase/server";
 
 export async function PUT(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
@@ -19,12 +19,16 @@ export async function PUT(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const [dbUser] = await db.select().from(users).where(eq(users.id, user.id)).limit(1);
+    const [dbUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, user.id))
+      .limit(1);
 
     if (!dbUser || !dbUser.gymId) {
       return NextResponse.json(
         { error: "User must belong to a gym" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -62,14 +66,14 @@ export async function PUT(
     console.error("Notice update error:", error);
     return NextResponse.json(
       { error: "Failed to update notice" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 export async function DELETE(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
@@ -82,12 +86,16 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const [dbUser] = await db.select().from(users).where(eq(users.id, user.id)).limit(1);
+    const [dbUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, user.id))
+      .limit(1);
 
     if (!dbUser || !dbUser.gymId) {
       return NextResponse.json(
         { error: "User must belong to a gym" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -114,8 +122,7 @@ export async function DELETE(
     console.error("Notice deletion error:", error);
     return NextResponse.json(
       { error: "Failed to delete notice" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-

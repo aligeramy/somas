@@ -1,12 +1,16 @@
-import { IconUsers, IconCalendar, IconCheck } from "@tabler/icons-react"
+import { IconCalendar, IconCheck, IconUsers } from "@tabler/icons-react";
 
 interface DashboardStatsProps {
-  totalAthletes: number
-  totalEvents: number
-  upcomingRsvps: number
+  totalAthletes: number;
+  totalEvents: number;
+  upcomingRsvps: number;
 }
 
-export function DashboardStats({ totalAthletes, totalEvents, upcomingRsvps }: DashboardStatsProps) {
+export function DashboardStats({
+  totalAthletes,
+  totalEvents,
+  upcomingRsvps,
+}: DashboardStatsProps) {
   const stats = [
     {
       label: "Team Members",
@@ -18,15 +22,17 @@ export function DashboardStats({ totalAthletes, totalEvents, upcomingRsvps }: Da
       label: "Active Events",
       value: totalEvents,
       icon: IconCalendar,
-      color: "bg-violet-100 text-violet-600 dark:bg-violet-950/50 dark:text-violet-400",
+      color:
+        "bg-violet-100 text-violet-600 dark:bg-violet-950/50 dark:text-violet-400",
     },
     {
       label: "Upcoming RSVPs",
       value: upcomingRsvps,
       icon: IconCheck,
-      color: "bg-emerald-100 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400",
+      color:
+        "bg-emerald-100 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400",
     },
-  ]
+  ];
 
   return (
     <div className="grid grid-cols-3 gap-4">
@@ -35,7 +41,9 @@ export function DashboardStats({ totalAthletes, totalEvents, upcomingRsvps }: Da
           key={stat.label}
           className="rounded-xl border bg-card p-5 transition-shadow hover:shadow-md"
         >
-          <div className={`inline-flex items-center justify-center h-10 w-10 rounded-xl ${stat.color} mb-3`}>
+          <div
+            className={`inline-flex items-center justify-center h-10 w-10 rounded-xl ${stat.color} mb-3`}
+          >
             <stat.icon className="h-5 w-5" />
           </div>
           <p className="text-3xl font-semibold tracking-tight">{stat.value}</p>
@@ -43,5 +51,5 @@ export function DashboardStats({ totalAthletes, totalEvents, upcomingRsvps }: Da
         </div>
       ))}
     </div>
-  )
+  );
 }

@@ -1,7 +1,7 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
 
 export async function loginAction(formData: FormData) {
   const supabase = await createClient();
@@ -20,10 +20,3 @@ export async function loginAction(formData: FormData) {
 
   redirect("/dashboard");
 }
-
-
-
-
-
-
-

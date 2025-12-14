@@ -1,8 +1,8 @@
-import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { db } from "@/lib/db";
-import { users } from "@/drizzle/schema";
 import { eq } from "drizzle-orm";
+import { NextResponse } from "next/server";
+import { users } from "@/drizzle/schema";
+import { db } from "@/lib/db";
+import { createClient } from "@/lib/supabase/server";
 
 export async function POST(request: Request) {
   try {
@@ -18,20 +18,20 @@ export async function POST(request: Request) {
     const { name, phone, address, avatarUrl } = await request.json();
 
     if (!name) {
-      return NextResponse.json(
-        { error: "Name is required" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Name is required" }, { status: 400 });
     }
 
     // Update user profile
-    await db.update(users).set({
-      name,
-      phone: phone || null,
-      address: address || null,
-      avatarUrl: avatarUrl || null,
-      onboarded: true,
-    }).where(eq(users.id, user.id));
+    await db
+      .update(users)
+      .set({
+        name,
+        phone: phone || null,
+        address: address || null,
+        avatarUrl: avatarUrl || null,
+        onboarded: true,
+      })
+      .where(eq(users.id, user.id));
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -42,4 +42,3 @@ export async function POST(request: Request) {
     );
   }
 }
-

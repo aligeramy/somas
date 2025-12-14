@@ -1,16 +1,22 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { IconBuilding, IconCamera, IconCheck } from "@tabler/icons-react";
+import { useEffect, useState } from "react";
+import { useDropzone } from "react-dropzone";
+import { PageHeader } from "@/components/page-header";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
-import { PageHeader } from "@/components/page-header";
-import { IconCamera, IconCheck, IconBuilding } from "@tabler/icons-react";
-import { useDropzone } from "react-dropzone";
+import { Switch } from "@/components/ui/switch";
 import { createClient } from "@/lib/supabase/client";
 
 interface UserProfile {
@@ -59,12 +65,13 @@ export default function ProfilePage() {
   const [cellPhone, setCellPhone] = useState("");
   const [emergencyContactName, setEmergencyContactName] = useState("");
   const [emergencyContactPhone, setEmergencyContactPhone] = useState("");
-  const [emergencyContactRelationship, setEmergencyContactRelationship] = useState("");
+  const [emergencyContactRelationship, setEmergencyContactRelationship] =
+    useState("");
   const [emergencyContactEmail, setEmergencyContactEmail] = useState("");
   const [emailNotif, setEmailNotif] = useState(true);
   const [pushNotif, setPushNotif] = useState(true);
   const [reminders, setReminders] = useState(true);
-  
+
   // Avatar upload
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
@@ -74,7 +81,10 @@ export default function ProfilePage() {
   const [gymLogoFile, setGymLogoFile] = useState<File | null>(null);
   const [gymLogoPreview, setGymLogoPreview] = useState<string | null>(null);
 
-  const { getRootProps: getAvatarRootProps, getInputProps: getAvatarInputProps } = useDropzone({
+  const {
+    getRootProps: getAvatarRootProps,
+    getInputProps: getAvatarInputProps,
+  } = useDropzone({
     accept: {
       "image/*": [".png", ".jpg", ".jpeg", ".gif", ".webp"],
     },
@@ -92,28 +102,29 @@ export default function ProfilePage() {
     },
   });
 
-  const { getRootProps: getLogoRootProps, getInputProps: getLogoInputProps } = useDropzone({
-    accept: {
-      "image/*": [".png", ".jpg", ".jpeg", ".gif", ".webp"],
-    },
-    maxFiles: 1,
-    onDrop: (acceptedFiles) => {
-      if (acceptedFiles.length > 0) {
-        const file = acceptedFiles[0];
-        setGymLogoFile(file);
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setGymLogoPreview(reader.result as string);
-        };
-        reader.readAsDataURL(file);
-      }
-    },
-  });
+  const { getRootProps: getLogoRootProps, getInputProps: getLogoInputProps } =
+    useDropzone({
+      accept: {
+        "image/*": [".png", ".jpg", ".jpeg", ".gif", ".webp"],
+      },
+      maxFiles: 1,
+      onDrop: (acceptedFiles) => {
+        if (acceptedFiles.length > 0) {
+          const file = acceptedFiles[0];
+          setGymLogoFile(file);
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            setGymLogoPreview(reader.result as string);
+          };
+          reader.readAsDataURL(file);
+        }
+      },
+    });
 
   useEffect(() => {
     loadProfile();
     loadGym();
-  }, []);
+  }, [loadGym, loadProfile]);
 
   async function loadProfile() {
     try {
@@ -130,7 +141,9 @@ export default function ProfilePage() {
       setCellPhone(data.user.cellPhone || "");
       setEmergencyContactName(data.user.emergencyContactName || "");
       setEmergencyContactPhone(data.user.emergencyContactPhone || "");
-      setEmergencyContactRelationship(data.user.emergencyContactRelationship || "");
+      setEmergencyContactRelationship(
+        data.user.emergencyContactRelationship || "",
+      );
       setEmergencyContactEmail(data.user.emergencyContactEmail || "");
       setEmailNotif(data.user.notifPreferences?.email ?? true);
       setPushNotif(data.user.notifPreferences?.push ?? true);
@@ -150,7 +163,7 @@ export default function ProfilePage() {
         setGym(data.gym);
         setGymName(data.gym.name || "");
       }
-    } catch (err) {
+    } catch (_err) {
       // Not an error if user is not head coach
       console.log("Gym not accessible (user may not be head coach)");
     }
@@ -263,7 +276,7 @@ export default function ProfilePage() {
         if (!gymResponse.ok) throw new Error("Failed to save gym settings");
         await loadGym();
       }
-      
+
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
       await loadProfile(); // Reload to get updated data
@@ -276,7 +289,12 @@ export default function ProfilePage() {
 
   function getInitials(name: string | null, email: string) {
     if (name) {
-      return name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
+      return name
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2);
     }
     return email[0].toUpperCase();
   }
@@ -312,8 +330,10 @@ export default function ProfilePage() {
               <IconCheck className="h-4 w-4" />
               Saved
             </>
+          ) : saving ? (
+            "Saving..."
           ) : (
-            saving ? "Saving..." : "Save Changes"
+            "Save Changes"
           )}
         </Button>
       </PageHeader>
@@ -332,7 +352,9 @@ export default function ProfilePage() {
               <div className="flex items-center gap-4">
                 <div className="relative">
                   <Avatar className="h-20 w-20 border-4 border-background shadow-lg">
-                    <AvatarImage src={avatarPreview || profile.avatarUrl || undefined} />
+                    <AvatarImage
+                      src={avatarPreview || profile.avatarUrl || undefined}
+                    />
                     <AvatarFallback className="text-xl bg-gradient-to-br from-primary/20 to-primary/5">
                       {getInitials(profile.name, profile.email)}
                     </AvatarFallback>
@@ -346,9 +368,15 @@ export default function ProfilePage() {
                   </button>
                 </div>
                 <div>
-                  <p className="font-semibold text-lg">{profile.name || "Unnamed"}</p>
-                  <p className="text-sm text-muted-foreground">{profile.email}</p>
-                  <p className="text-xs text-muted-foreground capitalize mt-1">{profile.role === "owner" ? "Head Coach" : profile.role}</p>
+                  <p className="font-semibold text-lg">
+                    {profile.name || "Unnamed"}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {profile.email}
+                  </p>
+                  <p className="text-xs text-muted-foreground capitalize mt-1">
+                    {profile.role === "owner" ? "Head Coach" : profile.role}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -362,7 +390,9 @@ export default function ProfilePage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="name" className="text-sm">Athlete Name</Label>
+                <Label htmlFor="name" className="text-sm">
+                  Athlete Name
+                </Label>
                 <Input
                   id="name"
                   value={name}
@@ -372,7 +402,9 @@ export default function ProfilePage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="address" className="text-sm">Athlete Address</Label>
+                <Label htmlFor="address" className="text-sm">
+                  Athlete Address
+                </Label>
                 <Input
                   id="address"
                   value={address}
@@ -383,7 +415,9 @@ export default function ProfilePage() {
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="homePhone" className="text-sm">Home Phone Number</Label>
+                  <Label htmlFor="homePhone" className="text-sm">
+                    Home Phone Number
+                  </Label>
                   <Input
                     id="homePhone"
                     type="tel"
@@ -394,7 +428,9 @@ export default function ProfilePage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="workPhone" className="text-sm">Work Phone Number</Label>
+                  <Label htmlFor="workPhone" className="text-sm">
+                    Work Phone Number
+                  </Label>
                   <Input
                     id="workPhone"
                     type="tel"
@@ -406,7 +442,9 @@ export default function ProfilePage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="cellPhone" className="text-sm">Cell Number</Label>
+                <Label htmlFor="cellPhone" className="text-sm">
+                  Cell Number
+                </Label>
                 <Input
                   id="cellPhone"
                   type="tel"
@@ -435,7 +473,9 @@ export default function ProfilePage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="emergencyContactName" className="text-sm">Emergency Contact Name</Label>
+                <Label htmlFor="emergencyContactName" className="text-sm">
+                  Emergency Contact Name
+                </Label>
                 <Input
                   id="emergencyContactName"
                   value={emergencyContactName}
@@ -446,7 +486,9 @@ export default function ProfilePage() {
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="emergencyContactPhone" className="text-sm">Emergency Contact Phone</Label>
+                  <Label htmlFor="emergencyContactPhone" className="text-sm">
+                    Emergency Contact Phone
+                  </Label>
                   <Input
                     id="emergencyContactPhone"
                     type="tel"
@@ -457,18 +499,27 @@ export default function ProfilePage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="emergencyContactRelationship" className="text-sm">Relationship to Athlete</Label>
+                  <Label
+                    htmlFor="emergencyContactRelationship"
+                    className="text-sm"
+                  >
+                    Relationship to Athlete
+                  </Label>
                   <Input
                     id="emergencyContactRelationship"
                     value={emergencyContactRelationship}
-                    onChange={(e) => setEmergencyContactRelationship(e.target.value)}
+                    onChange={(e) =>
+                      setEmergencyContactRelationship(e.target.value)
+                    }
                     placeholder="Parent, Guardian, etc."
                     className="rounded-xl h-11"
                   />
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="emergencyContactEmail" className="text-sm">Emergency Contact Email Address</Label>
+                <Label htmlFor="emergencyContactEmail" className="text-sm">
+                  Emergency Contact Email Address
+                </Label>
                 <Input
                   id="emergencyContactEmail"
                   type="email"
@@ -485,27 +536,35 @@ export default function ProfilePage() {
           <Card className="rounded-xl">
             <CardHeader>
               <CardTitle className="text-base">Notifications</CardTitle>
-              <CardDescription>Choose how you want to be notified</CardDescription>
+              <CardDescription>
+                Choose how you want to be notified
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between p-3 rounded-xl bg-muted/50">
                 <div>
                   <p className="font-medium text-sm">Email Notifications</p>
-                  <p className="text-xs text-muted-foreground">Receive updates via email</p>
+                  <p className="text-xs text-muted-foreground">
+                    Receive updates via email
+                  </p>
                 </div>
                 <Switch checked={emailNotif} onCheckedChange={setEmailNotif} />
               </div>
               <div className="flex items-center justify-between p-3 rounded-xl bg-muted/50">
                 <div>
                   <p className="font-medium text-sm">Push Notifications</p>
-                  <p className="text-xs text-muted-foreground">Receive push notifications on your device</p>
+                  <p className="text-xs text-muted-foreground">
+                    Receive push notifications on your device
+                  </p>
                 </div>
                 <Switch checked={pushNotif} onCheckedChange={setPushNotif} />
               </div>
               <div className="flex items-center justify-between p-3 rounded-xl bg-muted/50">
                 <div>
                   <p className="font-medium text-sm">Event Reminders</p>
-                  <p className="text-xs text-muted-foreground">Get reminded 2 hours before events</p>
+                  <p className="text-xs text-muted-foreground">
+                    Get reminded 2 hours before events
+                  </p>
                 </div>
                 <Switch checked={reminders} onCheckedChange={setReminders} />
               </div>
@@ -521,7 +580,9 @@ export default function ProfilePage() {
                     <IconBuilding className="h-5 w-5" />
                     Club Settings
                   </CardTitle>
-                  <CardDescription>Manage your club information</CardDescription>
+                  <CardDescription>
+                    Manage your club information
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {/* Gym Logo Section */}
@@ -550,14 +611,17 @@ export default function ProfilePage() {
                     </div>
                     <div className="flex-1">
                       <p className="text-sm text-muted-foreground">
-                        Click the camera icon to upload a new logo. Recommended size: 512x512px
+                        Click the camera icon to upload a new logo. Recommended
+                        size: 512x512px
                       </p>
                     </div>
                   </div>
 
                   {/* Gym Name */}
                   <div className="space-y-2">
-                    <Label htmlFor="gymName" className="text-sm">Club Name</Label>
+                    <Label htmlFor="gymName" className="text-sm">
+                      Club Name
+                    </Label>
                     <Input
                       id="gymName"
                       value={gymName}
@@ -572,10 +636,8 @@ export default function ProfilePage() {
               <Separator className="my-6" />
             </>
           )}
-
         </div>
       </div>
     </div>
   );
 }
-

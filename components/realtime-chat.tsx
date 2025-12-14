@@ -1,16 +1,16 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { useRealtimeChat, type ChatMessage } from "@/hooks/use-realtime-chat";
-import { useChatScroll } from "@/hooks/use-chat-scroll";
+import { IconPhoto, IconSend, IconX } from "@tabler/icons-react";
+import { useCallback, useEffect, useState } from "react";
+import { useDropzone } from "react-dropzone";
 import { ChatMessageItem } from "@/components/chat-message";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
-import { IconSend, IconPhoto, IconX } from "@tabler/icons-react";
+import { useChatScroll } from "@/hooks/use-chat-scroll";
+import { type ChatMessage, useRealtimeChat } from "@/hooks/use-realtime-chat";
 import { createClient } from "@/lib/supabase/client";
-import { useDropzone } from "react-dropzone";
 import { cn } from "@/lib/utils";
 
 interface RealtimeChatProps {
@@ -57,10 +57,13 @@ export function RealtimeChat({
   }, [supabase]);
 
   // Memoize the onMessage callback to prevent infinite loops
-  const handleMessage = useCallback((msgs: ChatMessage[]) => {
-    setLoading(false);
-    if (onMessage) onMessage(msgs);
-  }, [onMessage]);
+  const handleMessage = useCallback(
+    (msgs: ChatMessage[]) => {
+      setLoading(false);
+      if (onMessage) onMessage(msgs);
+    },
+    [onMessage],
+  );
 
   const { messages, sendMessage } = useRealtimeChat({
     channelId,
@@ -68,23 +71,27 @@ export function RealtimeChat({
     initialMessages,
   });
 
+  const scrollRef = useChatScroll(messages);
+
   // Reset loading when channel changes and scroll to bottom
   useEffect(() => {
     setLoading(true);
     // Scroll to bottom when channel changes
     const timer = setTimeout(() => {
       if (scrollRef.current) {
-        const scrollArea = scrollRef.current.closest('[data-slot="scroll-area"]');
-        const viewport = scrollArea?.querySelector('[data-slot="scroll-area-viewport"]') as HTMLElement;
+        const scrollArea = scrollRef.current.closest(
+          '[data-slot="scroll-area"]',
+        );
+        const viewport = scrollArea?.querySelector(
+          '[data-slot="scroll-area-viewport"]',
+        ) as HTMLElement;
         if (viewport) {
           viewport.scrollTop = viewport.scrollHeight;
         }
       }
     }, 200);
     return () => clearTimeout(timer);
-  }, [channelId]);
-
-  const scrollRef = useChatScroll(messages);
+  }, [channelId, scrollRef]);
 
   // Also scroll when loading completes
   useEffect(() => {
@@ -92,8 +99,12 @@ export function RealtimeChat({
       // Small delay to ensure messages are rendered
       setTimeout(() => {
         if (scrollRef.current) {
-          const scrollArea = scrollRef.current.closest('[data-slot="scroll-area"]');
-          const viewport = scrollArea?.querySelector('[data-slot="scroll-area-viewport"]') as HTMLElement;
+          const scrollArea = scrollRef.current.closest(
+            '[data-slot="scroll-area"]',
+          );
+          const viewport = scrollArea?.querySelector(
+            '[data-slot="scroll-area-viewport"]',
+          ) as HTMLElement;
           if (viewport) {
             viewport.scrollTop = viewport.scrollHeight;
           }
@@ -158,16 +169,25 @@ export function RealtimeChat({
       }
 
       const tempId = `temp-${Date.now()}-${Math.random()}`;
-      await sendMessage(input.trim() || "", attachmentUrl, attachmentType, tempId);
+      await sendMessage(
+        input.trim() || "",
+        attachmentUrl,
+        attachmentType,
+        tempId,
+      );
       setInput("");
       setImageFile(null);
       setImagePreview(null);
-      
+
       // Scroll to bottom after sending message
       setTimeout(() => {
         if (scrollRef.current) {
-          const scrollArea = scrollRef.current.closest('[data-slot="scroll-area"]');
-          const viewport = scrollArea?.querySelector('[data-slot="scroll-area-viewport"]') as HTMLElement;
+          const scrollArea = scrollRef.current.closest(
+            '[data-slot="scroll-area"]',
+          );
+          const viewport = scrollArea?.querySelector(
+            '[data-slot="scroll-area-viewport"]',
+          ) as HTMLElement;
           if (viewport) {
             viewport.scrollTop = viewport.scrollHeight;
           }
@@ -199,11 +219,14 @@ export function RealtimeChat({
       return acc;
     }
     // For temp messages, check if a real version exists
-    const realVersionExists = acc.some((m) => 
-      !m.tempId && 
-      m.content === msg.content && 
-      m.user.id === msg.user.id &&
-      Math.abs(new Date(m.createdAt).getTime() - new Date(msg.createdAt).getTime()) < 3000
+    const realVersionExists = acc.some(
+      (m) =>
+        !m.tempId &&
+        m.content === msg.content &&
+        m.user.id === msg.user.id &&
+        Math.abs(
+          new Date(m.createdAt).getTime() - new Date(msg.createdAt).getTime(),
+        ) < 3000,
     );
     if (!realVersionExists) {
       acc.push(msg);
@@ -212,21 +235,26 @@ export function RealtimeChat({
   }, [] as ChatMessage[]);
 
   // Sort messages by createdAt to ensure proper ordering
-  const sortedMessages = deduplicatedMessages.sort((a, b) => 
-    new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+  const sortedMessages = deduplicatedMessages.sort(
+    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
   );
 
   // Group messages by sender and time
-  const groupedMessages = sortedMessages.reduce((acc, msg, index) => {
-    const prevMsg = index > 0 ? sortedMessages[index - 1] : null;
-    const showHeader =
-      !prevMsg ||
-      prevMsg.user.id !== msg.user.id ||
-      new Date(msg.createdAt).getTime() - new Date(prevMsg.createdAt).getTime() > 300000; // 5 minutes
+  const groupedMessages = sortedMessages.reduce(
+    (acc, msg, index) => {
+      const prevMsg = index > 0 ? sortedMessages[index - 1] : null;
+      const showHeader =
+        !prevMsg ||
+        prevMsg.user.id !== msg.user.id ||
+        new Date(msg.createdAt).getTime() -
+          new Date(prevMsg.createdAt).getTime() >
+          300000; // 5 minutes
 
-    acc.push({ ...msg, showHeader });
-    return acc;
-  }, [] as (ChatMessage & { showHeader: boolean })[]);
+      acc.push({ ...msg, showHeader });
+      return acc;
+    },
+    [] as (ChatMessage & { showHeader: boolean })[],
+  );
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -238,38 +266,42 @@ export function RealtimeChat({
       {/* Messages Area */}
       <ScrollArea className="flex-1 min-h-0 overflow-hidden">
         <div className="p-4" ref={scrollRef}>
-        {loading ? (
-          <div className="flex flex-col gap-4">
-            {/* Skeleton messages */}
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="flex gap-3">
-                <Skeleton className="h-10 w-10 rounded-full" />
-                <div className="flex-1 space-y-2">
-                  <Skeleton className="h-4 w-24" />
-                  <Skeleton className="h-16 w-3/4 rounded-2xl" />
+          {loading ? (
+            <div className="flex flex-col gap-4">
+              {/* Skeleton messages */}
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="flex gap-3">
+                  <Skeleton className="h-10 w-10 rounded-full" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-16 w-3/4 rounded-2xl" />
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        ) : groupedMessages.length === 0 ? (
-          <div className="flex items-center justify-center min-h-[200px]">
-            <div className="text-center text-muted-foreground">
-              <p>No messages yet</p>
-              <p className="text-sm mt-2">Start the conversation!</p>
+              ))}
             </div>
-          </div>
-        ) : (
-          <div className="space-y-1">
-            {groupedMessages.map((message) => (
-              <ChatMessageItem
-                key={message.tempId ? `temp-${message.tempId}` : message.id}
-                message={message}
-                isOwnMessage={message.user.name === username || message.user.id === currentUserId || message.user.id === "current-user"}
-                showHeader={message.showHeader}
-              />
-            ))}
-          </div>
-        )}
+          ) : groupedMessages.length === 0 ? (
+            <div className="flex items-center justify-center min-h-[200px]">
+              <div className="text-center text-muted-foreground">
+                <p>No messages yet</p>
+                <p className="text-sm mt-2">Start the conversation!</p>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-1">
+              {groupedMessages.map((message) => (
+                <ChatMessageItem
+                  key={message.tempId ? `temp-${message.tempId}` : message.id}
+                  message={message}
+                  isOwnMessage={
+                    message.user.name === username ||
+                    message.user.id === currentUserId ||
+                    message.user.id === "current-user"
+                  }
+                  showHeader={message.showHeader}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </ScrollArea>
 
@@ -306,10 +338,7 @@ export function RealtimeChat({
               type="button"
               variant="ghost"
               size="icon"
-              className={cn(
-                "h-10 w-10",
-                isDragActive && "bg-primary/10"
-              )}
+              className={cn("h-10 w-10", isDragActive && "bg-primary/10")}
             >
               <IconPhoto className="h-5 w-5" />
             </Button>
@@ -334,4 +363,3 @@ export function RealtimeChat({
     </div>
   );
 }
-

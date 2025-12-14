@@ -36,7 +36,9 @@ export const users = pgTable(
     cellPhone: varchar("cellPhone", { length: 50 }),
     emergencyContactName: varchar("emergencyContactName", { length: 255 }),
     emergencyContactPhone: varchar("emergencyContactPhone", { length: 50 }),
-    emergencyContactRelationship: varchar("emergencyContactRelationship", { length: 100 }),
+    emergencyContactRelationship: varchar("emergencyContactRelationship", {
+      length: 100,
+    }),
     emergencyContactEmail: varchar("emergencyContactEmail", { length: 255 }),
     role: userRoleEnum("role").notNull(),
     gymId: uuid("gymId"),
@@ -241,11 +243,11 @@ export const chatNotifications = pgTable(
   (table) => ({
     userIdChannelIdIdx: index("ChatNotification_userId_channelId_idx").on(
       table.userId,
-      table.channelId
+      table.channelId,
     ),
     userIdReadAtIdx: index("ChatNotification_userId_readAt_idx").on(
       table.userId,
-      table.readAt
+      table.readAt,
     ),
     channelIdIdx: index("ChatNotification_channelId_idx").on(table.channelId),
   }),
@@ -481,17 +483,20 @@ export const noticesRelations = relations(notices, ({ one }) => ({
   }),
 }));
 
-export const chatNotificationsRelations = relations(chatNotifications, ({ one }) => ({
-  user: one(users, {
-    fields: [chatNotifications.userId],
-    references: [users.id],
+export const chatNotificationsRelations = relations(
+  chatNotifications,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [chatNotifications.userId],
+      references: [users.id],
+    }),
+    channel: one(channels, {
+      fields: [chatNotifications.channelId],
+      references: [channels.id],
+    }),
+    message: one(messages, {
+      fields: [chatNotifications.messageId],
+      references: [messages.id],
+    }),
   }),
-  channel: one(channels, {
-    fields: [chatNotifications.channelId],
-    references: [channels.id],
-  }),
-  message: one(messages, {
-    fields: [chatNotifications.messageId],
-    references: [messages.id],
-  }),
-}));
+);

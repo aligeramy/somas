@@ -1,8 +1,8 @@
+import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { eventOccurrences, events, rsvps, users } from "@/drizzle/schema";
 import { db } from "@/lib/db";
-import { users, rsvps, eventOccurrences, events } from "@/drizzle/schema";
-import { eq, and } from "drizzle-orm";
+import { createClient } from "@/lib/supabase/server";
 
 // Coach/Head Coach can edit someone's RSVP
 export async function POST(request: Request) {
@@ -16,7 +16,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const [dbUser] = await db.select().from(users).where(eq(users.id, user.id)).limit(1);
+    const [dbUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, user.id))
+      .limit(1);
 
     if (!dbUser) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
@@ -83,10 +87,7 @@ export async function POST(request: Request) {
       .select()
       .from(rsvps)
       .where(
-        and(
-          eq(rsvps.userId, userId),
-          eq(rsvps.occurrenceId, occurrenceId)
-        )
+        and(eq(rsvps.userId, userId), eq(rsvps.occurrenceId, occurrenceId)),
       )
       .limit(1);
 
@@ -126,7 +127,3 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Failed to edit RSVP" }, { status: 500 });
   }
 }
-
-
-
-

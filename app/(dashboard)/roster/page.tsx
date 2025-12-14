@@ -42,7 +42,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
   SelectContent,
@@ -50,6 +49,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -58,6 +58,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface User {
   id: string;
@@ -93,7 +94,8 @@ export default function RosterPage() {
   const [cellPhone, setCellPhone] = useState("");
   const [emergencyContactName, setEmergencyContactName] = useState("");
   const [emergencyContactPhone, setEmergencyContactPhone] = useState("");
-  const [emergencyContactRelationship, setEmergencyContactRelationship] = useState("");
+  const [emergencyContactRelationship, setEmergencyContactRelationship] =
+    useState("");
   const [emergencyContactEmail, setEmergencyContactEmail] = useState("");
   const [role, setRole] = useState<"coach" | "athlete">("athlete");
   const [loading, setLoading] = useState(false);
@@ -129,6 +131,7 @@ export default function RosterPage() {
 
   // Current user info
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
+  const _isMobile = useIsMobile();
 
   const fetchCurrentUser = useCallback(async () => {
     try {
@@ -234,7 +237,8 @@ export default function RosterPage() {
             cellPhone: cellPhone.trim() || undefined,
             emergencyContactName: emergencyContactName.trim() || undefined,
             emergencyContactPhone: emergencyContactPhone.trim() || undefined,
-            emergencyContactRelationship: emergencyContactRelationship.trim() || undefined,
+            emergencyContactRelationship:
+              emergencyContactRelationship.trim() || undefined,
             emergencyContactEmail: emergencyContactEmail.trim() || undefined,
           },
         }),
@@ -293,12 +297,11 @@ export default function RosterPage() {
     try {
       // Don't send role field if editing head coach (can't change head coach role)
       const { role, ...restForm } = editForm;
-      const updateData = editingMember.role === "owner" 
-        ? restForm 
-        : { ...restForm, role };
-      
+      const updateData =
+        editingMember.role === "owner" ? restForm : { ...restForm, role };
+
       // Convert empty strings to null for optional fields
-      Object.keys(updateData).forEach(key => {
+      Object.keys(updateData).forEach((key) => {
         if (updateData[key as keyof typeof updateData] === "") {
           updateData[key as keyof typeof updateData] = null as any;
         }
@@ -367,8 +370,9 @@ export default function RosterPage() {
           onOpenChange={setIsImportRosterDialogOpen}
         >
           <DialogTrigger asChild>
-            <Button variant="outline" className="rounded-xl">
-              <IconUpload className="mr-2 h-4 w-4" /> Import
+            <Button variant="outline" size="icon" className="rounded-xl sm:rounded-xl sm:size-auto sm:px-4 sm:gap-2">
+              <IconUpload className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Import</span>
             </Button>
           </DialogTrigger>
           <DialogContent className="rounded-xl">
@@ -437,62 +441,69 @@ export default function RosterPage() {
           }}
         >
           <DialogTrigger asChild>
-            <Button className="rounded-xl">
-              <IconPlus className="mr-2 h-4 w-4" /> Add Member
+            <Button size="icon" className="rounded-xl sm:rounded-xl sm:size-auto sm:px-4 sm:gap-2">
+              <IconPlus className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Add Member</span>
             </Button>
           </DialogTrigger>
           <DialogContent className="!rounded-none !max-w-none !w-screen !h-screen !max-h-screen !m-0 !p-0 !inset-0 !translate-x-0 !translate-y-0 !top-0 !left-0 flex flex-col">
             <div className="flex-1 min-h-0 flex flex-col">
               <DialogHeader className="shrink-0 px-6 pt-6 pb-4 border-b bg-background">
                 <DialogTitle className="text-2xl">Add New Member</DialogTitle>
-              <DialogDescription>
-                Invite a single coach or athlete by email.
-              </DialogDescription>
-            </DialogHeader>
+                <DialogDescription>
+                  Invite a single coach or athlete by email.
+                </DialogDescription>
+              </DialogHeader>
               <div className="flex-1 min-h-0 overflow-y-auto">
                 <div className="p-6 pb-24 max-w-5xl mx-auto">
-                  <form id="add-member-form" onSubmit={handleManualInvite} className="space-y-8">
-              {error && (
+                  <form
+                    id="add-member-form"
+                    onSubmit={handleManualInvite}
+                    className="space-y-8"
+                  >
+                    {error && (
                       <div className="bg-destructive/10 text-destructive rounded-xl p-4 text-sm">
-                  {error}
-                </div>
-              )}
-              {success && (
+                        {error}
+                      </div>
+                    )}
+                    {success && (
                       <div className="bg-green-500/10 text-green-600 rounded-xl p-4 text-sm">
-                  {success}
-                </div>
-              )}
-                    
+                        {success}
+                      </div>
+                    )}
+
                     {/* Basic Information */}
                     <div className="bg-muted/30 rounded-xl p-6">
-                      <h3 className="font-semibold text-lg mb-6 text-foreground">Basic Information</h3>
+                      <h3 className="font-semibold text-lg mb-6 text-foreground">
+                        Basic Information
+                      </h3>
                       <div className="grid grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email *</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="user@example.com"
-                  className="h-11 rounded-xl"
-                  required
-                />
-              </div>
-                        
-              <div className="space-y-2">
-                <Label htmlFor="name">Name</Label>
-                <Input
-                  id="name"
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Full name"
-                  className="h-11 rounded-xl"
-                />
-              </div>
-                        
-              <div className="space-y-2">
+                        <div className="space-y-2">
+                          <Label htmlFor="email">Email *</Label>
+                          <Input
+                            id="email"
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            placeholder="user@example.com"
+                            className="h-11 rounded-xl"
+                            required
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="name">Name</Label>
+                          <Input
+                            id="name"
+                            type="text"
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            placeholder="Full name"
+                            className="h-11 rounded-xl"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
                           <Label htmlFor="role">Role</Label>
                           <Select
                             value={role}
@@ -514,33 +525,35 @@ export default function RosterPage() {
 
                     {/* Contact Information */}
                     <div className="bg-muted/30 rounded-xl p-6">
-                      <h3 className="font-semibold text-lg mb-6 text-foreground">Contact Information</h3>
+                      <h3 className="font-semibold text-lg mb-6 text-foreground">
+                        Contact Information
+                      </h3>
                       <div className="grid grid-cols-2 gap-6">
                         <div className="space-y-2">
                           <Label htmlFor="phone">Primary Phone</Label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="Phone number"
-                  className="h-11 rounded-xl"
-                />
-              </div>
-                        
-              <div className="space-y-2">
-                <Label htmlFor="address">Address</Label>
-                <Input
-                  id="address"
-                  type="text"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
+                          <Input
+                            id="phone"
+                            type="tel"
+                            value={phone}
+                            onChange={(e) => setPhone(e.target.value)}
+                            placeholder="Phone number"
+                            className="h-11 rounded-xl"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="address">Address</Label>
+                          <Input
+                            id="address"
+                            type="text"
+                            value={address}
+                            onChange={(e) => setAddress(e.target.value)}
                             placeholder="Street address"
-                  className="h-11 rounded-xl"
-                />
-              </div>
-                        
-              <div className="space-y-2">
+                            className="h-11 rounded-xl"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
                           <Label htmlFor="cellPhone">Cell Phone</Label>
                           <Input
                             id="cellPhone"
@@ -550,8 +563,8 @@ export default function RosterPage() {
                             placeholder="Cell phone"
                             className="h-11 rounded-xl"
                           />
-              </div>
-                        
+                        </div>
+
                         <div className="space-y-2">
                           <Label htmlFor="homePhone">Home Phone</Label>
                           <Input
@@ -563,7 +576,7 @@ export default function RosterPage() {
                             className="h-11 rounded-xl"
                           />
                         </div>
-                        
+
                         <div className="space-y-2">
                           <Label htmlFor="workPhone">Work Phone</Label>
                           <Input
@@ -580,7 +593,9 @@ export default function RosterPage() {
 
                     {/* Emergency Contact */}
                     <div className="bg-muted/30 rounded-xl p-6">
-                      <h3 className="font-semibold text-lg mb-6 text-foreground">Emergency Contact</h3>
+                      <h3 className="font-semibold text-lg mb-6 text-foreground">
+                        Emergency Contact
+                      </h3>
                       <div className="grid grid-cols-2 gap-6">
                         <div className="space-y-2">
                           <Label htmlFor="emergencyContactName">Name</Label>
@@ -588,43 +603,53 @@ export default function RosterPage() {
                             id="emergencyContactName"
                             type="text"
                             value={emergencyContactName}
-                            onChange={(e) => setEmergencyContactName(e.target.value)}
+                            onChange={(e) =>
+                              setEmergencyContactName(e.target.value)
+                            }
                             placeholder="Emergency contact name"
                             className="h-11 rounded-xl"
                           />
                         </div>
-                        
+
                         <div className="space-y-2">
-                          <Label htmlFor="emergencyContactRelationship">Relationship</Label>
+                          <Label htmlFor="emergencyContactRelationship">
+                            Relationship
+                          </Label>
                           <Input
                             id="emergencyContactRelationship"
                             type="text"
                             value={emergencyContactRelationship}
-                            onChange={(e) => setEmergencyContactRelationship(e.target.value)}
+                            onChange={(e) =>
+                              setEmergencyContactRelationship(e.target.value)
+                            }
                             placeholder="e.g., Parent, Spouse"
                             className="h-11 rounded-xl"
                           />
                         </div>
-                        
+
                         <div className="space-y-2">
                           <Label htmlFor="emergencyContactPhone">Phone</Label>
                           <Input
                             id="emergencyContactPhone"
                             type="tel"
                             value={emergencyContactPhone}
-                            onChange={(e) => setEmergencyContactPhone(e.target.value)}
+                            onChange={(e) =>
+                              setEmergencyContactPhone(e.target.value)
+                            }
                             placeholder="Emergency contact phone"
                             className="h-11 rounded-xl"
                           />
                         </div>
-                        
+
                         <div className="space-y-2">
                           <Label htmlFor="emergencyContactEmail">Email</Label>
                           <Input
                             id="emergencyContactEmail"
                             type="email"
                             value={emergencyContactEmail}
-                            onChange={(e) => setEmergencyContactEmail(e.target.value)}
+                            onChange={(e) =>
+                              setEmergencyContactEmail(e.target.value)
+                            }
                             placeholder="Emergency contact email"
                             className="h-11 rounded-xl"
                           />
@@ -643,14 +668,14 @@ export default function RosterPage() {
                   >
                     Cancel
                   </Button>
-              <Button
-                type="submit"
+                  <Button
+                    type="submit"
                     form="add-member-form"
-                disabled={loading || !email}
+                    disabled={loading || !email}
                     className="rounded-xl"
-              >
-                {loading ? "Sending..." : "Send Invitation"}
-              </Button>
+                  >
+                    {loading ? "Sending..." : "Send Invitation"}
+                  </Button>
                 </div>
               </div>
             </div>
@@ -661,439 +686,791 @@ export default function RosterPage() {
       <div className="flex-1 overflow-hidden min-h-0">
         <div className="h-full overflow-auto">
           <div className="space-y-4 p-4">
-        {loading && roster.length === 0 ? (
-          <Card className="rounded-xl">
-            <CardHeader>
-              <Skeleton className="h-6 w-48 mb-2" />
-              <Skeleton className="h-4 w-64" />
-            </CardHeader>
-            <CardContent>
-              <ScrollArea className="h-[calc(100vh-400px)] min-h-[300px]">
-                <div className="space-y-2">
-                  {[1, 2, 3, 4, 5].map((i) => (
-                    <div
-                      key={i}
-                      className="flex items-center justify-between p-3 rounded-xl"
-                    >
-                      <div className="flex items-center gap-3">
-                        <Skeleton className="h-12 w-12 rounded-xl" />
-                        <div className="space-y-2">
-                          <Skeleton className="h-4 w-32" />
-                          <Skeleton className="h-3 w-48" />
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Skeleton className="h-6 w-16 rounded-lg" />
-                        <Skeleton className="h-8 w-8 rounded-lg" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </ScrollArea>
-            </CardContent>
-          </Card>
-        ) : roster.length === 0 ? (
-          <Card className="rounded-xl">
-            <CardContent className="pt-6 text-center text-muted-foreground">
-              No members in your gym yet. Add one to get started!
-            </CardContent>
-          </Card>
-        ) : (
-          <Card className="rounded-xl h-full flex flex-col">
-            <CardHeader className="shrink-0">
-              <CardTitle>Current Members</CardTitle>
-              <CardDescription>
-                {roster.length} member{roster.length !== 1 ? "s" : ""} in your
-                gym
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-0 flex-1 min-h-0 overflow-hidden">
-              <ScrollArea className="h-full">
-                <div className="p-4">
-                  {/* Coaches Section */}
-                  {roster.filter((m) => m.role === "coach" || m.role === "owner").length > 0 && (
-                    <div className="mb-6">
-                      <h3 className="font-semibold text-sm text-muted-foreground mb-3">
-                        Coaches ({roster.filter((m) => m.role === "coach" || m.role === "owner").length})
-                      </h3>
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead className="w-[200px]">Name</TableHead>
-                            <TableHead className="w-[200px]">Email</TableHead>
-                            <TableHead className="w-[150px]">Phone</TableHead>
-                            <TableHead className="w-[100px] text-right">Actions</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {roster
-                            .filter((m) => m.role === "coach" || m.role === "owner")
-                            .map((member) => (
-                              <TableRow key={member.id} className="group">
-                                <TableCell>
-                      <Link
-                        href={`/roster/${member.id}`}
-                                    className="flex items-center gap-3 hover:underline"
-                      >
-                                    <Avatar className="h-8 w-8 rounded-lg shrink-0">
-                          <AvatarImage
-                            src={member.avatarUrl || undefined}
-                            alt={member.name || member.email}
-                          />
-                                      <AvatarFallback className="rounded-lg text-xs font-semibold">
-                            {member.name
-                                          ? member.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
-                                          : member.email.charAt(0).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                                    <div className="min-w-0">
-                                      <div className="font-medium text-sm">
-                            {member.name || "Unnamed"}
-                          </div>
-                        <Badge
-                          variant={
-                            member.role === "owner"
-                              ? "default"
-                                            : "secondary"
-                          }
-                                        className="rounded-md text-[10px] mt-0.5 px-1.5 py-0"
+            {loading && roster.length === 0 ? (
+              <Card className="rounded-xl">
+                <CardHeader>
+                  <Skeleton className="h-6 w-48 mb-2" />
+                  <Skeleton className="h-4 w-64" />
+                </CardHeader>
+                <CardContent>
+                  <ScrollArea className="h-[calc(100vh-400px)] min-h-[300px]">
+                    <div className="space-y-2">
+                      {[1, 2, 3, 4, 5].map((i) => (
+                        <div
+                          key={i}
+                          className="flex items-center justify-between p-3 rounded-xl"
                         >
-                          {formatRoleDisplay(member.role)}
-                        </Badge>
-                                    </div>
-                                  </Link>
-                                </TableCell>
-                                <TableCell>
-                                  <a
-                                    href={`mailto:${member.email}`}
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground hover:underline"
-                                  >
-                                    <IconMail className="h-3.5 w-3.5 shrink-0" />
-                                    <span className="truncate">{member.email}</span>
-                                  </a>
-                                </TableCell>
-                                <TableCell>
-                                  {member.phone ? (
-                                    <a
-                                      href={`tel:${member.phone.replace(/\D/g, '')}`}
-                                      onClick={(e) => e.stopPropagation()}
-                                      className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground hover:underline"
-                                    >
-                                      <IconPhone className="h-3.5 w-3.5 shrink-0" />
-                                      <span>{member.phone}</span>
-                                    </a>
-                                  ) : (
-                                    <span className="text-sm text-muted-foreground">—</span>
-                                  )}
-                                </TableCell>
-                                <TableCell className="text-right">
-                                  <div className="flex items-center justify-end gap-2">
-                                    <a
-                                      href={`mailto:${member.email}`}
-                                      onClick={(e) => e.stopPropagation()}
-                                      className="h-8 w-8 rounded-lg bg-muted hover:bg-primary/10 flex items-center justify-center transition-colors opacity-0 group-hover:opacity-100"
-                                      title="Email"
-                                    >
-                                      <IconMail className="h-4 w-4 text-muted-foreground" />
-                                    </a>
-                                    {member.phone && (
-                                      <a
-                                        href={`tel:${member.phone.replace(/\D/g, '')}`}
-                                        onClick={(e) => e.stopPropagation()}
-                                        className="h-8 w-8 rounded-lg bg-muted hover:bg-primary/10 flex items-center justify-center transition-colors opacity-0 group-hover:opacity-100"
-                                        title="Call"
-                                      >
-                                        <IconPhone className="h-4 w-4 text-muted-foreground" />
-                                      </a>
-                                    )}
-                        {(isOwner ||
-                          (currentUserRole === "coach" &&
-                            member.role === "athlete")) && (
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <IconDotsVertical className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent
-                                align="end"
-                                className="rounded-xl"
-                              >
-                                <DropdownMenuItem
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    openEditDialog(member);
-                                  }}
-                                  className="gap-2"
-                                >
-                                  <IconEdit className="h-4 w-4" />
-                                  Edit Member
-                                </DropdownMenuItem>
-                                {isOwner && member.role !== "owner" && (
-                                  <>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        openDeleteDialog(member);
-                                      }}
-                                      className="gap-2 text-destructive focus:text-destructive"
-                                    >
-                                      <IconTrash className="h-4 w-4" />
-                                      Remove from Gym
-                                    </DropdownMenuItem>
-                                  </>
-                                )}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          )}
-                      </div>
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                        </TableBody>
-                      </Table>
+                          <div className="flex items-center gap-3">
+                            <Skeleton className="h-12 w-12 rounded-xl" />
+                            <div className="space-y-2">
+                              <Skeleton className="h-4 w-32" />
+                              <Skeleton className="h-3 w-48" />
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Skeleton className="h-6 w-16 rounded-lg" />
+                            <Skeleton className="h-8 w-8 rounded-lg" />
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  )}
-
-                  {/* Athletes Section */}
-                  {roster.filter((m) => m.role === "athlete").length > 0 && (
-                    <div>
-                      <h3 className="font-semibold text-sm text-muted-foreground mb-3">
-                        Athletes ({roster.filter((m) => m.role === "athlete").length})
-                      </h3>
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead className="w-[200px]">Name</TableHead>
-                            <TableHead className="w-[200px]">Email</TableHead>
-                            <TableHead className="w-[180px]">Phone</TableHead>
-                            <TableHead className="w-[200px]">Address</TableHead>
-                            <TableHead className="w-[200px]">Emergency Contact</TableHead>
-                            <TableHead className="w-[120px] text-right">Actions</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {roster
-                            .filter((m) => m.role === "athlete")
-                            .map((member) => (
-                              <TableRow key={member.id} className="group">
-                                <TableCell>
-                                  <Link
-                                    href={`/roster/${member.id}`}
-                                    className="flex items-center gap-3 hover:underline"
-                                  >
-                                    <Avatar className="h-8 w-8 rounded-lg shrink-0">
-                                      <AvatarImage
-                                        src={member.avatarUrl || undefined}
-                                        alt={member.name || member.email}
-                                      />
-                                      <AvatarFallback className="rounded-lg text-xs font-semibold">
-                                        {member.name
-                                          ? member.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
-                                          : member.email.charAt(0).toUpperCase()}
-                                      </AvatarFallback>
-                                    </Avatar>
-                                    <div className="min-w-0">
-                                      <div className="font-medium text-sm">
-                                        {member.name || "Unnamed"}
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+            ) : roster.length === 0 ? (
+              <Card className="rounded-xl">
+                <CardContent className="pt-6 text-center text-muted-foreground">
+                  No members in your gym yet. Add one to get started!
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="rounded-xl h-full flex flex-col">
+                <CardHeader className="shrink-0">
+                  <CardTitle>Current Members</CardTitle>
+                  <CardDescription>
+                    {roster.length} member{roster.length !== 1 ? "s" : ""} in
+                    your gym
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-0 flex-1 min-h-0 overflow-hidden">
+                  <ScrollArea className="h-full">
+                    <div className="p-4">
+                      {/* Coaches Section */}
+                      {roster.filter(
+                        (m) => m.role === "coach" || m.role === "owner",
+                      ).length > 0 && (
+                        <div className="mb-6">
+                          <h3 className="font-semibold text-sm text-muted-foreground mb-3">
+                            Coaches (
+                            {
+                              roster.filter(
+                                (m) => m.role === "coach" || m.role === "owner",
+                              ).length
+                            }
+                            )
+                          </h3>
+                          {/* Mobile Card View */}
+                          <div className="lg:hidden space-y-1.5">
+                            {roster
+                              .filter(
+                                (m) => m.role === "coach" || m.role === "owner",
+                              )
+                              .map((member) => (
+                                <Card
+                                  key={member.id}
+                                  className="rounded-lg border"
+                                >
+                                  <CardContent className="p-2.5">
+                                    <div className="flex items-center justify-between gap-2">
+                                      <div className="flex-1 min-w-0">
+                                        <Link
+                                          href={`/roster/${member.id}`}
+                                          className="flex items-center gap-2.5"
+                                        >
+                                          <Avatar className="h-8 w-8 rounded-md shrink-0">
+                                            <AvatarImage
+                                              src={
+                                                member.avatarUrl || undefined
+                                              }
+                                              alt={member.name || member.email}
+                                            />
+                                            <AvatarFallback className="rounded-md text-[10px] font-semibold">
+                                              {member.name
+                                                ? member.name
+                                                    .split(" ")
+                                                    .map((n) => n[0])
+                                                    .join("")
+                                                    .toUpperCase()
+                                                    .slice(0, 2)
+                                                : member.email
+                                                    .charAt(0)
+                                                    .toUpperCase()}
+                                            </AvatarFallback>
+                                          </Avatar>
+                                          <div className="flex-1 min-w-0">
+                                            <div className="font-medium text-sm truncate flex items-center gap-2">
+                                              {member.name || "Unnamed"}
+                                              <Badge
+                                                variant={
+                                                  member.role === "owner"
+                                                    ? "default"
+                                                    : "secondary"
+                                                }
+                                                className="rounded-md text-[9px] px-1 py-0 shrink-0"
+                                              >
+                                                {formatRoleDisplay(member.role)}
+                                              </Badge>
+                                            </div>
+                                            <button
+                                              type="button"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                window.location.href = `mailto:${member.email}`;
+                                              }}
+                                              className="text-xs text-muted-foreground hover:text-foreground truncate block cursor-pointer text-left bg-transparent border-0 p-0 m-0"
+                                            >
+                                              {member.email}
+                                            </button>
+                                          </div>
+                                        </Link>
+                                        <div className="flex items-center gap-3 mt-0.5 ml-[2.625rem]">
+                                          {member.phone && (
+                                            <a
+                                              href={`tel:${member.phone.replace(/\D/g, "")}`}
+                                              onClick={(e) =>
+                                                e.stopPropagation()
+                                              }
+                                              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground shrink-0"
+                                            >
+                                              <IconPhone className="h-3 w-3 shrink-0" />
+                                              <span className="hidden sm:inline">
+                                                {member.phone}
+                                              </span>
+                                            </a>
+                                          )}
+                                        </div>
                                       </div>
-                                      <Badge
-                                        variant="outline"
-                                        className="rounded-md text-[10px] mt-0.5 px-1.5 py-0"
-                                      >
-                                        Athlete
-                                      </Badge>
+                                      {(isOwner ||
+                                        (currentUserRole === "coach" &&
+                                          member.role === "athlete")) && (
+                                        <DropdownMenu>
+                                          <DropdownMenuTrigger asChild>
+                                            <Button
+                                              variant="ghost"
+                                              size="icon"
+                                              className="h-7 w-7 shrink-0"
+                                              onClick={(e) =>
+                                                e.stopPropagation()
+                                              }
+                                            >
+                                              <IconDotsVertical className="h-3.5 w-3.5" />
+                                            </Button>
+                                          </DropdownMenuTrigger>
+                                          <DropdownMenuContent
+                                            align="end"
+                                            className="rounded-xl"
+                                          >
+                                            <DropdownMenuItem
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                openEditDialog(member);
+                                              }}
+                                              className="gap-2"
+                                            >
+                                              <IconEdit className="h-4 w-4" />
+                                              Edit Member
+                                            </DropdownMenuItem>
+                                            {isOwner &&
+                                              member.role !== "owner" && (
+                                                <>
+                                                  <DropdownMenuSeparator />
+                                                  <DropdownMenuItem
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      openDeleteDialog(member);
+                                                    }}
+                                                    className="gap-2 text-destructive focus:text-destructive"
+                                                  >
+                                                    <IconTrash className="h-4 w-4" />
+                                                    Remove from Gym
+                                                  </DropdownMenuItem>
+                                                </>
+                                              )}
+                                          </DropdownMenuContent>
+                                        </DropdownMenu>
+                                      )}
                                     </div>
-                                  </Link>
-                                </TableCell>
-                                <TableCell>
-                                  <a
-                                    href={`mailto:${member.email}`}
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground hover:underline"
-                                  >
-                                    <IconMail className="h-3.5 w-3.5 shrink-0" />
-                                    <span className="truncate">{member.email}</span>
-                                  </a>
-                                </TableCell>
-                                <TableCell>
-                                  <div className="flex flex-col gap-1 text-sm">
-                                    {member.cellPhone && (
-                                      <a
-                                        href={`tel:${member.cellPhone.replace(/\D/g, '')}`}
-                                        onClick={(e) => e.stopPropagation()}
-                                        className="flex items-center gap-1 text-muted-foreground hover:text-foreground hover:underline"
-                                      >
-                                        <IconPhone className="h-3 w-3 shrink-0" />
-                                        <span>Cell: {member.cellPhone}</span>
-                                      </a>
-                                    )}
-                                    {member.homePhone && (
-                                      <a
-                                        href={`tel:${member.homePhone.replace(/\D/g, '')}`}
-                                        onClick={(e) => e.stopPropagation()}
-                                        className="flex items-center gap-1 text-muted-foreground hover:text-foreground hover:underline"
-                                      >
-                                        <IconPhone className="h-3 w-3 shrink-0" />
-                                        <span>Home: {member.homePhone}</span>
-                                      </a>
-                                    )}
-                                    {member.workPhone && (
-                                      <a
-                                        href={`tel:${member.workPhone.replace(/\D/g, '')}`}
-                                        onClick={(e) => e.stopPropagation()}
-                                        className="flex items-center gap-1 text-muted-foreground hover:text-foreground hover:underline"
-                                      >
-                                        <IconPhone className="h-3 w-3 shrink-0" />
-                                        <span>Work: {member.workPhone}</span>
-                                      </a>
-                                    )}
-                                    {member.phone && !member.cellPhone && !member.homePhone && !member.workPhone && (
-                                      <a
-                                        href={`tel:${member.phone.replace(/\D/g, '')}`}
-                                        onClick={(e) => e.stopPropagation()}
-                                        className="flex items-center gap-1 text-muted-foreground hover:text-foreground hover:underline"
-                                      >
-                                        <IconPhone className="h-3 w-3 shrink-0" />
-                                        <span>{member.phone}</span>
-                                      </a>
-                                    )}
-                                    {!member.cellPhone && !member.homePhone && !member.workPhone && !member.phone && (
-                                      <span className="text-muted-foreground">—</span>
-                                    )}
-                                  </div>
-                                </TableCell>
-                                <TableCell>
-                                  {member.address ? (
-                                    <span className="text-sm text-muted-foreground truncate block max-w-[200px]">
-                                      {member.address}
-                                    </span>
-                                  ) : (
-                                    <span className="text-sm text-muted-foreground">—</span>
-                                  )}
-                                </TableCell>
-                                <TableCell>
-                                  {member.emergencyContactName ? (
-                                    <div className="flex flex-col gap-1 text-sm">
-                                      <span className="text-muted-foreground">
-                                        {member.emergencyContactName}
-                                        {member.emergencyContactRelationship && (
-                                          <span className="text-muted-foreground/70">
-                                            {" "}({member.emergencyContactRelationship})
+                                  </CardContent>
+                                </Card>
+                              ))}
+                          </div>
+                          {/* Desktop Table View */}
+                          <div className="hidden lg:block">
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead className="w-[200px]">
+                                    Name
+                                  </TableHead>
+                                  <TableHead className="w-[150px]">
+                                    Phone
+                                  </TableHead>
+                                  <TableHead className="w-[100px] text-right">
+                                    Actions
+                                  </TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {roster
+                                  .filter(
+                                    (m) =>
+                                      m.role === "coach" || m.role === "owner",
+                                  )
+                                  .map((member) => (
+                                    <TableRow key={member.id} className="group">
+                                      <TableCell>
+                                        <Link
+                                          href={`/roster/${member.id}`}
+                                          className="flex items-center gap-3 hover:underline"
+                                        >
+                                          <Avatar className="h-8 w-8 rounded-lg shrink-0">
+                                            <AvatarImage
+                                              src={
+                                                member.avatarUrl || undefined
+                                              }
+                                              alt={member.name || member.email}
+                                            />
+                                            <AvatarFallback className="rounded-lg text-xs font-semibold">
+                                              {member.name
+                                                ? member.name
+                                                    .split(" ")
+                                                    .map((n) => n[0])
+                                                    .join("")
+                                                    .toUpperCase()
+                                                    .slice(0, 2)
+                                                : member.email
+                                                    .charAt(0)
+                                                    .toUpperCase()}
+                                            </AvatarFallback>
+                                          </Avatar>
+                                          <div className="min-w-0">
+                                            <div className="font-medium text-sm flex items-center gap-2">
+                                              {member.name || "Unnamed"}
+                                              <Badge
+                                                variant={
+                                                  member.role === "owner"
+                                                    ? "default"
+                                                    : "secondary"
+                                                }
+                                                className="rounded-md text-[10px] px-1.5 py-0"
+                                              >
+                                                {formatRoleDisplay(member.role)}
+                                              </Badge>
+                                            </div>
+                                            <button
+                                              type="button"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                window.location.href = `mailto:${member.email}`;
+                                              }}
+                                              className="text-xs text-muted-foreground hover:text-foreground hover:underline truncate block cursor-pointer text-left bg-transparent border-0 p-0 m-0"
+                                            >
+                                              {member.email}
+                                            </button>
+                                          </div>
+                                        </Link>
+                                      </TableCell>
+                                      <TableCell>
+                                        {member.phone ? (
+                                          <a
+                                            href={`tel:${member.phone.replace(/\D/g, "")}`}
+                                            onClick={(e) => e.stopPropagation()}
+                                            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground hover:underline"
+                                          >
+                                            <IconPhone className="h-3.5 w-3.5 shrink-0" />
+                                            <span>{member.phone}</span>
+                                          </a>
+                                        ) : (
+                                          <span className="text-sm text-muted-foreground">
+                                            —
                                           </span>
                                         )}
-                                      </span>
-                                      {member.emergencyContactPhone && (
-                                        <a
-                                          href={`tel:${member.emergencyContactPhone.replace(/\D/g, '')}`}
-                                          onClick={(e) => e.stopPropagation()}
-                                          className="flex items-center gap-1 text-muted-foreground hover:text-foreground hover:underline"
+                                      </TableCell>
+                                      <TableCell className="text-right">
+                                        <div className="flex items-center justify-end gap-2">
+                                          <a
+                                            href={`mailto:${member.email}`}
+                                            onClick={(e) => e.stopPropagation()}
+                                            className="h-8 w-8 rounded-lg bg-muted hover:bg-primary/10 flex items-center justify-center transition-colors"
+                                            title="Email"
+                                          >
+                                            <IconMail className="h-4 w-4 text-muted-foreground" />
+                                          </a>
+                                          {member.phone && (
+                                            <a
+                                              href={`tel:${member.phone.replace(/\D/g, "")}`}
+                                              onClick={(e) =>
+                                                e.stopPropagation()
+                                              }
+                                              className="h-8 w-8 rounded-lg bg-muted hover:bg-primary/10 flex items-center justify-center transition-colors"
+                                              title="Call"
+                                            >
+                                              <IconPhone className="h-4 w-4 text-muted-foreground" />
+                                            </a>
+                                          )}
+                                          {(isOwner ||
+                                            (currentUserRole === "coach" &&
+                                              member.role === "athlete")) && (
+                                            <DropdownMenu>
+                                              <DropdownMenuTrigger asChild>
+                                                <Button
+                                                  variant="ghost"
+                                                  size="icon"
+                                                  className="h-8 w-8"
+                                                  onClick={(e) =>
+                                                    e.stopPropagation()
+                                                  }
+                                                >
+                                                  <IconDotsVertical className="h-4 w-4" />
+                                                </Button>
+                                              </DropdownMenuTrigger>
+                                              <DropdownMenuContent
+                                                align="end"
+                                                className="rounded-xl"
+                                              >
+                                                <DropdownMenuItem
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    openEditDialog(member);
+                                                  }}
+                                                  className="gap-2"
+                                                >
+                                                  <IconEdit className="h-4 w-4" />
+                                                  Edit Member
+                                                </DropdownMenuItem>
+                                                {isOwner &&
+                                                  member.role !== "owner" && (
+                                                    <>
+                                                      <DropdownMenuSeparator />
+                                                      <DropdownMenuItem
+                                                        onClick={(e) => {
+                                                          e.stopPropagation();
+                                                          openDeleteDialog(
+                                                            member,
+                                                          );
+                                                        }}
+                                                        className="gap-2 text-destructive focus:text-destructive"
+                                                      >
+                                                        <IconTrash className="h-4 w-4" />
+                                                        Remove from Gym
+                                                      </DropdownMenuItem>
+                                                    </>
+                                                  )}
+                                              </DropdownMenuContent>
+                                            </DropdownMenu>
+                                          )}
+                                        </div>
+                                      </TableCell>
+                                    </TableRow>
+                                  ))}
+                              </TableBody>
+                            </Table>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Athletes Section */}
+                      {roster.filter((m) => m.role === "athlete").length >
+                        0 && (
+                        <div>
+                          <h3 className="font-semibold text-sm text-muted-foreground mb-3">
+                            Athletes (
+                            {roster.filter((m) => m.role === "athlete").length})
+                          </h3>
+                          {/* Mobile Card View */}
+                          <div className="lg:hidden space-y-1.5">
+                            {roster
+                              .filter((m) => m.role === "athlete")
+                              .map((member) => (
+                                <Card
+                                  key={member.id}
+                                  className="rounded-lg border"
+                                >
+                                  <CardContent className="p-2.5">
+                                    <div className="flex items-center justify-between gap-2">
+                                      <div className="flex-1 min-w-0">
+                                        <Link
+                                          href={`/roster/${member.id}`}
+                                          className="flex items-center gap-2.5"
                                         >
-                                          <IconPhone className="h-3 w-3 shrink-0" />
-                                          <span>{member.emergencyContactPhone}</span>
-                                        </a>
-                                      )}
-                                      {member.emergencyContactEmail && (
-                                        <a
-                                          href={`mailto:${member.emergencyContactEmail}`}
-                                          onClick={(e) => e.stopPropagation()}
-                                          className="flex items-center gap-1 text-muted-foreground hover:text-foreground hover:underline"
-                                        >
-                                          <IconMail className="h-3 w-3 shrink-0" />
-                                          <span className="truncate">{member.emergencyContactEmail}</span>
-                                        </a>
+                                          <Avatar className="h-8 w-8 rounded-md shrink-0">
+                                            <AvatarImage
+                                              src={member.avatarUrl || undefined}
+                                              alt={member.name || member.email}
+                                            />
+                                            <AvatarFallback className="rounded-md text-[10px] font-semibold">
+                                              {member.name
+                                                ? member.name
+                                                    .split(" ")
+                                                    .map((n) => n[0])
+                                                    .join("")
+                                                    .toUpperCase()
+                                                    .slice(0, 2)
+                                                : member.email
+                                                    .charAt(0)
+                                                    .toUpperCase()}
+                                            </AvatarFallback>
+                                          </Avatar>
+                                          <div className="flex-1 min-w-0">
+                                            <div className="font-medium text-sm truncate">
+                                              {member.name || "Unnamed"}
+                                            </div>
+                                            <button
+                                              type="button"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                window.location.href = `mailto:${member.email}`;
+                                              }}
+                                              className="text-xs text-muted-foreground hover:text-foreground truncate block cursor-pointer text-left bg-transparent border-0 p-0 m-0"
+                                            >
+                                              {member.email}
+                                            </button>
+                                          </div>
+                                        </Link>
+                                        <div className="flex items-center gap-3 mt-0.5 flex-wrap ml-[2.625rem]">
+                                          {(member.cellPhone ||
+                                            member.phone) && (
+                                            <a
+                                              href={`tel:${(member.cellPhone || member.phone || "").replace(/\D/g, "")}`}
+                                              onClick={(e) =>
+                                                e.stopPropagation()
+                                              }
+                                              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground shrink-0"
+                                            >
+                                              <IconPhone className="h-3 w-3 shrink-0" />
+                                              <span className="hidden sm:inline">
+                                                {member.cellPhone ||
+                                                  member.phone}
+                                              </span>
+                                            </a>
+                                          )}
+                                          {member.emergencyContactName && (
+                                            <div className="text-xs text-muted-foreground truncate hidden md:inline">
+                                              E: {member.emergencyContactName}
+                                              {member.emergencyContactRelationship &&
+                                                ` (${member.emergencyContactRelationship})`}
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                      {(isOwner ||
+                                        (currentUserRole === "coach" &&
+                                          member.role === "athlete")) && (
+                                        <DropdownMenu>
+                                          <DropdownMenuTrigger asChild>
+                                            <Button
+                                              variant="ghost"
+                                              size="icon"
+                                              className="h-7 w-7 shrink-0"
+                                              onClick={(e) =>
+                                                e.stopPropagation()
+                                              }
+                                            >
+                                              <IconDotsVertical className="h-3.5 w-3.5" />
+                                            </Button>
+                                          </DropdownMenuTrigger>
+                                          <DropdownMenuContent
+                                            align="end"
+                                            className="rounded-xl"
+                                          >
+                                            <DropdownMenuItem
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                openEditDialog(member);
+                                              }}
+                                              className="gap-2"
+                                            >
+                                              <IconEdit className="h-4 w-4" />
+                                              Edit Member
+                                            </DropdownMenuItem>
+                                            {isOwner &&
+                                              member.role !== "owner" && (
+                                                <>
+                                                  <DropdownMenuSeparator />
+                                                  <DropdownMenuItem
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      openDeleteDialog(member);
+                                                    }}
+                                                    className="gap-2 text-destructive focus:text-destructive"
+                                                  >
+                                                    <IconTrash className="h-4 w-4" />
+                                                    Remove from Gym
+                                                  </DropdownMenuItem>
+                                                </>
+                                              )}
+                                          </DropdownMenuContent>
+                                        </DropdownMenu>
                                       )}
                                     </div>
-                                  ) : (
-                                    <span className="text-sm text-muted-foreground">—</span>
-                                  )}
-                                </TableCell>
-                                <TableCell className="text-right">
-                                  <div className="flex items-center justify-end gap-2">
-                                    <a
-                                      href={`mailto:${member.email}`}
-                                      onClick={(e) => e.stopPropagation()}
-                                      className="h-8 w-8 rounded-lg bg-muted hover:bg-primary/10 flex items-center justify-center transition-colors opacity-0 group-hover:opacity-100"
-                                      title="Email"
-                                    >
-                                      <IconMail className="h-4 w-4 text-muted-foreground" />
-                                    </a>
-                                    {(member.cellPhone || member.phone) && (
-                                      <a
-                                        href={`tel:${(member.cellPhone || member.phone || '').replace(/\D/g, '')}`}
-                                        onClick={(e) => e.stopPropagation()}
-                                        className="h-8 w-8 rounded-lg bg-muted hover:bg-primary/10 flex items-center justify-center transition-colors opacity-0 group-hover:opacity-100"
-                                        title="Call"
-                                      >
-                                        <IconPhone className="h-4 w-4 text-muted-foreground" />
-                                      </a>
-                                    )}
-                                    {(isOwner ||
-                                      (currentUserRole === "coach" &&
-                                        member.role === "athlete")) && (
-                                      <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                          <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                                            onClick={(e) => e.stopPropagation()}
-                                          >
-                                            <IconDotsVertical className="h-4 w-4" />
-                                          </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent
-                                          align="end"
-                                          className="rounded-xl"
+                                  </CardContent>
+                                </Card>
+                              ))}
+                          </div>
+                          {/* Desktop Table View */}
+                          <div className="hidden lg:block">
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead className="w-[200px]">
+                                    Name
+                                  </TableHead>
+                                  <TableHead className="w-[180px]">
+                                    Phone
+                                  </TableHead>
+                                  <TableHead className="w-[200px]">
+                                    Emergency Contact
+                                  </TableHead>
+                                  <TableHead className="w-[120px] text-right">
+                                    Actions
+                                  </TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {roster
+                                  .filter((m) => m.role === "athlete")
+                                  .map((member) => (
+                                    <TableRow key={member.id} className="group">
+                                      <TableCell>
+                                        <Link
+                                          href={`/roster/${member.id}`}
+                                          className="flex items-center gap-3 hover:underline"
                                         >
-                                          <DropdownMenuItem
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              openEditDialog(member);
-                                            }}
-                                            className="gap-2"
-                                          >
-                                            <IconEdit className="h-4 w-4" />
-                                            Edit Member
-                                          </DropdownMenuItem>
-                                          {isOwner && member.role !== "owner" && (
-                                            <>
-                                              <DropdownMenuSeparator />
-                                              <DropdownMenuItem
-                                                onClick={(e) => {
-                                                  e.stopPropagation();
-                                                  openDeleteDialog(member);
-                                                }}
-                                                className="gap-2 text-destructive focus:text-destructive"
-                                              >
-                                                <IconTrash className="h-4 w-4" />
-                                                Remove from Gym
-                                              </DropdownMenuItem>
-                                            </>
+                                          <Avatar className="h-8 w-8 rounded-lg shrink-0">
+                                            <AvatarImage
+                                              src={
+                                                member.avatarUrl || undefined
+                                              }
+                                              alt={member.name || member.email}
+                                            />
+                                            <AvatarFallback className="rounded-lg text-xs font-semibold">
+                                              {member.name
+                                                ? member.name
+                                                    .split(" ")
+                                                    .map((n) => n[0])
+                                                    .join("")
+                                                    .toUpperCase()
+                                                    .slice(0, 2)
+                                                : member.email
+                                                    .charAt(0)
+                                                    .toUpperCase()}
+                                            </AvatarFallback>
+                                          </Avatar>
+                                          <div className="min-w-0">
+                                            <div className="font-medium text-sm">
+                                              {member.name || "Unnamed"}
+                                            </div>
+                                            <button
+                                              type="button"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                window.location.href = `mailto:${member.email}`;
+                                              }}
+                                              className="text-xs text-muted-foreground hover:text-foreground hover:underline truncate block cursor-pointer text-left bg-transparent border-0 p-0 m-0"
+                                            >
+                                              {member.email}
+                                            </button>
+                                          </div>
+                                        </Link>
+                                      </TableCell>
+                                      <TableCell>
+                                        <div className="flex flex-col gap-1 text-sm">
+                                          {member.cellPhone && (
+                                            <a
+                                              href={`tel:${member.cellPhone.replace(/\D/g, "")}`}
+                                              onClick={(e) =>
+                                                e.stopPropagation()
+                                              }
+                                              className="flex items-center gap-1 text-muted-foreground hover:text-foreground hover:underline"
+                                            >
+                                              <IconPhone className="h-3 w-3 shrink-0" />
+                                              <span>
+                                                Cell: {member.cellPhone}
+                                              </span>
+                                            </a>
                                           )}
-                                        </DropdownMenuContent>
-                                      </DropdownMenu>
-                                    )}
-                                  </div>
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                        </TableBody>
-                      </Table>
+                                          {member.homePhone && (
+                                            <a
+                                              href={`tel:${member.homePhone.replace(/\D/g, "")}`}
+                                              onClick={(e) =>
+                                                e.stopPropagation()
+                                              }
+                                              className="flex items-center gap-1 text-muted-foreground hover:text-foreground hover:underline"
+                                            >
+                                              <IconPhone className="h-3 w-3 shrink-0" />
+                                              <span>
+                                                Home: {member.homePhone}
+                                              </span>
+                                            </a>
+                                          )}
+                                          {member.workPhone && (
+                                            <a
+                                              href={`tel:${member.workPhone.replace(/\D/g, "")}`}
+                                              onClick={(e) =>
+                                                e.stopPropagation()
+                                              }
+                                              className="flex items-center gap-1 text-muted-foreground hover:text-foreground hover:underline"
+                                            >
+                                              <IconPhone className="h-3 w-3 shrink-0" />
+                                              <span>
+                                                Work: {member.workPhone}
+                                              </span>
+                                            </a>
+                                          )}
+                                          {member.phone &&
+                                            !member.cellPhone &&
+                                            !member.homePhone &&
+                                            !member.workPhone && (
+                                              <a
+                                                href={`tel:${member.phone.replace(/\D/g, "")}`}
+                                                onClick={(e) =>
+                                                  e.stopPropagation()
+                                                }
+                                                className="flex items-center gap-1 text-muted-foreground hover:text-foreground hover:underline"
+                                              >
+                                                <IconPhone className="h-3 w-3 shrink-0" />
+                                                <span>{member.phone}</span>
+                                              </a>
+                                            )}
+                                          {!member.cellPhone &&
+                                            !member.homePhone &&
+                                            !member.workPhone &&
+                                            !member.phone && (
+                                              <span className="text-muted-foreground">
+                                                —
+                                              </span>
+                                            )}
+                                        </div>
+                                      </TableCell>
+                                      <TableCell>
+                                        {member.emergencyContactName ? (
+                                          <div className="flex flex-col gap-1 text-sm">
+                                            <span className="text-muted-foreground">
+                                              {member.emergencyContactName}
+                                              {member.emergencyContactRelationship && (
+                                                <span className="text-muted-foreground/70">
+                                                  {" "}
+                                                  (
+                                                  {
+                                                    member.emergencyContactRelationship
+                                                  }
+                                                  )
+                                                </span>
+                                              )}
+                                            </span>
+                                            {member.emergencyContactPhone && (
+                                              <a
+                                                href={`tel:${member.emergencyContactPhone.replace(/\D/g, "")}`}
+                                                onClick={(e) =>
+                                                  e.stopPropagation()
+                                                }
+                                                className="flex items-center gap-1 text-muted-foreground hover:text-foreground hover:underline"
+                                              >
+                                                <IconPhone className="h-3 w-3 shrink-0" />
+                                                <span>
+                                                  {member.emergencyContactPhone}
+                                                </span>
+                                              </a>
+                                            )}
+                                            {member.emergencyContactEmail && (
+                                              <a
+                                                href={`mailto:${member.emergencyContactEmail}`}
+                                                onClick={(e) =>
+                                                  e.stopPropagation()
+                                                }
+                                                className="flex items-center gap-1 text-muted-foreground hover:text-foreground hover:underline"
+                                              >
+                                                <IconMail className="h-3 w-3 shrink-0" />
+                                                <span className="truncate">
+                                                  {member.emergencyContactEmail}
+                                                </span>
+                                              </a>
+                                            )}
+                                          </div>
+                                        ) : (
+                                          <span className="text-sm text-muted-foreground">
+                                            —
+                                          </span>
+                                        )}
+                                      </TableCell>
+                                      <TableCell className="text-right">
+                                        <div className="flex items-center justify-end gap-2">
+                                          <a
+                                            href={`mailto:${member.email}`}
+                                            onClick={(e) => e.stopPropagation()}
+                                            className="h-8 w-8 rounded-lg bg-muted hover:bg-primary/10 flex items-center justify-center transition-colors"
+                                            title="Email"
+                                          >
+                                            <IconMail className="h-4 w-4 text-muted-foreground" />
+                                          </a>
+                                          {(member.cellPhone ||
+                                            member.phone) && (
+                                            <a
+                                              href={`tel:${(member.cellPhone || member.phone || "").replace(/\D/g, "")}`}
+                                              onClick={(e) =>
+                                                e.stopPropagation()
+                                              }
+                                              className="h-8 w-8 rounded-lg bg-muted hover:bg-primary/10 flex items-center justify-center transition-colors"
+                                              title="Call"
+                                            >
+                                              <IconPhone className="h-4 w-4 text-muted-foreground" />
+                                            </a>
+                                          )}
+                                          {(isOwner ||
+                                            (currentUserRole === "coach" &&
+                                              member.role === "athlete")) && (
+                                            <DropdownMenu>
+                                              <DropdownMenuTrigger asChild>
+                                                <Button
+                                                  variant="ghost"
+                                                  size="icon"
+                                                  className="h-8 w-8"
+                                                  onClick={(e) =>
+                                                    e.stopPropagation()
+                                                  }
+                                                >
+                                                  <IconDotsVertical className="h-4 w-4" />
+                                                </Button>
+                                              </DropdownMenuTrigger>
+                                              <DropdownMenuContent
+                                                align="end"
+                                                className="rounded-xl"
+                                              >
+                                                <DropdownMenuItem
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    openEditDialog(member);
+                                                  }}
+                                                  className="gap-2"
+                                                >
+                                                  <IconEdit className="h-4 w-4" />
+                                                  Edit Member
+                                                </DropdownMenuItem>
+                                                {isOwner &&
+                                                  member.role !== "owner" && (
+                                                    <>
+                                                      <DropdownMenuSeparator />
+                                                      <DropdownMenuItem
+                                                        onClick={(e) => {
+                                                          e.stopPropagation();
+                                                          openDeleteDialog(
+                                                            member,
+                                                          );
+                                                        }}
+                                                        className="gap-2 text-destructive focus:text-destructive"
+                                                      >
+                                                        <IconTrash className="h-4 w-4" />
+                                                        Remove from Gym
+                                                      </DropdownMenuItem>
+                                                    </>
+                                                  )}
+                                              </DropdownMenuContent>
+                                            </DropdownMenu>
+                                          )}
+                                        </div>
+                                      </TableCell>
+                                    </TableRow>
+                                  ))}
+                              </TableBody>
+                            </Table>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              </ScrollArea>
-            </CardContent>
-          </Card>
-        )}
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </div>
@@ -1176,7 +1553,10 @@ export default function RosterPage() {
                 <Input
                   value={editForm.emergencyContactName}
                   onChange={(e) =>
-                    setEditForm({ ...editForm, emergencyContactName: e.target.value })
+                    setEditForm({
+                      ...editForm,
+                      emergencyContactName: e.target.value,
+                    })
                   }
                   placeholder="Emergency contact name"
                   className="h-11 rounded-xl"
@@ -1188,7 +1568,10 @@ export default function RosterPage() {
                   <Input
                     value={editForm.emergencyContactPhone}
                     onChange={(e) =>
-                      setEditForm({ ...editForm, emergencyContactPhone: e.target.value })
+                      setEditForm({
+                        ...editForm,
+                        emergencyContactPhone: e.target.value,
+                      })
                     }
                     placeholder="Emergency contact phone"
                     className="h-11 rounded-xl"
@@ -1199,7 +1582,10 @@ export default function RosterPage() {
                   <Input
                     value={editForm.emergencyContactRelationship}
                     onChange={(e) =>
-                      setEditForm({ ...editForm, emergencyContactRelationship: e.target.value })
+                      setEditForm({
+                        ...editForm,
+                        emergencyContactRelationship: e.target.value,
+                      })
                     }
                     placeholder="Parent, Guardian, etc."
                     className="h-11 rounded-xl"
@@ -1212,7 +1598,10 @@ export default function RosterPage() {
                   type="email"
                   value={editForm.emergencyContactEmail}
                   onChange={(e) =>
-                    setEditForm({ ...editForm, emergencyContactEmail: e.target.value })
+                    setEditForm({
+                      ...editForm,
+                      emergencyContactEmail: e.target.value,
+                    })
                   }
                   placeholder="Emergency contact email"
                   className="h-11 rounded-xl"

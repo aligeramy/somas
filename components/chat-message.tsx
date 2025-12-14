@@ -1,9 +1,9 @@
 "use client";
 
-import { cn } from "@/lib/utils";
-import type { ChatMessage } from "@/hooks/use-realtime-chat";
-import { format } from "date-fns";
 import { IconCheck, IconClock } from "@tabler/icons-react";
+import { format } from "date-fns";
+import type { ChatMessage } from "@/hooks/use-realtime-chat";
+import { cn } from "@/lib/utils";
 
 interface ChatMessageItemProps {
   message: ChatMessage;
@@ -19,10 +19,10 @@ export function ChatMessageItem({
   const isPending = message.status === "pending";
 
   return (
-    <div 
+    <div
       className={cn(
         "flex mt-2 animate-in fade-in slide-in-from-bottom-2 duration-300",
-        isOwnMessage ? "justify-end" : "justify-start"
+        isOwnMessage ? "justify-end" : "justify-start",
       )}
       style={{
         animationDelay: isPending ? "0ms" : "100ms",
@@ -52,7 +52,7 @@ export function ChatMessageItem({
             isOwnMessage
               ? "bg-primary text-primary-foreground rounded-br-sm"
               : "bg-muted text-foreground rounded-bl-sm",
-            isPending && isOwnMessage && "opacity-80"
+            isPending && isOwnMessage && "opacity-80",
           )}
         >
           {message.attachmentUrl && message.attachmentType === "image" && (
@@ -65,7 +65,9 @@ export function ChatMessageItem({
           )}
           <div className="flex items-end gap-2">
             {message.content && (
-              <p className="whitespace-pre-wrap wrap-break-word">{message.content}</p>
+              <p className="whitespace-pre-wrap wrap-break-word">
+                {message.content}
+              </p>
             )}
             {isOwnMessage && (
               <div className="flex items-center shrink-0">
@@ -82,7 +84,3 @@ export function ChatMessageItem({
     </div>
   );
 }
-
-
-
-

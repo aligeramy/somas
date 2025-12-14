@@ -1,8 +1,8 @@
-import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { db } from "@/lib/db";
-import { users, gyms } from "@/drizzle/schema";
 import { eq } from "drizzle-orm";
+import { NextResponse } from "next/server";
+import { gyms, users } from "@/drizzle/schema";
+import { db } from "@/lib/db";
+import { createClient } from "@/lib/supabase/server";
 
 export async function GET() {
   try {
@@ -15,10 +15,17 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const [dbUser] = await db.select().from(users).where(eq(users.id, user.id)).limit(1);
+    const [dbUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, user.id))
+      .limit(1);
 
     if (!dbUser || !dbUser.gymId) {
-      return NextResponse.json({ error: "User must belong to a gym" }, { status: 400 });
+      return NextResponse.json(
+        { error: "User must belong to a gym" },
+        { status: 400 },
+      );
     }
 
     // Only head coaches can view/edit gym
@@ -26,7 +33,11 @@ export async function GET() {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const [gym] = await db.select().from(gyms).where(eq(gyms.id, dbUser.gymId)).limit(1);
+    const [gym] = await db
+      .select()
+      .from(gyms)
+      .where(eq(gyms.id, dbUser.gymId))
+      .limit(1);
 
     if (!gym) {
       return NextResponse.json({ error: "Gym not found" }, { status: 404 });
@@ -35,10 +46,7 @@ export async function GET() {
     return NextResponse.json({ gym });
   } catch (error) {
     console.error("Gym fetch error:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch gym" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to fetch gym" }, { status: 500 });
   }
 }
 
@@ -53,10 +61,17 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const [dbUser] = await db.select().from(users).where(eq(users.id, user.id)).limit(1);
+    const [dbUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, user.id))
+      .limit(1);
 
     if (!dbUser || !dbUser.gymId) {
-      return NextResponse.json({ error: "User must belong to a gym" }, { status: 400 });
+      return NextResponse.json(
+        { error: "User must belong to a gym" },
+        { status: 400 },
+      );
     }
 
     // Only head coaches can edit gym
@@ -101,11 +116,7 @@ export async function PUT(request: Request) {
     console.error("Gym update error:", error);
     return NextResponse.json(
       { error: "Failed to update gym" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-
-
-
-

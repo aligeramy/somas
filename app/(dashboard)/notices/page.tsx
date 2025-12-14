@@ -1,14 +1,18 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { IconEdit, IconPlus, IconTrash } from "@tabler/icons-react";
+import { format } from "date-fns";
+import { useCallback, useEffect, useState } from "react";
 import { PageHeader } from "@/components/page-header";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -17,8 +21,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { IconPlus, IconEdit, IconTrash } from "@tabler/icons-react";
-import { format } from "date-fns";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 
 interface Notice {
   id: string;
@@ -110,7 +116,9 @@ export default function NoticesPage() {
       setSaving(true);
       setError(null);
 
-      const url = editingNotice ? `/api/notices/${editingNotice.id}` : "/api/notices";
+      const url = editingNotice
+        ? `/api/notices/${editingNotice.id}`
+        : "/api/notices";
       const method = editingNotice ? "PUT" : "POST";
 
       const response = await fetch(url, {
@@ -172,9 +180,13 @@ export default function NoticesPage() {
 
   return (
     <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
-      <PageHeader 
-        title="Notices" 
-        description={canManage ? "Manage announcements for your team" : "View all team announcements"}
+      <PageHeader
+        title="Notices"
+        description={
+          canManage
+            ? "Manage announcements for your team"
+            : "View all team announcements"
+        }
       >
         {canManage && (
           <Button onClick={openCreateDialog} className="rounded-xl">
@@ -197,14 +209,19 @@ export default function NoticesPage() {
             <CardHeader>
               <CardTitle>All Notices</CardTitle>
               <CardDescription>
-                {canManage ? "Manage your team notices" : "View all team notices"}
+                {canManage
+                  ? "Manage your team notices"
+                  : "View all team notices"}
               </CardDescription>
             </CardHeader>
             <CardContent>
               {loading ? (
                 <div className="space-y-4">
                   {[1, 2, 3].map((i) => (
-                    <div key={i} className="animate-pulse space-y-3 p-4 border rounded-xl">
+                    <div
+                      key={i}
+                      className="animate-pulse space-y-3 p-4 border rounded-xl"
+                    >
                       <div className="h-5 w-3/4 bg-muted rounded" />
                       <div className="h-4 w-full bg-muted rounded" />
                       <div className="h-3 w-1/2 bg-muted rounded" />
@@ -227,17 +244,26 @@ export default function NoticesPage() {
                     >
                       <CardHeader>
                         <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              {notice.active && (
-                                <Badge variant="default" className="rounded-lg">Active</Badge>
-                              )}
-                              <CardTitle className="text-lg">{notice.title}</CardTitle>
-                            </div>
+                          <div className="flex-1 space-y-2">
+                            {notice.active && (
+                              <Badge variant="default" className="rounded-lg">
+                                Active
+                              </Badge>
+                            )}
+                            <CardTitle className="text-lg">
+                              {notice.title}
+                            </CardTitle>
                             <CardDescription>
-                              by {notice.author.name || "Admin"} • {format(new Date(notice.createdAt), "MMM d, yyyy 'at' h:mm a")}
+                              by {notice.author.name || "Admin"} •{" "}
+                              {format(
+                                new Date(notice.createdAt),
+                                "MMM d, yyyy 'at' h:mm a",
+                              )}
                               {notice.sendEmail && (
-                                <Badge variant="secondary" className="ml-2 rounded-lg">
+                                <Badge
+                                  variant="secondary"
+                                  className="ml-2 rounded-lg"
+                                >
                                   Email Sent
                                 </Badge>
                               )}
@@ -247,7 +273,9 @@ export default function NoticesPage() {
                             <div className="flex items-center gap-2">
                               <Switch
                                 checked={notice.active}
-                                onCheckedChange={() => handleToggleActive(notice.id, notice.active)}
+                                onCheckedChange={() =>
+                                  handleToggleActive(notice.id, notice.active)
+                                }
                               />
                               <Button
                                 variant="ghost"
@@ -270,7 +298,9 @@ export default function NoticesPage() {
                         </div>
                       </CardHeader>
                       <CardContent>
-                        <p className="text-sm whitespace-pre-wrap leading-relaxed">{notice.content}</p>
+                        <p className="text-sm whitespace-pre-wrap leading-relaxed">
+                          {notice.content}
+                        </p>
                       </CardContent>
                     </Card>
                   ))}
@@ -284,65 +314,75 @@ export default function NoticesPage() {
       {/* Create/Edit Dialog - Only show for coaches/owners */}
       {canManage && (
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent className="rounded-xl max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>{editingNotice ? "Edit Notice" : "Create New Notice"}</DialogTitle>
-            <DialogDescription>
-              Create a notice that will be displayed on the dashboard. Only one notice can be active at a time.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            {error && (
-              <div className="bg-destructive/10 text-destructive rounded-xl p-3 text-sm">
-                {error}
+          <DialogContent className="rounded-xl max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>
+                {editingNotice ? "Edit Notice" : "Create New Notice"}
+              </DialogTitle>
+              <DialogDescription>
+                Create a notice that will be displayed on the dashboard. Only
+                one notice can be active at a time.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              {error && (
+                <div className="bg-destructive/10 text-destructive rounded-xl p-3 text-sm">
+                  {error}
+                </div>
+              )}
+              <div className="space-y-2">
+                <Label htmlFor="title">Title *</Label>
+                <Input
+                  id="title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Notice title"
+                  className="rounded-xl"
+                />
               </div>
-            )}
-            <div className="space-y-2">
-              <Label htmlFor="title">Title *</Label>
-              <Input
-                id="title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Notice title"
+              <div className="space-y-2">
+                <Label htmlFor="content">Content *</Label>
+                <Textarea
+                  id="content"
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  placeholder="Write your notice content here..."
+                  className="rounded-xl min-h-[200px]"
+                />
+              </div>
+              <div className="flex items-center justify-between p-3 rounded-xl bg-muted/50">
+                <div>
+                  <p className="font-medium text-sm">Send Email Notification</p>
+                  <p className="text-xs text-muted-foreground">
+                    Send this notice via email to all team members
+                  </p>
+                </div>
+                <Switch checked={sendEmail} onCheckedChange={setSendEmail} />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setIsCreateDialogOpen(false)}
                 className="rounded-xl"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="content">Content *</Label>
-              <Textarea
-                id="content"
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                placeholder="Write your notice content here..."
-                className="rounded-xl min-h-[200px]"
-              />
-            </div>
-            <div className="flex items-center justify-between p-3 rounded-xl bg-muted/50">
-              <div>
-                <p className="font-medium text-sm">Send Email Notification</p>
-                <p className="text-xs text-muted-foreground">
-                  Send this notice via email to all team members
-                </p>
-              </div>
-              <Switch checked={sendEmail} onCheckedChange={setSendEmail} />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setIsCreateDialogOpen(false)}
-              className="rounded-xl"
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleSave} disabled={saving} className="rounded-xl">
-              {saving ? "Saving..." : editingNotice ? "Update Notice" : "Create Notice"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSave}
+                disabled={saving}
+                className="rounded-xl"
+              >
+                {saving
+                  ? "Saving..."
+                  : editingNotice
+                    ? "Update Notice"
+                    : "Create Notice"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );
 }
-

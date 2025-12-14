@@ -1,8 +1,8 @@
+import { desc, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { notices, users } from "@/drizzle/schema";
 import { db } from "@/lib/db";
-import { users, notices } from "@/drizzle/schema";
-import { eq, desc } from "drizzle-orm";
+import { createClient } from "@/lib/supabase/server";
 
 export async function GET() {
   try {
@@ -15,12 +15,16 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const [dbUser] = await db.select().from(users).where(eq(users.id, user.id)).limit(1);
+    const [dbUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, user.id))
+      .limit(1);
 
     if (!dbUser || !dbUser.gymId) {
       return NextResponse.json(
         { error: "User must belong to a gym" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -48,11 +52,7 @@ export async function GET() {
     console.error("Notices fetch error:", error);
     return NextResponse.json(
       { error: "Failed to fetch notices" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-
-
-
-

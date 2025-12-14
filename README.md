@@ -19,6 +19,3 @@ It includes:
 - Push + email notifications
 - Coach announcements feed
 - Profile editing with notification preferences
-
-See `technical.md` for full system architecture.
-# tom

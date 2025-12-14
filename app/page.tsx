@@ -146,8 +146,8 @@ export default async function HomePage() {
               Ready to get started?
             </h2>
             <p className="text-muted-foreground text-lg mb-8 max-w-2xl mx-auto">
-              Join clubs and coaches who are already using Titans of Mississauga to streamline
-              their operations and improve athlete coordination.
+              Join clubs and coaches who are already using Titans of Mississauga
+              to streamline their operations and improve athlete coordination.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button asChild size="lg" className="text-base">

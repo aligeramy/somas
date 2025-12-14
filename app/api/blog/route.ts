@@ -1,8 +1,8 @@
+import { and, desc, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { blogPosts, users } from "@/drizzle/schema";
 import { db } from "@/lib/db";
-import { users, blogPosts } from "@/drizzle/schema";
-import { eq, desc, and } from "drizzle-orm";
+import { createClient } from "@/lib/supabase/server";
 
 export async function GET(request: Request) {
   try {
@@ -15,17 +15,21 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const [dbUser] = await db.select().from(users).where(eq(users.id, user.id)).limit(1);
+    const [dbUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, user.id))
+      .limit(1);
 
     if (!dbUser || !dbUser.gymId) {
       return NextResponse.json(
         { error: "User must belong to a gym" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     const { searchParams } = new URL(request.url);
-    const limit = parseInt(searchParams.get("limit") || "10");
+    const limit = parseInt(searchParams.get("limit") || "10", 10);
     const type = searchParams.get("type");
 
     const posts = await db
@@ -48,7 +52,7 @@ export async function GET(request: Request) {
       .where(
         type
           ? and(eq(blogPosts.gymId, dbUser.gymId), eq(blogPosts.type, type))
-          : eq(blogPosts.gymId, dbUser.gymId)
+          : eq(blogPosts.gymId, dbUser.gymId),
       )
       .orderBy(desc(blogPosts.createdAt))
       .limit(limit);
@@ -58,7 +62,7 @@ export async function GET(request: Request) {
     console.error("Blog posts fetch error:", error);
     return NextResponse.json(
       { error: "Failed to fetch blog posts" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -74,12 +78,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const [dbUser] = await db.select().from(users).where(eq(users.id, user.id)).limit(1);
+    const [dbUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, user.id))
+      .limit(1);
 
     if (!dbUser || !dbUser.gymId) {
       return NextResponse.json(
         { error: "User must belong to a gym" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -93,7 +101,7 @@ export async function POST(request: Request) {
     if (!title || !content || !type) {
       return NextResponse.json(
         { error: "Title, content, and type are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -115,8 +123,7 @@ export async function POST(request: Request) {
     console.error("Blog post creation error:", error);
     return NextResponse.json(
       { error: "Failed to create blog post" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-

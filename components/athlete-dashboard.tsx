@@ -1,11 +1,12 @@
 "use client";
 
+import { IconCalendar, IconCheck, IconClock, IconX } from "@tabler/icons-react";
+import Link from "next/link";
 import { useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/page-header";
-import { IconCheck, IconX, IconClock, IconCalendar } from "@tabler/icons-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 
 interface Occurrence {
   id: string;
@@ -20,18 +21,34 @@ interface Occurrence {
   goingAthletesCount: number;
 }
 
+interface ActiveNotice {
+  id: string;
+  title: string;
+  content: string;
+  createdAt: Date | string;
+  author: { id: string; name: string | null };
+}
+
 interface AthleteDashboardProps {
   userName: string | null;
   occurrences: Occurrence[];
+  activeNotice: ActiveNotice | null;
 }
 
-export function AthleteDashboard({ userName, occurrences }: AthleteDashboardProps) {
+export function AthleteDashboard({
+  userName,
+  occurrences,
+  activeNotice,
+}: AthleteDashboardProps) {
   const [rsvpStates, setRsvpStates] = useState<Record<string, string | null>>(
-    Object.fromEntries(occurrences.map((o) => [o.id, o.rsvpStatus]))
+    Object.fromEntries(occurrences.map((o) => [o.id, o.rsvpStatus])),
   );
   const [loading, setLoading] = useState<string | null>(null);
 
-  async function handleRsvp(occurrenceId: string, status: "going" | "not_going") {
+  async function handleRsvp(
+    occurrenceId: string,
+    status: "going" | "not_going",
+  ) {
     setLoading(occurrenceId);
     try {
       const response = await fetch("/api/rsvp", {
@@ -58,7 +75,8 @@ export function AthleteDashboard({ userName, occurrences }: AthleteDashboardProp
 
     let relative = "";
     if (date.toDateString() === today.toDateString()) relative = "Today";
-    else if (date.toDateString() === tomorrow.toDateString()) relative = "Tomorrow";
+    else if (date.toDateString() === tomorrow.toDateString())
+      relative = "Tomorrow";
 
     return {
       day: date.getDate().toString(),
@@ -70,7 +88,7 @@ export function AthleteDashboard({ userName, occurrences }: AthleteDashboardProp
 
   function formatTime(time: string) {
     const [hours, minutes] = time.split(":");
-    const hour = parseInt(hours);
+    const hour = parseInt(hours, 10);
     const ampm = hour >= 12 ? "PM" : "AM";
     const displayHour = hour % 12 || 12;
     return `${displayHour}:${minutes} ${ampm}`;
@@ -88,59 +106,104 @@ export function AthleteDashboard({ userName, occurrences }: AthleteDashboardProp
 
       <div className="flex-1 overflow-auto min-h-0">
         <div className="p-4 lg:p-6 space-y-6 max-w-2xl mx-auto">
+          {/* Active Notice */}
+          {activeNotice && (
+            <Card className="rounded-xl border border-primary/20 bg-primary/5">
+              <CardContent className="px-4 py-2">
+                <div className="flex-1 min-w-0 space-y-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="font-semibold text-sm leading-tight">
+                      {activeNotice.title}
+                    </h3>
+                    <Badge variant="default" className="rounded-lg text-xs">
+                      Notice
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground line-clamp-2">
+                    {activeNotice.content}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {occurrences.length === 0 ? (
             <Card className="rounded-xl border-dashed">
               <CardContent className="py-16 text-center">
                 <IconCalendar className="h-12 w-12 mx-auto mb-4 text-muted-foreground/30" />
                 <p className="text-muted-foreground">No upcoming events</p>
-                <p className="text-sm text-muted-foreground mt-1">Check back later for new sessions!</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Check back later for new sessions!
+                </p>
               </CardContent>
             </Card>
           ) : (
             <>
               {/* Featured Next Event */}
               {nextEvent && (
-                <Card className={`rounded-xl overflow-hidden ${
-                  rsvpStates[nextEvent.id] === "going"
-                    ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800"
-                    : rsvpStates[nextEvent.id] === "not_going"
-                    ? "bg-muted/50"
-                    : "bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20"
-                }`}>
-                  <CardContent className="p-6">
-                    <div className="flex items-start gap-4">
+                <Link
+                  href={`/events?eventId=${nextEvent.eventId}&occurrenceId=${nextEvent.id}`}
+                  className="block"
+                >
+                  <Card
+                    className={`rounded-xl overflow-hidden cursor-pointer transition-all hover:shadow-md ${
+                      rsvpStates[nextEvent.id] === "going"
+                        ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800"
+                        : rsvpStates[nextEvent.id] === "not_going"
+                          ? "bg-muted/50"
+                          : "bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20"
+                    }`}
+                  >
+                    <CardContent className="p-6">
+                      <div className="flex items-start gap-4">
                       {/* Big Date */}
-                      <div className={`h-20 w-20 rounded-xl flex flex-col items-center justify-center shrink-0 ${
-                        rsvpStates[nextEvent.id] === "going"
-                          ? "bg-emerald-500 text-white"
-                          : rsvpStates[nextEvent.id] === "not_going"
-                          ? "bg-muted text-muted-foreground"
-                          : "bg-primary text-primary-foreground"
-                      }`}>
-                        <span className="text-3xl font-bold leading-none">{formatDate(nextEvent.date).day}</span>
-                        <span className="text-xs font-medium opacity-80 mt-1">{formatDate(nextEvent.date).month}</span>
+                      <div
+                        className={`h-20 w-20 rounded-xl flex flex-col items-center justify-center shrink-0 ${
+                          rsvpStates[nextEvent.id] === "going"
+                            ? "bg-emerald-500 text-white"
+                            : rsvpStates[nextEvent.id] === "not_going"
+                              ? "bg-muted text-muted-foreground"
+                              : "bg-primary text-primary-foreground"
+                        }`}
+                      >
+                        <span className="text-3xl font-bold leading-none">
+                          {formatDate(nextEvent.date).day}
+                        </span>
+                        <span className="text-xs font-medium opacity-80 mt-1">
+                          {formatDate(nextEvent.date).month}
+                        </span>
                       </div>
 
                       {/* Event Details */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           {formatDate(nextEvent.date).relative && (
-                            <Badge variant="secondary" className="text-xs rounded-md">
+                            <Badge
+                              variant="secondary"
+                              className="text-xs rounded-md"
+                            >
                               {formatDate(nextEvent.date).relative}
                             </Badge>
                           )}
-                          <span className="text-xs text-muted-foreground">Next up</span>
+                          <span className="text-xs text-muted-foreground">
+                            Next up
+                          </span>
                         </div>
-                        <h2 className="text-xl font-semibold">{nextEvent.eventTitle}</h2>
+                        <h2 className="text-xl font-semibold">
+                          {nextEvent.eventTitle}
+                        </h2>
                         <p className="text-sm text-muted-foreground mt-1 flex items-center gap-2">
-                          <span className="whitespace-nowrap">{formatDate(nextEvent.date).weekday}</span>
+                          <span className="whitespace-nowrap">
+                            {formatDate(nextEvent.date).weekday}
+                          </span>
                           <span>•</span>
                           <span className="flex items-center gap-1">
                             <IconClock className="h-3.5 w-3.5" />
-                            {formatTime(nextEvent.startTime)} - {formatTime(nextEvent.endTime)}
+                            {formatTime(nextEvent.startTime)} -{" "}
+                            {formatTime(nextEvent.endTime)}
                           </span>
                         </p>
-                        
+
                         {/* Coaches and Athletes */}
                         <div className="flex items-center gap-2 mt-3 flex-wrap">
                           {nextEvent.goingCoaches.length > 0 && (
@@ -167,20 +230,40 @@ export function AthleteDashboard({ userName, occurrences }: AthleteDashboardProp
                         <div className="flex gap-2 mt-4">
                           <Button
                             size="lg"
-                            variant={rsvpStates[nextEvent.id] === "going" ? "default" : "outline"}
-                            onClick={() => handleRsvp(nextEvent.id, "going")}
+                            variant={
+                              rsvpStates[nextEvent.id] === "going"
+                                ? "default"
+                                : "outline"
+                            }
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleRsvp(nextEvent.id, "going");
+                            }}
                             disabled={loading === nextEvent.id}
                             className={`flex-1 h-12 rounded-xl gap-2 ${
-                              rsvpStates[nextEvent.id] === "going" ? "bg-emerald-600 hover:bg-emerald-700" : ""
+                              rsvpStates[nextEvent.id] === "going"
+                                ? "bg-emerald-600 hover:bg-emerald-700"
+                                : ""
                             }`}
                           >
                             <IconCheck className="h-5 w-5" />
-                            {rsvpStates[nextEvent.id] === "going" ? "Going!" : "I'm In"}
+                            {rsvpStates[nextEvent.id] === "going"
+                              ? "Going!"
+                              : "I'm In"}
                           </Button>
                           <Button
                             size="lg"
-                            variant={rsvpStates[nextEvent.id] === "not_going" ? "secondary" : "outline"}
-                            onClick={() => handleRsvp(nextEvent.id, "not_going")}
+                            variant={
+                              rsvpStates[nextEvent.id] === "not_going"
+                                ? "secondary"
+                                : "outline"
+                            }
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleRsvp(nextEvent.id, "not_going");
+                            }}
                             disabled={loading === nextEvent.id}
                             className="flex-1 h-12 rounded-xl gap-2"
                           >
@@ -192,33 +275,53 @@ export function AthleteDashboard({ userName, occurrences }: AthleteDashboardProp
                     </div>
                   </CardContent>
                 </Card>
+                </Link>
               )}
 
               {/* Rest of Events */}
               {occurrences.length > 1 && (
                 <div className="space-y-2">
-                  <h3 className="text-sm font-medium text-muted-foreground px-1">Coming Up</h3>
+                  <h3 className="text-sm font-medium text-muted-foreground px-1">
+                    Coming Up
+                  </h3>
                   {occurrences.slice(1).map((occ) => {
                     const dateInfo = formatDate(occ.date);
                     const rsvpStatus = rsvpStates[occ.id];
                     const isLoading = loading === occ.id;
 
                     return (
-                      <Card key={occ.id} className="rounded-xl">
-                        <CardContent className="p-4">
-                          <div className="flex items-center gap-4">
+                      <Link
+                        key={occ.id}
+                        href={`/events?eventId=${occ.eventId}&occurrenceId=${occ.id}`}
+                        className="block"
+                      >
+                        <Card className="rounded-xl cursor-pointer transition-all hover:shadow-md">
+                          <CardContent className="p-4">
+                            <div className="flex items-center gap-4">
                             {/* Date */}
-                            <div className={`h-14 w-14 rounded-xl flex flex-col items-center justify-center shrink-0 ${
-                              rsvpStatus === "going"
-                                ? "bg-emerald-100 dark:bg-emerald-950/50"
-                                : rsvpStatus === "not_going"
-                                ? "bg-muted"
-                                : "bg-primary/10"
-                            }`}>
-                              <span className={`text-lg font-bold leading-none ${
-                                rsvpStatus === "going" ? "text-emerald-600" : rsvpStatus === "not_going" ? "text-muted-foreground" : ""
-                              }`}>{dateInfo.day}</span>
-                              <span className="text-[10px] font-medium text-muted-foreground">{dateInfo.month}</span>
+                            <div
+                              className={`h-14 w-14 rounded-xl flex flex-col items-center justify-center shrink-0 ${
+                                rsvpStatus === "going"
+                                  ? "bg-emerald-100 dark:bg-emerald-950/50"
+                                  : rsvpStatus === "not_going"
+                                    ? "bg-muted"
+                                    : "bg-primary/10"
+                              }`}
+                            >
+                              <span
+                                className={`text-lg font-bold leading-none ${
+                                  rsvpStatus === "going"
+                                    ? "text-emerald-600"
+                                    : rsvpStatus === "not_going"
+                                      ? "text-muted-foreground"
+                                      : ""
+                                }`}
+                              >
+                                {dateInfo.day}
+                              </span>
+                              <span className="text-[10px] font-medium text-muted-foreground">
+                                {dateInfo.month}
+                              </span>
                             </div>
 
                             {/* Details */}
@@ -255,19 +358,35 @@ export function AthleteDashboard({ userName, occurrences }: AthleteDashboardProp
                             <div className="flex gap-1">
                               <Button
                                 size="sm"
-                                variant={rsvpStatus === "going" ? "default" : "outline"}
-                                onClick={() => handleRsvp(occ.id, "going")}
+                                variant={
+                                  rsvpStatus === "going" ? "default" : "outline"
+                                }
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  handleRsvp(occ.id, "going");
+                                }}
                                 disabled={isLoading}
                                 className={`h-9 w-9 p-0 rounded-lg ${
-                                  rsvpStatus === "going" ? "bg-emerald-600 hover:bg-emerald-700" : ""
+                                  rsvpStatus === "going"
+                                    ? "bg-emerald-600 hover:bg-emerald-700"
+                                    : ""
                                 }`}
                               >
                                 <IconCheck className="h-4 w-4" />
                               </Button>
                               <Button
                                 size="sm"
-                                variant={rsvpStatus === "not_going" ? "secondary" : "outline"}
-                                onClick={() => handleRsvp(occ.id, "not_going")}
+                                variant={
+                                  rsvpStatus === "not_going"
+                                    ? "secondary"
+                                    : "outline"
+                                }
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  handleRsvp(occ.id, "not_going");
+                                }}
                                 disabled={isLoading}
                                 className="h-9 w-9 p-0 rounded-lg"
                               >
@@ -277,6 +396,7 @@ export function AthleteDashboard({ userName, occurrences }: AthleteDashboardProp
                           </div>
                         </CardContent>
                       </Card>
+                      </Link>
                     );
                   })}
                 </div>
@@ -288,4 +408,3 @@ export function AthleteDashboard({ userName, occurrences }: AthleteDashboardProp
     </div>
   );
 }
-

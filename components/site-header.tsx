@@ -1,7 +1,7 @@
-import { SidebarTrigger } from "@/components/ui/sidebar"
+import { SidebarTrigger } from "@/components/ui/sidebar";
 
 interface SiteHeaderProps {
-  gymName?: string | null
+  gymName?: string | null;
 }
 
 export function SiteHeader({ gymName }: SiteHeaderProps) {
@@ -11,5 +11,5 @@ export function SiteHeader({ gymName }: SiteHeaderProps) {
         <SidebarTrigger className="-ml-1" />
       </div>
     </header>
-  )
+  );
 }

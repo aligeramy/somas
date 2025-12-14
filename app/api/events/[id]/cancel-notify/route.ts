@@ -1,17 +1,17 @@
+import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { db } from "@/lib/db";
-import { users, events, eventOccurrences, rsvps, gyms } from "@/drizzle/schema";
-import { eq, and } from "drizzle-orm";
 import { Resend } from "resend";
+import { eventOccurrences, events, gyms, rsvps, users } from "@/drizzle/schema";
 import { EventReminderEmail } from "@/emails/event-reminder";
+import { db } from "@/lib/db";
+import { createClient } from "@/lib/supabase/server";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 // POST - Cancel occurrence and notify all going users
 export async function POST(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id: eventId } = await params;
@@ -24,20 +24,33 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const [dbUser] = await db.select().from(users).where(eq(users.id, user.id)).limit(1);
+    const [dbUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, user.id))
+      .limit(1);
 
     if (!dbUser || !dbUser.gymId) {
-      return NextResponse.json({ error: "User must belong to a gym" }, { status: 400 });
+      return NextResponse.json(
+        { error: "User must belong to a gym" },
+        { status: 400 },
+      );
     }
 
     if (dbUser.role !== "owner" && dbUser.role !== "coach") {
-      return NextResponse.json({ error: "Only head coaches and coaches can cancel events" }, { status: 403 });
+      return NextResponse.json(
+        { error: "Only head coaches and coaches can cancel events" },
+        { status: 403 },
+      );
     }
 
     const { occurrenceId, notifyUsers = true } = await request.json();
 
     if (!occurrenceId) {
-      return NextResponse.json({ error: "Occurrence ID is required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Occurrence ID is required" },
+        { status: 400 },
+      );
     }
 
     // Get occurrence with event details
@@ -51,13 +64,16 @@ export async function POST(
       .where(
         and(
           eq(eventOccurrences.id, occurrenceId),
-          eq(events.gymId, dbUser.gymId)
-        )
+          eq(events.gymId, dbUser.gymId),
+        ),
       )
       .limit(1);
 
     if (!occurrenceData) {
-      return NextResponse.json({ error: "Occurrence not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Occurrence not found" },
+        { status: 404 },
+      );
     }
 
     if (occurrenceData.occurrence.status === "canceled") {
@@ -93,8 +109,8 @@ export async function POST(
           .where(
             and(
               eq(rsvps.occurrenceId, occurrenceId),
-              eq(rsvps.status, "going")
-            )
+              eq(rsvps.status, "going"),
+            ),
           );
 
         // Format date for email
@@ -103,14 +119,15 @@ export async function POST(
 
         const formatTime = (time: string) => {
           const [hours, minutes] = time.split(":");
-          const hour = parseInt(hours);
+          const hour = parseInt(hours, 10);
           const ampm = hour >= 12 ? "PM" : "AM";
           const displayHour = hour % 12 || 12;
           return `${displayHour}:${minutes} ${ampm}`;
         };
 
         const timeStr = `${formatTime(occurrenceData.event.startTime)} - ${formatTime(occurrenceData.event.endTime)}`;
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+        const appUrl =
+          process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
         // Send cancellation emails
         for (const { user: targetUser } of goingRsvps) {
@@ -144,7 +161,9 @@ export async function POST(
     });
   } catch (error) {
     console.error("Cancel and notify error:", error);
-    return NextResponse.json({ error: "Failed to cancel event" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to cancel event" },
+      { status: 500 },
+    );
   }
 }
-

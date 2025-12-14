@@ -27,7 +27,12 @@ export function LandingHeader() {
           </nav>
         </div>
         <div className="flex items-center gap-2 sm:gap-4 ml-auto">
-          <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
+          <Button
+            asChild
+            variant="ghost"
+            size="sm"
+            className="hidden sm:inline-flex"
+          >
             <Link href="/login">Sign In</Link>
           </Button>
           <Button asChild size="sm">
@@ -38,4 +43,3 @@ export function LandingHeader() {
     </header>
   );
 }
-

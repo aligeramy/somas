@@ -52,7 +52,9 @@ export function SignupForm({
               </div>
               <span className="sr-only">Titans of Mississauga</span>
             </div>
-            <h1 className="text-xl font-bold">Welcome to Titans of Mississauga</h1>
+            <h1 className="text-xl font-bold">
+              Welcome to Titans of Mississauga
+            </h1>
             <FieldDescription>
               Already have an account?{" "}
               <a href="/login" className="underline">

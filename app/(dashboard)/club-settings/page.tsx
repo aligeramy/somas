@@ -1,16 +1,27 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { PageHeader } from "@/components/page-header";
-import { IconCamera, IconCheck, IconBuilding, IconPlus, IconMail, IconPhone } from "@tabler/icons-react";
+import {
+  IconBuilding,
+  IconCamera,
+  IconCheck,
+  IconDotsVertical,
+  IconMail,
+  IconPhone,
+  IconPlus,
+} from "@tabler/icons-react";
+import { useCallback, useEffect, useState } from "react";
 import { useDropzone } from "react-dropzone";
-import { createClient } from "@/lib/supabase/client";
+import { PageHeader } from "@/components/page-header";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -20,15 +31,17 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { IconDotsVertical } from "@tabler/icons-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Skeleton } from "@/components/ui/skeleton";
+import { createClient } from "@/lib/supabase/client";
 
 interface ClubProfile {
   id: string;
@@ -72,26 +85,29 @@ export default function ClubSettingsPage() {
   const [isAddCoachDialogOpen, setIsAddCoachDialogOpen] = useState(false);
   const [coachEmail, setCoachEmail] = useState("");
   const [invitingCoach, setInvitingCoach] = useState(false);
-  const [currentUserRole, setCurrentUserRole] = useState<"owner" | "coach" | "athlete" | null>(null);
+  const [currentUserRole, setCurrentUserRole] = useState<
+    "owner" | "coach" | "athlete" | null
+  >(null);
   const [changingRole, setChangingRole] = useState<string | null>(null);
 
-  const { getRootProps: getLogoRootProps, getInputProps: getLogoInputProps } = useDropzone({
-    accept: {
-      "image/*": [".png", ".jpg", ".jpeg", ".gif", ".webp"],
-    },
-    maxFiles: 1,
-    onDrop: (acceptedFiles) => {
-      if (acceptedFiles.length > 0) {
-        const file = acceptedFiles[0];
-        setClubLogoFile(file);
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setClubLogoPreview(reader.result as string);
-        };
-        reader.readAsDataURL(file);
-      }
-    },
-  });
+  const { getRootProps: getLogoRootProps, getInputProps: getLogoInputProps } =
+    useDropzone({
+      accept: {
+        "image/*": [".png", ".jpg", ".jpeg", ".gif", ".webp"],
+      },
+      maxFiles: 1,
+      onDrop: (acceptedFiles) => {
+        if (acceptedFiles.length > 0) {
+          const file = acceptedFiles[0];
+          setClubLogoFile(file);
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            setClubLogoPreview(reader.result as string);
+          };
+          reader.readAsDataURL(file);
+        }
+      },
+    });
 
   const loadCoaches = useCallback(async () => {
     setLoadingCoaches(true);
@@ -100,7 +116,9 @@ export default function ClubSettingsPage() {
       if (!response.ok) throw new Error("Failed to load coaches");
       const data = await response.json();
       // Include both coaches and owners (head coaches)
-      const coachesList = data.roster.filter((user: Coach) => user.role === "coach" || user.role === "owner");
+      const coachesList = data.roster.filter(
+        (user: Coach) => user.role === "coach" || user.role === "owner",
+      );
       setCoaches(coachesList);
     } catch (err) {
       console.error("Failed to load coaches:", err);
@@ -141,7 +159,6 @@ export default function ClubSettingsPage() {
     loadCoaches();
     loadCurrentUserRole();
   }, [loadClub, loadCoaches, loadCurrentUserRole]);
-
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -191,7 +208,7 @@ export default function ClubSettingsPage() {
       });
 
       if (!clubResponse.ok) throw new Error("Failed to save club");
-      
+
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
       await loadClub(); // Reload to get updated data
@@ -245,7 +262,12 @@ export default function ClubSettingsPage() {
 
   function getInitials(name: string | null, email: string) {
     if (name) {
-      return name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
+      return name
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2);
     }
     return email[0].toUpperCase();
   }
@@ -253,7 +275,7 @@ export default function ClubSettingsPage() {
   async function handleRoleChange(coachId: string, newRole: "coach" | "owner") {
     setChangingRole(coachId);
     setError(null);
-    
+
     try {
       const response = await fetch(`/api/roster/${coachId}`, {
         method: "PUT",
@@ -305,15 +327,24 @@ export default function ClubSettingsPage() {
 
   return (
     <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
-      <PageHeader title="Club Settings" description="Manage your club information">
-        <Button onClick={handleSave} disabled={saving} className="gap-2 rounded-xl">
+      <PageHeader
+        title="Club Settings"
+        description="Manage your club information"
+      >
+        <Button
+          onClick={handleSave}
+          disabled={saving}
+          className="gap-2 rounded-xl"
+        >
           {success ? (
             <>
               <IconCheck className="h-4 w-4" />
               Saved
             </>
+          ) : saving ? (
+            "Saving..."
           ) : (
-            saving ? "Saving..." : "Save Changes"
+            "Save Changes"
           )}
         </Button>
       </PageHeader>
@@ -361,7 +392,8 @@ export default function ClubSettingsPage() {
                 </div>
                 <div className="flex-1">
                   <p className="text-sm text-muted-foreground">
-                    Click the camera icon to upload a new logo. Recommended size: 512x512px
+                    Click the camera icon to upload a new logo. Recommended
+                    size: 512x512px
                   </p>
                 </div>
               </div>
@@ -372,11 +404,15 @@ export default function ClubSettingsPage() {
           <Card className="rounded-xl">
             <CardHeader>
               <CardTitle className="text-base">Club Information</CardTitle>
-              <CardDescription>Update your club's basic information</CardDescription>
+              <CardDescription>
+                Update your club's basic information
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="clubName" className="text-sm">Club Name</Label>
+                <Label htmlFor="clubName" className="text-sm">
+                  Club Name
+                </Label>
                 <Input
                   id="clubName"
                   value={clubName}
@@ -387,7 +423,9 @@ export default function ClubSettingsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="clubWebsite" className="text-sm">Website</Label>
+                <Label htmlFor="clubWebsite" className="text-sm">
+                  Website
+                </Label>
                 <Input
                   id="clubWebsite"
                   type="url"
@@ -397,7 +435,8 @@ export default function ClubSettingsPage() {
                   className="rounded-xl h-11"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Enter your club's website URL. This will be visible to all members.
+                  Enter your club's website URL. This will be visible to all
+                  members.
                 </p>
               </div>
             </CardContent>
@@ -411,7 +450,10 @@ export default function ClubSettingsPage() {
                   <CardTitle className="text-base">Coaches</CardTitle>
                   <CardDescription>Manage your club's coaches</CardDescription>
                 </div>
-                <Dialog open={isAddCoachDialogOpen} onOpenChange={setIsAddCoachDialogOpen}>
+                <Dialog
+                  open={isAddCoachDialogOpen}
+                  onOpenChange={setIsAddCoachDialogOpen}
+                >
                   <DialogTrigger asChild>
                     <Button size="sm" className="gap-2 rounded-xl">
                       <IconPlus className="h-4 w-4" />
@@ -422,7 +464,8 @@ export default function ClubSettingsPage() {
                     <DialogHeader>
                       <DialogTitle>Invite Coach</DialogTitle>
                       <DialogDescription>
-                        Send an invitation email to add a new coach to your club.
+                        Send an invitation email to add a new coach to your
+                        club.
                       </DialogDescription>
                     </DialogHeader>
                     <form onSubmit={handleInviteCoach}>
@@ -449,7 +492,11 @@ export default function ClubSettingsPage() {
                         >
                           Cancel
                         </Button>
-                        <Button type="submit" disabled={invitingCoach} className="rounded-xl">
+                        <Button
+                          type="submit"
+                          disabled={invitingCoach}
+                          className="rounded-xl"
+                        >
                           {invitingCoach ? "Sending..." : "Send Invitation"}
                         </Button>
                       </DialogFooter>
@@ -468,7 +515,9 @@ export default function ClubSettingsPage() {
               ) : coaches.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <p>No coaches yet</p>
-                  <p className="text-sm mt-1">Add coaches to help manage your club</p>
+                  <p className="text-sm mt-1">
+                    Add coaches to help manage your club
+                  </p>
                 </div>
               ) : (
                 <ScrollArea className="h-[400px]">
@@ -500,8 +549,10 @@ export default function ClubSettingsPage() {
                           )}
                         </div>
                         <div className="flex items-center gap-2">
-                          <Badge 
-                            variant={coach.role === "owner" ? "default" : "secondary"} 
+                          <Badge
+                            variant={
+                              coach.role === "owner" ? "default" : "secondary"
+                            }
                             className="rounded-lg"
                           >
                             {formatRole(coach.role)}
@@ -518,10 +569,15 @@ export default function ClubSettingsPage() {
                                   <IconDotsVertical className="h-4 w-4" />
                                 </Button>
                               </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="rounded-xl">
+                              <DropdownMenuContent
+                                align="end"
+                                className="rounded-xl"
+                              >
                                 {coach.role === "coach" ? (
                                   <DropdownMenuItem
-                                    onClick={() => handleRoleChange(coach.id, "owner")}
+                                    onClick={() =>
+                                      handleRoleChange(coach.id, "owner")
+                                    }
                                     disabled={changingRole === coach.id}
                                     className="rounded-lg"
                                   >
@@ -529,7 +585,9 @@ export default function ClubSettingsPage() {
                                   </DropdownMenuItem>
                                 ) : (
                                   <DropdownMenuItem
-                                    onClick={() => handleRoleChange(coach.id, "coach")}
+                                    onClick={() =>
+                                      handleRoleChange(coach.id, "coach")
+                                    }
                                     disabled={changingRole === coach.id}
                                     className="rounded-lg"
                                   >
@@ -552,4 +610,3 @@ export default function ClubSettingsPage() {
     </div>
   );
 }
-

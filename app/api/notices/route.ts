@@ -1,13 +1,13 @@
+import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { db } from "@/lib/db";
-import { users, notices } from "@/drizzle/schema";
-import { eq, and } from "drizzle-orm";
 import { Resend } from "resend";
+import { notices, users } from "@/drizzle/schema";
+import { db } from "@/lib/db";
+import { createClient } from "@/lib/supabase/server";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-export async function GET(request: Request) {
+export async function GET(_request: Request) {
   try {
     const supabase = await createClient();
     const {
@@ -18,12 +18,16 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const [dbUser] = await db.select().from(users).where(eq(users.id, user.id)).limit(1);
+    const [dbUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, user.id))
+      .limit(1);
 
     if (!dbUser || !dbUser.gymId) {
       return NextResponse.json(
         { error: "User must belong to a gym" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -49,7 +53,7 @@ export async function GET(request: Request) {
     console.error("Notice fetch error:", error);
     return NextResponse.json(
       { error: "Failed to fetch notice" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -65,12 +69,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const [dbUser] = await db.select().from(users).where(eq(users.id, user.id)).limit(1);
+    const [dbUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, user.id))
+      .limit(1);
 
     if (!dbUser || !dbUser.gymId) {
       return NextResponse.json(
         { error: "User must belong to a gym" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -84,7 +92,7 @@ export async function POST(request: Request) {
     if (!title || !content) {
       return NextResponse.json(
         { error: "Title and content are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -145,7 +153,7 @@ export async function POST(request: Request) {
     console.error("Notice creation error:", error);
     return NextResponse.json(
       { error: "Failed to create notice" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -161,12 +169,16 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const [dbUser] = await db.select().from(users).where(eq(users.id, user.id)).limit(1);
+    const [dbUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, user.id))
+      .limit(1);
 
     if (!dbUser || !dbUser.gymId) {
       return NextResponse.json(
         { error: "User must belong to a gym" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -180,7 +192,7 @@ export async function PUT(request: Request) {
     if (id === undefined || active === undefined) {
       return NextResponse.json(
         { error: "ID and active status are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -203,11 +215,7 @@ export async function PUT(request: Request) {
     console.error("Notice update error:", error);
     return NextResponse.json(
       { error: "Failed to update notice" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-
-
-
-

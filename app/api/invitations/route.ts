@@ -1,11 +1,11 @@
+import { randomBytes } from "node:crypto";
+import { and, eq, gt } from "drizzle-orm";
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { db } from "@/lib/db";
-import { users, invitations, gyms } from "@/drizzle/schema";
-import { eq, and, gt } from "drizzle-orm";
 import { Resend } from "resend";
+import { gyms, invitations, users } from "@/drizzle/schema";
 import { InvitationEmail } from "@/emails/invitation";
-import { randomBytes } from "crypto";
+import { db } from "@/lib/db";
+import { createClient } from "@/lib/supabase/server";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -20,7 +20,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const [dbUser] = await db.select().from(users).where(eq(users.id, user.id)).limit(1);
+    const [dbUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, user.id))
+      .limit(1);
 
     if (!dbUser || !dbUser.gymId) {
       return NextResponse.json(
@@ -30,13 +34,14 @@ export async function POST(request: Request) {
     }
 
     // Get gym info
-    const [gym] = await db.select().from(gyms).where(eq(gyms.id, dbUser.gymId)).limit(1);
+    const [gym] = await db
+      .select()
+      .from(gyms)
+      .where(eq(gyms.id, dbUser.gymId))
+      .limit(1);
 
     if (!gym) {
-      return NextResponse.json(
-        { error: "Gym not found" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Gym not found" }, { status: 400 });
     }
 
     // Only head coaches and coaches can invite
@@ -66,7 +71,11 @@ export async function POST(request: Request) {
     for (const email of emails) {
       try {
         // Check if user already exists
-        const [existingUser] = await db.select().from(users).where(eq(users.email, email)).limit(1);
+        const [existingUser] = await db
+          .select()
+          .from(users)
+          .where(eq(users.email, email))
+          .limit(1);
 
         if (existingUser) {
           errors.push({ email, error: "User already exists" });
@@ -74,15 +83,16 @@ export async function POST(request: Request) {
         }
 
         // Check for existing invitation
-        const [existingInvitation] = await db.select()
+        const [existingInvitation] = await db
+          .select()
           .from(invitations)
           .where(
             and(
               eq(invitations.email, email),
               eq(invitations.gymId, dbUser.gymId),
               eq(invitations.used, false),
-              gt(invitations.expiresAt, new Date())
-            )
+              gt(invitations.expiresAt, new Date()),
+            ),
           )
           .limit(1);
 
@@ -97,17 +107,20 @@ export async function POST(request: Request) {
         expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
 
         // Create invitation with optional user info
-        const [invitation] = await db.insert(invitations).values({
-          gymId: dbUser.gymId,
-          email,
-          role: role as "coach" | "athlete",
-          token,
-          invitedById: user.id,
-          expiresAt,
-          name: userInfo?.name || null,
-          phone: userInfo?.phone || null,
-          address: userInfo?.address || null,
-        }).returning();
+        const [invitation] = await db
+          .insert(invitations)
+          .values({
+            gymId: dbUser.gymId,
+            email,
+            role: role as "coach" | "athlete",
+            token,
+            invitedById: user.id,
+            expiresAt,
+            name: userInfo?.name || null,
+            phone: userInfo?.phone || null,
+            address: userInfo?.address || null,
+          })
+          .returning();
 
         // Send email
         const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL}/register?token=${token}&email=${encodeURIComponent(email)}`;
@@ -147,4 +160,3 @@ export async function POST(request: Request) {
     );
   }
 }
-

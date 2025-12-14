@@ -1,4 +1,4 @@
-import Expo, { ExpoPushMessage } from "expo-server-sdk";
+import Expo, { type ExpoPushMessage } from "expo-server-sdk";
 
 const expo = new Expo();
 
@@ -6,7 +6,7 @@ export async function sendPushNotification(
   pushTokens: string[],
   title: string,
   body: string,
-  data?: Record<string, unknown>
+  data?: Record<string, unknown>,
 ) {
   if (pushTokens.length === 0) {
     return [];
@@ -26,12 +26,12 @@ export async function sendPushNotification(
       title,
       body,
     };
-    
+
     // Only add data if it's provided and is a valid object
     if (data && typeof data === "object" && Object.keys(data).length > 0) {
       message.data = data;
     }
-    
+
     messages.push(message);
   }
 

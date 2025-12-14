@@ -1,12 +1,12 @@
+import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { blogPosts, users } from "@/drizzle/schema";
 import { db } from "@/lib/db";
-import { users, blogPosts } from "@/drizzle/schema";
-import { eq, and } from "drizzle-orm";
+import { createClient } from "@/lib/supabase/server";
 
 export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
@@ -19,12 +19,16 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const [dbUser] = await db.select().from(users).where(eq(users.id, user.id)).limit(1);
+    const [dbUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, user.id))
+      .limit(1);
 
     if (!dbUser || !dbUser.gymId) {
       return NextResponse.json(
         { error: "User must belong to a gym" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -45,9 +49,7 @@ export async function GET(
       })
       .from(blogPosts)
       .innerJoin(users, eq(blogPosts.authorId, users.id))
-      .where(
-        and(eq(blogPosts.id, id), eq(blogPosts.gymId, dbUser.gymId))
-      )
+      .where(and(eq(blogPosts.id, id), eq(blogPosts.gymId, dbUser.gymId)))
       .limit(1);
 
     if (!post) {
@@ -59,14 +61,14 @@ export async function GET(
     console.error("Blog post fetch error:", error);
     return NextResponse.json(
       { error: "Failed to fetch blog post" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 export async function PUT(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
@@ -84,23 +86,30 @@ export async function PUT(
     let retries = 3;
     while (retries > 0) {
       try {
-        const result = await db.select().from(users).where(eq(users.id, user.id)).limit(1);
+        const result = await db
+          .select()
+          .from(users)
+          .where(eq(users.id, user.id))
+          .limit(1);
         dbUser = result[0];
         break;
       } catch (error: any) {
         retries--;
-        if (retries === 0 || (error?.code !== 'ECONNRESET' && error?.code !== 'ETIMEDOUT')) {
+        if (
+          retries === 0 ||
+          (error?.code !== "ECONNRESET" && error?.code !== "ETIMEDOUT")
+        ) {
           throw error;
         }
         // Wait before retrying
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 1000));
       }
     }
 
     if (!dbUser || !dbUser.gymId) {
       return NextResponse.json(
         { error: "User must belong to a gym" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -125,10 +134,13 @@ export async function PUT(
         break;
       } catch (error: any) {
         retries--;
-        if (retries === 0 || (error?.code !== 'ECONNRESET' && error?.code !== 'ETIMEDOUT')) {
+        if (
+          retries === 0 ||
+          (error?.code !== "ECONNRESET" && error?.code !== "ETIMEDOUT")
+        ) {
           throw error;
         }
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 1000));
       }
     }
 
@@ -157,29 +169,30 @@ export async function PUT(
         break;
       } catch (error: any) {
         retries--;
-        if (retries === 0 || (error?.code !== 'ECONNRESET' && error?.code !== 'ETIMEDOUT')) {
+        if (
+          retries === 0 ||
+          (error?.code !== "ECONNRESET" && error?.code !== "ETIMEDOUT")
+        ) {
           throw error;
         }
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 1000));
       }
     }
 
     return NextResponse.json({ post: updatedPost });
   } catch (error: any) {
     console.error("Blog post update error:", error);
-    const errorMessage = error?.code === 'ECONNRESET' || error?.code === 'ETIMEDOUT'
-      ? "Database connection error. Please try again."
-      : "Failed to update blog post";
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
-    );
+    const errorMessage =
+      error?.code === "ECONNRESET" || error?.code === "ETIMEDOUT"
+        ? "Database connection error. Please try again."
+        : "Failed to update blog post";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
 
 export async function DELETE(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
@@ -197,22 +210,29 @@ export async function DELETE(
     let retries = 3;
     while (retries > 0) {
       try {
-        const result = await db.select().from(users).where(eq(users.id, user.id)).limit(1);
+        const result = await db
+          .select()
+          .from(users)
+          .where(eq(users.id, user.id))
+          .limit(1);
         dbUser = result[0];
         break;
       } catch (error: any) {
         retries--;
-        if (retries === 0 || (error?.code !== 'ECONNRESET' && error?.code !== 'ETIMEDOUT')) {
+        if (
+          retries === 0 ||
+          (error?.code !== "ECONNRESET" && error?.code !== "ETIMEDOUT")
+        ) {
           throw error;
         }
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 1000));
       }
     }
 
     if (!dbUser || !dbUser.gymId) {
       return NextResponse.json(
         { error: "User must belong to a gym" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -235,10 +255,13 @@ export async function DELETE(
         break;
       } catch (error: any) {
         retries--;
-        if (retries === 0 || (error?.code !== 'ECONNRESET' && error?.code !== 'ETIMEDOUT')) {
+        if (
+          retries === 0 ||
+          (error?.code !== "ECONNRESET" && error?.code !== "ETIMEDOUT")
+        ) {
           throw error;
         }
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 1000));
       }
     }
 
@@ -254,23 +277,23 @@ export async function DELETE(
         break;
       } catch (error: any) {
         retries--;
-        if (retries === 0 || (error?.code !== 'ECONNRESET' && error?.code !== 'ETIMEDOUT')) {
+        if (
+          retries === 0 ||
+          (error?.code !== "ECONNRESET" && error?.code !== "ETIMEDOUT")
+        ) {
           throw error;
         }
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 1000));
       }
     }
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error("Blog post deletion error:", error);
-    const errorMessage = error?.code === 'ECONNRESET' || error?.code === 'ETIMEDOUT'
-      ? "Database connection error. Please try again."
-      : "Failed to delete blog post";
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
-    );
+    const errorMessage =
+      error?.code === "ECONNRESET" || error?.code === "ETIMEDOUT"
+        ? "Database connection error. Please try again."
+        : "Failed to delete blog post";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
-

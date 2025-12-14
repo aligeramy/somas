@@ -1,10 +1,4 @@
-import {
-  Button,
-  Heading,
-  Section,
-  Text,
-} from "@react-email/components";
-import * as React from "react";
+import { Button, Heading, Section, Text } from "@react-email/components";
 import { BaseLayout } from "./base-layout";
 
 interface EventReminderEmailProps {
@@ -38,44 +32,53 @@ export function EventReminderEmail({
       gymName={gymName}
       gymLogoUrl={gymLogoUrl}
     >
-      <Heading style={heading}>
+      <Heading className="text-2xl font-bold text-zinc-900 mb-6 text-center">
         {reminderText}
       </Heading>
 
-      <Text style={greeting}>
+      <Text className="text-base text-zinc-900 mb-4">
         Hey {athleteName.split(" ")[0] || "there"},
       </Text>
 
-      <Text style={paragraph}>
+      <Text className="text-[15px] text-gray-600 leading-6 mb-6">
         Just a friendly reminder about your upcoming session.
       </Text>
 
       {/* Event Card */}
-      <Section style={eventCard}>
-        <div style={dateBox}>
-          <Text style={dateDay}>{eventDate.split(" ")[0]}</Text>
-          <Text style={dateMonth}>{eventDate.split(" ")[1]}</Text>
+      <Section className="bg-gray-50 rounded-xl p-4 mb-6 flex items-center gap-4">
+        <div className="bg-zinc-900 rounded-lg py-3 px-4 text-center min-w-[60px]">
+          <Text className="text-white text-2xl font-bold m-0 leading-none">
+            {eventDate.split(" ")[0]}
+          </Text>
+          <Text className="text-zinc-400 text-xs font-medium mt-1 mb-0 uppercase">
+            {eventDate.split(" ")[1]}
+          </Text>
         </div>
-        <div style={eventDetails}>
-          <Text style={eventTitle_style}>{eventTitle}</Text>
-          <Text style={eventMeta}>{eventTime}</Text>
+        <div className="flex-1">
+          <Text className="text-base font-semibold text-zinc-900 mb-1 mt-0">
+            {eventTitle}
+          </Text>
+          <Text className="text-sm text-gray-500 m-0">{eventTime}</Text>
           {eventLocation && (
-            <Text style={eventMeta}>{eventLocation}</Text>
+            <Text className="text-sm text-gray-500 m-0">{eventLocation}</Text>
           )}
         </div>
       </Section>
 
-      <Text style={paragraph}>
+      <Text className="text-[15px] text-gray-600 leading-6 mb-6">
         Let us know if you're coming!
       </Text>
 
-      <Section style={buttonContainer}>
-        <Button style={primaryButton} href={rsvpUrl}>
+      <Section className="text-center mb-6">
+        <Button
+          className="bg-zinc-900 rounded-lg text-white text-[15px] font-semibold no-underline text-center py-3.5 px-7"
+          href={rsvpUrl}
+        >
           Confirm Attendance
         </Button>
       </Section>
 
-      <Text style={smallText}>
+      <Text className="text-[13px] text-gray-400 text-center m-0">
         Can't make it? Update your RSVP to let the coach know.
       </Text>
     </BaseLayout>
@@ -99,100 +102,4 @@ function getReminderText(type: string): string {
   }
 }
 
-const heading = {
-  fontSize: "24px",
-  fontWeight: "700" as const,
-  color: "#18181b",
-  margin: "0 0 24px",
-  textAlign: "center" as const,
-};
-
-const greeting = {
-  fontSize: "16px",
-  color: "#18181b",
-  margin: "0 0 16px",
-};
-
-const paragraph = {
-  fontSize: "15px",
-  color: "#4b5563",
-  lineHeight: "24px",
-  margin: "0 0 24px",
-};
-
-const eventCard = {
-  backgroundColor: "#f9fafb",
-  borderRadius: "12px",
-  padding: "16px",
-  marginBottom: "24px",
-  display: "flex",
-  alignItems: "center",
-  gap: "16px",
-};
-
-const dateBox = {
-  backgroundColor: "#18181b",
-  borderRadius: "10px",
-  padding: "12px 16px",
-  textAlign: "center" as const,
-  minWidth: "60px",
-};
-
-const dateDay = {
-  color: "#ffffff",
-  fontSize: "24px",
-  fontWeight: "700" as const,
-  margin: "0",
-  lineHeight: "1",
-};
-
-const dateMonth = {
-  color: "#a1a1aa",
-  fontSize: "12px",
-  fontWeight: "500" as const,
-  margin: "4px 0 0",
-  textTransform: "uppercase" as const,
-};
-
-const eventDetails = {
-  flex: "1",
-};
-
-const eventTitle_style = {
-  fontSize: "16px",
-  fontWeight: "600" as const,
-  color: "#18181b",
-  margin: "0 0 4px",
-};
-
-const eventMeta = {
-  fontSize: "14px",
-  color: "#6b7280",
-  margin: "0",
-};
-
-const buttonContainer = {
-  textAlign: "center" as const,
-  marginBottom: "24px",
-};
-
-const primaryButton = {
-  backgroundColor: "#18181b",
-  borderRadius: "10px",
-  color: "#ffffff",
-  fontSize: "15px",
-  fontWeight: "600" as const,
-  textDecoration: "none",
-  textAlign: "center" as const,
-  padding: "14px 28px",
-};
-
-const smallText = {
-  fontSize: "13px",
-  color: "#9ca3af",
-  textAlign: "center" as const,
-  margin: "0",
-};
-
 export default EventReminderEmail;
-

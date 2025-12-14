@@ -1,16 +1,16 @@
-import { notFound } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-import { db } from "@/lib/db";
-import { users, blogPosts } from "@/drizzle/schema";
-import { eq, and } from "drizzle-orm";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { PageHeader } from "@/components/page-header";
-import { format } from "date-fns";
-import Link from "next/link";
 import { IconArrowLeft } from "@tabler/icons-react";
+import { format } from "date-fns";
+import { and, eq } from "drizzle-orm";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { PageHeader } from "@/components/page-header";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { blogPosts, users } from "@/drizzle/schema";
+import { db } from "@/lib/db";
+import { createClient } from "@/lib/supabase/server";
 
 export default async function BlogPostPage({
   params,
@@ -26,7 +26,11 @@ export default async function BlogPostPage({
     return notFound();
   }
 
-  const [dbUser] = await db.select().from(users).where(eq(users.id, authUser.id)).limit(1);
+  const [dbUser] = await db
+    .select()
+    .from(users)
+    .where(eq(users.id, authUser.id))
+    .limit(1);
 
   if (!dbUser || !dbUser.gymId) {
     return notFound();
@@ -49,9 +53,7 @@ export default async function BlogPostPage({
     })
     .from(blogPosts)
     .innerJoin(users, eq(blogPosts.authorId, users.id))
-    .where(
-      and(eq(blogPosts.id, params.id), eq(blogPosts.gymId, dbUser.gymId))
-    )
+    .where(and(eq(blogPosts.id, params.id), eq(blogPosts.gymId, dbUser.gymId)))
     .limit(1);
 
   if (!post) {
@@ -108,7 +110,10 @@ export default async function BlogPostPage({
                         {post.author.name || "Unknown"}
                       </span>
                       {" • "}
-                      {format(new Date(post.createdAt), "MMM d, yyyy 'at' h:mm a")}
+                      {format(
+                        new Date(post.createdAt),
+                        "MMM d, yyyy 'at' h:mm a",
+                      )}
                     </div>
                   </div>
                 </div>
@@ -135,4 +140,3 @@ export default async function BlogPostPage({
     </div>
   );
 }
-

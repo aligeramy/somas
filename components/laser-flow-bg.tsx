@@ -10,7 +10,7 @@ export function LaserFlowBg() {
         <div className="absolute w-full h-[2px] bg-gradient-to-r from-transparent via-primary/40 to-transparent top-[60%] animate-[laserFlow3_12s_ease-in-out_infinite]" />
         <div className="absolute w-full h-[2px] bg-gradient-to-r from-transparent via-primary/50 to-transparent top-[80%] animate-[laserFlow4_9s_ease-in-out_infinite]" />
       </div>
-      
+
       {/* Vertical laser beams */}
       <div className="absolute inset-0 opacity-20">
         <div className="absolute h-full w-[2px] bg-gradient-to-b from-transparent via-primary to-transparent left-[25%] animate-[laserFlowVertical1_7s_ease-in-out_infinite]" />

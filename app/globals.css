@@ -121,6 +121,15 @@
   }
 }
 
+@layer utilities {
+  .safe-area-inset-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+  .pb-safe {
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0));
+  }
+}
+
 @layer components {
   .rich-text-editor .ProseMirror {
     min-height: 200px;
@@ -174,7 +183,8 @@
 }
 
 @keyframes laserFlow1 {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateX(-100%) scaleX(0.5);
     opacity: 0;
   }
@@ -185,7 +195,8 @@
 }
 
 @keyframes laserFlow2 {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateX(100%) scaleX(0.5);
     opacity: 0;
   }
@@ -196,7 +207,8 @@
 }
 
 @keyframes laserFlow3 {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateX(-100%) scaleX(0.5);
     opacity: 0;
   }
@@ -207,7 +219,8 @@
 }
 
 @keyframes laserFlow4 {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateX(100%) scaleX(0.5);
     opacity: 0;
   }
@@ -218,7 +231,8 @@
 }
 
 @keyframes laserFlowVertical1 {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(-100%) scaleY(0.5);
     opacity: 0;
   }
@@ -229,7 +243,8 @@
 }
 
 @keyframes laserFlowVertical2 {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(100%) scaleY(0.5);
     opacity: 0;
   }
@@ -240,7 +255,8 @@
 }
 
 @keyframes laserFlowVertical3 {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(-100%) scaleY(0.5);
     opacity: 0;
   }

@@ -1,37 +1,37 @@
 "use client";
 
+import {
+  IconBell,
+  IconCalendar,
+  IconDashboard,
+  IconDots,
+  IconListCheck,
+  IconMessageCircle,
+  IconNews,
+  IconSettings,
+  IconUsers,
+  IconWorldWww,
+} from "@tabler/icons-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import {
-  IconDashboard,
-  IconCalendar,
-  IconMessageCircle,
-  IconUsers,
-  IconSettings,
-  IconDots,
-  IconListCheck,
-  IconHelp,
-  IconNews,
-  IconBell,
-  IconWorldWww,
-} from "@tabler/icons-react";
-import { cn } from "@/lib/utils";
-import {
   Sheet,
   SheetContent,
-  SheetDescription,
-  SheetHeader,
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { cn } from "@/lib/utils";
 
 interface MobileBottomNavProps {
   userRole: string;
   gymWebsite: string | null;
 }
 
-export function MobileBottomNav({ userRole, gymWebsite }: MobileBottomNavProps) {
+export function MobileBottomNav({
+  userRole,
+  gymWebsite,
+}: MobileBottomNavProps) {
   const pathname = usePathname();
   const [moreOpen, setMoreOpen] = useState(false);
 
@@ -47,7 +47,7 @@ export function MobileBottomNav({ userRole, gymWebsite }: MobileBottomNavProps) 
       title: "Events",
       url: "/events",
       icon: IconCalendar,
-      roles: ["owner", "coach"],
+      roles: ["owner", "coach", "athlete"],
     },
     {
       title: "Chat",
@@ -56,10 +56,10 @@ export function MobileBottomNav({ userRole, gymWebsite }: MobileBottomNavProps) 
       roles: ["owner", "coach", "athlete"],
     },
     {
-      title: "Notices",
-      url: "/notices",
-      icon: IconBell,
-      roles: ["owner", "coach", "athlete"],
+      title: "Attendance",
+      url: "/rsvp",
+      icon: IconListCheck,
+      roles: ["athlete"],
     },
     ...(userRole === "owner"
       ? [
@@ -88,29 +88,33 @@ export function MobileBottomNav({ userRole, gymWebsite }: MobileBottomNavProps) 
       roles: ["owner", "coach", "athlete"],
     },
     {
+      title: "Notices",
+      url: "/notices",
+      icon: IconBell,
+      roles: ["owner", "coach", "athlete"], // All roles see notices in more menu
+    },
+    {
       title: "Attendance",
       url: "/rsvp",
       icon: IconListCheck,
-      roles: ["owner", "coach", "athlete"],
-    },
-    {
-      title: "Help",
-      url: "/help",
-      icon: IconHelp,
-      roles: ["owner", "coach", "athlete"],
+      roles: ["owner", "coach"], // Only owners/coaches see attendance in more menu (athletes have it in main nav)
     },
   ].filter((item) => item.roles.includes(userRole));
 
   const isMoreActive = moreItems.some(
-    (item) => pathname === item.url || pathname.startsWith(item.url + "/")
+    (item) => pathname === item.url || pathname.startsWith(`${item.url}/`),
   );
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 lg:hidden">
+    <nav
+      className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 lg:hidden"
+      style={{ paddingBottom: "env(safe-area-inset-bottom, 0)" }}
+    >
       <div className="flex h-16 items-center justify-around">
         {mainNavItems.map((item) => {
           const Icon = item.icon;
-          const isActive = pathname === item.url || pathname.startsWith(item.url + "/");
+          const isActive =
+            pathname === item.url || pathname.startsWith(`${item.url}/`);
           return (
             <Link
               key={item.url}
@@ -119,7 +123,7 @@ export function MobileBottomNav({ userRole, gymWebsite }: MobileBottomNavProps) 
                 "flex flex-col items-center justify-center gap-1 flex-1 h-full transition-colors",
                 isActive
                   ? "text-primary"
-                  : "text-muted-foreground hover:text-foreground"
+                  : "text-muted-foreground hover:text-foreground",
               )}
             >
               <Icon className="h-5 w-5" />
@@ -138,22 +142,26 @@ export function MobileBottomNav({ userRole, gymWebsite }: MobileBottomNavProps) 
                 "flex flex-col items-center justify-center gap-1 flex-1 h-full transition-colors",
                 isMoreActive
                   ? "text-primary"
-                  : "text-muted-foreground hover:text-foreground"
+                  : "text-muted-foreground hover:text-foreground",
               )}
             >
               <IconDots className="h-5 w-5" />
               <span className="text-xs font-medium">More</span>
             </button>
           </SheetTrigger>
-          <SheetContent side="bottom" className="h-[50vh] rounded-t-xl">
-            <SheetHeader>
-              <SheetTitle>More</SheetTitle>
-              <SheetDescription>Additional options and settings</SheetDescription>
-            </SheetHeader>
-            <div className="mt-6 space-y-2">
+          <SheetContent
+            side="bottom"
+            className="h-[50vh] rounded-t-xl"
+            style={{
+              paddingBottom: "calc(1rem + env(safe-area-inset-bottom, 0))",
+            }}
+          >
+            <SheetTitle className="sr-only">Settings</SheetTitle>
+            <div className="pt-4 space-y-2">
               {moreItems.map((item) => {
                 const Icon = item.icon;
-                const isActive = pathname === item.url || pathname.startsWith(item.url + "/");
+                const isActive =
+                  pathname === item.url || pathname.startsWith(`${item.url}/`);
                 return (
                   <Link
                     key={item.url}
@@ -163,7 +171,7 @@ export function MobileBottomNav({ userRole, gymWebsite }: MobileBottomNavProps) 
                       "flex items-center gap-3 p-3 rounded-xl transition-colors",
                       isActive
                         ? "bg-primary/10 text-primary"
-                        : "hover:bg-muted"
+                        : "hover:bg-muted",
                     )}
                   >
                     <Icon className="h-5 w-5" />
@@ -178,7 +186,7 @@ export function MobileBottomNav({ userRole, gymWebsite }: MobileBottomNavProps) 
                   rel="noopener noreferrer"
                   onClick={() => setMoreOpen(false)}
                   className={cn(
-                    "flex items-center gap-3 p-3 rounded-xl transition-colors hover:bg-muted"
+                    "flex items-center gap-3 p-3 rounded-xl transition-colors hover:bg-muted",
                   )}
                 >
                   <IconWorldWww className="h-5 w-5" />
@@ -192,4 +200,3 @@ export function MobileBottomNav({ userRole, gymWebsite }: MobileBottomNavProps) 
     </nav>
   );
 }
-
