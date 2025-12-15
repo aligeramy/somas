@@ -8,7 +8,7 @@
  *   npx tsx scripts/send-welcome-emails.ts --gym-id <gym-id>
  */
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { Resend } from "resend";
 import { gyms, users } from "../drizzle/schema";
 import { WelcomeEmail } from "../emails/welcome";
@@ -22,13 +22,14 @@ async function sendWelcomeEmails(gymId?: string) {
     console.log("Starting welcome email script...\n");
 
     // Get all users who haven't completed onboarding
-    let query = db.select().from(users).where(eq(users.onboarded, false));
-
-    if (gymId) {
-      query = query.where(eq(users.gymId, gymId));
-    }
-
-    const usersToEmail = await query;
+    const usersToEmail = await db
+      .select()
+      .from(users)
+      .where(
+        gymId
+          ? and(eq(users.onboarded, false), eq(users.gymId, gymId))
+          : eq(users.onboarded, false),
+      );
 
     if (usersToEmail.length === 0) {
       console.log("No users found that need welcome emails.");

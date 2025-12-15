@@ -2036,8 +2036,12 @@ export default function EventsPage() {
                       const renderUserItem = (
                         user: typeof goingCoaches[0] | typeof goingAthletes[0] | typeof notGoingCoaches[0] | typeof notGoingAthletes[0] | typeof pendingCoaches[0] | typeof pendingAthletes[0],
                         _isCoach: boolean,
+                        displayStatusOverride?: "going" | "not_going" | "pending",
                       ) => {
-                        const displayStatus = "displayStatus" in user ? user.displayStatus : (user.status === "going" ? "going" : user.status === "not_going" ? "not_going" : "pending");
+                        const displayStatus: "going" | "not_going" | "pending" = displayStatusOverride 
+                          || ("displayStatus" in user && (user.displayStatus === "going" || user.displayStatus === "not_going" || user.displayStatus === "pending") 
+                            ? user.displayStatus 
+                            : (user.status === "going" ? "going" : user.status === "not_going" ? "not_going" : "pending"));
                         return (
                           <div
                             key={user.id}
@@ -2172,7 +2176,7 @@ export default function EventsPage() {
                                   </p>
                                   <div className="space-y-1">
                                     {goingCoaches.map((coach) =>
-                                      renderUserItem({ ...coach, displayStatus: "going" as const }, true),
+                                      renderUserItem(coach, true, "going"),
                                     )}
                                   </div>
                                 </div>
@@ -2184,7 +2188,7 @@ export default function EventsPage() {
                                   </p>
                                   <div className="space-y-1">
                                     {goingAthletes.map((athlete) =>
-                                      renderUserItem({ ...athlete, displayStatus: "going" as const }, false),
+                                      renderUserItem(athlete, false, "going"),
                                     )}
                                   </div>
                                 </div>
@@ -2205,7 +2209,7 @@ export default function EventsPage() {
                                   </p>
                                   <div className="space-y-1">
                                     {notGoingCoaches.map((coach) =>
-                                      renderUserItem({ ...coach, displayStatus: "not_going" as const }, true),
+                                      renderUserItem(coach, true, "not_going"),
                                     )}
                                   </div>
                                 </div>
@@ -2217,7 +2221,7 @@ export default function EventsPage() {
                                   </p>
                                   <div className="space-y-1">
                                     {notGoingAthletes.map((athlete) =>
-                                      renderUserItem({ ...athlete, displayStatus: "not_going" as const }, false),
+                                      renderUserItem(athlete, false, "not_going"),
                                     )}
                                   </div>
                                 </div>
@@ -2238,7 +2242,7 @@ export default function EventsPage() {
                                   </p>
                                   <div className="space-y-1">
                                     {pendingCoaches.map((coach) =>
-                                      renderUserItem({ ...coach, displayStatus: "pending" as const }, true),
+                                      renderUserItem(coach, true, "pending"),
                                     )}
                                   </div>
                                 </div>
@@ -2250,7 +2254,7 @@ export default function EventsPage() {
                                   </p>
                                   <div className="space-y-1">
                                     {pendingAthletes.map((athlete) =>
-                                      renderUserItem({ ...athlete, displayStatus: "pending" as const }, false),
+                                      renderUserItem(athlete, false, "pending"),
                                     )}
                                   </div>
                                 </div>
