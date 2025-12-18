@@ -1,5 +1,7 @@
 "use client";
 
+import { IconArrowLeft, IconAlertCircle } from "@tabler/icons-react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -157,6 +159,36 @@ function SetupPasswordForm() {
               Redirecting you to your dashboard...
             </CardDescription>
           </CardHeader>
+        </Card>
+      </div>
+    );
+  }
+
+  // Error state - don't show password inputs, just show error and back button
+  if (error && !isAuthenticated && !email) {
+    return (
+      <div className="flex min-h-screen items-center justify-center p-4 md:p-6">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <div className="flex items-center gap-2 mb-2">
+              <IconAlertCircle className="h-5 w-5 text-destructive" />
+              <CardTitle>Error</CardTitle>
+            </div>
+            <CardDescription className="text-destructive">
+              {error}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              This link may be invalid, expired, or already used. Please request a new password reset link.
+            </p>
+            <Button asChild className="w-full" variant="default">
+              <Link href="/">
+                <IconArrowLeft className="h-4 w-4 mr-2" />
+                Back to Home
+              </Link>
+            </Button>
+          </CardContent>
         </Card>
       </div>
     );
