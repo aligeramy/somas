@@ -509,8 +509,7 @@ export default function NewEventPage() {
                       {REMINDER_OPTIONS.map((option) => (
                         <div
                           key={option.value}
-                          className="flex items-center space-x-3 p-3 rounded-xl bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
-                          onClick={() => toggleReminder(option.value)}
+                          className="flex items-center space-x-3 p-3 rounded-xl bg-muted/50 hover:bg-muted transition-colors"
                         >
                           <Checkbox
                             id={`reminder-${option.value}`}
