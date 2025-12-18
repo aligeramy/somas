@@ -4577,27 +4577,18 @@ export default function EventsPage() {
                 {selectedOccurrence && formatDate(selectedOccurrence.date).day}
               </p>
             </div>
-            <button
-              type="button"
-              className="flex items-center space-x-3 p-3 rounded-xl bg-muted/50 cursor-pointer w-full text-left"
-              onClick={() => setNotifyOnCancel(!notifyOnCancel)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  setNotifyOnCancel(!notifyOnCancel);
-                }
-              }}
-            >
+            <div className="flex items-center space-x-3 p-3 rounded-xl bg-muted/50 w-full">
               <Checkbox
+                id="notify-on-cancel"
                 checked={notifyOnCancel}
                 onCheckedChange={(checked) =>
                   setNotifyOnCancel(checked as boolean)
                 }
               />
-              <Label className="cursor-pointer">
+              <Label htmlFor="notify-on-cancel" className="cursor-pointer flex-1">
                 Notify all users who RSVP'd "Going" via email
               </Label>
-            </button>
+            </div>
           </div>
           <DialogFooter>
             <Button
