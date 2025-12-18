@@ -2,7 +2,7 @@ import { Button, Heading, Section, Text } from "@react-email/components";
 import { BaseLayout } from "./base-layout";
 
 interface WelcomeEmailProps {
-  gymName: string;
+  gymName: string | null;
   gymLogoUrl?: string | null;
   userName: string;
   setupUrl: string;
@@ -21,7 +21,7 @@ export function WelcomeEmail({
       gymLogoUrl={gymLogoUrl}
     >
       <Heading className="text-[28px] font-bold text-zinc-900 mb-6 text-center">
-        Welcome to {gymName}!
+        Welcome to {gymName || "TOM"}!
       </Heading>
 
       <Text className="text-base text-zinc-900 mb-4">
@@ -29,7 +29,7 @@ export function WelcomeEmail({
       </Text>
 
       <Text className="text-[15px] text-gray-600 leading-6 mb-6">
-        We're excited to have you join <strong>{gymName}</strong> on Titans of
+        We're excited to have you join <strong>{gymName || "TOM"}</strong> on Titans of
         Mississauga! Your account has been created and you're all set to start
         managing your training schedule, RSVPs, and team communication.
       </Text>

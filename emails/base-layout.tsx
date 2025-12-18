@@ -13,7 +13,7 @@ import type * as React from "react";
 
 interface BaseLayoutProps {
   preview: string;
-  gymName: string;
+  gymName: string | null;
   gymLogoUrl?: string | null;
   children: React.ReactNode;
 }
@@ -38,21 +38,23 @@ export function BaseLayout({
                   src={gymLogoUrl}
                   width="48"
                   height="48"
-                  alt={gymName}
+                  alt={gymName || "TOM"}
                   className="rounded-xl my-0 mx-auto"
                 />
               ) : (
                 <div className="w-12 h-12 rounded-xl bg-white text-zinc-900 text-lg font-semibold flex items-center justify-center my-0 mx-auto leading-[48px] text-center">
-                  {gymName
-                    .split(" ")
-                    .map((n) => n[0])
-                    .join("")
-                    .toUpperCase()
-                    .slice(0, 2)}
+                  {gymName?.trim()
+                    ? gymName
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")
+                        .toUpperCase()
+                        .slice(0, 3)
+                    : "TOM"}
                 </div>
               )}
               <Text className="text-white text-lg font-semibold mt-3 mb-0">
-                {gymName}
+                {gymName || "TOM"}
               </Text>
             </Section>
 
@@ -62,7 +64,7 @@ export function BaseLayout({
             {/* Footer */}
             <Section className="bg-[#f6f9fc] p-6 text-center">
               <Text className="text-gray-500 text-xs m-0">
-                Sent by {gymName} via Titans of Mississauga
+                Sent by {gymName || "TOM"} via Titans of Mississauga
               </Text>
               <Text className="text-gray-400 text-[11px] mt-1 mb-0">
                 Titans of Mississauga
