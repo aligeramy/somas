@@ -60,16 +60,6 @@ export function BaseLayout({
 
             {/* Content */}
             <Section className="py-8 px-6">{children}</Section>
-
-            {/* Footer */}
-            <Section className="bg-[#f6f9fc] p-6 text-center">
-              <Text className="text-gray-500 text-xs m-0">
-                Sent by {gymName || "TOM"} via Titans of Mississauga
-              </Text>
-              <Text className="text-gray-400 text-[11px] mt-1 mb-0">
-                Titans of Mississauga
-              </Text>
-            </Section>
           </Container>
         </Body>
       </Tailwind>
