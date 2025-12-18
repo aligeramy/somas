@@ -63,3 +63,4 @@ export function WelcomeEmail({
 }
 
 export default WelcomeEmail;
+
