@@ -14,6 +14,7 @@ import {
   IconPill,
   IconUser,
   IconUserCircle,
+  IconDeviceFloppy,
 } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -216,20 +217,26 @@ export default function ProfileSetupPage() {
           className="gap-2 rounded-xl"
         >
           {loading ? (
-            "Saving..."
+            <>
+              <IconDeviceFloppy className="h-4 w-4" />
+              <span className="hidden md:inline">Saving...</span>
+            </>
           ) : success ? (
             <>
               <IconCheck className="h-4 w-4" />
-              Saved
+              <span className="hidden md:inline">Saved</span>
             </>
           ) : (
-            "Complete Profile"
+            <>
+              <IconDeviceFloppy className="h-4 w-4" />
+              <span className="hidden md:inline">Complete Profile</span>
+            </>
           )}
         </Button>
       </PageHeader>
 
       <div className="flex-1 overflow-auto min-h-0">
-        <div className="max-w-4xl mx-auto space-y-6 p-4">
+        <div className="max-w-4xl mx-auto space-y-6 p-4 pb-32 md:pb-8">
           <form
             id="profile-setup-form"
             onSubmit={handleSubmit}
@@ -571,6 +578,33 @@ export default function ProfileSetupPage() {
                   </div>
                 </div>
               </div>
+            </div>
+
+            {/* Mobile Save Button - Fixed at bottom */}
+            <div className="md:hidden fixed bottom-20 left-0 right-0 p-4 bg-background/95 backdrop-blur border-t shadow-lg z-50">
+              <Button
+                type="submit"
+                disabled={loading || !name}
+                className="w-full h-12 gap-2 rounded-xl text-base font-semibold"
+                size="lg"
+              >
+                {loading ? (
+                  <>
+                    <IconDeviceFloppy className="h-5 w-5" />
+                    Saving...
+                  </>
+                ) : success ? (
+                  <>
+                    <IconCheck className="h-5 w-5" />
+                    Saved!
+                  </>
+                ) : (
+                  <>
+                    <IconDeviceFloppy className="h-5 w-5" />
+                    Save Profile
+                  </>
+                )}
+              </Button>
             </div>
           </form>
         </div>
