@@ -133,13 +133,14 @@ export function AppSidebar({
   ].filter((item) => item.roles.includes(user.role));
 
   const getGymInitials = (name: string | null) => {
-    if (!name) return "T";
-    return name
+    if (!name) return "TOM";
+    const initials = name
       .split(" ")
       .map((n) => n[0])
       .join("")
-      .toUpperCase()
-      .slice(0, 2);
+      .toUpperCase();
+    // Return up to 3 characters to allow "TOM"
+    return initials.slice(0, 3);
   };
 
   return (
