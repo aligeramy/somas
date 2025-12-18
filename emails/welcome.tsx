@@ -34,8 +34,8 @@ export function WelcomeEmail({
         managing your training schedule, RSVPs, and team communication.
       </Text>
 
-      <Section className="bg-blue-50 border-l-4 border-blue-500 rounded-r-lg p-4 mb-6">
-        <Text className="text-sm text-blue-800 m-0 leading-[22px]">
+      <Section className="border-l-4 border-blue-500 rounded-r-lg p-4 mb-6">
+        <Text className="text-sm text-gray-600 m-0 leading-[22px]">
           <strong>Next step:</strong> Click the button below to set up your
           password and complete your profile. This will only take a minute!
         </Text>
