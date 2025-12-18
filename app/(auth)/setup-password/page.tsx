@@ -164,8 +164,16 @@ function SetupPasswordForm() {
     );
   }
 
-  // Error state - don't show password inputs, just show error and back button
-  if (error && !isAuthenticated && !email) {
+  // Error state - don't show password inputs if token verification failed or link is invalid/expired
+  const isLinkError = error && (
+    error.includes("Invalid or expired link") ||
+    error.includes("invalid or has expired") ||
+    error.includes("invalid") ||
+    error.includes("expired") ||
+    (!isAuthenticated && token && !verifying)
+  );
+
+  if (isLinkError) {
     return (
       <div className="flex min-h-screen items-center justify-center p-4 md:p-6">
         <Card className="w-full max-w-md">
