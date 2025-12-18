@@ -6,6 +6,7 @@ import {
   IconDashboard,
   IconDots,
   IconListCheck,
+  IconMail,
   IconMessageCircle,
   IconNews,
   IconSettings,
@@ -98,6 +99,12 @@ export function MobileBottomNav({
       url: "/rsvp",
       icon: IconListCheck,
       roles: ["owner", "coach"], // Only owners/coaches see attendance in more menu (athletes have it in main nav)
+    },
+    {
+      title: "Email Management",
+      url: "/admin/emails",
+      icon: IconMail,
+      roles: ["owner"], // Only owners can access email management
     },
   ].filter((item) => item.roles.includes(userRole));
 

@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { WelcomeEmail } from "@/emails/welcome";
@@ -27,22 +28,66 @@ export async function POST(request: Request) {
     const gymLogoUrl = null;
     const userName = email.split("@")[0];
 
-    // Try to generate password reset link if service key is available
     let setupUrl = `${process.env.NEXT_PUBLIC_APP_URL}/setup-password?email=${encodeURIComponent(email)}`;
+    let userCreated = false;
+    let userId: string | null = null;
 
     if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
       try {
         const supabaseAdmin = createAdminClient();
-        const { data: resetData } = await supabaseAdmin.auth.admin.generateLink({
-          type: "recovery",
-          email: email,
-        });
 
-        if (resetData?.properties?.hashed_token) {
-          setupUrl = `${process.env.NEXT_PUBLIC_APP_URL}/setup-password?token=${resetData.properties.hashed_token}&email=${encodeURIComponent(email)}`;
+        // Check if user already exists
+        const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
+        const existingUser = existingUsers?.users?.find(u => u.email === email);
+
+        if (existingUser) {
+          // User exists - generate recovery link
+          const { data: resetData, error: resetError } = await supabaseAdmin.auth.admin.generateLink({
+            type: "recovery",
+            email: email,
+          });
+
+          if (resetError) {
+            console.error("Recovery link error:", resetError);
+          } else if (resetData?.properties?.hashed_token) {
+            setupUrl = `${process.env.NEXT_PUBLIC_APP_URL}/setup-password?token=${resetData.properties.hashed_token}&type=recovery&email=${encodeURIComponent(email)}`;
+          }
+          userId = existingUser.id;
+        } else {
+          // Create new user with random password
+          const randomPassword = randomBytes(16).toString("hex");
+          const { data: authData, error: createError } = await supabaseAdmin.auth.admin.createUser({
+            email,
+            password: randomPassword,
+            email_confirm: true, // Auto-confirm so they can use magic link
+            user_metadata: { name: userName },
+          });
+
+          if (createError) {
+            console.error("Create user error:", createError);
+            return NextResponse.json(
+              { error: `Failed to create user: ${createError.message}` },
+              { status: 500 },
+            );
+          }
+
+          userCreated = true;
+          userId = authData.user?.id || null;
+
+          // Generate invite/magic link for new user
+          const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.generateLink({
+            type: "magiclink",
+            email: email,
+          });
+
+          if (inviteError) {
+            console.error("Invite link error:", inviteError);
+          } else if (inviteData?.properties?.hashed_token) {
+            setupUrl = `${process.env.NEXT_PUBLIC_APP_URL}/setup-password?token=${inviteData.properties.hashed_token}&type=magiclink&email=${encodeURIComponent(email)}`;
+          }
         }
       } catch (error) {
-        console.log("Could not generate password reset link, using email-only URL");
+        console.error("Supabase admin error:", error);
       }
     }
 
@@ -70,6 +115,8 @@ export async function POST(request: Request) {
       success: true,
       emailId: result.data?.id,
       setupUrl,
+      userCreated,
+      userId,
     });
   } catch (error) {
     console.error("Test welcome email error:", error);

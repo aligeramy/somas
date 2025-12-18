@@ -32,6 +32,9 @@ interface UserProfile {
   emergencyContactPhone: string | null;
   emergencyContactRelationship: string | null;
   emergencyContactEmail: string | null;
+  medicalConditions: string | null;
+  medications: string | null;
+  allergies: string | null;
   avatarUrl: string | null;
   role: string;
   notifPreferences: {
@@ -68,6 +71,9 @@ export default function ProfilePage() {
   const [emergencyContactRelationship, setEmergencyContactRelationship] =
     useState("");
   const [emergencyContactEmail, setEmergencyContactEmail] = useState("");
+  const [medicalConditions, setMedicalConditions] = useState("");
+  const [medications, setMedications] = useState("");
+  const [allergies, setAllergies] = useState("");
   const [emailNotif, setEmailNotif] = useState(true);
   const [pushNotif, setPushNotif] = useState(true);
   const [reminders, setReminders] = useState(true);
@@ -124,7 +130,7 @@ export default function ProfilePage() {
   useEffect(() => {
     loadProfile();
     loadGym();
-  }, [loadGym, loadProfile]);
+  }, []);
 
   async function loadProfile() {
     try {
@@ -145,6 +151,9 @@ export default function ProfilePage() {
         data.user.emergencyContactRelationship || "",
       );
       setEmergencyContactEmail(data.user.emergencyContactEmail || "");
+      setMedicalConditions(data.user.medicalConditions || "");
+      setMedications(data.user.medications || "");
+      setAllergies(data.user.allergies || "");
       setEmailNotif(data.user.notifPreferences?.email ?? true);
       setPushNotif(data.user.notifPreferences?.push ?? true);
       setReminders(data.user.notifPreferences?.reminders ?? true);
@@ -221,6 +230,9 @@ export default function ProfilePage() {
           emergencyContactPhone,
           emergencyContactRelationship,
           emergencyContactEmail,
+          medicalConditions,
+          medications,
+          allergies,
           avatarUrl,
           notifPreferences: {
             email: emailNotif,
@@ -526,6 +538,54 @@ export default function ProfilePage() {
                   value={emergencyContactEmail}
                   onChange={(e) => setEmergencyContactEmail(e.target.value)}
                   placeholder="contact@example.com"
+                  className="rounded-xl h-11"
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Medical Information */}
+          <Card className="rounded-xl">
+            <CardHeader>
+              <CardTitle className="text-base">Medical Information</CardTitle>
+              <CardDescription>
+                Important health information for coaches and emergency responders
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="medicalConditions" className="text-sm">
+                  Medical Conditions
+                </Label>
+                <Input
+                  id="medicalConditions"
+                  value={medicalConditions}
+                  onChange={(e) => setMedicalConditions(e.target.value)}
+                  placeholder="e.g., Diabetes, Asthma, etc. (or None)"
+                  className="rounded-xl h-11"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="medications" className="text-sm">
+                  Current Medications
+                </Label>
+                <Input
+                  id="medications"
+                  value={medications}
+                  onChange={(e) => setMedications(e.target.value)}
+                  placeholder="List any medications currently being taken (or None)"
+                  className="rounded-xl h-11"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="allergies" className="text-sm">
+                  Allergies
+                </Label>
+                <Input
+                  id="allergies"
+                  value={allergies}
+                  onChange={(e) => setAllergies(e.target.value)}
+                  placeholder="e.g., Latex, Peanuts, etc. (or None)"
                   className="rounded-xl h-11"
                 />
               </div>

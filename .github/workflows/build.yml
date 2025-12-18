@@ -1,10 +1,10 @@
-name: Build
+name: Build Check
 
 on:
   push:
-    branches: ['**']
+    branches: [main, master, develop]
   pull_request:
-    branches: ['**']
+    branches: [main, master, develop]
 
 jobs:
   build:
@@ -23,7 +23,7 @@ jobs:
       - name: Install pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: 8
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -33,11 +33,9 @@ jobs:
         continue-on-error: true
 
       - name: Build application
-        run: pnpm build
+        run: pnpm build:ci
         env:
-          # Minimal env vars needed for build
-          # These are public values that don't expose secrets
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://hyopnvwftlivwljskrky.supabase.co' }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh5b3BudndmdGxpdndsanNrcmt5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUyMjc5MzgsImV4cCI6MjA4MDgwMzkzOH0.VqpANbkLucCq6rRZr2smszGzPS93-SdzOuvetgTZOjk' }}
-          NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL || 'http://localhost:3000' }}
-
+          # Add any required environment variables for build
+          # These should be set as GitHub secrets if they contain sensitive data
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || '' }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || '' }}

@@ -15,7 +15,23 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { name, phone, address, avatarUrl } = await request.json();
+    const {
+      name,
+      phone,
+      address,
+      homePhone,
+      workPhone,
+      cellPhone,
+      emergencyContactName,
+      emergencyContactPhone,
+      emergencyContactRelationship,
+      emergencyContactEmail,
+      medicalConditions,
+      medications,
+      allergies,
+      dateOfBirth,
+      avatarUrl,
+    } = await request.json();
 
     if (!name) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 });
@@ -28,6 +44,17 @@ export async function POST(request: Request) {
         name,
         phone: phone || null,
         address: address || null,
+        homePhone: homePhone || null,
+        workPhone: workPhone || null,
+        cellPhone: cellPhone || null,
+        emergencyContactName: emergencyContactName || null,
+        emergencyContactPhone: emergencyContactPhone || null,
+        emergencyContactRelationship: emergencyContactRelationship || null,
+        emergencyContactEmail: emergencyContactEmail || null,
+        medicalConditions: medicalConditions || null,
+        medications: medications || null,
+        allergies: allergies || null,
+        dateOfBirth: dateOfBirth || null,
         avatarUrl: avatarUrl || null,
         onboarded: true,
       })

@@ -1,4 +1,5 @@
 import { eq } from "drizzle-orm";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { AppSidebarWrapper } from "@/components/app-sidebar-wrapper";
 import { MobileBottomNavWrapper } from "@/components/mobile-bottom-nav-wrapper";
@@ -20,6 +21,11 @@ export default async function DashboardLayout({
   if (!user) {
     redirect("/login");
   }
+
+  // Get current pathname to avoid redirect loops
+  const headersList = await headers();
+  const pathname = headersList.get("x-pathname") || "";
+  const isOnboardingPage = pathname === "/onboarding" || pathname === "/profile-setup";
 
   // Check if user exists in our database with retry logic
   let dbUser;
@@ -64,8 +70,8 @@ export default async function DashboardLayout({
     redirect("/register");
   }
 
-  // Check onboarding status
-  if (!dbUser.onboarded) {
+  // Check onboarding status (skip if already on onboarding pages to avoid redirect loop)
+  if (!dbUser.onboarded && !isOnboardingPage) {
     if (dbUser.role === "owner") {
       redirect("/onboarding");
     } else {
@@ -104,7 +110,7 @@ export default async function DashboardLayout({
     >
       <AppSidebarWrapper />
       <SidebarInset>
-        <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden pb-16 lg:pb-0">
+        <div className="flex flex-1 flex-col min-h-0 h-full overflow-y-auto pb-16 lg:pb-0">
           {children}
         </div>
       </SidebarInset>

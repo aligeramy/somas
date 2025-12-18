@@ -1,36 +1,58 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
-import { useDropzone } from "react-dropzone";
-import { Button } from "@/components/ui/button";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  IconAlertCircle,
+  IconCalendar,
+  IconCamera,
+  IconCheck,
+  IconDeviceMobile,
+  IconHome,
+  IconMail,
+  IconMapPin,
+  IconMedicalCross,
+  IconPhone,
+  IconPill,
+  IconUser,
+  IconUserCircle,
+} from "@tabler/icons-react";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { PageHeader } from "@/components/page-header";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/client";
 
 export default function ProfileSetupPage() {
   const router = useRouter();
-  const _searchParams = useSearchParams();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
+  const [homePhone, setHomePhone] = useState("");
+  const [workPhone, setWorkPhone] = useState("");
+  const [cellPhone, setCellPhone] = useState("");
+  const [emergencyContactName, setEmergencyContactName] = useState("");
+  const [emergencyContactPhone, setEmergencyContactPhone] = useState("");
+  const [emergencyContactRelationship, setEmergencyContactRelationship] =
+    useState("");
+  const [emergencyContactEmail, setEmergencyContactEmail] = useState("");
+  const [medicalConditions, setMedicalConditions] = useState("");
+  const [medications, setMedications] = useState("");
+  const [allergies, setAllergies] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const supabase = createClient();
 
   useEffect(() => {
     loadUserProfile();
-  }, [loadUserProfile]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function loadUserProfile() {
     try {
@@ -42,6 +64,25 @@ export default function ProfileSetupPage() {
         if (data.user.name) setName(data.user.name);
         if (data.user.phone) setPhone(data.user.phone);
         if (data.user.address) setAddress(data.user.address);
+        if (data.user.homePhone) setHomePhone(data.user.homePhone);
+        if (data.user.workPhone) setWorkPhone(data.user.workPhone);
+        if (data.user.cellPhone) setCellPhone(data.user.cellPhone);
+        if (data.user.emergencyContactName)
+          setEmergencyContactName(data.user.emergencyContactName);
+        if (data.user.emergencyContactPhone)
+          setEmergencyContactPhone(data.user.emergencyContactPhone);
+        if (data.user.emergencyContactRelationship)
+          setEmergencyContactRelationship(data.user.emergencyContactRelationship);
+        if (data.user.emergencyContactEmail)
+          setEmergencyContactEmail(data.user.emergencyContactEmail);
+        if (data.user.medicalConditions)
+          setMedicalConditions(data.user.medicalConditions);
+        if (data.user.medications) setMedications(data.user.medications);
+        if (data.user.allergies) setAllergies(data.user.allergies);
+        if (data.user.dateOfBirth)
+          setDateOfBirth(
+            new Date(data.user.dateOfBirth).toISOString().split("T")[0],
+          );
         if (data.user.avatarUrl) setAvatarPreview(data.user.avatarUrl);
       }
     } catch (_err) {
@@ -52,23 +93,21 @@ export default function ProfileSetupPage() {
     }
   }
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    accept: {
-      "image/*": [".png", ".jpg", ".jpeg", ".gif", ".webp"],
-    },
-    maxFiles: 1,
-    onDrop: (acceptedFiles) => {
-      if (acceptedFiles.length > 0) {
-        const file = acceptedFiles[0];
-        setAvatarFile(file);
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setAvatarPreview(reader.result as string);
-        };
-        reader.readAsDataURL(file);
-      }
-    },
-  });
+  function handleAvatarClick() {
+    fileInputRef.current?.click();
+  }
+
+  function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) {
+      setAvatarFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAvatarPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -118,6 +157,17 @@ export default function ProfileSetupPage() {
           name,
           phone: phone || null,
           address: address || null,
+          homePhone: homePhone || null,
+          workPhone: workPhone || null,
+          cellPhone: cellPhone || null,
+          emergencyContactName: emergencyContactName || null,
+          emergencyContactPhone: emergencyContactPhone || null,
+          emergencyContactRelationship: emergencyContactRelationship || null,
+          emergencyContactEmail: emergencyContactEmail || null,
+          medicalConditions: medicalConditions || null,
+          medications: medications || null,
+          allergies: allergies || null,
+          dateOfBirth: dateOfBirth || null,
           avatarUrl,
         }),
       });
@@ -128,120 +178,403 @@ export default function ProfileSetupPage() {
         throw new Error(result.error || "Failed to update profile");
       }
 
+      setSuccess(true);
+      setTimeout(() => {
       router.push("/dashboard");
+      }, 1000);
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
       setLoading(false);
+      setSuccess(false);
     }
   }
 
   if (loadingProfile) {
     return (
-      <div className="flex min-h-screen items-center justify-center p-6">
-        <Card className="w-full max-w-2xl">
-          <CardContent className="pt-6">
-            <div className="animate-pulse text-muted-foreground text-center">
-              Loading...
+      <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
+        <PageHeader title="Complete Your Profile" />
+        <div className="flex flex-1 items-center justify-center">
+          <div className="animate-pulse text-muted-foreground">Loading...</div>
             </div>
-          </CardContent>
-        </Card>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-6">
-      <Card className="w-full max-w-2xl">
-        <CardHeader>
-          <CardTitle>Complete Your Profile</CardTitle>
-          <CardDescription>
-            Set up your profile to get started with Titans of Mississauga. You
-            can edit any pre-filled information.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
+    <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
+      <PageHeader
+        title="Complete Your Profile"
+        description="Set up your profile to get started with Titans of Mississauga. You can edit any pre-filled information."
+      >
+        <Button
+          onClick={(e) => {
+            e.preventDefault();
+            const form = document.getElementById("profile-setup-form") as HTMLFormElement;
+            form?.requestSubmit();
+          }}
+          disabled={loading || !name}
+          className="gap-2 rounded-xl"
+        >
+          {loading ? (
+            "Saving..."
+          ) : success ? (
+            <>
+              <IconCheck className="h-4 w-4" />
+              Saved
+            </>
+          ) : (
+            "Complete Profile"
+          )}
+        </Button>
+      </PageHeader>
+
+      <div className="flex-1 overflow-auto min-h-0">
+        <div className="max-w-4xl mx-auto space-y-6 p-4">
+          <form
+            id="profile-setup-form"
+            onSubmit={handleSubmit}
+            className="space-y-6 mb-8"
+          >
             {error && (
-              <div className="bg-destructive/10 text-destructive rounded-md p-3 text-sm">
+              <div className="bg-destructive/10 text-destructive rounded-xl p-4 text-sm">
                 {error}
               </div>
             )}
 
-            <div className="space-y-2">
-              <Label htmlFor="name">Name *</Label>
-              <Input
-                id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Enter your name"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone</Label>
-              <Input
-                id="phone"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="Enter your phone number"
-                type="tel"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="address">Address</Label>
-              <Input
-                id="address"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                placeholder="Enter your address"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Profile Photo (Optional)</Label>
-              <div
-                {...getRootProps()}
-                className={`border border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
-                  isDragActive
-                    ? "border-primary bg-primary/5"
-                    : "border-muted-foreground/25 hover:border-muted-foreground/50"
-                }`}
-              >
-                <input {...getInputProps()} />
-                {avatarPreview ? (
-                  <div className="space-y-2">
-                    <img
-                      src={avatarPreview}
-                      alt="Avatar preview"
-                      className="mx-auto max-h-32 rounded-full"
-                    />
-                    <p className="text-sm text-muted-foreground">
-                      Click or drag to replace
-                    </p>
+            {/* Profile Picture Section */}
+            <div className="flex flex-col items-center justify-center py-6 ">
+              <div className="flex flex-col items-center gap-4">
+                <button
+                  type="button"
+                  onClick={handleAvatarClick}
+                  className="relative group cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-full"
+                >
+                  <div className="relative h-24 w-24 rounded-full overflow-hidden border-2 border-border bg-muted flex items-center justify-center shadow-lg">
+                    {avatarPreview ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={avatarPreview}
+                        alt="Profile"
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <IconUserCircle className="h-12 w-12 text-muted-foreground" />
+                    )}
+                    <div className="absolute inset-0 bg-black/60 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <IconCamera className="h-6 w-6 text-white" />
+                    </div>
                   </div>
-                ) : (
-                  <div className="space-y-2">
-                    <p className="text-sm text-muted-foreground">
-                      {isDragActive
-                        ? "Drop the photo here"
-                        : "Drag & drop a photo here, or click to select"}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      PNG, JPG, GIF up to 5MB
-                    </p>
-                  </div>
-                )}
+                </button>
+                <div className="text-center">
+                  <p className="text-sm font-medium">Upload Profile Picture</p>
+                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAvatarChange}
+                  className="hidden"
+                />
               </div>
             </div>
 
-            <Button type="submit" disabled={loading || !name}>
-              {loading ? "Saving..." : "Complete Profile"}
-            </Button>
+            {/* Basic Information */}
+            <div className="space-y-4 py-6">
+              <div className="flex items-center gap-3">
+                <hr className="w-8 border-border" />
+                <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground whitespace-nowrap">Basic Information</h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name" className="flex items-center gap-2">
+                    <IconUser className="h-4 w-4" />
+                    Name *
+                  </Label>
+                  <div className="relative">
+                    <IconUser className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="name"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Enter your name"
+                      className="pl-9"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="dateOfBirth" className="flex items-center gap-2">
+                    <IconCalendar className="h-4 w-4" />
+                    Date of Birth
+                  </Label>
+                  <div className="relative">
+                    <IconCalendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="dateOfBirth"
+                      type="date"
+                      value={dateOfBirth}
+                      onChange={(e) => setDateOfBirth(e.target.value)}
+                      className="pl-9"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2 md:col-span-2 lg:col-span-1">
+                  <Label htmlFor="address" className="flex items-center gap-2">
+                    <IconMapPin className="h-4 w-4" />
+                    Address
+                  </Label>
+                  <div className="relative">
+                    <IconMapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="address"
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)}
+                      placeholder="Enter your address"
+                      className="pl-9"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Contact Information */}
+            <div className="space-y-4 py-6">
+              <div className="flex items-center gap-3">
+                <hr className="w-8 border-border" />
+                <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground whitespace-nowrap">Contact Information</h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="phone" className="flex items-center gap-2">
+                    <IconPhone className="h-4 w-4" />
+                    Phone
+                  </Label>
+                  <div className="relative">
+                    <IconPhone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="phone"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="Enter your phone number"
+                      type="tel"
+                      className="pl-9"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="homePhone" className="flex items-center gap-2">
+                    <IconHome className="h-4 w-4" />
+                    Home Phone
+                  </Label>
+                  <div className="relative">
+                    <IconHome className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="homePhone"
+                      value={homePhone}
+                      onChange={(e) => setHomePhone(e.target.value)}
+                      placeholder="Enter your home phone"
+                      type="tel"
+                      className="pl-9"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="workPhone" className="flex items-center gap-2">
+                    <IconPhone className="h-4 w-4" />
+                    Work Phone
+                  </Label>
+                  <div className="relative">
+                    <IconPhone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="workPhone"
+                      value={workPhone}
+                      onChange={(e) => setWorkPhone(e.target.value)}
+                      placeholder="Enter your work phone"
+                      type="tel"
+                      className="pl-9"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="cellPhone" className="flex items-center gap-2">
+                    <IconDeviceMobile className="h-4 w-4" />
+                    Cell Phone
+                  </Label>
+                  <div className="relative">
+                    <IconDeviceMobile className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="cellPhone"
+                      value={cellPhone}
+                      onChange={(e) => setCellPhone(e.target.value)}
+                      placeholder="Enter your cell phone"
+                      type="tel"
+                      className="pl-9"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Emergency Contact */}
+            <div className="space-y-4 py-6">
+              <div className="flex items-center gap-3">
+                <hr className="w-8 border-border" />
+                <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground whitespace-nowrap flex items-center gap-2">
+                  <IconAlertCircle className="h-3 w-3 text-destructive" />
+                  Emergency Contact
+                </h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="emergencyContactName" className="flex items-center gap-2">
+                    <IconUser className="h-4 w-4" />
+                    Contact Name
+                  </Label>
+                  <div className="relative">
+                    <IconUser className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="emergencyContactName"
+                      value={emergencyContactName}
+                      onChange={(e) =>
+                        setEmergencyContactName(e.target.value)
+                      }
+                      placeholder="Enter emergency contact name"
+                      className="pl-9"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="emergencyContactRelationship" className="flex items-center gap-2">
+                    <IconUser className="h-4 w-4" />
+                    Relationship
+                  </Label>
+                  <div className="relative">
+                    <IconUser className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="emergencyContactRelationship"
+                      value={emergencyContactRelationship}
+                      onChange={(e) =>
+                        setEmergencyContactRelationship(e.target.value)
+                      }
+                      placeholder="e.g., Parent, Spouse, Friend"
+                      className="pl-9"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="emergencyContactPhone" className="flex items-center gap-2">
+                    <IconPhone className="h-4 w-4" />
+                    Phone
+                  </Label>
+                  <div className="relative">
+                    <IconPhone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="emergencyContactPhone"
+                      value={emergencyContactPhone}
+                      onChange={(e) =>
+                        setEmergencyContactPhone(e.target.value)
+                      }
+                      placeholder="Enter emergency contact phone"
+                      type="tel"
+                      className="pl-9"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="emergencyContactEmail" className="flex items-center gap-2">
+                    <IconMail className="h-4 w-4" />
+                    Email
+                  </Label>
+                  <div className="relative">
+                    <IconMail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="emergencyContactEmail"
+                      value={emergencyContactEmail}
+                      onChange={(e) =>
+                        setEmergencyContactEmail(e.target.value)
+                      }
+                      placeholder="Enter emergency contact email"
+                      type="email"
+                      className="pl-9"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Medical Information */}
+            <div className="space-y-4 py-6">
+              <div className="flex items-center gap-3">
+                <hr className="w-8 border-border" />
+                <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground whitespace-nowrap flex items-center gap-2">
+                  <IconMedicalCross className="h-3 w-3 text-destructive" />
+                  Medical Information
+                </h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="medicalConditions" className="flex items-center gap-2">
+                    <IconMedicalCross className="h-4 w-4" />
+                    Medical Conditions
+                  </Label>
+                  <div className="relative">
+                    <IconMedicalCross className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="medicalConditions"
+                      value={medicalConditions}
+                      onChange={(e) => setMedicalConditions(e.target.value)}
+                      placeholder="List any medical conditions"
+                      className="pl-9"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="medications" className="flex items-center gap-2">
+                    <IconPill className="h-4 w-4" />
+                    Medications
+                  </Label>
+                  <div className="relative">
+                    <IconPill className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="medications"
+                      value={medications}
+                      onChange={(e) => setMedications(e.target.value)}
+                      placeholder="List any medications you are taking"
+                      className="pl-9"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="allergies" className="flex items-center gap-2">
+                    <IconAlertCircle className="h-4 w-4" />
+                    Allergies
+                  </Label>
+                  <div className="relative">
+                    <IconAlertCircle className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="allergies"
+                      value={allergies}
+                      onChange={(e) => setAllergies(e.target.value)}
+                      placeholder="List any allergies"
+                      className="pl-9"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
           </form>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

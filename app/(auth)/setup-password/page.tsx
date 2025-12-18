@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -19,13 +19,52 @@ function SetupPasswordForm() {
   const searchParams = useSearchParams();
   const email = searchParams.get("email") || "";
   const token = searchParams.get("token") || "";
+  const tokenType = searchParams.get("type") || "recovery"; // magiclink or recovery
 
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [verifying, setVerifying] = useState(!!token);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const supabase = createClient();
+
+  // Auto-verify token on page load
+  useEffect(() => {
+    async function verifyToken() {
+      if (!token) {
+        setVerifying(false);
+        return;
+      }
+
+      try {
+        // Determine the OTP type based on URL param
+        const otpType = tokenType === "magiclink" ? "magiclink" : "recovery";
+        
+        const { data, error: verifyError } = await supabase.auth.verifyOtp({
+          token_hash: token,
+          type: otpType,
+        });
+
+        if (verifyError) {
+          setError(`Invalid or expired link: ${verifyError.message}`);
+          setVerifying(false);
+          return;
+        }
+
+        if (data?.session) {
+          setIsAuthenticated(true);
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to verify link");
+      } finally {
+        setVerifying(false);
+      }
+    }
+
+    verifyToken();
+  }, [token, tokenType, supabase.auth]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -44,21 +83,8 @@ function SetupPasswordForm() {
     setLoading(true);
 
     try {
-      if (token) {
-        // Verify the recovery token hash to establish a session
-        const { data: verifyData, error: verifyError } =
-          await supabase.auth.verifyOtp({
-            token_hash: token,
-            type: "recovery",
-          });
-
-        if (verifyError) {
-          throw new Error(
-            verifyError.message || "Invalid or expired password setup link",
-          );
-        }
-
-        // Now update the password (user is authenticated via the token)
+      if (isAuthenticated) {
+        // User is already authenticated via token, just update password
         const { error: updateError } = await supabase.auth.updateUser({
           password: password,
         });
@@ -66,12 +92,21 @@ function SetupPasswordForm() {
         if (updateError) {
           throw updateError;
         }
+
+        // Password updated successfully
+        setSuccess(true);
+        
+        // Refresh to sync session cookies with server, then redirect
+        setTimeout(() => {
+          router.refresh();
+          router.push("/dashboard");
+        }, 1500);
       } else if (email) {
-        // If no token but email provided, request password reset email
+        // No valid token - request password reset email
         const { error: resetError } = await supabase.auth.resetPasswordForEmail(
           email,
           {
-            redirectTo: `${window.location.origin}/setup-password`,
+            redirectTo: `${window.location.origin}/setup-password?type=recovery`,
           },
         );
 
@@ -88,12 +123,6 @@ function SetupPasswordForm() {
       } else {
         throw new Error("Missing email or token");
       }
-
-      // Password updated successfully, redirect to onboarding
-      setSuccess(true);
-      setTimeout(() => {
-        router.push("/onboarding");
-      }, 2000);
     } catch (err) {
       setError(
         err instanceof Error
@@ -104,6 +133,20 @@ function SetupPasswordForm() {
     }
   }
 
+  // Loading state while verifying token
+  if (verifying) {
+    return (
+      <div className="flex min-h-screen items-center justify-center p-4 md:p-6">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle>Verifying your link...</CardTitle>
+            <CardDescription>Please wait while we verify your access.</CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    );
+  }
+
   if (success && !error) {
     return (
       <div className="flex min-h-screen items-center justify-center p-4 md:p-6">
@@ -111,7 +154,7 @@ function SetupPasswordForm() {
           <CardHeader>
             <CardTitle>Password Set Successfully! ✅</CardTitle>
             <CardDescription>
-              Redirecting you to complete your profile...
+              Redirecting you to your dashboard...
             </CardDescription>
           </CardHeader>
         </Card>
@@ -125,10 +168,15 @@ function SetupPasswordForm() {
         <CardHeader>
           <CardTitle>Set Up Your Password</CardTitle>
           <CardDescription>
-            {email
-              ? `Create a secure password for ${email}`
-              : "Create a secure password for your account"}
+            {isAuthenticated
+              ? `Create a secure password for ${email || "your account"}`
+              : email
+                ? `Create a secure password for ${email}`
+                : "Create a secure password for your account"}
           </CardDescription>
+          {isAuthenticated && (
+            <p className="text-sm text-green-600 mt-2">✓ Link verified successfully</p>
+          )}
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">

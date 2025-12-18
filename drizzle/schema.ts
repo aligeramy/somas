@@ -40,6 +40,12 @@ export const users = pgTable(
       length: 100,
     }),
     emergencyContactEmail: varchar("emergencyContactEmail", { length: 255 }),
+    // Medical information
+    medicalConditions: text("medicalConditions"),
+    medications: text("medications"),
+    allergies: text("allergies"),
+    dateOfBirth: timestamp("dateOfBirth", { mode: "date" }),
+    joinDate: timestamp("joinDate", { mode: "date" }),
     role: userRoleEnum("role").notNull(),
     gymId: uuid("gymId"),
     onboarded: boolean("onboarded").default(false).notNull(),

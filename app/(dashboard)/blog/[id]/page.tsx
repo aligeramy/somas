@@ -15,8 +15,9 @@ import { createClient } from "@/lib/supabase/server";
 export default async function BlogPostPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  const { id } = await params;
   const supabase = await createClient();
   const {
     data: { user: authUser },
@@ -53,7 +54,7 @@ export default async function BlogPostPage({
     })
     .from(blogPosts)
     .innerJoin(users, eq(blogPosts.authorId, users.id))
-    .where(and(eq(blogPosts.id, params.id), eq(blogPosts.gymId, dbUser.gymId)))
+    .where(and(eq(blogPosts.id, id), eq(blogPosts.gymId, dbUser.gymId)))
     .limit(1);
 
   if (!post) {

@@ -21,7 +21,7 @@ export function WelcomeEmail({
       gymLogoUrl={gymLogoUrl}
     >
       <Heading className="text-[28px] font-bold text-zinc-900 mb-6 text-center">
-        Welcome to {gymName}! 🎉
+        Welcome to {gymName}!
       </Heading>
 
       <Text className="text-base text-zinc-900 mb-4">

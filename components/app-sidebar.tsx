@@ -6,6 +6,7 @@ import {
   IconCalendar,
   IconDashboard,
   IconListCheck,
+  IconMail,
   IconMessageCircle,
   IconNews,
   IconUserCircle,
@@ -117,6 +118,12 @@ export function AppSidebar({
           },
         ]
       : []),
+    {
+      title: "Email Management",
+      url: "/admin/emails",
+      icon: IconMail,
+      roles: ["owner"],
+    },
     {
       title: "Club Settings",
       url: "/gym-settings",

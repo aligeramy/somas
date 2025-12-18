@@ -92,9 +92,6 @@ export default async function HomePage() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 mt-4">
               <Button asChild size="lg" className="text-base">
-                <Link href="/register">Get Started</Link>
-              </Button>
-              <Button asChild variant="outline" size="lg" className="text-base">
                 <Link href="/login">Sign In</Link>
               </Button>
             </div>
@@ -151,9 +148,6 @@ export default async function HomePage() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button asChild size="lg" className="text-base">
-                <Link href="/register">Create Account</Link>
-              </Button>
-              <Button asChild variant="outline" size="lg" className="text-base">
                 <Link href="/login">Sign In</Link>
               </Button>
             </div>
