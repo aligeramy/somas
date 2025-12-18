@@ -83,7 +83,7 @@ async function sendWelcomeEmails(gymId?: string) {
         await resend.emails.send({
           from: `${process.env.RESEND_FROM_NAME} <${process.env.RESEND_FROM_EMAIL}>`,
           to: user.email,
-          subject: `Welcome to ${gym.name}!`,
+          subject: "Welcome to TOM App",
           react: WelcomeEmail({
             gymName: gym.name,
             gymLogoUrl: gym.logoUrl,

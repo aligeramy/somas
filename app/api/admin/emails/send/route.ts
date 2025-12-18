@@ -179,7 +179,7 @@ export async function POST(request: Request) {
           to: targetUser.email,
           subject:
             type === "welcome"
-              ? `Welcome to ${gym.name}!`
+              ? "Welcome to TOM App"
               : `Reset your password - ${gym.name}`,
           react: WelcomeEmail({
             gymName: gym.name,

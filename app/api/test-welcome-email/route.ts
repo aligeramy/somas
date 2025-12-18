@@ -95,7 +95,7 @@ export async function POST(request: Request) {
     const result = await resend.emails.send({
       from: `${process.env.RESEND_FROM_NAME} <${process.env.RESEND_FROM_EMAIL}>`,
       to: email,
-      subject: `Welcome to ${gymName}!`,
+      subject: "Welcome to TOM App",
       react: WelcomeEmail({
         gymName,
         gymLogoUrl,
