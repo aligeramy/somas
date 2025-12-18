@@ -7,6 +7,7 @@ import { WelcomeEmail } from "@/emails/welcome";
 import { db } from "@/lib/db";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { getAppUrl } from "@/lib/utils";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -75,9 +76,20 @@ export async function POST(request: Request) {
     const supabaseAdmin = createAdminClient();
     const results: EmailResult[] = [];
 
+    // Validate app URL - prevent localhost in production
+    let appUrl: string;
+    try {
+      appUrl = getAppUrl();
+    } catch (error) {
+      return NextResponse.json(
+        { error: error instanceof Error ? error.message : "Invalid app URL configuration" },
+        { status: 400 }
+      );
+    }
+
     for (const targetUser of gymUsers) {
       try {
-        let setupUrl = `${process.env.NEXT_PUBLIC_APP_URL}/setup-password?email=${encodeURIComponent(targetUser.email)}`;
+        let setupUrl = `${appUrl}/setup-password?email=${encodeURIComponent(targetUser.email)}`;
 
         // Check if user exists in Supabase Auth
         const { data: authUsers } = await supabaseAdmin.auth.admin.listUsers();
@@ -114,7 +126,7 @@ export async function POST(request: Request) {
             if (linkError) {
               console.error("Magic link error:", linkError);
             } else if (linkData?.properties?.hashed_token) {
-              setupUrl = `${process.env.NEXT_PUBLIC_APP_URL}/setup-password?token=${linkData.properties.hashed_token}&type=magiclink&email=${encodeURIComponent(targetUser.email)}`;
+              setupUrl = `${appUrl}/setup-password?token=${linkData.properties.hashed_token}&type=magiclink&email=${encodeURIComponent(targetUser.email)}`;
             }
           } else {
             // User exists - generate recovery link
@@ -127,7 +139,7 @@ export async function POST(request: Request) {
             if (linkError) {
               console.error("Recovery link error:", linkError);
             } else if (linkData?.properties?.hashed_token) {
-              setupUrl = `${process.env.NEXT_PUBLIC_APP_URL}/setup-password?token=${linkData.properties.hashed_token}&type=recovery&email=${encodeURIComponent(targetUser.email)}`;
+              setupUrl = `${appUrl}/setup-password?token=${linkData.properties.hashed_token}&type=recovery&email=${encodeURIComponent(targetUser.email)}`;
             }
           }
         } else if (type === "reset") {
@@ -157,7 +169,7 @@ export async function POST(request: Request) {
           }
 
           if (linkData?.properties?.hashed_token) {
-            setupUrl = `${process.env.NEXT_PUBLIC_APP_URL}/setup-password?token=${linkData.properties.hashed_token}&type=recovery&email=${encodeURIComponent(targetUser.email)}`;
+            setupUrl = `${appUrl}/setup-password?token=${linkData.properties.hashed_token}&type=recovery&email=${encodeURIComponent(targetUser.email)}`;
           }
         }
 
