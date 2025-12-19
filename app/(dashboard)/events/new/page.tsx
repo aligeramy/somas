@@ -373,7 +373,11 @@ export default function NewEventPage() {
                       <div className="grid gap-4 sm:grid-cols-2">
                         <Select
                           value={recurrence}
-                          onValueChange={(v) => setRecurrence(v as any)}
+                          onValueChange={(v) =>
+                            setRecurrence(
+                              v as "none" | "daily" | "weekly" | "monthly",
+                            )
+                          }
                         >
                           <SelectTrigger className="h-11 rounded-xl w-full">
                             <SelectValue />
@@ -412,8 +416,9 @@ export default function NewEventPage() {
                           End Recurrence
                         </Label>
                         <div className="space-y-2">
-                          <div
-                            className={`flex items-center space-x-3 p-3 rounded-xl cursor-pointer transition-colors ${
+                          <button
+                            type="button"
+                            className={`flex items-center space-x-3 p-3 rounded-xl cursor-pointer transition-colors w-full text-left ${
                               endType === "never"
                                 ? "bg-primary/10 ring-1 ring-primary"
                                 : "bg-muted/50 hover:bg-muted"
@@ -432,9 +437,10 @@ export default function NewEventPage() {
                               )}
                             </div>
                             <span className="text-sm">On Going</span>
-                          </div>
-                          <div
-                            className={`flex items-center space-x-3 p-3 rounded-xl cursor-pointer transition-colors ${
+                          </button>
+                          <button
+                            type="button"
+                            className={`flex items-center space-x-3 p-3 rounded-xl cursor-pointer transition-colors w-full text-left ${
                               endType === "count"
                                 ? "bg-primary/10 ring-1 ring-primary"
                                 : "bg-muted/50 hover:bg-muted"
@@ -467,9 +473,10 @@ export default function NewEventPage() {
                             <span className="text-sm text-muted-foreground">
                               occurrences
                             </span>
-                          </div>
-                          <div
-                            className={`flex items-center space-x-3 p-3 rounded-xl cursor-pointer transition-colors ${
+                          </button>
+                          <button
+                            type="button"
+                            className={`flex items-center space-x-3 p-3 rounded-xl cursor-pointer transition-colors w-full text-left ${
                               endType === "date"
                                 ? "bg-primary/10 ring-1 ring-primary"
                                 : "bg-muted/50 hover:bg-muted"
@@ -503,7 +510,7 @@ export default function NewEventPage() {
                               className="h-9 w-40 rounded-lg"
                               onClick={(e) => e.stopPropagation()}
                             />
-                          </div>
+                          </button>
                         </div>
                       </div>
                     )}
@@ -526,7 +533,7 @@ export default function NewEventPage() {
                       {REMINDER_OPTIONS.map((option) => (
                         <div
                           key={option.value}
-                          className="flex items-center space-x-3 p-3 rounded-xl bg-muted/50 hover:bg-muted transition-colors"
+                          className="flex items-center space-x-3 p-3 rounded-xl bg-muted/50 hover:bg-muted transition-colors w-full"
                         >
                           <Checkbox
                             id={`reminder-${option.value}`}
@@ -576,9 +583,9 @@ export default function NewEventPage() {
                           Upcoming Sessions
                         </h4>
                         <div className="space-y-2 max-h-[300px] overflow-auto pr-2">
-                          {previewDates.slice(0, 20).map((date, i) => (
+                          {previewDates.slice(0, 20).map((date) => (
                             <div
-                              key={i}
+                              key={date.toISOString()}
                               className="flex items-center gap-3 p-2 rounded-lg bg-muted/50"
                             >
                               <div className="h-10 w-10 rounded-lg bg-primary flex flex-col items-center justify-center text-primary-foreground">

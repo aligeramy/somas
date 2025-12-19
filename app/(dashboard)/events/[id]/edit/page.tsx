@@ -187,8 +187,14 @@ export default function EditEventPage() {
     const maxEndDate =
       endType === "date" && endDate ? endDate : addMonths(startDate, 12);
 
-    // Always use the selected date as the first occurrence
-    // This respects the user's date selection regardless of recurrence pattern
+    // Find the first occurrence based on day of week for weekly
+    if (recurrence === "weekly") {
+      const targetDay =
+        DAYS_OF_WEEK.find((d) => d.value === dayOfWeek)?.index || 1;
+      while (currentDate.getDay() !== targetDay) {
+        currentDate = addDays(currentDate, 1);
+      }
+    }
 
     for (let i = 0; i < maxDates && currentDate <= maxEndDate; i++) {
       dates.push(new Date(currentDate));
@@ -203,7 +209,7 @@ export default function EditEventPage() {
     }
 
     return dates;
-  }, [recurrence, endType, endDate, occurrenceCount, startDate]);
+  }, [recurrence, dayOfWeek, endType, endDate, occurrenceCount, startDate]);
 
   function toggleReminder(value: number) {
     setReminderDays((prev) =>
