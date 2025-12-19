@@ -1,6 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
+import { NoticeEmail } from "@/emails/notice";
 import { notices, users } from "@/drizzle/schema";
 import { db } from "@/lib/db";
 import { createClient } from "@/lib/supabase/server";
@@ -117,34 +118,52 @@ export async function POST(request: Request) {
 
     // Send email if requested
     if (sendEmail) {
-      // Get all gym members
-      const gymMembers = await db
-        .select({ email: users.email, name: users.name })
-        .from(users)
-        .where(eq(users.gymId, dbUser.gymId));
+      try {
+        // Get all gym members
+        const gymMembers = await db
+          .select({ email: users.email, name: users.name })
+          .from(users)
+          .where(eq(users.gymId, dbUser.gymId));
 
-      // Get gym info
-      const { gyms } = await import("@/drizzle/schema");
-      const [gym] = await db
-        .select()
-        .from(gyms)
-        .where(eq(gyms.id, dbUser.gymId))
-        .limit(1);
+        // Get gym info
+        const { gyms } = await import("@/drizzle/schema");
+        const [gym] = await db
+          .select()
+          .from(gyms)
+          .where(eq(gyms.id, dbUser.gymId))
+          .limit(1);
 
-      // Send emails
-      for (const member of gymMembers) {
-        if (member.email) {
-          await resend.emails.send({
-            from: `${process.env.RESEND_FROM_NAME} <${process.env.RESEND_FROM_EMAIL}>`,
-            to: member.email,
-            subject: `Notice: ${title}`,
-            html: `
-              <h2>${title}</h2>
-              <p>${content.replace(/\n/g, "<br>")}</p>
-              <p><small>From ${gym?.name || "your gym"}</small></p>
-            `,
+        // Get author name
+        const authorName = dbUser.name;
+
+        // Send emails to all members
+        const emailPromises = gymMembers
+          .filter((member) => member.email)
+          .map((member) => {
+            if (!member.email) return Promise.resolve({ error: "No email" });
+            return resend.emails.send({
+              from: `${process.env.RESEND_FROM_NAME || "TOM"} <${process.env.RESEND_FROM_EMAIL || "noreply@mail.titansofmississauga.ca"}>`,
+              to: member.email,
+              subject: `Notice: ${title}`,
+              react: NoticeEmail({
+                gymName: gym?.name || null,
+                gymLogoUrl: gym?.logoUrl || null,
+                userName: member.name || "Team Member",
+                noticeTitle: title,
+                noticeContent: content,
+                authorName: authorName,
+              }),
+            }).catch((error) => {
+              console.error(`Failed to send notice email to ${member.email}:`, error);
+              return { error: member.email };
+            });
           });
-        }
+
+        // Wait for all emails to be sent (or fail)
+        await Promise.all(emailPromises);
+      } catch (error) {
+        console.error("Error sending notice emails:", error);
+        // Don't fail the notice creation if email sending fails
       }
     }
 
