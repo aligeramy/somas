@@ -1,8 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useDropzone } from "react-dropzone";
+import { useGooglePlacesAutocomplete } from "@/hooks/use-google-places-autocomplete";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -21,6 +22,11 @@ export default function OnboardingPage() {
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const addressInputRef = useRef<HTMLInputElement>(null);
+  
+  useGooglePlacesAutocomplete(addressInputRef, (address) => {
+    setAddress(address);
+  });
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingProfile, setLoadingProfile] = useState(true);
@@ -191,10 +197,12 @@ export default function OnboardingPage() {
             <div className="space-y-2">
               <Label htmlFor="address">Address</Label>
               <Input
+                ref={addressInputRef}
                 id="address"
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
                 placeholder="Enter your address"
+                autoComplete="off"
               />
             </div>
 

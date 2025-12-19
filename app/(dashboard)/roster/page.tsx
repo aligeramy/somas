@@ -10,8 +10,9 @@ import {
   IconUpload,
 } from "@tabler/icons-react";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useDropzone } from "react-dropzone";
+import { useGooglePlacesAutocomplete } from "@/hooks/use-google-places-autocomplete";
 import { PageHeader } from "@/components/page-header";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -90,6 +91,11 @@ export default function RosterPage() {
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
   const [homePhone, setHomePhone] = useState("");
+  const addressInputRef = useRef<HTMLInputElement>(null);
+  
+  useGooglePlacesAutocomplete(addressInputRef, (address) => {
+    setAddress(address);
+  });
   const [workPhone, setWorkPhone] = useState("");
   const [cellPhone, setCellPhone] = useState("");
   const [emergencyContactName, setEmergencyContactName] = useState("");
@@ -113,6 +119,12 @@ export default function RosterPage() {
     phone: "",
     address: "",
     homePhone: "",
+  });
+  const editAddressInputRef = useRef<HTMLInputElement>(null);
+  
+  useGooglePlacesAutocomplete(editAddressInputRef, (address) => {
+    setEditForm({ ...editForm, address });
+  });
     workPhone: "",
     cellPhone: "",
     emergencyContactName: "",
@@ -544,12 +556,14 @@ export default function RosterPage() {
                         <div className="space-y-2">
                           <Label htmlFor="address">Address</Label>
                           <Input
+                            ref={addressInputRef}
                             id="address"
                             type="text"
                             value={address}
                             onChange={(e) => setAddress(e.target.value)}
                             placeholder="Street address"
                             className="h-11 rounded-xl"
+                            autoComplete="off"
                           />
                         </div>
 
@@ -1505,12 +1519,14 @@ export default function RosterPage() {
               <div className="space-y-2">
                 <Label>Athlete Address</Label>
                 <Input
+                  ref={editAddressInputRef}
                   value={editForm.address}
                   onChange={(e) =>
                     setEditForm({ ...editForm, address: e.target.value })
                   }
                   placeholder="Address"
                   className="h-11 rounded-xl"
+                  autoComplete="off"
                 />
               </div>
               <div className="grid gap-4 sm:grid-cols-2">

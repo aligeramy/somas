@@ -17,18 +17,13 @@ import {
   IconDeviceFloppy,
 } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/client";
-
-declare global {
-  interface Window {
-    google: typeof google;
-  }
-}
+import { useGooglePlacesAutocomplete } from "@/hooks/use-google-places-autocomplete";
 
 export default function ProfileSetupPage() {
   const router = useRouter();
@@ -55,69 +50,17 @@ export default function ProfileSetupPage() {
   const [success, setSuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const addressInputRef = useRef<HTMLInputElement>(null);
-  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
   const retryCountRef = useRef(0);
   const supabase = createClient();
 
-  const initializeAutocomplete = useCallback(() => {
-    if (!addressInputRef.current || !window.google?.maps?.places) {
-      return;
-    }
-
-    const autocomplete = new window.google.maps.places.Autocomplete(
-      addressInputRef.current,
-      {
-        types: ["address"],
-        componentRestrictions: { country: ["ca", "us"] }, // Restrict to Canada and US
-      }
-    );
-
-    autocompleteRef.current = autocomplete;
-
-    autocomplete.addListener("place_changed", () => {
-      const place = autocomplete.getPlace();
-      if (place.formatted_address) {
-        setAddress(place.formatted_address);
-      }
-    });
-  }, []);
+  useGooglePlacesAutocomplete(addressInputRef, (address) => {
+    setAddress(address);
+  });
 
   useEffect(() => {
     loadUserProfile();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // Load Google Maps script and initialize autocomplete
-  useEffect(() => {
-    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-    if (!apiKey) {
-      console.warn("Google Maps API key not found");
-      return;
-    }
-
-    // Check if script is already loaded
-    if (window.google?.maps?.places) {
-      initializeAutocomplete();
-      return;
-    }
-
-    // Load Google Maps script
-    const script = document.createElement("script");
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
-    script.async = true;
-    script.defer = true;
-    script.onload = () => {
-      initializeAutocomplete();
-    };
-    document.head.appendChild(script);
-
-    return () => {
-      // Cleanup: remove autocomplete listeners
-      if (autocompleteRef.current) {
-        window.google?.maps?.event?.clearInstanceListeners(autocompleteRef.current);
-      }
-    };
-  }, [initializeAutocomplete]);
 
   async function loadUserProfile() {
     try {

@@ -11,7 +11,8 @@ import {
 import { addDays, addMonths, addWeeks, format, startOfToday } from "date-fns";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useGooglePlacesAutocomplete } from "@/hooks/use-google-places-autocomplete";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -64,13 +65,18 @@ export default function NewEventPage() {
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
   const [startDate, setStartDate] = useState<Date>(startOfToday());
+  const locationInputRef = useRef<HTMLInputElement>(null);
+  
+  useGooglePlacesAutocomplete(locationInputRef, (address) => {
+    setLocation(address);
+  });
   const [startTime, setStartTime] = useState("18:00");
   const [endTime, setEndTime] = useState("21:00");
   const [recurrence, setRecurrence] = useState<
     "none" | "daily" | "weekly" | "monthly"
   >("none");
   const [dayOfWeek, setDayOfWeek] = useState("MO");
-  const [reminderDays, setReminderDays] = useState<number[]>([7, 1, 0.02]);
+  const [reminderDays, setReminderDays] = useState<number[]>([1, 0.02]);
   const [endType, setEndType] = useState<"never" | "date" | "count">("never");
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
   const [occurrenceCount, setOccurrenceCount] = useState("12");
@@ -81,6 +87,15 @@ export default function NewEventPage() {
     const [year, month, day] = dateStr.split("-").map(Number);
     return new Date(year, month - 1, day);
   }
+
+  // Update day of week when start date changes
+  useEffect(() => {
+    const dayIndex = startDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
+    const matchingDay = DAYS_OF_WEEK.find((d) => d.index === dayIndex);
+    if (matchingDay) {
+      setDayOfWeek(matchingDay.value);
+    }
+  }, [startDate]);
 
   // Generate preview dates
   const previewDates = useMemo(() => {
@@ -275,11 +290,13 @@ export default function NewEventPage() {
                         </span>
                       </Label>
                       <Input
+                        ref={locationInputRef}
                         id="location"
                         value={location}
                         onChange={(e) => setLocation(e.target.value)}
-                        placeholder="Main Gym, Field B, etc."
+                        placeholder="Enter location or address"
                         className="h-11 rounded-xl"
+                        autoComplete="off"
                       />
                     </div>
                   </CardContent>

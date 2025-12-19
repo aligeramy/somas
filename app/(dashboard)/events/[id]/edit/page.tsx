@@ -11,7 +11,8 @@ import {
 import { addDays, addMonths, addWeeks, format, startOfToday } from "date-fns";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useGooglePlacesAutocomplete } from "@/hooks/use-google-places-autocomplete";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -79,6 +80,11 @@ export default function EditEventPage() {
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
   const [startDate, setStartDate] = useState<Date>(startOfToday());
+  const locationInputRef = useRef<HTMLInputElement>(null);
+  
+  useGooglePlacesAutocomplete(locationInputRef, (address) => {
+    setLocation(address);
+  });
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [recurrence, setRecurrence] = useState<
@@ -364,11 +370,13 @@ export default function EditEventPage() {
                         </span>
                       </Label>
                       <Input
+                        ref={locationInputRef}
                         id="location"
                         value={location}
                         onChange={(e) => setLocation(e.target.value)}
-                        placeholder="Main Gym, Field B, etc."
+                        placeholder="Enter location or address"
                         className="h-11 rounded-xl"
+                        autoComplete="off"
                       />
                     </div>
                   </CardContent>

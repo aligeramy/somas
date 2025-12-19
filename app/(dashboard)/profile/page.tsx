@@ -1,8 +1,9 @@
 "use client";
 
 import { IconBuilding, IconCamera, IconCheck } from "@tabler/icons-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useDropzone } from "react-dropzone";
+import { useGooglePlacesAutocomplete } from "@/hooks/use-google-places-autocomplete";
 import { PageHeader } from "@/components/page-header";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -64,6 +65,11 @@ export default function ProfilePage() {
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
   const [homePhone, setHomePhone] = useState("");
+  const addressInputRef = useRef<HTMLInputElement>(null);
+  
+  useGooglePlacesAutocomplete(addressInputRef, (address) => {
+    setAddress(address);
+  });
   const [workPhone, setWorkPhone] = useState("");
   const [cellPhone, setCellPhone] = useState("");
   const [emergencyContactName, setEmergencyContactName] = useState("");
@@ -418,11 +424,13 @@ export default function ProfilePage() {
                   Athlete Address
                 </Label>
                 <Input
+                  ref={addressInputRef}
                   id="address"
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
                   placeholder="123 Main St, City, Country"
                   className="rounded-xl h-11"
+                  autoComplete="off"
                 />
               </div>
               <div className="grid gap-4 sm:grid-cols-2">

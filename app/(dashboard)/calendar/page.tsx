@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  IconBan,
   IconCheck,
   IconChevronLeft,
   IconChevronRight,
@@ -91,6 +92,7 @@ export default function CalendarPage() {
   const [loading, setLoading] = useState(true);
   const [rsvpDialogOpen, setRsvpDialogOpen] = useState(false);
   const [updatingRsvp, setUpdatingRsvp] = useState<string | null>(null);
+  const [cancelingOccurrence, setCancelingOccurrence] = useState<string | null>(null);
   const [coachAttendees, setCoachAttendees] = useState<
     Record<string, CoachAttendee[]>
   >({});
@@ -299,6 +301,42 @@ export default function CalendarPage() {
       console.error("Error RSVPing:", err);
     } finally {
       setUpdatingRsvp(null);
+    }
+  }
+
+  async function handleCancelOccurrence(occurrenceId: string) {
+    if (userInfo?.role !== "coach" && userInfo?.role !== "owner") return;
+
+    try {
+      setCancelingOccurrence(occurrenceId);
+      
+      // Find the occurrence to get the event ID
+      const occurrence = events.find((occ) => occ.id === occurrenceId);
+      if (!occurrence) {
+        throw new Error("Occurrence not found");
+      }
+
+      const response = await fetch(
+        `/api/events/${occurrence.event.id}/cancel-notify`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ occurrenceId, notifyUsers: true }),
+        },
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to cancel occurrence");
+      }
+
+      // Reload events to get updated occurrence status
+      await loadData();
+    } catch (err) {
+      console.error("Error canceling occurrence:", err);
+      alert(err instanceof Error ? err.message : "Failed to cancel occurrence");
+    } finally {
+      setCancelingOccurrence(null);
     }
   }
 
@@ -520,6 +558,7 @@ export default function CalendarPage() {
               const rsvpStatus = isAthlete ? getRSVPStatus(occ.id) : null;
               const isCanceled = occ.status === "canceled";
               const isUpdating = updatingRsvp === occ.id;
+              const isCanceling = cancelingOccurrence === occ.id;
 
               const isCoachOrOwner =
                 userInfo?.role === "coach" || userInfo?.role === "owner";
@@ -701,17 +740,31 @@ export default function CalendarPage() {
                           </Link>
                         </Button>
                         {isCoachOrOwner && (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            asChild
-                            className="h-8 rounded-lg gap-1 text-xs"
-                          >
-                            <Link href={`/events/${occ.event.id}/edit`}>
-                              <IconEdit className="h-3 w-3" />
-                              Edit
-                            </Link>
-                          </Button>
+                          <>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              asChild
+                              className="h-8 rounded-lg gap-1 text-xs"
+                            >
+                              <Link href={`/events/${occ.event.id}/edit`}>
+                                <IconEdit className="h-3 w-3" />
+                                Edit
+                              </Link>
+                            </Button>
+                            {!isCanceled && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleCancelOccurrence(occ.id)}
+                                disabled={isCanceling}
+                                className="h-8 rounded-lg gap-1 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
+                              >
+                                <IconBan className="h-3 w-3" />
+                                Cancel
+                              </Button>
+                            )}
+                          </>
                         )}
                       </div>
                     </div>
