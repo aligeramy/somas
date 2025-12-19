@@ -44,7 +44,7 @@ export function WelcomeEmail({
 
       <Text className="text-[13px] text-gray-500 leading-6 mb-4">
         This link will expire in 7 days for security. If you need a new link,
-        please contact your coach or head coach.
+        please contact your coach.
       </Text>
 
       <Text className="text-[13px] text-gray-400 text-center m-0">
