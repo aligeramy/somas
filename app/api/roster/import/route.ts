@@ -85,7 +85,11 @@ export async function POST(request: Request) {
       error: string;
     }> = [];
 
-    for (const row of data) {
+    // Helper function to delay between requests (Resend rate limit: 2 requests/second)
+    const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+    for (let i = 0; i < data.length; i++) {
+      const row = data[i];
       try {
         // Extract data from row
         const email =
@@ -197,11 +201,21 @@ export async function POST(request: Request) {
         });
 
         createdUsers.push({ email, userId: authData.user.id });
+
+        // Rate limit: wait 600ms between requests (allows max 1.67 req/sec, safely under 2/sec limit)
+        // Skip delay on last iteration
+        if (i < data.length - 1) {
+          await delay(600);
+        }
       } catch (error) {
         errors.push({
           row,
           error: error instanceof Error ? error.message : "Unknown error",
         });
+        // Still delay even on error to respect rate limits
+        if (i < data.length - 1) {
+          await delay(600);
+        }
       }
     }
 

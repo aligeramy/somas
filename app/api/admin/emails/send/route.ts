@@ -87,7 +87,11 @@ export async function POST(request: Request) {
       );
     }
 
-    for (const targetUser of gymUsers) {
+    // Helper function to delay between requests (Resend rate limit: 2 requests/second)
+    const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+    for (let i = 0; i < gymUsers.length; i++) {
+      const targetUser = gymUsers[i];
       try {
         let setupUrl = `${appUrl}/setup-password?email=${encodeURIComponent(targetUser.email)}`;
 
@@ -201,12 +205,22 @@ export async function POST(request: Request) {
             success: true,
           });
         }
+
+        // Rate limit: wait 600ms between requests (allows max 1.67 req/sec, safely under 2/sec limit)
+        // Skip delay on last iteration
+        if (i < gymUsers.length - 1) {
+          await delay(600);
+        }
       } catch (error) {
         results.push({
           email: targetUser.email,
           success: false,
           error: error instanceof Error ? error.message : "Unknown error",
         });
+        // Still delay even on error to respect rate limits
+        if (i < gymUsers.length - 1) {
+          await delay(600);
+        }
       }
     }
 

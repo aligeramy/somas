@@ -42,7 +42,11 @@ async function sendWelcomeEmails(gymId?: string) {
     let sent = 0;
     let errors = 0;
 
-    for (const user of usersToEmail) {
+    // Helper function to delay between requests (Resend rate limit: 2 requests/second)
+    const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+    for (let i = 0; i < usersToEmail.length; i++) {
+      const user = usersToEmail[i];
       try {
         if (!user.email || !user.gymId) {
           console.log(`⚠ Skipping user ${user.id}: missing email or gymId`);
@@ -94,9 +98,19 @@ async function sendWelcomeEmails(gymId?: string) {
 
         console.log(`✓ Sent welcome email to ${user.email}`);
         sent++;
+
+        // Rate limit: wait 600ms between requests (allows max 1.67 req/sec, safely under 2/sec limit)
+        // Skip delay on last iteration
+        if (i < usersToEmail.length - 1) {
+          await delay(600);
+        }
       } catch (error) {
         console.error(`✗ Error sending email to ${user.email}:`, error);
         errors++;
+        // Still delay even on error to respect rate limits
+        if (i < usersToEmail.length - 1) {
+          await delay(600);
+        }
       }
     }
 
