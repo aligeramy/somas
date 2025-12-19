@@ -119,12 +119,6 @@ export default function RosterPage() {
     phone: "",
     address: "",
     homePhone: "",
-  });
-  const editAddressInputRef = useRef<HTMLInputElement>(null);
-  
-  useGooglePlacesAutocomplete(editAddressInputRef, (address) => {
-    setEditForm({ ...editForm, address });
-  });
     workPhone: "",
     cellPhone: "",
     emergencyContactName: "",
@@ -132,6 +126,11 @@ export default function RosterPage() {
     emergencyContactRelationship: "",
     emergencyContactEmail: "",
     role: "",
+  });
+  const editAddressInputRef = useRef<HTMLInputElement>(null);
+  
+  useGooglePlacesAutocomplete(editAddressInputRef, (address) => {
+    setEditForm({ ...editForm, address });
   });
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
