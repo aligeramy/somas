@@ -508,7 +508,7 @@ export default function EditEventPage() {
                                 <div className="h-full w-full rounded-full bg-primary-foreground scale-50" />
                               )}
                             </div>
-                            <span className="text-sm">Never (ongoing)</span>
+                            <span className="text-sm">On Going</span>
                           </button>
                           <button
                             type="button"

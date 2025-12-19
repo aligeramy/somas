@@ -414,7 +414,7 @@ export default function NewEventPage() {
                                 <div className="h-full w-full rounded-full bg-primary-foreground scale-50" />
                               )}
                             </div>
-                            <span className="text-sm">Never (ongoing)</span>
+                            <span className="text-sm">On Going</span>
                           </div>
                           <div
                             className={`flex items-center space-x-3 p-3 rounded-xl cursor-pointer transition-colors ${
