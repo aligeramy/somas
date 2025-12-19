@@ -22,11 +22,18 @@ export function useGooglePlacesAutocomplete(
       window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
     }
 
+    // Ontario bounds to bias results towards Ontario (99% of addresses will be in Ontario)
+    const ontarioBounds = new window.google.maps.LatLngBounds(
+      new window.google.maps.LatLng(41.5, -95.0), // Southwest corner (near Windsor)
+      new window.google.maps.LatLng(56.0, -74.0)  // Northeast corner (near Ottawa/Quebec border)
+    );
+
     const autocomplete = new window.google.maps.places.Autocomplete(
       inputRef.current,
       {
         types: ["address"],
-        componentRestrictions: { country: ["ca", "us"] }, // Restrict to Canada and US
+        componentRestrictions: { country: ["ca"] }, // Restrict to Canada only
+        bounds: ontarioBounds, // Bias results towards Ontario
       }
     );
 
