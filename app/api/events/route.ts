@@ -298,6 +298,10 @@ export async function GET(_request: Request) {
       .orderBy(desc(events.createdAt));
 
     // Get occurrences for each event
+    // Filter by date only (not datetime) to match calendar page behavior
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
     const eventsWithOccurrences = await Promise.all(
       eventsList.map(async (event) => {
         const occurrencesList = await db
@@ -306,7 +310,7 @@ export async function GET(_request: Request) {
           .where(
             and(
               eq(eventOccurrences.eventId, event.id),
-              gte(eventOccurrences.date, new Date()),
+              gte(eventOccurrences.date, today),
             ),
           )
           .orderBy(asc(eventOccurrences.date))
