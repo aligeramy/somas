@@ -76,7 +76,7 @@ export default function NewEventPage() {
     "none" | "daily" | "weekly" | "monthly"
   >("none");
   const [dayOfWeek, setDayOfWeek] = useState("MO");
-  const [reminderDays, setReminderDays] = useState<number[]>([1, 0.02]);
+  const [reminderDays, setReminderDays] = useState<number[]>([1]);
   const [endType, setEndType] = useState<"never" | "date" | "count">("never");
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
   const [occurrenceCount, setOccurrenceCount] = useState("12");
