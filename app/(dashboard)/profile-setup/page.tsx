@@ -17,12 +17,18 @@ import {
   IconDeviceFloppy,
 } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/client";
+
+declare global {
+  interface Window {
+    google: typeof google;
+  }
+}
 
 export default function ProfileSetupPage() {
   const router = useRouter();
@@ -48,13 +54,70 @@ export default function ProfileSetupPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const addressInputRef = useRef<HTMLInputElement>(null);
+  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
   const retryCountRef = useRef(0);
   const supabase = createClient();
+
+  const initializeAutocomplete = useCallback(() => {
+    if (!addressInputRef.current || !window.google?.maps?.places) {
+      return;
+    }
+
+    const autocomplete = new window.google.maps.places.Autocomplete(
+      addressInputRef.current,
+      {
+        types: ["address"],
+        componentRestrictions: { country: ["ca", "us"] }, // Restrict to Canada and US
+      }
+    );
+
+    autocompleteRef.current = autocomplete;
+
+    autocomplete.addListener("place_changed", () => {
+      const place = autocomplete.getPlace();
+      if (place.formatted_address) {
+        setAddress(place.formatted_address);
+      }
+    });
+  }, []);
 
   useEffect(() => {
     loadUserProfile();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Load Google Maps script and initialize autocomplete
+  useEffect(() => {
+    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+    if (!apiKey) {
+      console.warn("Google Maps API key not found");
+      return;
+    }
+
+    // Check if script is already loaded
+    if (window.google?.maps?.places) {
+      initializeAutocomplete();
+      return;
+    }
+
+    // Load Google Maps script
+    const script = document.createElement("script");
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
+    script.async = true;
+    script.defer = true;
+    script.onload = () => {
+      initializeAutocomplete();
+    };
+    document.head.appendChild(script);
+
+    return () => {
+      // Cleanup: remove autocomplete listeners
+      if (autocompleteRef.current) {
+        window.google?.maps?.event?.clearInstanceListeners(autocompleteRef.current);
+      }
+    };
+  }, [initializeAutocomplete]);
 
   async function loadUserProfile() {
     try {
@@ -365,13 +428,15 @@ export default function ProfileSetupPage() {
                     Address
                   </Label>
                   <div className="relative">
-                    <IconMapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <IconMapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
                     <Input
+                      ref={addressInputRef}
                       id="address"
                       value={address}
                       onChange={(e) => setAddress(e.target.value)}
                       placeholder="Enter your address"
                       className="pl-9"
+                      autoComplete="off"
                     />
                   </div>
                 </div>
