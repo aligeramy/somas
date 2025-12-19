@@ -33,13 +33,6 @@ export function WelcomeEmail({
         managing your training schedule, RSVPs, and team communication.
       </Text>
 
-      <Section className="border-l-4 border-blue-500 rounded-r-lg p-4 mb-6">
-        <Text className="text-sm text-gray-600 m-0 leading-[22px]">
-          <strong>Next step:</strong> Click the button below to set up your
-          password and complete your profile. This will only take a minute!
-        </Text>
-      </Section>
-
       <Section className="text-center mb-6">
         <Button
           className="bg-zinc-900 rounded-lg text-white text-[15px] font-semibold no-underline text-center py-3.5 px-8"
