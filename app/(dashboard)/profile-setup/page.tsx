@@ -176,26 +176,32 @@ export default function ProfileSetupPage() {
         avatarUrl = publicUrl;
       }
 
+      // Helper to convert empty strings to null
+      const toNull = (value: string | null | undefined) => {
+        if (!value || value.trim() === "") return null;
+        return value.trim();
+      };
+
       // Update user profile
       const response = await fetch("/api/profile-setup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name,
-          phone: phone || null,
-          address: address || null,
-          homePhone: homePhone || null,
-          workPhone: workPhone || null,
-          cellPhone: cellPhone || null,
-          emergencyContactName: emergencyContactName || null,
-          emergencyContactPhone: emergencyContactPhone || null,
-          emergencyContactRelationship: emergencyContactRelationship || null,
-          emergencyContactEmail: emergencyContactEmail || null,
-          medicalConditions: medicalConditions || null,
-          medications: medications || null,
-          allergies: allergies || null,
-          dateOfBirth: dateOfBirth || null,
-          avatarUrl,
+          name: name.trim(),
+          phone: toNull(phone),
+          address: toNull(address),
+          homePhone: toNull(homePhone),
+          workPhone: toNull(workPhone),
+          cellPhone: toNull(cellPhone),
+          emergencyContactName: toNull(emergencyContactName),
+          emergencyContactPhone: toNull(emergencyContactPhone),
+          emergencyContactRelationship: toNull(emergencyContactRelationship),
+          emergencyContactEmail: toNull(emergencyContactEmail),
+          medicalConditions: toNull(medicalConditions),
+          medications: toNull(medications),
+          allergies: toNull(allergies),
+          dateOfBirth: toNull(dateOfBirth),
+          avatarUrl: toNull(avatarUrl),
         }),
       });
 

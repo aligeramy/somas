@@ -33,30 +33,48 @@ export async function POST(request: Request) {
       avatarUrl,
     } = await request.json();
 
-    if (!name) {
+    if (!name || name.trim() === "") {
       return NextResponse.json({ error: "Name is required" }, { status: 400 });
+    }
+
+    // Helper function to convert empty strings to null
+    const toNull = (value: string | null | undefined) => {
+      if (value === null || value === undefined || value.trim() === "") {
+        return null;
+      }
+      return value;
+    };
+
+    // Convert dateOfBirth string to Date object if provided
+    let dateOfBirthDate: Date | null = null;
+    if (dateOfBirth && dateOfBirth.trim() !== "") {
+      const parsedDate = new Date(dateOfBirth);
+      if (!isNaN(parsedDate.getTime())) {
+        dateOfBirthDate = parsedDate;
+      }
     }
 
     // Update user profile
     await db
       .update(users)
       .set({
-        name,
-        phone: phone || null,
-        address: address || null,
-        homePhone: homePhone || null,
-        workPhone: workPhone || null,
-        cellPhone: cellPhone || null,
-        emergencyContactName: emergencyContactName || null,
-        emergencyContactPhone: emergencyContactPhone || null,
-        emergencyContactRelationship: emergencyContactRelationship || null,
-        emergencyContactEmail: emergencyContactEmail || null,
-        medicalConditions: medicalConditions || null,
-        medications: medications || null,
-        allergies: allergies || null,
-        dateOfBirth: dateOfBirth || null,
-        avatarUrl: avatarUrl || null,
+        name: name.trim(),
+        phone: toNull(phone),
+        address: toNull(address),
+        homePhone: toNull(homePhone),
+        workPhone: toNull(workPhone),
+        cellPhone: toNull(cellPhone),
+        emergencyContactName: toNull(emergencyContactName),
+        emergencyContactPhone: toNull(emergencyContactPhone),
+        emergencyContactRelationship: toNull(emergencyContactRelationship),
+        emergencyContactEmail: toNull(emergencyContactEmail),
+        medicalConditions: toNull(medicalConditions),
+        medications: toNull(medications),
+        allergies: toNull(allergies),
+        dateOfBirth: dateOfBirthDate,
+        avatarUrl: toNull(avatarUrl),
         onboarded: true,
+        updatedAt: new Date(),
       })
       .where(eq(users.id, user.id));
 

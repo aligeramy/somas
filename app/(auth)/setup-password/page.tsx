@@ -226,6 +226,21 @@ function SetupPasswordForm() {
               </div>
             )}
 
+            {email && (
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  readOnly
+                  disabled
+                  autoComplete="email"
+                  className="bg-muted"
+                />
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="password">Password *</Label>
               <Input
