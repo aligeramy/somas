@@ -98,10 +98,10 @@ function SetupPasswordForm() {
         // Password updated successfully
         setSuccess(true);
         
-        // Refresh to sync session cookies with server, then redirect
+        // Use window.location for full page reload to ensure session cookies are synced
+        // This prevents blank page issues when redirecting to profile-setup
         setTimeout(() => {
-          router.refresh();
-          router.push("/dashboard");
+          window.location.href = "/profile-setup";
         }, 1500);
       } else if (email) {
         // No valid token - request password reset email

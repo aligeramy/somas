@@ -48,6 +48,7 @@ export default function ProfileSetupPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const retryCountRef = useRef(0);
   const supabase = createClient();
 
   useEffect(() => {
@@ -59,6 +60,16 @@ export default function ProfileSetupPage() {
     try {
       setLoadingProfile(true);
       const response = await fetch("/api/profile");
+      
+      if (response.status === 401 && retryCountRef.current < 2) {
+        // Session not ready yet, retry after a short delay
+        retryCountRef.current += 1;
+        setTimeout(() => {
+          loadUserProfile();
+        }, 500);
+        return;
+      }
+      
       if (response.ok) {
         const data = await response.json();
         // Pre-populate fields if user already has data (from invitation)
@@ -85,9 +96,24 @@ export default function ProfileSetupPage() {
             new Date(data.user.dateOfBirth).toISOString().split("T")[0],
           );
         if (data.user.avatarUrl) setAvatarPreview(data.user.avatarUrl);
+        retryCountRef.current = 0; // Reset on success
+      } else if (retryCountRef.current < 2) {
+        // If response is not ok, try retrying once after a delay
+        retryCountRef.current += 1;
+        setTimeout(() => {
+          loadUserProfile();
+        }, 1000);
+        return;
       }
     } catch (_err) {
-      // Ignore errors, user might not exist yet
+      // Retry on error if we haven't exceeded retry limit
+      if (retryCountRef.current < 2) {
+        retryCountRef.current += 1;
+        setTimeout(() => {
+          loadUserProfile();
+        }, 1000);
+        return;
+      }
       console.log("Could not load existing profile");
     } finally {
       setLoadingProfile(false);
