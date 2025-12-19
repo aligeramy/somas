@@ -13,6 +13,7 @@ import { Suspense } from "react";
 import { AthleteDashboard } from "@/components/athlete-dashboard";
 import { EventActionsDropdown } from "@/components/event-actions-dropdown";
 import { PageHeader } from "@/components/page-header";
+import { PWAInstallPrompt } from "@/components/pwa-install-prompt";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -198,6 +199,7 @@ export default async function DashboardPage() {
         userName={dbUser.name}
         occurrences={occurrencesWithRsvp}
         activeNotice={activeNotice || null}
+        isOnboarded={dbUser.onboarded}
       />
     );
   }
@@ -456,6 +458,7 @@ export default async function DashboardPage() {
           latestPosts={latestPosts}
           userRole={dbUser.role}
           currentUserRsvpMap={currentUserRsvpMap}
+          isOnboarded={dbUser.onboarded}
         />
       </Suspense>
     </div>
@@ -555,6 +558,7 @@ function DashboardContent({
   latestPosts,
   userRole,
   currentUserRsvpMap,
+  isOnboarded,
 }: {
   dbUser: { name: string | null; email: string };
   stats: Array<{
@@ -620,10 +624,14 @@ function DashboardContent({
   }>;
   userRole: string;
   currentUserRsvpMap: Map<string, "going" | "not_going">;
+  isOnboarded: boolean;
 }) {
   return (
     <div className="flex-1 overflow-auto min-h-0">
       <div className="space-y-4">
+        {/* PWA Install Prompt - Only show after onboarding */}
+        {isOnboarded && <PWAInstallPrompt />}
+
         {/* Active Notice */}
         {activeNotice && (
           <Card className="rounded-xl border border-primary/20 bg-primary/5">

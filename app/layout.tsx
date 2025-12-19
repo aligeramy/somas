@@ -17,6 +17,27 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Titans of Mississauga",
   description: "Club management and athlete coordination platform",
+  manifest: "/manifest.json",
+  themeColor: "#000000",
+  icons: {
+    icon: [
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+    ],
+    apple: [
+      { url: "/apple-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Titans",
+  },
+  other: {
+    "apple-mobile-web-app-capable": "yes",
+    "apple-mobile-web-app-status-bar-style": "black-translucent",
+    "apple-mobile-web-app-title": "Titans",
+  },
 };
 
 export default function RootLayout({
