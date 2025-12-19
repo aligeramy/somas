@@ -94,6 +94,9 @@ export async function POST(request: Request) {
       }
     }
 
+    // Normalize recurrenceRule (empty string becomes null)
+    const normalizedRecurrenceRule = recurrenceRule || null;
+
     // Create event - handle reminderDays as PostgreSQL integer[] array
     const [event] = await db
       .insert(events)
@@ -104,7 +107,7 @@ export async function POST(request: Request) {
         location: location || null,
         startTime,
         endTime,
-        recurrenceRule: recurrenceRule || null,
+        recurrenceRule: normalizedRecurrenceRule,
         recurrenceEndDate: recurrenceEndDate
           ? new Date(recurrenceEndDate)
           : null,
@@ -120,7 +123,7 @@ export async function POST(request: Request) {
     const occurrenceStartDate = startDate ? new Date(startDate) : new Date();
     await generateEventOccurrences(
       event.id,
-      recurrenceRule,
+      normalizedRecurrenceRule,
       startTime,
       occurrenceStartDate,
       recurrenceEndDate ? new Date(recurrenceEndDate) : null,
