@@ -7,6 +7,7 @@ import {
   IconClock,
   IconList,
   IconMapPin,
+  IconTrash,
 } from "@tabler/icons-react";
 import { addDays, addMonths, addWeeks, format, startOfToday } from "date-fns";
 import Link from "next/link";
@@ -35,6 +36,14 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const DAYS_OF_WEEK = [
   { value: "MO", label: "Monday", index: 1 },
@@ -74,6 +83,8 @@ export default function EditEventPage() {
   const [loadingEvent, setLoadingEvent] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("details");
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // Form state
   const [title, setTitle] = useState("");
@@ -245,6 +256,28 @@ export default function EditEventPage() {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleDelete() {
+    setDeleting(true);
+    setError(null);
+    try {
+      const response = await fetch(`/api/events/${eventId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const result = await response.json();
+        throw new Error(result.error || "Failed to delete event");
+      }
+
+      setDeleteDialogOpen(false);
+      router.push("/events");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete event");
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -712,6 +745,16 @@ export default function EditEventPage() {
                 Cancel
               </Button>
               <Button
+                type="button"
+                variant="destructive"
+                className="h-12 rounded-xl"
+                onClick={() => setDeleteDialogOpen(true)}
+                disabled={loading || deleting}
+              >
+                <IconTrash className="h-4 w-4 mr-2" />
+                Delete
+              </Button>
+              <Button
                 type="submit"
                 className="flex-1 h-12 rounded-xl"
                 disabled={loading || !title || !startTime || !endTime}
@@ -720,6 +763,38 @@ export default function EditEventPage() {
               </Button>
             </div>
           </form>
+
+          {/* Delete Confirmation Dialog */}
+          <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+            <DialogContent className="rounded-xl">
+              <DialogHeader>
+                <DialogTitle>Delete Event</DialogTitle>
+                <DialogDescription>
+                  Are you sure you want to delete this event? This will delete
+                  all occurrences and RSVPs associated with this event. This
+                  action cannot be undone.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter className="gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setDeleteDialogOpen(false)}
+                  disabled={deleting}
+                  className="rounded-xl"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  className="rounded-xl"
+                >
+                  {deleting ? "Deleting..." : "Delete Event"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
     </div>

@@ -84,16 +84,15 @@ async function generateEventOccurrences(
     const occurrenceDate = new Date(startDate);
     occurrenceDate.setHours(hours, minutes, 0, 0);
 
-    if (occurrenceDate >= new Date()) {
-      await db
-        .insert(eventOccurrences)
-        .values({
-          eventId,
-          date: occurrenceDate,
-          status: "scheduled" as const,
-        })
-        .onConflictDoNothing();
-    }
+    // Always create an occurrence for 1-day events, regardless of date
+    await db
+      .insert(eventOccurrences)
+      .values({
+        eventId,
+        date: occurrenceDate,
+        status: "scheduled" as const,
+      })
+      .onConflictDoNothing();
     return;
   }
 
@@ -111,10 +110,16 @@ async function generateEventOccurrences(
   // Always use the selected date as the first occurrence
   // This respects the user's date selection regardless of recurrence pattern
   const currentDate = new Date(startDate);
+  
+  // Store the original day of month for monthly recurrence
+  // This helps handle month-end dates correctly
+  const originalDayOfMonth = startDate.getDate();
 
   // Generate occurrences
   let count = 0;
   const now = new Date();
+  let isFirstOccurrence = true;
+  
   while (currentDate <= endDate) {
     if (recurrenceCount && count >= recurrenceCount) {
       break;
@@ -124,13 +129,16 @@ async function generateEventOccurrences(
     const occurrenceDate = new Date(currentDate);
     occurrenceDate.setHours(hours, minutes, 0, 0);
 
-    if (occurrenceDate >= now) {
+    // Always include the first occurrence (selected start date) regardless of time
+    // For subsequent occurrences, only include if they're in the future
+    if (isFirstOccurrence || occurrenceDate >= now) {
       occurrences.push({
         eventId,
         date: occurrenceDate,
         status: "scheduled" as const,
       });
       count++;
+      isFirstOccurrence = false;
     }
 
     if (frequency === "DAILY") {
@@ -138,7 +146,26 @@ async function generateEventOccurrences(
     } else if (frequency === "WEEKLY") {
       currentDate.setDate(currentDate.getDate() + 7);
     } else if (frequency === "MONTHLY") {
-      currentDate.setMonth(currentDate.getMonth() + 1);
+      // Safely add one month, handling month-end dates correctly
+      const currentMonth = currentDate.getMonth();
+      const currentYear = currentDate.getFullYear();
+      
+      // Calculate next month and year
+      let nextMonth = currentMonth + 1;
+      let nextYear = currentYear;
+      
+      if (nextMonth > 11) {
+        nextMonth = 0;
+        nextYear += 1;
+      }
+      
+      // Get the last day of the target month
+      const lastDayOfNextMonth = new Date(nextYear, nextMonth + 1, 0).getDate();
+      
+      // Use the original day, or the last day of the month if original day doesn't exist
+      const dayToUse = Math.min(originalDayOfMonth, lastDayOfNextMonth);
+      
+      currentDate.setFullYear(nextYear, nextMonth, dayToUse);
     }
   }
 
