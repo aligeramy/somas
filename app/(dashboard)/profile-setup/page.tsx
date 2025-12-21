@@ -22,6 +22,7 @@ import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { DatePicker } from "@/components/ui/date-picker";
 import { createClient } from "@/lib/supabase/client";
 import { useGooglePlacesAutocomplete } from "@/hooks/use-google-places-autocomplete";
 
@@ -356,16 +357,13 @@ export default function ProfileSetupPage() {
                     <IconCalendar className="h-4 w-4" />
                     Date of Birth
                   </Label>
-                  <div className="relative">
-                    <IconCalendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="dateOfBirth"
-                      type="date"
-                      value={dateOfBirth}
-                      onChange={(e) => setDateOfBirth(e.target.value)}
-                      className="pl-9 !w-full md:!w-auto"
-                    />
-                  </div>
+                  <DatePicker
+                    id="dateOfBirth"
+                    value={dateOfBirth}
+                    onChange={setDateOfBirth}
+                    placeholder="Select date of birth"
+                    className="w-full"
+                  />
                 </div>
 
                 <div className="space-y-2 md:col-span-2 lg:col-span-1">

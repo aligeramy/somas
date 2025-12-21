@@ -2,7 +2,6 @@ import {
   IconCalendar,
   IconCheck,
   IconChevronRight,
-  IconClock,
   IconPlus,
   IconUsers,
   IconX,
@@ -678,7 +677,7 @@ function DashboardContent({
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Upcoming Events */}
           <Card className="rounded-xl">
-            <CardHeader className="pb-2">
+            <CardHeader className="pb-2 px-4">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base font-semibold">
                   Upcoming Events
@@ -696,7 +695,7 @@ function DashboardContent({
                 </Button>
               </div>
             </CardHeader>
-            <CardContent className="pt-0">
+            <CardContent className="pt-0 px-4">
               {upcomingOccurrences.length === 0 ? (
                 <div className="py-8 text-center">
                   <IconCalendar className="h-10 w-10 mx-auto mb-3 text-muted-foreground/30" />
@@ -731,7 +730,7 @@ function DashboardContent({
                     return (
                       <div
                         key={occurrence.id}
-                        className={`group relative flex items-start gap-3 p-3 rounded-xl hover:bg-muted/50 transition-colors ${
+                        className={`group relative flex items-start gap-3 py-2 px-2 rounded-xl hover:bg-muted/50 transition-colors ${
                           isCanceled ? "opacity-50" : ""
                         }`}
                       >
@@ -740,10 +739,17 @@ function DashboardContent({
                           className="flex items-start gap-3 flex-1 min-w-0"
                         >
                           <div className="h-12 w-12 rounded-xl bg-muted flex flex-col items-center justify-center shrink-0">
-                            <span className="text-lg font-bold leading-none">
+                            <span className="text-sm font-bold leading-none">
                               {dateInfo.day}
                             </span>
-                            <span className="text-[9px] font-medium text-muted-foreground">
+                            <span 
+                              className="text-[9px]! font-medium text-muted-foreground mt-0.5"
+                              style={{ 
+                                fontSize: '9px',
+                                WebkitTextSizeAdjust: 'none',
+                                display: 'inline-block'
+                              }}
+                            >
                               {dateInfo.month}
                             </span>
                           </div>
@@ -751,8 +757,7 @@ function DashboardContent({
                             <p className="font-medium text-sm truncate">
                               {event.title}
                             </p>
-                            <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                              <IconClock className="h-3 w-3" />
+                            <p className="text-xs text-muted-foreground truncate mt-0.5">
                               {formatTime(event.startTime)} -{" "}
                               {formatTime(event.endTime)}
                             </p>
@@ -760,16 +765,18 @@ function DashboardContent({
                             {(goingCoaches.length > 0 ||
                               goingAthletes.length > 0 ||
                               rsvpData.notGoing.length > 0) && (
-                              <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                              <div className="flex items-center gap-1.5 mt-2 overflow-hidden">
                                 {/* Coaches badges */}
                                 {goingCoaches.map((coach) => (
                                   <Badge
                                     key={coach.id}
                                     variant="secondary"
-                                    className="text-[10px] rounded-md flex items-center gap-1"
+                                    className="text-[10px] rounded-md flex items-center gap-1 shrink-0"
                                   >
                                     <IconCheck className="h-3 w-3" />
-                                    {coach.name || coach.email}
+                                    <span className="truncate max-w-[80px]">
+                                      {coach.name || coach.email}
+                                    </span>
                                   </Badge>
                                 ))}
                                 {rsvpData.notGoing
@@ -782,10 +789,12 @@ function DashboardContent({
                                     <Badge
                                       key={coach.id}
                                       variant="secondary"
-                                      className="text-[10px] rounded-md flex items-center gap-1"
+                                      className="text-[10px] rounded-md flex items-center gap-1 shrink-0"
                                     >
                                       <IconX className="h-3 w-3" />
-                                      {coach.name || coach.email}
+                                      <span className="truncate max-w-[80px]">
+                                        {coach.name || coach.email}
+                                      </span>
                                     </Badge>
                                   ))}
                                 {/* Athletes avatars */}
@@ -800,7 +809,7 @@ function DashboardContent({
                                           user.role === "coach" ||
                                           user.role === "owner",
                                       ).length > 0) && (
-                                      <span className="text-muted-foreground">
+                                      <span className="text-muted-foreground shrink-0">
                                         •
                                       </span>
                                     )}
@@ -808,7 +817,7 @@ function DashboardContent({
                                     {goingAthletes.map((athlete) => (
                                       <Avatar
                                         key={athlete.id}
-                                        className="h-6 w-6 border border-emerald-500"
+                                        className="h-6 w-6 border border-emerald-500 shrink-0"
                                       >
                                         <AvatarImage
                                           src={athlete.avatarUrl || undefined}
@@ -823,7 +832,7 @@ function DashboardContent({
                                       rsvpData.notGoing.filter(
                                         (user) => user.role === "athlete",
                                       ).length > 0 && (
-                                        <span className="text-muted-foreground">
+                                        <span className="text-muted-foreground shrink-0">
                                           •
                                         </span>
                                       )}
@@ -833,7 +842,7 @@ function DashboardContent({
                                       .map((athlete) => (
                                         <Avatar
                                           key={athlete.id}
-                                          className="h-6 w-6 border border-red-500"
+                                          className="h-6 w-6 border border-red-500 shrink-0"
                                         >
                                           <AvatarImage
                                             src={athlete.avatarUrl || undefined}
