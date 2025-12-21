@@ -70,8 +70,15 @@ function SetupPasswordForm() {
   }, [token, tokenType, supabase.auth]);
 
   async function handleRequestNewLink() {
-    if (!email) {
+    if (!email || !email.trim()) {
       setError("Email address is required to request a new link");
+      return;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      setError("Please enter a valid email address");
       return;
     }
 
@@ -81,14 +88,24 @@ function SetupPasswordForm() {
 
     try {
       // Check if email is altEmail and resolve to primary email
-      const response = await fetch(`/api/user-info?email=${encodeURIComponent(email)}`);
-      let authEmail = email;
+      let authEmail = email.trim();
       
-      if (response.ok) {
-        const data = await response.json();
-        if (data.primaryEmail) {
-          authEmail = data.primaryEmail;
+      try {
+        const response = await fetch(`/api/user-info?email=${encodeURIComponent(email.trim())}`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data?.primaryEmail?.trim()) {
+            authEmail = data.primaryEmail.trim();
+          }
         }
+      } catch {
+        // If lookup fails, continue with original email
+        console.log("Could not resolve altEmail, using provided email");
+      }
+
+      // Ensure authEmail is valid before calling Supabase
+      if (!authEmail || !emailRegex.test(authEmail)) {
+        throw new Error("Invalid email address");
       }
 
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(
@@ -149,17 +166,37 @@ function SetupPasswordForm() {
         setTimeout(() => {
           window.location.href = "/profile-setup";
         }, 1500);
-      } else if (email) {
+      } else if (email?.trim()) {
         // No valid token - request password reset email
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email.trim())) {
+          setError("Please enter a valid email address");
+          setLoading(false);
+          return;
+        }
+
         // Check if email is altEmail and resolve to primary email
-        const response = await fetch(`/api/user-info?email=${encodeURIComponent(email)}`);
-        let authEmail = email;
+        let authEmail = email.trim();
         
-        if (response.ok) {
-          const data = await response.json();
-          if (data.primaryEmail) {
-            authEmail = data.primaryEmail;
+        try {
+          const response = await fetch(`/api/user-info?email=${encodeURIComponent(email.trim())}`);
+          if (response.ok) {
+            const data = await response.json();
+            if (data?.primaryEmail?.trim()) {
+              authEmail = data.primaryEmail.trim();
+            }
           }
+        } catch {
+          // If lookup fails, continue with original email
+          console.log("Could not resolve altEmail, using provided email");
+        }
+
+        // Ensure authEmail is valid before calling Supabase
+        if (!authEmail || !emailRegex.test(authEmail)) {
+          setError("Invalid email address");
+          setLoading(false);
+          return;
         }
 
         const { error: resetError } = await supabase.auth.resetPasswordForEmail(
