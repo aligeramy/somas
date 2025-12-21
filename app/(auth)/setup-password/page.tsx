@@ -228,26 +228,6 @@ function SetupPasswordForm() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              {isLinkExpired || error
-                ? "This link may be invalid, expired, or already used. You can request a new password setup link below."
-                : "You need a valid password setup link to set your password. Request one below."}
-            </p>
-            
-            {email && (
-              <div className="space-y-2">
-                <Label htmlFor="expired-email">Email</Label>
-                <Input
-                  id="expired-email"
-                  type="email"
-                  value={email}
-                  readOnly
-                  disabled
-                  className="bg-muted"
-                />
-              </div>
-            )}
-
             {linkSent && !error ? (
               <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-md p-3 text-sm text-green-800 dark:text-green-200">
                 <div className="flex items-center gap-2">
@@ -257,12 +237,6 @@ function SetupPasswordForm() {
               </div>
             ) : (
               <>
-                {error && (
-                  <div className="bg-destructive/10 text-destructive rounded-md p-3 text-sm">
-                    {error}
-                  </div>
-                )}
-                
                 {email ? (
                   <Button
                     id="request-new-link-button"
