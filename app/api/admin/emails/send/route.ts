@@ -177,10 +177,16 @@ export async function POST(request: Request) {
           }
         }
 
+        // Build recipient list including altEmail
+        const recipients = [targetUser.email];
+        if (targetUser.altEmail) {
+          recipients.push(targetUser.altEmail);
+        }
+
         // Send email
         const emailResult = await resend.emails.send({
           from: `${process.env.RESEND_FROM_NAME} <${process.env.RESEND_FROM_EMAIL}>`,
-          to: targetUser.email,
+          to: recipients,
           subject:
             type === "welcome"
               ? "Welcome to TOM App"

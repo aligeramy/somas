@@ -86,7 +86,7 @@ export async function GET(request: Request) {
 
       if (!gym) continue;
 
-      // Get all athletes in the gym
+      // Get all athletes in the gym (including altEmail)
       const athletes = await db
         .select()
         .from(users)
@@ -194,9 +194,15 @@ export async function GET(request: Request) {
                 continue; // Already sent
               }
 
+              // Build recipient list including altEmail
+              const recipients = [athlete.email];
+              if (athlete.altEmail) {
+                recipients.push(athlete.altEmail);
+              }
+
               await resend.emails.send({
                 from: `${process.env.RESEND_FROM_NAME || "TOM"} <${process.env.RESEND_FROM_EMAIL || "noreply@mail.titansofmississauga.ca"}>`,
-                to: athlete.email,
+                to: recipients,
                 subject: `${event.title} - ${getReminderSubject(reminderType)}`,
                 react: EventReminderEmail({
                   gymName: gym.name,

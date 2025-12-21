@@ -90,7 +90,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Gym not found" }, { status: 404 });
     }
 
-    // Get all athletes in the gym who haven't RSVP'd
+    // Get all athletes in the gym who haven't RSVP'd (including altEmail)
     const allAthletes = await db
       .select()
       .from(users)
@@ -144,9 +144,15 @@ export async function POST(request: Request) {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
+        // Build recipient list including altEmail
+        const recipients = [targetUser.email];
+        if (targetUser.altEmail) {
+          recipients.push(targetUser.altEmail);
+        }
+
         await resend.emails.send({
           from: `${process.env.RESEND_FROM_NAME || "Titans of Mississauga"} <${process.env.RESEND_FROM_EMAIL || "noreply@mail.titansofmississauga.ca"}>`,
-          to: targetUser.email,
+          to: recipients,
           subject: `RSVP needed for ${occurrenceData.event.title}`,
           react: RsvpReminderEmail({
             gymName: gym.name,

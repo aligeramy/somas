@@ -98,7 +98,7 @@ export async function POST(
         .limit(1);
 
       if (gym) {
-        // Get all users who RSVP'd going
+        // Get all users who RSVP'd going (including altEmail)
         const goingRsvps = await db
           .select({
             rsvp: rsvps,
@@ -132,9 +132,15 @@ export async function POST(
         // Send cancellation emails
         for (const { user: targetUser } of goingRsvps) {
           try {
+            // Build recipient list including altEmail
+            const recipients = [targetUser.email];
+            if (targetUser.altEmail) {
+              recipients.push(targetUser.altEmail);
+            }
+
             await resend.emails.send({
               from: `${process.env.RESEND_FROM_NAME || "Titans of Mississauga"} <${process.env.RESEND_FROM_EMAIL || "noreply@mail.titansofmississauga.ca"}>`,
-              to: targetUser.email,
+              to: recipients,
               subject: `${occurrenceData.event.title} has been canceled`,
               react: EventReminderEmail({
                 gymName: gym.name,

@@ -119,9 +119,9 @@ export async function POST(request: Request) {
     // Send email if requested
     if (sendEmail) {
       try {
-        // Get all gym members
+        // Get all gym members (including altEmail)
         const gymMembers = await db
-          .select({ email: users.email, name: users.name })
+          .select({ email: users.email, altEmail: users.altEmail, name: users.name })
           .from(users)
           .where(eq(users.gymId, dbUser.gymId));
 
@@ -141,9 +141,14 @@ export async function POST(request: Request) {
           .filter((member) => member.email)
           .map((member) => {
             if (!member.email) return Promise.resolve({ error: "No email" });
+            // Build recipient list including altEmail
+            const recipients = [member.email];
+            if (member.altEmail) {
+              recipients.push(member.altEmail);
+            }
             return resend.emails.send({
               from: `${process.env.RESEND_FROM_NAME || "TOM"} <${process.env.RESEND_FROM_EMAIL || "noreply@mail.titansofmississauga.ca"}>`,
-              to: member.email,
+              to: recipients,
               subject: `Notice: ${title}`,
               react: NoticeEmail({
                 gymName: gym?.name || null,

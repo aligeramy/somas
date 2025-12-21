@@ -1,8 +1,8 @@
 "use client";
 
-import { IconArrowLeft, IconAlertCircle } from "@tabler/icons-react";
+import { IconArrowLeft, IconAlertCircle, IconMail } from "@tabler/icons-react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,7 +17,6 @@ import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/client";
 
 function SetupPasswordForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const email = searchParams.get("email") || "";
   const token = searchParams.get("token") || "";
@@ -30,6 +29,8 @@ function SetupPasswordForm() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [requestingLink, setRequestingLink] = useState(false);
+  const [linkSent, setLinkSent] = useState(false);
   const supabase = createClient();
 
   // Auto-verify token on page load
@@ -67,6 +68,40 @@ function SetupPasswordForm() {
 
     verifyToken();
   }, [token, tokenType, supabase.auth]);
+
+  async function handleRequestNewLink() {
+    if (!email) {
+      setError("Email address is required to request a new link");
+      return;
+    }
+
+    setRequestingLink(true);
+    setError(null);
+    setLinkSent(false);
+
+    try {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(
+        email,
+        {
+          redirectTo: `${window.location.origin}/setup-password?type=recovery&email=${encodeURIComponent(email)}`,
+        },
+      );
+
+      if (resetError) {
+        throw resetError;
+      }
+
+      setLinkSent(true);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to send new link. Please try again.",
+      );
+    } finally {
+      setRequestingLink(false);
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -180,7 +215,7 @@ function SetupPasswordForm() {
           <CardHeader>
             <div className="flex items-center gap-2 mb-2">
               <IconAlertCircle className="h-5 w-5 text-destructive" />
-              <CardTitle>Error</CardTitle>
+              <CardTitle>Link Expired</CardTitle>
             </div>
             <CardDescription className="text-destructive">
               {error}
@@ -188,9 +223,63 @@ function SetupPasswordForm() {
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              This link may be invalid, expired, or already used. Please request a new password reset link.
+              This link may be invalid, expired, or already used. You can request a new password setup link below.
             </p>
-            <Button asChild className="w-full" variant="default">
+            
+            {email && (
+              <div className="space-y-2">
+                <Label htmlFor="expired-email">Email</Label>
+                <Input
+                  id="expired-email"
+                  type="email"
+                  value={email}
+                  readOnly
+                  disabled
+                  className="bg-muted"
+                />
+              </div>
+            )}
+
+            {linkSent ? (
+              <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-md p-3 text-sm text-green-800 dark:text-green-200">
+                <div className="flex items-center gap-2">
+                  <IconMail className="h-4 w-4" />
+                  <span>New link sent! Please check your email ({email}) for the password setup link.</span>
+                </div>
+              </div>
+            ) : (
+              <>
+                {error && !linkSent && (
+                  <div className="bg-destructive/10 text-destructive rounded-md p-3 text-sm">
+                    {error}
+                  </div>
+                )}
+                
+                {email ? (
+                  <Button
+                    onClick={handleRequestNewLink}
+                    disabled={requestingLink}
+                    className="w-full"
+                    variant="default"
+                  >
+                    {requestingLink ? (
+                      "Sending..."
+                    ) : (
+                      <>
+                        <IconMail className="h-4 w-4 mr-2" />
+                        Request New Link
+                      </>
+                    )}
+                  </Button>
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center">
+                    Please contact your coach to request a new welcome email.
+                  </p>
+                )}
+              </>
+            )}
+
+            <Button asChild className="w-full" variant="outline">
               <Link href="/">
                 <IconArrowLeft className="h-4 w-4 mr-2" />
                 Back to Home

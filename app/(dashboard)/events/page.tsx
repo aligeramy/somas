@@ -1125,8 +1125,21 @@ export default function EventsPage() {
   }
 
   function selectEvent(event: Event) {
-    // Only update if different event
-    if (event.id !== selectedEventIdRef.current) {
+    // If clicking the same event that's already selected, deselect it
+    if (event.id === selectedEventIdRef.current) {
+      selectedEventIdRef.current = null;
+      setSelectedEvent(null);
+      setSelectedOccurrence(null);
+      setOccurrenceRsvps([]);
+      if (isEventsMobile) {
+        if (currentUserRole === "athlete") {
+          setSelectedEventForAthlete(null);
+          setSelectedOccurrenceForAthleteDetail(null);
+        }
+        setMobileView("events");
+      }
+    } else {
+      // Select the new event
       selectedEventIdRef.current = event.id;
       setSelectedEvent(event);
       setSelectedOccurrence(null);
@@ -2753,11 +2766,17 @@ export default function EventsPage() {
                         <button
                           type="button"
                           onClick={() => {
-                            setSelectedEventForAthlete(event);
-                            if (upcomingOccs.length > 0) {
-                              setSelectedOccurrenceForAthleteDetail(
-                                upcomingOccs[0],
-                              );
+                            // If clicking the same event that's already selected, deselect it
+                            if (selectedEventForAthlete?.id === event.id) {
+                              setSelectedEventForAthlete(null);
+                              setSelectedOccurrenceForAthleteDetail(null);
+                            } else {
+                              setSelectedEventForAthlete(event);
+                              if (upcomingOccs.length > 0) {
+                                setSelectedOccurrenceForAthleteDetail(
+                                  upcomingOccs[0],
+                                );
+                              }
                             }
                           }}
                           className={`w-full text-left p-3 rounded-xl transition-all ${
