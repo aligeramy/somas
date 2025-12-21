@@ -87,47 +87,21 @@ function SetupPasswordForm() {
     setLinkSent(false);
 
     try {
-      // Check if email is altEmail and resolve to primary email
-      let authEmail = email.trim();
-      
-      try {
-        const response = await fetch(`/api/user-info?email=${encodeURIComponent(email.trim())}`);
-        if (response.ok) {
-          const data = await response.json();
-          if (data?.primaryEmail?.trim()) {
-            authEmail = data.primaryEmail.trim();
-          }
-        }
-      } catch {
-        // If lookup fails, continue with original email
-        console.log("Could not resolve altEmail, using provided email");
+      // Use the same API endpoint that sends welcome emails
+      const response = await fetch("/api/send-welcome-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to send welcome email");
       }
 
-      // Ensure authEmail is valid before calling Supabase
-      if (!authEmail || !emailRegex.test(authEmail)) {
-        throw new Error("Invalid email address");
-      }
-
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(
-        authEmail,
-        {
-          redirectTo: `${window.location.origin}/setup-password?type=recovery&email=${encodeURIComponent(authEmail)}`,
-        },
-      );
-
-      if (resetError) {
-        // Check for rate limiting error
-        if (resetError.message.includes("rate limit") || resetError.message.includes("seconds")) {
-          throw new Error(resetError.message);
-        }
-        throw resetError;
-      }
-
-      // Only set linkSent if there's no error
-      if (!resetError) {
-        setLinkSent(true);
-        setError(null);
-      }
+      setLinkSent(true);
+      setError(null);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Failed to send new link. Please try again.";
       setError(errorMessage);
