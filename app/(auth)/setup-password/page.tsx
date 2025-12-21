@@ -113,6 +113,7 @@ function SetupPasswordForm() {
       }
 
       setLinkSent(true);
+      setError(null); // Clear error when email is successfully sent
       // Keep isLinkExpired true so we stay on the error screen
       // The user should check their email for the new link
     } catch (err) {
