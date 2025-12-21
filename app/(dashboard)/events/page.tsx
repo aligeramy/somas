@@ -1155,15 +1155,8 @@ export default function EventsPage() {
         if (currentUserRole === "athlete") {
           // For athletes, ensure event is set and navigate to occurrences
           setSelectedEventForAthlete(event);
-          const upcomingOccs = event.occurrences.filter((occ) => {
-            const occDate = new Date(occ.date);
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            return occDate >= today && occ.status === "scheduled";
-          });
-          if (upcomingOccs.length > 0) {
-            setSelectedOccurrenceForAthleteDetail(upcomingOccs[0]);
-          }
+          // Don't auto-select first occurrence - user must click
+          setSelectedOccurrenceForAthleteDetail(null);
           setMobileView("occurrences");
         } else {
           setMobileView("occurrences");
@@ -1188,16 +1181,8 @@ export default function EventsPage() {
         if (currentUserRole === "athlete") {
           // For athletes, go to occurrences view to pick which day
           setSelectedEventForAthlete(event);
-          const upcomingOccs = event.occurrences.filter((occ) => {
-            const occDate = new Date(occ.date);
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            return occDate >= today && occ.status === "scheduled";
-          });
-          if (upcomingOccs.length > 0) {
-            // Set first occurrence as default but let user pick
-            setSelectedOccurrenceForAthleteDetail(upcomingOccs[0]);
-          }
+          // Don't auto-select first occurrence - user must click
+          setSelectedOccurrenceForAthleteDetail(null);
           setMobileView("occurrences");
         } else {
           setMobileView("occurrences");
@@ -1335,6 +1320,26 @@ export default function EventsPage() {
                   setMobileView("details");
                 }
               } else if (event.occurrences.length > 0) {
+                // On mobile, don't auto-select first occurrence - user must click
+                if (!isEventsMobile) {
+                  const upcomingOccs = event.occurrences.filter((occ) => {
+                    const occDate = new Date(occ.date);
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    return occDate >= today && occ.status === "scheduled";
+                  });
+                  if (upcomingOccs.length > 0) {
+                    setSelectedOccurrenceForAthleteDetail(upcomingOccs[0]);
+                  }
+                } else {
+                  // On mobile, go to occurrences view without selecting
+                  setSelectedOccurrenceForAthleteDetail(null);
+                  setMobileView("occurrences");
+                }
+              }
+            } else if (event.occurrences.length > 0) {
+              // On mobile, don't auto-select first occurrence - user must click
+              if (!isEventsMobile) {
                 const upcomingOccs = event.occurrences.filter((occ) => {
                   const occDate = new Date(occ.date);
                   const today = new Date();
@@ -1343,14 +1348,30 @@ export default function EventsPage() {
                 });
                 if (upcomingOccs.length > 0) {
                   setSelectedOccurrenceForAthleteDetail(upcomingOccs[0]);
-                  // Set mobile view to details when occurrence is selected
-                  if (isEventsMobile) {
-                    setMobileView("details");
-                  }
                 }
+              } else {
+                // On mobile, go to occurrences view without selecting
+                setSelectedOccurrenceForAthleteDetail(null);
+                setMobileView("occurrences");
               }
-            } else if (event.occurrences.length > 0) {
-              const upcomingOccs = event.occurrences.filter((occ) => {
+            }
+          }
+        } else if (events.length > 0 && !selectedEventForAthlete) {
+          // On mobile, don't auto-select - user must click
+          if (!isEventsMobile) {
+            // Select first event with upcoming occurrences (desktop only)
+            const eventWithOccs = events.find((e) => {
+              const upcomingOccs = e.occurrences.filter((occ) => {
+                const occDate = new Date(occ.date);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                return occDate >= today && occ.status === "scheduled";
+              });
+              return upcomingOccs.length > 0;
+            });
+            if (eventWithOccs) {
+              setSelectedEventForAthlete(eventWithOccs);
+              const upcomingOccs = eventWithOccs.occurrences.filter((occ) => {
                 const occDate = new Date(occ.date);
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
@@ -1358,34 +1379,7 @@ export default function EventsPage() {
               });
               if (upcomingOccs.length > 0) {
                 setSelectedOccurrenceForAthleteDetail(upcomingOccs[0]);
-                // Set mobile view to details when occurrence is selected
-                if (isEventsMobile) {
-                  setMobileView("details");
-                }
               }
-            }
-          }
-        } else if (events.length > 0 && !selectedEventForAthlete) {
-          // Select first event with upcoming occurrences
-          const eventWithOccs = events.find((e) => {
-            const upcomingOccs = e.occurrences.filter((occ) => {
-              const occDate = new Date(occ.date);
-              const today = new Date();
-              today.setHours(0, 0, 0, 0);
-              return occDate >= today && occ.status === "scheduled";
-            });
-            return upcomingOccs.length > 0;
-          });
-          if (eventWithOccs) {
-            setSelectedEventForAthlete(eventWithOccs);
-            const upcomingOccs = eventWithOccs.occurrences.filter((occ) => {
-              const occDate = new Date(occ.date);
-              const today = new Date();
-              today.setHours(0, 0, 0, 0);
-              return occDate >= today && occ.status === "scheduled";
-            });
-            if (upcomingOccs.length > 0) {
-              setSelectedOccurrenceForAthleteDetail(upcomingOccs[0]);
             }
           }
         }
