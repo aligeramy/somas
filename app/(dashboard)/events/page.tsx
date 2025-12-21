@@ -1513,7 +1513,7 @@ export default function EventsPage() {
                 </Link>
               </Button>
             )}
-            {(mobileView === "details" || mobileView === "occurrences") && mobileView !== "chat" && (selectedEvent || selectedEventForAthlete) && (
+            {(mobileView === "details" || mobileView === "occurrences") && (selectedEvent || selectedEventForAthlete) && (
               <Button
                 variant="ghost"
                 size="sm"

@@ -436,7 +436,7 @@ export default async function DashboardPage() {
       <PageHeader
         title={
           <>
-           <span className="text-sm font-normal text-muted-foreground">Welcome back</span> 
+            Welcome back
             {dbUser.name && (
               <span className="text-sm font-normal text-muted-foreground">
                 , {dbUser.name.split(" ")[0]}

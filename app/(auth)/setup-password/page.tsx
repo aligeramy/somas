@@ -373,6 +373,9 @@ function SetupPasswordForm() {
   );
 }
 
+// Force dynamic rendering since this page uses search params
+export const dynamic = 'force-dynamic';
+
 export default function SetupPasswordPage() {
   return (
     <Suspense fallback={

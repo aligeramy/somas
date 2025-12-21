@@ -37,7 +37,7 @@ export function PWAInstallPrompt() {
     }
 
     // Check if user has dismissed the prompt before (new storage key)
-    const dismissed = localStorage.getItem("pwa-install-dismissed-v2");
+    const dismissed = localStorage.getItem("pwa-install-dismissed-v3");
     if (dismissed === "true") {
       return;
     }
@@ -62,12 +62,12 @@ export function PWAInstallPrompt() {
       // User can use the header button for instructions
       setShowPrompt(false);
     }
-    localStorage.setItem("pwa-install-dismissed-v2", "true");
+    localStorage.setItem("pwa-install-dismissed-v3", "true");
   };
 
   const handleDismiss = () => {
     setShowPrompt(false);
-    localStorage.setItem("pwa-install-dismissed-v2", "true");
+    localStorage.setItem("pwa-install-dismissed-v3", "true");
   };
 
   // Don't show if already installed or prompt not triggered
