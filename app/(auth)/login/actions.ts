@@ -1,7 +1,7 @@
 "use server";
 
 import { eq, or } from "drizzle-orm";
-import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { users } from "@/drizzle/schema";
 import { db } from "@/lib/db";
 import { createClient } from "@/lib/supabase/server";
@@ -31,6 +31,11 @@ export async function loginAction(formData: FormData) {
     return { error: error.message };
   }
 
-  redirect("/dashboard");
+  // Revalidate paths to ensure fresh data
+  revalidatePath("/dashboard");
+  revalidatePath("/profile-setup");
+  revalidatePath("/onboarding");
+  
+  return { success: true };
 }
 

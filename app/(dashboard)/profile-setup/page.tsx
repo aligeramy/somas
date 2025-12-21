@@ -366,7 +366,25 @@ export default function ProfileSetupPage() {
                   />
                 </div>
 
-                <div className="space-y-2 md:col-span-2 lg:col-span-1">
+                <div className="space-y-2 lg:col-start-1">
+                  <Label htmlFor="altEmail" className="flex items-center gap-2">
+                    <IconMail className="h-4 w-4" />
+                    Alternate Email
+                  </Label>
+                  <div className="relative">
+                    <IconMail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="altEmail"
+                      value={altEmail}
+                      onChange={(e) => setAltEmail(e.target.value)}
+                      placeholder="Enter alternate email (optional)"
+                      type="email"
+                      className="pl-9"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2 md:col-span-2 lg:col-span-2">
                   <Label htmlFor="address" className="flex items-center gap-2">
                     <IconMapPin className="h-4 w-4" />
                     Address
@@ -381,24 +399,6 @@ export default function ProfileSetupPage() {
                       placeholder="Enter your address"
                       className="pl-9"
                       autoComplete="off"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="altEmail" className="flex items-center gap-2">
-                    <IconMail className="h-4 w-4" />
-                    Alternate Email
-                  </Label>
-                  <div className="relative">
-                    <IconMail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="altEmail"
-                      value={altEmail}
-                      onChange={(e) => setAltEmail(e.target.value)}
-                      placeholder="Enter alternate email (optional)"
-                      type="email"
-                      className="pl-9"
                     />
                   </div>
                 </div>

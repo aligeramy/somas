@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { loginAction } from "@/app/(auth)/login/actions";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ export function LoginForm({
 }: React.ComponentProps<"div">) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -34,6 +36,10 @@ export function LoginForm({
     if (result?.error) {
       setError(result.error);
       setLoading(false);
+    } else if (result?.success) {
+      // Login successful - refresh and navigate
+      router.refresh();
+      router.push("/dashboard");
     }
   }
 
