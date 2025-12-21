@@ -60,7 +60,13 @@ export async function POST(request: Request) {
       );
     }
 
-    if (occurrence.date < new Date()) {
+    // Compare dates at midnight to avoid timezone/time-of-day issues
+    const occurrenceDate = new Date(occurrence.date);
+    occurrenceDate.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (occurrenceDate < today) {
       return NextResponse.json(
         { error: "Cannot RSVP to past events" },
         { status: 400 },

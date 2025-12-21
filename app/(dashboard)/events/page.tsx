@@ -267,6 +267,7 @@ export default function EventsPage() {
   );
   const isInitialMount = useRef(true);
   const selectedEventIdRef = useRef<string | null>(null);
+  const hasNavigatedAwayRef = useRef(false);
 
   // Current user info
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
@@ -399,19 +400,51 @@ export default function EventsPage() {
           if (!eventToSelect) {
             const currentSelectedId = selectedEventIdRef.current;
             if (!currentSelectedId) {
-              eventToSelect = newEvents[0];
+              // On mobile, don't auto-select the first event - user must click
+              if (!isEventsMobile) {
+                eventToSelect = newEvents[0];
+              }
             } else {
               // Check if current selected event still exists
               const stillExists = newEvents.find(
                 (e: Event) => e.id === currentSelectedId,
               );
               if (!stillExists) {
-                eventToSelect = newEvents[0];
+                // On mobile, don't auto-select the first event - user must click
+                if (!isEventsMobile) {
+                  eventToSelect = newEvents[0];
+                }
               } else {
                 // Find the updated event object from newEvents
                 eventToSelect =
                   newEvents.find((e: Event) => e.id === currentSelectedId) ||
-                  newEvents[0];
+                  null;
+                // On mobile, if we're on events view, don't keep selection
+                if (isEventsMobile && mobileView === "events") {
+                  eventToSelect = null;
+                } else if (!eventToSelect && !isEventsMobile) {
+                  eventToSelect = newEvents[0];
+                }
+              }
+            }
+          }
+
+          // Set mobile view based on selection
+          if (isEventsMobile) {
+            // Only navigate away from events view if URL params explicitly specify it
+            // Otherwise, start on events view even if an event is selected
+            if (occurrenceToSelect && occurrenceIdParam) {
+              setMobileView("details");
+            } else if (eventToSelect && eventIdParam) {
+              // Only go to occurrences if eventId was in URL
+              setMobileView("occurrences");
+            } else {
+              // Start on events view - clear selection on mobile events view
+              setMobileView("events");
+              // Clear selection when on mobile events view
+              if (mobileView === "events" || !eventIdParam) {
+                eventToSelect = null;
+                occurrenceToSelect = null;
               }
             }
           }
@@ -434,17 +467,6 @@ export default function EventsPage() {
             setSelectedEvent(eventToSelect);
           }
           setSelectedOccurrence(occurrenceToSelect);
-
-          // Set mobile view based on selection
-          if (isEventsMobile) {
-            if (occurrenceToSelect) {
-              setMobileView("details");
-            } else if (eventToSelect) {
-              setMobileView("occurrences");
-            } else {
-              setMobileView("events");
-            }
-          }
 
           // Load RSVPs if occurrence is selected (will be handled by useEffect)
           if (!occurrenceToSelect) {
@@ -1125,26 +1147,43 @@ export default function EventsPage() {
   }
 
   function selectEvent(event: Event) {
-    // If clicking the same event that's already selected, deselect it
+    // If clicking the same event that's already selected
     if (event.id === selectedEventIdRef.current) {
+      // On mobile, always navigate forward instead of deselecting
+      if (isEventsMobile) {
+        if (currentUserRole === "athlete") {
+          // For athletes, ensure event is set and navigate to occurrences
+          setSelectedEventForAthlete(event);
+          const upcomingOccs = event.occurrences.filter((occ) => {
+            const occDate = new Date(occ.date);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            return occDate >= today && occ.status === "scheduled";
+          });
+          if (upcomingOccs.length > 0) {
+            setSelectedOccurrenceForAthleteDetail(upcomingOccs[0]);
+          }
+          setMobileView("occurrences");
+        } else {
+          setMobileView("occurrences");
+        }
+        return;
+      }
+      // On desktop, deselect the event
       selectedEventIdRef.current = null;
       setSelectedEvent(null);
       setSelectedOccurrence(null);
       setOccurrenceRsvps([]);
-      if (isEventsMobile) {
-        if (currentUserRole === "athlete") {
-          setSelectedEventForAthlete(null);
-          setSelectedOccurrenceForAthleteDetail(null);
-        }
-        setMobileView("events");
-      }
     } else {
       // Select the new event
       selectedEventIdRef.current = event.id;
       setSelectedEvent(event);
       setSelectedOccurrence(null);
       setOccurrenceRsvps([]);
-      if (isEventsMobile && event) {
+      // Reset navigation flag when selecting a different event
+      // The useEffect will set it to true when we actually navigate away
+      if (isEventsMobile) {
+        hasNavigatedAwayRef.current = false;
         if (currentUserRole === "athlete") {
           // For athletes, go to occurrences view to pick which day
           setSelectedEventForAthlete(event);
@@ -1176,6 +1215,14 @@ export default function EventsPage() {
       setMobileView("details");
     }
   }
+
+  // Track when we navigate away from events view on mobile
+  // This is used to ensure clicking a selected event navigates forward
+  useEffect(() => {
+    if (isEventsMobile && mobileView !== "events") {
+      hasNavigatedAwayRef.current = true;
+    }
+  }, [isEventsMobile, mobileView]);
 
   function formatDate(dateValue: string | Date | undefined | null) {
     if (!dateValue) return { day: "", month: "", weekday: "" };
@@ -1529,7 +1576,7 @@ export default function EventsPage() {
                       <div
                         key={event.id}
                         className={`relative w-full rounded-xl transition-all ${
-                          selectedEvent?.id === event.id
+                          selectedEvent?.id === event.id && (!isEventsMobile || mobileView !== "events")
                             ? "bg-primary text-primary-foreground"
                             : "bg-card hover:bg-muted/50"
                         }`}
@@ -2780,7 +2827,7 @@ export default function EventsPage() {
                             }
                           }}
                           className={`w-full text-left p-3 rounded-xl transition-all ${
-                            selectedEventForAthlete?.id === event.id
+                            selectedEventForAthlete?.id === event.id && (!isEventsMobile || mobileView !== "events")
                               ? "bg-primary text-primary-foreground"
                               : "hover:bg-muted"
                           }`}
@@ -2790,7 +2837,7 @@ export default function EventsPage() {
                           </p>
                           <div
                             className={`flex items-center gap-2 mt-1.5 text-xs ${
-                              selectedEventForAthlete?.id === event.id
+                              selectedEventForAthlete?.id === event.id && (!isEventsMobile || mobileView !== "events")
                                 ? "text-primary-foreground/70"
                                 : "text-muted-foreground"
                             }`}
@@ -3933,7 +3980,7 @@ export default function EventsPage() {
                       type="button"
                       onClick={() => selectEvent(event)}
                       className={`w-full text-left p-3 rounded-xl mb-1 transition-all ${
-                        selectedEvent?.id === event.id
+                        selectedEvent?.id === event.id && (!isEventsMobile || mobileView !== "events")
                           ? "bg-primary text-primary-foreground"
                           : "hover:bg-muted"
                       }`}
@@ -3943,7 +3990,7 @@ export default function EventsPage() {
                       </p>
                       <div
                         className={`flex items-center gap-2 mt-1.5 text-xs ${
-                          selectedEvent?.id === event.id
+                          selectedEvent?.id === event.id && (!isEventsMobile || mobileView !== "events")
                             ? "text-primary-foreground/70"
                             : "text-muted-foreground"
                         }`}
@@ -3963,7 +4010,7 @@ export default function EventsPage() {
                           variant="ghost"
                           size="icon"
                           className={`absolute right-2 top-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity ${
-                            selectedEvent?.id === event.id
+                            selectedEvent?.id === event.id && (!isEventsMobile || mobileView !== "events")
                               ? "text-primary-foreground hover:bg-primary-foreground/20"
                               : ""
                           }`}

@@ -61,9 +61,12 @@ export function AthleteDashboard({
       });
       if (response.ok) {
         setRsvpStates((prev) => ({ ...prev, [occurrenceId]: status }));
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        console.error("RSVP failed:", response.status, errorData);
       }
     } catch (err) {
-      console.error(err);
+      console.error("RSVP error:", err);
     } finally {
       setLoading(null);
     }
@@ -147,28 +150,24 @@ export function AthleteDashboard({
             <>
               {/* Featured Next Event */}
               {nextEvent && (
-                <Link
-                  href={`/events?eventId=${nextEvent.eventId}&occurrenceId=${nextEvent.id}`}
-                  className="block"
+                <Card
+                  className={`rounded-xl overflow-hidden transition-all hover:shadow-md ${
+                    rsvpStates[nextEvent.id] === "going"
+                      ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800"
+                      : rsvpStates[nextEvent.id] === "not_going"
+                        ? "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800"
+                        : "bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20"
+                  }`}
                 >
-                  <Card
-                    className={`rounded-xl overflow-hidden cursor-pointer transition-all hover:shadow-md ${
-                      rsvpStates[nextEvent.id] === "going"
-                        ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800"
-                        : rsvpStates[nextEvent.id] === "not_going"
-                          ? "bg-muted/50"
-                          : "bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20"
-                    }`}
-                  >
-                    <CardContent className="p-6">
-                      <div className="flex items-start gap-4">
+                  <CardContent className="p-6">
+                    <div className="flex items-start gap-4">
                       {/* Big Date */}
                       <div
                         className={`h-20 w-20 rounded-xl flex flex-col items-center justify-center shrink-0 ${
                           rsvpStates[nextEvent.id] === "going"
                             ? "bg-emerald-500 text-white"
                             : rsvpStates[nextEvent.id] === "not_going"
-                              ? "bg-muted text-muted-foreground"
+                              ? "bg-red-500 text-white"
                               : "bg-primary text-primary-foreground"
                         }`}
                       >
@@ -195,20 +194,25 @@ export function AthleteDashboard({
                             Next up
                           </span>
                         </div>
-                        <h2 className="text-xl font-semibold">
-                          {nextEvent.eventTitle}
-                        </h2>
-                        <p className="text-sm text-muted-foreground mt-1 flex items-center gap-2">
-                          <span className="whitespace-nowrap">
-                            {formatDate(nextEvent.date).weekday}
-                          </span>
-                          <span>•</span>
-                          <span className="flex items-center gap-1">
-                            <IconClock className="h-3.5 w-3.5" />
-                            {formatTime(nextEvent.startTime)} -{" "}
-                            {formatTime(nextEvent.endTime)}
-                          </span>
-                        </p>
+                        <Link
+                          href={`/events?eventId=${nextEvent.eventId}&occurrenceId=${nextEvent.id}`}
+                          className="block"
+                        >
+                          <h2 className="text-xl font-semibold hover:underline">
+                            {nextEvent.eventTitle}
+                          </h2>
+                          <p className="text-sm text-muted-foreground mt-1 flex items-center gap-2">
+                            <span className="whitespace-nowrap">
+                              {formatDate(nextEvent.date).weekday}
+                            </span>
+                            <span>•</span>
+                            <span className="flex items-center gap-1">
+                              <IconClock className="h-3.5 w-3.5" />
+                              {formatTime(nextEvent.startTime)} -{" "}
+                              {formatTime(nextEvent.endTime)}
+                            </span>
+                          </p>
+                        </Link>
 
                         {/* Coaches and Athletes */}
                         <div className="flex items-center gap-2 mt-3 flex-wrap">
@@ -233,7 +237,11 @@ export function AthleteDashboard({
                         </div>
 
                         {/* RSVP Buttons */}
-                        <div className="flex gap-2 mt-4">
+                        <div 
+                          className="flex gap-2 mt-4 relative z-20" 
+                          onClick={(e) => e.stopPropagation()}
+                          onMouseDown={(e) => e.stopPropagation()}
+                        >
                           <Button
                             size="lg"
                             variant={
@@ -246,12 +254,16 @@ export function AthleteDashboard({
                               e.stopPropagation();
                               handleRsvp(nextEvent.id, "going");
                             }}
+                            onMouseDown={(e) => {
+                              e.stopPropagation();
+                            }}
                             disabled={loading === nextEvent.id}
                             className={`flex-1 h-12 rounded-xl gap-2 ${
                               rsvpStates[nextEvent.id] === "going"
                                 ? "bg-emerald-600 hover:bg-emerald-700"
                                 : ""
                             }`}
+                            type="button"
                           >
                             <IconCheck className="h-5 w-5" />
                             {rsvpStates[nextEvent.id] === "going"
@@ -270,8 +282,16 @@ export function AthleteDashboard({
                               e.stopPropagation();
                               handleRsvp(nextEvent.id, "not_going");
                             }}
+                            onMouseDown={(e) => {
+                              e.stopPropagation();
+                            }}
                             disabled={loading === nextEvent.id}
-                            className="flex-1 h-12 rounded-xl gap-2"
+                            className={`flex-1 h-12 rounded-xl gap-2 ${
+                              rsvpStates[nextEvent.id] === "not_going"
+                                ? "bg-red-400 hover:bg-red-500 text-white"
+                                : ""
+                            }`}
+                            type="button"
                           >
                             <IconX className="h-5 w-5" />
                             Can't Make It
@@ -281,7 +301,6 @@ export function AthleteDashboard({
                     </div>
                   </CardContent>
                 </Card>
-                </Link>
               )}
 
               {/* Rest of Events */}
@@ -296,21 +315,23 @@ export function AthleteDashboard({
                     const isLoading = loading === occ.id;
 
                     return (
-                      <Link
+                      <Card
                         key={occ.id}
-                        href={`/events?eventId=${occ.eventId}&occurrenceId=${occ.id}`}
-                        className="block"
+                        className={`rounded-xl transition-all hover:shadow-md ${
+                          rsvpStatus === "not_going"
+                            ? "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800"
+                            : ""
+                        }`}
                       >
-                        <Card className="rounded-xl cursor-pointer transition-all hover:shadow-md">
-                          <CardContent className="p-4">
-                            <div className="flex items-center gap-4">
+                        <CardContent className="p-4">
+                          <div className="flex items-center gap-4">
                             {/* Date */}
                             <div
                               className={`h-14 w-14 rounded-xl flex flex-col items-center justify-center shrink-0 ${
                                 rsvpStatus === "going"
                                   ? "bg-emerald-100 dark:bg-emerald-950/50"
                                   : rsvpStatus === "not_going"
-                                    ? "bg-muted"
+                                    ? "bg-red-100 dark:bg-red-950/50"
                                     : "bg-primary/10"
                               }`}
                             >
@@ -319,7 +340,7 @@ export function AthleteDashboard({
                                   rsvpStatus === "going"
                                     ? "text-emerald-600"
                                     : rsvpStatus === "not_going"
-                                      ? "text-muted-foreground"
+                                      ? "text-red-600"
                                       : ""
                                 }`}
                               >
@@ -332,11 +353,18 @@ export function AthleteDashboard({
 
                             {/* Details */}
                             <div className="flex-1 min-w-0">
-                              <p className="font-medium">{occ.eventTitle}</p>
-                              <p className="text-xs text-muted-foreground flex items-center gap-1">
-                                <IconClock className="h-3 w-3" />
-                                {formatTime(occ.startTime)}
-                              </p>
+                              <Link
+                                href={`/events?eventId=${occ.eventId}&occurrenceId=${occ.id}`}
+                                className="block"
+                              >
+                                <p className="font-medium hover:underline">
+                                  {occ.eventTitle}
+                                </p>
+                                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                  <IconClock className="h-3 w-3" />
+                                  {formatTime(occ.startTime)}
+                                </p>
+                              </Link>
                               {/* Coaches and Athletes */}
                               <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                                 {occ.goingCoaches.length > 0 && (
@@ -367,9 +395,7 @@ export function AthleteDashboard({
                                 variant={
                                   rsvpStatus === "going" ? "default" : "outline"
                                 }
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
+                                onClick={() => {
                                   handleRsvp(occ.id, "going");
                                 }}
                                 disabled={isLoading}
@@ -388,13 +414,15 @@ export function AthleteDashboard({
                                     ? "secondary"
                                     : "outline"
                                 }
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
+                                onClick={() => {
                                   handleRsvp(occ.id, "not_going");
                                 }}
                                 disabled={isLoading}
-                                className="h-9 w-9 p-0 rounded-lg"
+                                className={`h-9 w-9 p-0 rounded-lg ${
+                                  rsvpStatus === "not_going"
+                                    ? "bg-red-400 hover:bg-red-500 text-white"
+                                    : ""
+                                }`}
                               >
                                 <IconX className="h-4 w-4" />
                               </Button>
@@ -402,7 +430,6 @@ export function AthleteDashboard({
                           </div>
                         </CardContent>
                       </Card>
-                      </Link>
                     );
                   })}
                 </div>
