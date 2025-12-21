@@ -218,24 +218,35 @@ function SetupPasswordForm() {
         <Card className="w-full max-w-md">
           <CardHeader>
             <div className="flex items-center gap-2 mb-2">
-              <IconAlertCircle className="h-5 w-5 text-destructive" />
+              {linkSent && !error ? (
+                <IconMail className="h-5 w-5 text-green-600 dark:text-green-400" />
+              ) : (
+                <IconAlertCircle className="h-5 w-5 text-destructive" />
+              )}
               <CardTitle>
-                {isLinkExpired || error ? "Link Expired" : "Password Setup Required"}
+                {linkSent && !error
+                  ? "Email Sent"
+                  : isLinkExpired || error
+                    ? "Link Expired"
+                    : "Password Setup Required"}
               </CardTitle>
             </div>
-            <CardDescription className={error ? "text-destructive" : ""}>
-              {error || "Please request a password setup link to continue."}
+            <CardDescription
+              className={
+                linkSent && !error
+                  ? "text-green-600 dark:text-green-400"
+                  : error
+                    ? "text-destructive"
+                    : ""
+              }
+            >
+              {linkSent && !error
+                ? "Email sent! Please check your email for the password setup link."
+                : error || "Please request a password setup link to continue."}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {linkSent && !error ? (
-              <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-md p-3 text-sm text-green-800 dark:text-green-200">
-                <div className="flex items-center gap-2">
-                  <IconMail className="h-4 w-4" />
-                  <span>New link sent! Please check your email ({email}) for the password setup link.</span>
-                </div>
-              </div>
-            ) : (
+            {linkSent && !error ? null : (
               <>
                 {email ? (
                   <Button

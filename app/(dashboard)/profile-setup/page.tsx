@@ -363,7 +363,7 @@ export default function ProfileSetupPage() {
                       type="date"
                       value={dateOfBirth}
                       onChange={(e) => setDateOfBirth(e.target.value)}
-                      className="pl-9 max-w-[180px] md:max-w-none"
+                      className="pl-9 !w-full md:!w-auto"
                     />
                   </div>
                 </div>
