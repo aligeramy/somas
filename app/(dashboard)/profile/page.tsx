@@ -435,6 +435,19 @@ export default function ProfilePage() {
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
+                  <Label htmlFor="phone" className="text-sm">
+                    Main Phone
+                  </Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="+1 (555) 000-0000"
+                    className="rounded-xl h-11"
+                  />
+                </div>
+                <div className="space-y-2">
                   <Label htmlFor="homePhone" className="text-sm">
                     Home Phone Number
                   </Label>
@@ -460,19 +473,19 @@ export default function ProfilePage() {
                     className="rounded-xl h-11"
                   />
                 </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="cellPhone" className="text-sm">
-                  Cell Number
-                </Label>
-                <Input
-                  id="cellPhone"
-                  type="tel"
-                  value={cellPhone}
-                  onChange={(e) => setCellPhone(e.target.value)}
-                  placeholder="+1 (555) 000-0000"
-                  className="rounded-xl h-11"
-                />
+                <div className="space-y-2">
+                  <Label htmlFor="cellPhone" className="text-sm">
+                    Cell Number
+                  </Label>
+                  <Input
+                    id="cellPhone"
+                    type="tel"
+                    value={cellPhone}
+                    onChange={(e) => setCellPhone(e.target.value)}
+                    placeholder="+1 (555) 000-0000"
+                    className="rounded-xl h-11"
+                  />
+                </div>
               </div>
               <div className="space-y-2">
                 <Label className="text-sm">Email Address</Label>
