@@ -21,18 +21,32 @@ export function PWAInstallButton() {
     return null;
   }
 
+  const isIOS = typeof window !== "undefined" && /iPad|iPhone|iPod/.test(navigator.userAgent);
+  const isAndroid = typeof window !== "undefined" && /Android/.test(navigator.userAgent);
+
   const handleInstall = async () => {
     if (hasNativePrompt) {
       // Chrome/Edge - use native prompt
       await install();
+    } else if (isIOS && navigator.share) {
+      // iOS Safari - use Web Share API to trigger native share menu
+      try {
+        await navigator.share({
+          title: "Install Titans App",
+          text: "Add Titans to your home screen for quick access",
+          url: window.location.href,
+        });
+      } catch (error) {
+        // User cancelled or share failed - show instructions as fallback
+        if ((error as Error).name !== "AbortError") {
+          setShowInstructions(true);
+        }
+      }
     } else {
-      // iOS Safari or other browsers - show instructions
+      // Other browsers - show instructions
       setShowInstructions(true);
     }
   };
-
-  const isIOS = typeof window !== "undefined" && /iPad|iPhone|iPod/.test(navigator.userAgent);
-  const isAndroid = typeof window !== "undefined" && /Android/.test(navigator.userAgent);
 
   return (
     <>

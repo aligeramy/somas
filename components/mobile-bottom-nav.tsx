@@ -6,6 +6,7 @@ import {
   IconDashboard,
   IconDots,
   IconListCheck,
+  IconLogout,
   IconMail,
   IconMessageCircle,
   IconNews,
@@ -14,7 +15,7 @@ import {
   IconWorldWww,
 } from "@tabler/icons-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import {
   Sheet,
@@ -23,6 +24,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+import { createClient } from "@/lib/supabase/client";
 
 interface MobileBottomNavProps {
   userRole: string;
@@ -34,7 +36,15 @@ export function MobileBottomNav({
   gymWebsite,
 }: MobileBottomNavProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const [moreOpen, setMoreOpen] = useState(false);
+
+  const handleLogout = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/login");
+    router.refresh();
+  };
 
   // Main nav items (max 4 for admin, 5 for users)
   const mainNavItems = [
@@ -200,6 +210,18 @@ export function MobileBottomNav({
                   <span className="font-medium">Club Website</span>
                 </a>
               )}
+              <button
+                onClick={() => {
+                  setMoreOpen(false);
+                  handleLogout();
+                }}
+                className={cn(
+                  "flex items-center gap-3 p-3 rounded-xl transition-colors hover:bg-muted text-destructive w-full text-left",
+                )}
+              >
+                <IconLogout className="h-5 w-5" />
+                <span className="font-medium">Log out</span>
+              </button>
             </div>
           </SheetContent>
         </Sheet>

@@ -13,7 +13,6 @@ import { AthleteDashboard } from "@/components/athlete-dashboard";
 import { EventActionsDropdown } from "@/components/event-actions-dropdown";
 import { PageHeader } from "@/components/page-header";
 import { PWAInstallButton } from "@/components/pwa-install-button";
-import { PWAInstallPrompt } from "@/components/pwa-install-prompt";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -639,9 +638,6 @@ function DashboardContent({
   return (
     <div className="flex-1 overflow-auto min-h-0">
       <div className="space-y-4">
-        {/* PWA Install Prompt - Only show after onboarding */}
-        {isOnboarded && <PWAInstallPrompt />}
-
         {/* Active Notice */}
         {activeNotice && (
           <Card className="rounded-xl border border-primary/20 bg-primary/5">

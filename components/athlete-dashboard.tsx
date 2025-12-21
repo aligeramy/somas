@@ -258,14 +258,14 @@ export function AthleteDashboard({
                               e.stopPropagation();
                             }}
                             disabled={loading === nextEvent.id}
-                            className={`flex-1 h-12 rounded-xl gap-2 ${
+                            className={`flex-1 h-10 sm:h-12 rounded-xl gap-1.5 sm:gap-2 text-sm sm:text-base ${
                               rsvpStates[nextEvent.id] === "going"
                                 ? "bg-emerald-600 hover:bg-emerald-700"
                                 : ""
                             }`}
                             type="button"
                           >
-                            <IconCheck className="h-5 w-5" />
+                            <IconCheck className="h-4 w-4 sm:h-5 sm:w-5" />
                             {rsvpStates[nextEvent.id] === "going"
                               ? "Going!"
                               : "I'm In"}
@@ -286,15 +286,16 @@ export function AthleteDashboard({
                               e.stopPropagation();
                             }}
                             disabled={loading === nextEvent.id}
-                            className={`flex-1 h-12 rounded-xl gap-2 ${
+                            className={`flex-1 h-10 sm:h-12 rounded-xl gap-1.5 sm:gap-2 text-sm sm:text-base ${
                               rsvpStates[nextEvent.id] === "not_going"
                                 ? "bg-red-400 hover:bg-red-500 text-white"
                                 : ""
                             }`}
                             type="button"
                           >
-                            <IconX className="h-5 w-5" />
-                            Can't Make It
+                            <IconX className="h-4 w-4 sm:h-5 sm:w-5" />
+                            <span className="hidden sm:inline">Can't Make It</span>
+                            <span className="sm:hidden">Can't Go</span>
                           </Button>
                         </div>
                       </div>
