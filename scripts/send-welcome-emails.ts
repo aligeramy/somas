@@ -83,17 +83,23 @@ async function sendWelcomeEmails(gymId?: string) {
 
         const setupUrl = `${process.env.NEXT_PUBLIC_APP_URL}/setup-password?token=${resetData.properties.hashed_token}&email=${encodeURIComponent(user.email)}`;
 
+        // Add unique message ID to prevent email threading
+        const messageId = `${Date.now()}-${user.id}-${Math.random().toString(36).substring(7)}`;
         // Send welcome email
         await resend.emails.send({
           from: `${process.env.RESEND_FROM_NAME} <${process.env.RESEND_FROM_EMAIL}>`,
           to: user.email,
-          subject: "Welcome to TOM App",
+          subject: `Get Started with ${gym.name} - Account Setup`,
           react: WelcomeEmail({
             gymName: gym.name,
             gymLogoUrl: gym.logoUrl,
             userName: user.name || user.email,
             setupUrl,
           }),
+          headers: {
+            "Message-ID": `<${messageId}@titansofmississauga.ca>`,
+            "X-Entity-Ref-ID": messageId,
+          },
         });
 
         console.log(`✓ Sent welcome email to ${user.email}`);

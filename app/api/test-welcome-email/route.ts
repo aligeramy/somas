@@ -91,17 +91,23 @@ export async function POST(request: Request) {
       }
     }
 
+    // Add unique message ID to prevent email threading
+    const messageId = `${Date.now()}-${Math.random().toString(36).substring(7)}`;
     // Send welcome email
     const result = await resend.emails.send({
       from: `${process.env.RESEND_FROM_NAME} <${process.env.RESEND_FROM_EMAIL}>`,
       to: email,
-      subject: "Welcome to TOM App",
+      subject: `Get Started with ${gymName || "TOM"} - Account Setup`,
       react: WelcomeEmail({
         gymName,
         gymLogoUrl,
         userName,
         setupUrl,
       }),
+      headers: {
+        "Message-ID": `<${messageId}@titansofmississauga.ca>`,
+        "X-Entity-Ref-ID": messageId,
+      },
     });
 
     if (result.error) {

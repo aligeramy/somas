@@ -188,16 +188,22 @@ export async function POST(request: Request) {
           ? `${process.env.NEXT_PUBLIC_APP_URL}/setup-password?token=${resetData.properties.hashed_token}&email=${encodeURIComponent(email)}`
           : `${process.env.NEXT_PUBLIC_APP_URL}/setup-password?email=${encodeURIComponent(email)}`;
 
+        // Add unique message ID to prevent email threading
+        const messageId = `${Date.now()}-${authData.user.id}-${Math.random().toString(36).substring(7)}`;
         await resend.emails.send({
           from: `${process.env.RESEND_FROM_NAME} <${process.env.RESEND_FROM_EMAIL}>`,
           to: email,
-          subject: "Welcome to TOM App",
+          subject: `Get Started with ${gym.name} - Account Setup`,
           react: WelcomeEmail({
             gymName: gym.name,
             gymLogoUrl: gym.logoUrl,
             userName: name || email,
             setupUrl,
           }),
+          headers: {
+            "Message-ID": `<${messageId}@titansofmississauga.ca>`,
+            "X-Entity-Ref-ID": messageId,
+          },
         });
 
         createdUsers.push({ email, userId: authData.user.id });

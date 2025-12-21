@@ -180,19 +180,25 @@ export async function POST(request: Request) {
         // For welcome/reset emails, only send to primary email
         // (password setup links are tied to primary email in Supabase Auth)
         // Alt emails will receive regular reminders/notifications, but not account setup emails
+        // Add unique message ID to prevent email threading
+        const messageId = `${Date.now()}-${targetUser.id}-${Math.random().toString(36).substring(7)}`;
         const emailResult = await resend.emails.send({
           from: `${process.env.RESEND_FROM_NAME} <${process.env.RESEND_FROM_EMAIL}>`,
           to: targetUser.email,
           subject:
             type === "welcome"
-              ? "Welcome to TOM App"
-              : `Reset your password - ${gym.name}`,
+              ? `Get Started with ${gym.name} - Account Setup`
+              : `Password Reset - ${gym.name}`,
           react: WelcomeEmail({
             gymName: gym.name,
             gymLogoUrl: gym.logoUrl,
             userName: targetUser.name || targetUser.email,
             setupUrl,
           }),
+          headers: {
+            "Message-ID": `<${messageId}@titansofmississauga.ca>`,
+            "X-Entity-Ref-ID": messageId,
+          },
         });
 
         if (emailResult.error) {

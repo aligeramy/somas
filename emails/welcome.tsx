@@ -43,7 +43,7 @@ export function WelcomeEmail({
       </Section>
 
       <Text className="text-[13px] text-gray-500 leading-6 mb-4">
-        This link will expire in 7 days for security. If you need a new link,
+        This link will expire in 24 hours for security. If you need a new link,
         please contact your coach.
       </Text>
 
