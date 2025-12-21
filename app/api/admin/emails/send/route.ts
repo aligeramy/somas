@@ -177,16 +177,12 @@ export async function POST(request: Request) {
           }
         }
 
-        // Build recipient list including altEmail
-        const recipients = [targetUser.email];
-        if (targetUser.altEmail) {
-          recipients.push(targetUser.altEmail);
-        }
-
-        // Send email
+        // For welcome/reset emails, only send to primary email
+        // (password setup links are tied to primary email in Supabase Auth)
+        // Alt emails will receive regular reminders/notifications, but not account setup emails
         const emailResult = await resend.emails.send({
           from: `${process.env.RESEND_FROM_NAME} <${process.env.RESEND_FROM_EMAIL}>`,
-          to: recipients,
+          to: targetUser.email,
           subject:
             type === "welcome"
               ? "Welcome to TOM App"
