@@ -1513,7 +1513,7 @@ export default function EventsPage() {
                 </Link>
               </Button>
             )}
-            {mobileView !== "chat" && (selectedEvent || selectedEventForAthlete) && (
+            {(mobileView === "details" || mobileView === "occurrences") && mobileView !== "chat" && (selectedEvent || selectedEventForAthlete) && (
               <Button
                 variant="ghost"
                 size="sm"
@@ -2541,6 +2541,18 @@ export default function EventsPage() {
                 eventId={selectedEvent.id}
                 eventTitle={selectedEvent.title}
                 onChannelLoad={setEventChannelId}
+              />
+            ) : selectedEventForAthlete && athleteEventChannelId ? (
+              <EventChatContent
+                channelId={athleteEventChannelId}
+                eventTitle={selectedEventForAthlete.title}
+                onChannelLoad={setAthleteEventChannelId}
+              />
+            ) : selectedEventForAthlete ? (
+              <EventChatContent
+                eventId={selectedEventForAthlete.id}
+                eventTitle={selectedEventForAthlete.title}
+                onChannelLoad={setAthleteEventChannelId}
               />
             ) : (
               <div className="flex flex-1 items-center justify-center text-muted-foreground">

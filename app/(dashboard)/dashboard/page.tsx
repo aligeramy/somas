@@ -12,6 +12,7 @@ import { Suspense } from "react";
 import { AthleteDashboard } from "@/components/athlete-dashboard";
 import { EventActionsDropdown } from "@/components/event-actions-dropdown";
 import { PageHeader } from "@/components/page-header";
+import { PWAInstallButton } from "@/components/pwa-install-button";
 import { PWAInstallPrompt } from "@/components/pwa-install-prompt";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -436,6 +437,7 @@ export default async function DashboardPage() {
         title={`Welcome back${dbUser.name ? `, ${dbUser.name.split(" ")[0]}` : ""}`}
         description="Here's what's happening with your team"
       >
+        <PWAInstallButton />
         <Button size="sm" className="gap-2 rounded-xl" asChild>
           <Link href="/events/new">
             <IconPlus className="h-4 w-4" />

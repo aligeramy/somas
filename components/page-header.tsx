@@ -23,7 +23,7 @@ export function PageHeader({ title, children }: PageHeaderProps) {
             <>
               <style jsx global>{`
                 @media (max-width: 767px) {
-                  [data-page-header] button {
+                  [data-page-header] button:not([data-show-text-mobile]) {
                     font-size: 0 !important;
                     width: 2rem !important;
                     height: 2rem !important;
@@ -32,14 +32,19 @@ export function PageHeader({ title, children }: PageHeaderProps) {
                     align-items: center !important;
                     justify-content: center !important;
                   }
-                  [data-page-header] button svg {
+                  [data-page-header] button:not([data-show-text-mobile]) svg {
                     font-size: 1rem !important;
                     width: 1rem !important;
                     height: 1rem !important;
                     margin: 0 !important;
                   }
-                  [data-page-header] button > *:not(svg) {
+                  [data-page-header] button:not([data-show-text-mobile]) > *:not(svg) {
                     display: none !important;
+                  }
+                  [data-page-header] button[data-show-text-mobile] {
+                    padding: 0.5rem 0.75rem !important;
+                    height: 2rem !important;
+                    font-size: 0.875rem !important;
                   }
                 }
               `}</style>

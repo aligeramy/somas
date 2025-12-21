@@ -4,6 +4,7 @@ import { IconCalendar, IconCheck, IconClock, IconX } from "@tabler/icons-react";
 import Link from "next/link";
 import { useState } from "react";
 import { PageHeader } from "@/components/page-header";
+import { PWAInstallButton } from "@/components/pwa-install-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -108,7 +109,9 @@ export function AthleteDashboard({
       <PageHeader
         title={`Hey${userName ? `, ${userName.split(" ")[0]}` : ""}! 👋`}
         description="Here's your upcoming schedule"
-      />
+      >
+        <PWAInstallButton />
+      </PageHeader>
 
       <div className="flex-1 overflow-auto min-h-0">
         <div className="p-4 lg:p-6 space-y-6 max-w-2xl mx-auto">
