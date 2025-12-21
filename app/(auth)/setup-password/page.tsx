@@ -31,6 +31,7 @@ function SetupPasswordForm() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [requestingLink, setRequestingLink] = useState(false);
   const [linkSent, setLinkSent] = useState(false);
+  const [isLinkExpired, setIsLinkExpired] = useState(false);
   const supabase = createClient();
 
   // Auto-verify token on page load
@@ -38,6 +39,11 @@ function SetupPasswordForm() {
     async function verifyToken() {
       if (!token) {
         setVerifying(false);
+        // If no token but we have an email, show the request link screen
+        if (email) {
+          setIsLinkExpired(true);
+          setError("No valid link found. Please request a new password setup link.");
+        }
         return;
       }
 
@@ -51,23 +57,28 @@ function SetupPasswordForm() {
         });
 
         if (verifyError) {
-          setError(`Invalid or expired link: ${verifyError.message}`);
+          const errorMessage = `Invalid or expired link: ${verifyError.message}`;
+          setError(errorMessage);
+          setIsLinkExpired(true);
           setVerifying(false);
           return;
         }
 
         if (data?.session) {
           setIsAuthenticated(true);
+          setIsLinkExpired(false); // Reset expired state when new link is successfully verified
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to verify link");
+        const errorMessage = err instanceof Error ? err.message : "Failed to verify link";
+        setError(errorMessage);
+        setIsLinkExpired(true);
       } finally {
         setVerifying(false);
       }
     }
 
     verifyToken();
-  }, [token, tokenType, supabase.auth]);
+  }, [token, tokenType, email, supabase.auth]);
 
   async function handleRequestNewLink() {
     if (!email || !email.trim()) {
@@ -83,7 +94,8 @@ function SetupPasswordForm() {
     }
 
     setRequestingLink(true);
-    setError(null);
+    // Don't clear the error here - we want to keep showing the expired link message
+    // Only clear error messages that aren't related to expired links
     setLinkSent(false);
 
     try {
@@ -101,11 +113,13 @@ function SetupPasswordForm() {
       }
 
       setLinkSent(true);
-      setError(null);
+      // Keep isLinkExpired true so we stay on the error screen
+      // The user should check their email for the new link
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Failed to send new link. Please try again.";
       setError(errorMessage);
       setLinkSent(false);
+      // Keep isLinkExpired true so we stay on the error screen
     } finally {
       setRequestingLink(false);
     }
@@ -197,13 +211,14 @@ function SetupPasswordForm() {
   }
 
   // Error state - don't show password inputs if token verification failed or link is invalid/expired
-  const isLinkError = error && (
+  // Use isLinkExpired state to persist the expired state even after clearing error messages
+  const isLinkError = isLinkExpired || (error && (
     error.includes("Invalid or expired link") ||
     error.includes("invalid or has expired") ||
     error.includes("invalid") ||
     error.includes("expired") ||
     (!isAuthenticated && token && !verifying)
-  );
+  ));
 
   if (isLinkError) {
     return (
@@ -289,6 +304,12 @@ function SetupPasswordForm() {
     );
   }
 
+  // Don't show password form if link is expired - user must request a new link
+  if (isLinkExpired && !isAuthenticated) {
+    // This should be caught by isLinkError check above, but adding as safety
+    return null;
+  }
+
   return (
     <div className="flex min-h-screen items-center justify-center p-4 md:p-6">
       <Card className="w-full max-w-md">
@@ -307,7 +328,7 @@ function SetupPasswordForm() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            {error && (
+            {error && !isLinkExpired && (
               <div className="bg-destructive/10 text-destructive rounded-md p-3 text-sm">
                 {error}
               </div>
