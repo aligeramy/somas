@@ -28,6 +28,7 @@ export const users = pgTable(
   {
     id: uuid("id").primaryKey().defaultRandom(),
     email: varchar("email", { length: 255 }).notNull().unique(),
+    altEmail: varchar("altEmail", { length: 255 }),
     name: varchar("name", { length: 255 }),
     phone: varchar("phone", { length: 50 }),
     address: text("address"),

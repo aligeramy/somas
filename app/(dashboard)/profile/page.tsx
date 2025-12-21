@@ -26,6 +26,7 @@ interface UserProfile {
   name: string | null;
   phone: string | null;
   address: string | null;
+  altEmail: string | null;
   homePhone: string | null;
   workPhone: string | null;
   cellPhone: string | null;
@@ -64,6 +65,7 @@ export default function ProfilePage() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
+  const [altEmail, setAltEmail] = useState("");
   const [homePhone, setHomePhone] = useState("");
   const addressInputRef = useRef<HTMLInputElement>(null);
   
@@ -148,6 +150,7 @@ export default function ProfilePage() {
       setName(data.user.name || "");
       setPhone(data.user.phone || "");
       setAddress(data.user.address || "");
+      setAltEmail(data.user.altEmail || "");
       setHomePhone(data.user.homePhone || "");
       setWorkPhone(data.user.workPhone || "");
       setCellPhone(data.user.cellPhone || "");
@@ -229,6 +232,7 @@ export default function ProfilePage() {
           name,
           phone,
           address,
+          altEmail,
           homePhone,
           workPhone,
           cellPhone,
@@ -431,6 +435,19 @@ export default function ProfilePage() {
                   placeholder="123 Main St, City, Country"
                   className="rounded-xl h-11"
                   autoComplete="off"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="altEmail" className="text-sm">
+                  Alternate Email
+                </Label>
+                <Input
+                  id="altEmail"
+                  type="email"
+                  value={altEmail}
+                  onChange={(e) => setAltEmail(e.target.value)}
+                  placeholder="Enter alternate email (optional)"
+                  className="rounded-xl h-11"
                 />
               </div>
               <div className="grid gap-4 sm:grid-cols-2">

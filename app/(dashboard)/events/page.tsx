@@ -1612,7 +1612,7 @@ export default function EventsPage() {
                     )}
                   </p>
                 </div>
-                <ScrollArea className="flex-1">
+                <div className="flex-1 min-h-0 overflow-y-auto">
                   <div className="p-4">
                     {displayedOccurrences.length === 0 ? (
                       <div className="p-8 text-center text-muted-foreground">
@@ -1793,7 +1793,7 @@ export default function EventsPage() {
                       </button>
                     )}
                   </div>
-                </ScrollArea>
+                </div>
               </>
             ) : (
               <div className="flex-1 flex items-center justify-center text-muted-foreground">
