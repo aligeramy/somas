@@ -12,6 +12,7 @@ import { Suspense } from "react";
 import { AthleteDashboard } from "@/components/athlete-dashboard";
 import { EventActionsDropdown } from "@/components/event-actions-dropdown";
 import { PageHeader } from "@/components/page-header";
+import { PWAInstallBanner } from "@/components/pwa-install-banner";
 import { PWAInstallButton } from "@/components/pwa-install-button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -470,6 +471,9 @@ export default async function DashboardPage() {
           isOnboarded={dbUser.onboarded}
         />
       </Suspense>
+
+      {/* Auto-appearing PWA install banner for supported browsers */}
+      {dbUser.onboarded && <PWAInstallBanner />}
     </div>
   );
 }

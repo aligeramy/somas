@@ -1,11 +1,10 @@
 "use client";
 
-import { IconDownload } from "@tabler/icons-react";
+import { IconDownload, IconShare } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -28,22 +27,8 @@ export function PWAInstallButton() {
     if (hasNativePrompt) {
       // Chrome/Edge - use native prompt
       await install();
-    } else if (isIOS && navigator.share) {
-      // iOS Safari - use Web Share API to trigger native share menu
-      try {
-        await navigator.share({
-          title: "Install Titans App",
-          text: "Add Titans to your home screen for quick access",
-          url: window.location.href,
-        });
-      } catch (error) {
-        // User cancelled or share failed - show instructions as fallback
-        if ((error as Error).name !== "AbortError") {
-          setShowInstructions(true);
-        }
-      }
     } else {
-      // Other browsers - show instructions
+      // iOS/Android/Other - show instructions
       setShowInstructions(true);
     }
   };
@@ -62,40 +47,105 @@ export function PWAInstallButton() {
       </Button>
 
       <Dialog open={showInstructions} onOpenChange={setShowInstructions}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Install Titans App</DialogTitle>
-            <DialogDescription>
-              {isIOS ? (
-                <div className="space-y-4 mt-4">
-                  <p>To install Titans on your iPhone or iPad:</p>
-                  <ol className="list-decimal list-inside space-y-2 text-sm">
-                    <li>Tap the Share button <span className="inline-flex items-center justify-center w-6 h-6 rounded bg-muted">↗</span> at the bottom of the screen</li>
-                    <li>Scroll down and tap &quot;Add to Home Screen&quot;</li>
-                    <li>Tap &quot;Add&quot; in the top right corner</li>
-                  </ol>
-                </div>
-              ) : isAndroid ? (
-                <div className="space-y-4 mt-4">
-                  <p>To install Titans on your Android device:</p>
-                  <ol className="list-decimal list-inside space-y-2 text-sm">
-                    <li>Tap the menu button (three dots) in your browser</li>
-                    <li>Select &quot;Install app&quot; or &quot;Add to Home screen&quot;</li>
-                    <li>Follow the on-screen instructions</li>
-                  </ol>
-                </div>
-              ) : (
-                <div className="space-y-4 mt-4">
-                  <p>To install Titans:</p>
-                  <ol className="list-decimal list-inside space-y-2 text-sm">
-                    <li>Look for the install icon in your browser&apos;s address bar</li>
-                    <li>Click it and follow the installation prompts</li>
-                    <li>Or use your browser&apos;s menu to find &quot;Install&quot; or &quot;Add to Home Screen&quot;</li>
-                  </ol>
-                </div>
-              )}
-            </DialogDescription>
+            <DialogTitle className="text-xl">Install Titans</DialogTitle>
           </DialogHeader>
+          
+          {isIOS ? (
+            <div className="space-y-5 py-2">
+              <p className="text-muted-foreground">Add to your home screen for quick access:</p>
+              
+              <div className="space-y-4">
+                <div className="flex items-start gap-4">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-medium">1</div>
+                  <div className="space-y-1">
+                    <p className="font-medium">Tap the Share button</p>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <IconShare className="h-5 w-5" />
+                      <span>at the bottom of Safari</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex items-start gap-4">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-medium">2</div>
+                  <div className="space-y-1">
+                    <p className="font-medium">Scroll down and tap</p>
+                    <p className="text-sm text-muted-foreground">&quot;Add to Home Screen&quot;</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start gap-4">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-medium">3</div>
+                  <div className="space-y-1">
+                    <p className="font-medium">Tap &quot;Add&quot;</p>
+                    <p className="text-sm text-muted-foreground">in the top right corner</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : isAndroid ? (
+            <div className="space-y-5 py-2">
+              <p className="text-muted-foreground">Add to your home screen for quick access:</p>
+              
+              <div className="space-y-4">
+                <div className="flex items-start gap-4">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-medium">1</div>
+                  <div className="space-y-1">
+                    <p className="font-medium">Tap the menu button</p>
+                    <p className="text-sm text-muted-foreground">Three dots (⋮) in your browser</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start gap-4">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-medium">2</div>
+                  <div className="space-y-1">
+                    <p className="font-medium">Select &quot;Install app&quot;</p>
+                    <p className="text-sm text-muted-foreground">or &quot;Add to Home screen&quot;</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start gap-4">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-medium">3</div>
+                  <div className="space-y-1">
+                    <p className="font-medium">Follow the prompts</p>
+                    <p className="text-sm text-muted-foreground">to complete installation</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-5 py-2">
+              <p className="text-muted-foreground">Add to your device for quick access:</p>
+              
+              <div className="space-y-4">
+                <div className="flex items-start gap-4">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-medium">1</div>
+                  <div className="space-y-1">
+                    <p className="font-medium">Look for the install icon</p>
+                    <p className="text-sm text-muted-foreground">in your browser&apos;s address bar</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start gap-4">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-medium">2</div>
+                  <div className="space-y-1">
+                    <p className="font-medium">Click it and follow prompts</p>
+                    <p className="text-sm text-muted-foreground">or use browser menu → &quot;Install&quot;</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          <Button 
+            variant="outline" 
+            className="w-full mt-2" 
+            onClick={() => setShowInstructions(false)}
+          >
+            Got it
+          </Button>
         </DialogContent>
       </Dialog>
     </>
