@@ -429,24 +429,10 @@ export default function EventsPage() {
             }
           }
 
-          // Set mobile view based on selection
-          if (isEventsMobile) {
-            // Only navigate away from events view if URL params explicitly specify it
-            // Otherwise, start on events view even if an event is selected
-            if (occurrenceToSelect && occurrenceIdParam) {
-              setMobileView("details");
-            } else if (eventToSelect && eventIdParam) {
-              // Only go to occurrences if eventId was in URL
-              setMobileView("occurrences");
-            } else {
-              // Start on events view - clear selection on mobile events view
-              setMobileView("events");
-              // Clear selection when on mobile events view
-              if (mobileView === "events" || !eventIdParam) {
-                eventToSelect = null;
-                occurrenceToSelect = null;
-              }
-            }
+          // On mobile, if we're starting on events view (no URL params), clear selection
+          if (isEventsMobile && !eventIdParam && !occurrenceIdParam) {
+            eventToSelect = null;
+            occurrenceToSelect = null;
           }
 
           // Only update if the ID actually changed
@@ -467,6 +453,21 @@ export default function EventsPage() {
             setSelectedEvent(eventToSelect);
           }
           setSelectedOccurrence(occurrenceToSelect);
+
+          // Set mobile view based on selection
+          if (isEventsMobile) {
+            // Only navigate away from events view if URL params explicitly specify it
+            // Otherwise, start on events view even if an event is selected
+            if (occurrenceToSelect && occurrenceIdParam) {
+              setMobileView("details");
+            } else if (eventToSelect && eventIdParam) {
+              // Only go to occurrences if eventId was in URL
+              setMobileView("occurrences");
+            } else {
+              // Start on events view - no event selected
+              setMobileView("events");
+            }
+          }
 
           // Load RSVPs if occurrence is selected (will be handled by useEffect)
           if (!occurrenceToSelect) {
