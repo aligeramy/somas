@@ -116,16 +116,22 @@ function SetupPasswordForm() {
       );
 
       if (resetError) {
+        // Check for rate limiting error
+        if (resetError.message.includes("rate limit") || resetError.message.includes("seconds")) {
+          throw new Error(resetError.message);
+        }
         throw resetError;
       }
 
-      setLinkSent(true);
+      // Only set linkSent if there's no error
+      if (!resetError) {
+        setLinkSent(true);
+        setError(null);
+      }
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Failed to send new link. Please try again.",
-      );
+      const errorMessage = err instanceof Error ? err.message : "Failed to send new link. Please try again.";
+      setError(errorMessage);
+      setLinkSent(false);
     } finally {
       setRequestingLink(false);
     }
@@ -135,7 +141,12 @@ function SetupPasswordForm() {
     e.preventDefault();
     setError(null);
 
-    if (!password || password.length < 8) {
+    // If no password entered, don't submit (user might have clicked button by mistake)
+    if (!password || password.trim().length === 0) {
+      return;
+    }
+
+    if (password.length < 8) {
       setError("Password must be at least 8 characters long");
       return;
     }
@@ -166,58 +177,11 @@ function SetupPasswordForm() {
         setTimeout(() => {
           window.location.href = "/profile-setup";
         }, 1500);
-      } else if (email?.trim()) {
-        // No valid token - request password reset email
-        // Validate email format
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email.trim())) {
-          setError("Please enter a valid email address");
-          setLoading(false);
-          return;
-        }
-
-        // Check if email is altEmail and resolve to primary email
-        let authEmail = email.trim();
-        
-        try {
-          const response = await fetch(`/api/user-info?email=${encodeURIComponent(email.trim())}`);
-          if (response.ok) {
-            const data = await response.json();
-            if (data?.primaryEmail?.trim()) {
-              authEmail = data.primaryEmail.trim();
-            }
-          }
-        } catch {
-          // If lookup fails, continue with original email
-          console.log("Could not resolve altEmail, using provided email");
-        }
-
-        // Ensure authEmail is valid before calling Supabase
-        if (!authEmail || !emailRegex.test(authEmail)) {
-          setError("Invalid email address");
-          setLoading(false);
-          return;
-        }
-
-        const { error: resetError } = await supabase.auth.resetPasswordForEmail(
-          authEmail,
-          {
-            redirectTo: `${window.location.origin}/setup-password?type=recovery&email=${encodeURIComponent(authEmail)}`,
-          },
-        );
-
-        if (resetError) {
-          throw resetError;
-        }
-
-        setSuccess(true);
-        setError(
-          "Password reset email sent. Please check your email to complete password setup.",
-        );
+      } else {
+        // If not authenticated and no token, user needs to use the "Request New Link" button
+        setError("Please use the 'Request New Link' button to receive a password setup link.");
         setLoading(false);
         return;
-      } else {
-        throw new Error("Missing email or token");
       }
     } catch (err) {
       setError(
@@ -299,7 +263,7 @@ function SetupPasswordForm() {
               </div>
             )}
 
-            {linkSent ? (
+            {linkSent && !error ? (
               <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-md p-3 text-sm text-green-800 dark:text-green-200">
                 <div className="flex items-center gap-2">
                   <IconMail className="h-4 w-4" />
@@ -308,7 +272,7 @@ function SetupPasswordForm() {
               </div>
             ) : (
               <>
-                {error && !linkSent && (
+                {error && (
                   <div className="bg-destructive/10 text-destructive rounded-md p-3 text-sm">
                     {error}
                   </div>
@@ -316,6 +280,7 @@ function SetupPasswordForm() {
                 
                 {email ? (
                   <Button
+                    type="button"
                     onClick={handleRequestNewLink}
                     disabled={requestingLink}
                     className="w-full"
