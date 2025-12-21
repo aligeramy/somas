@@ -2528,6 +2528,7 @@ export default function EventsPage() {
           {/* Chat Tab */}
           <TabsContent
             value="chat"
+            key={`chat-${selectedEvent?.id || selectedEventForAthlete?.id || 'none'}-${mobileView}`}
             className="flex-1 flex flex-col min-h-0 m-0 overflow-hidden"
           >
             {selectedEvent && eventChannelId ? (

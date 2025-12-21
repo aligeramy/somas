@@ -2,6 +2,7 @@
 
 import { IconX, IconDownload, IconDeviceMobile } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -13,13 +14,23 @@ import {
 import { usePWAInstall } from "@/hooks/use-pwa-install";
 
 export function PWAInstallPrompt() {
+  const pathname = usePathname();
   const { install, isInstalled, canShowInstall, hasNativePrompt } = usePWAInstall();
   const [showPrompt, setShowPrompt] = useState(false);
   
   const isIOS = typeof window !== "undefined" && /iPad|iPhone|iPod/.test(navigator.userAgent);
   const isAndroid = typeof window !== "undefined" && /Android/.test(navigator.userAgent);
 
+  // Only show on dashboard page
+  const isDashboard = pathname === "/dashboard";
+
   useEffect(() => {
+    // Don't show if not on dashboard
+    if (!isDashboard) {
+      setShowPrompt(false);
+      return;
+    }
+
     if (isInstalled || !canShowInstall) {
       setShowPrompt(false);
       return;
@@ -38,7 +49,7 @@ export function PWAInstallPrompt() {
     }, 1000); // 1 second delay to let page load
 
     return () => clearTimeout(timer);
-  }, [isInstalled, canShowInstall]);
+  }, [isInstalled, canShowInstall, isDashboard]);
 
   const handleInstall = async () => {
     if (hasNativePrompt) {

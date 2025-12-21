@@ -8,7 +8,6 @@ import { PWAInstallButton } from "@/components/pwa-install-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { PWAInstallPrompt } from "@/components/pwa-install-prompt";
 
 interface Occurrence {
   id: string;
@@ -115,8 +114,6 @@ export function AthleteDashboard({
 
       <div className="flex-1 overflow-auto min-h-0">
         <div className="p-4 lg:p-6 space-y-6 max-w-2xl mx-auto">
-          {/* PWA Install Prompt - Only show after onboarding */}
-          {isOnboarded && <PWAInstallPrompt />}
 
           {/* Active Notice */}
           {activeNotice && (

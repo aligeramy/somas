@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useState } from "react";
 import { loginAction } from "@/app/(auth)/login/actions";
 import { Button } from "@/components/ui/button";
@@ -62,12 +63,12 @@ export function LoginForm({
               <Field>
                 <div className="flex items-center">
                   <FieldLabel htmlFor="password">Password</FieldLabel>
-                  <button
-                    type="button"
+                  <Link
+                    href="/forgot-password"
                     className="ml-auto text-sm underline-offset-2 hover:underline"
                   >
                     Forgot your password?
-                  </button>
+                  </Link>
                 </div>
                 <Input id="password" name="password" type="password" required />
               </Field>

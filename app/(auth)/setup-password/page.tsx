@@ -162,9 +162,9 @@ function SetupPasswordForm() {
         setSuccess(true);
         
         // Use window.location for full page reload to ensure session cookies are synced
-        // This prevents blank page issues when redirecting to profile-setup
+        // Redirect to dashboard - the layout will handle onboarding redirects if needed
         setTimeout(() => {
-          window.location.href = "/profile-setup";
+          window.location.href = "/dashboard";
         }, 1500);
       } else {
         // If not authenticated and no token, user needs to use the "Request New Link" button

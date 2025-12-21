@@ -434,7 +434,16 @@ export default async function DashboardPage() {
   return (
     <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
       <PageHeader
-        title={`Welcome back${dbUser.name ? `, ${dbUser.name.split(" ")[0]}` : ""}`}
+        title={
+          <>
+           <span className="text-sm font-normal text-muted-foreground">Welcome back</span> 
+            {dbUser.name && (
+              <span className="text-sm font-normal text-muted-foreground">
+                , {dbUser.name.split(" ")[0]}
+              </span>
+            )}
+          </>
+        }
         description="Here's what's happening with your team"
       >
         <PWAInstallButton />
