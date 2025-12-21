@@ -1,6 +1,9 @@
 "use server";
 
+import { eq, or } from "drizzle-orm";
 import { redirect } from "next/navigation";
+import { users } from "@/drizzle/schema";
+import { db } from "@/lib/db";
 import { createClient } from "@/lib/supabase/server";
 
 export async function loginAction(formData: FormData) {
@@ -9,8 +12,18 @@ export async function loginAction(formData: FormData) {
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
 
+  // Check if email matches primary email or altEmail
+  const [user] = await db
+    .select()
+    .from(users)
+    .where(or(eq(users.email, email), eq(users.altEmail, email)))
+    .limit(1);
+
+  // If user found and email matches altEmail, use primary email for auth
+  const authEmail = user?.altEmail === email ? user.email : email;
+
   const { error } = await supabase.auth.signInWithPassword({
-    email,
+    email: authEmail,
     password,
   });
 

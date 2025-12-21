@@ -80,10 +80,21 @@ function SetupPasswordForm() {
     setLinkSent(false);
 
     try {
+      // Check if email is altEmail and resolve to primary email
+      const response = await fetch(`/api/user-info?email=${encodeURIComponent(email)}`);
+      let authEmail = email;
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.primaryEmail) {
+          authEmail = data.primaryEmail;
+        }
+      }
+
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(
-        email,
+        authEmail,
         {
-          redirectTo: `${window.location.origin}/setup-password?type=recovery&email=${encodeURIComponent(email)}`,
+          redirectTo: `${window.location.origin}/setup-password?type=recovery&email=${encodeURIComponent(authEmail)}`,
         },
       );
 
@@ -140,10 +151,21 @@ function SetupPasswordForm() {
         }, 1500);
       } else if (email) {
         // No valid token - request password reset email
+        // Check if email is altEmail and resolve to primary email
+        const response = await fetch(`/api/user-info?email=${encodeURIComponent(email)}`);
+        let authEmail = email;
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.primaryEmail) {
+            authEmail = data.primaryEmail;
+          }
+        }
+
         const { error: resetError } = await supabase.auth.resetPasswordForEmail(
-          email,
+          authEmail,
           {
-            redirectTo: `${window.location.origin}/setup-password?type=recovery`,
+            redirectTo: `${window.location.origin}/setup-password?type=recovery&email=${encodeURIComponent(authEmail)}`,
           },
         );
 
