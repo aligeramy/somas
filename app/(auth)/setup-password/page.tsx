@@ -210,32 +210,28 @@ function SetupPasswordForm() {
     );
   }
 
-  // Error state - don't show password inputs if token verification failed or link is invalid/expired
-  // Use isLinkExpired state to persist the expired state even after clearing error messages
-  const isLinkError = isLinkExpired || (error && (
-    error.includes("Invalid or expired link") ||
-    error.includes("invalid or has expired") ||
-    error.includes("invalid") ||
-    error.includes("expired") ||
-    (!isAuthenticated && token && !verifying)
-  ));
-
-  if (isLinkError) {
+  // CRITICAL: Only show password form if user is authenticated
+  // If not authenticated, always show the request link screen
+  if (!isAuthenticated) {
     return (
       <div className="flex min-h-screen items-center justify-center p-4 md:p-6">
         <Card className="w-full max-w-md">
           <CardHeader>
             <div className="flex items-center gap-2 mb-2">
               <IconAlertCircle className="h-5 w-5 text-destructive" />
-              <CardTitle>Link Expired</CardTitle>
+              <CardTitle>
+                {isLinkExpired || error ? "Link Expired" : "Password Setup Required"}
+              </CardTitle>
             </div>
-            <CardDescription className="text-destructive">
-              {error}
+            <CardDescription className={error ? "text-destructive" : ""}>
+              {error || "Please request a password setup link to continue."}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              This link may be invalid, expired, or already used. You can request a new password setup link below.
+              {isLinkExpired || error
+                ? "This link may be invalid, expired, or already used. You can request a new password setup link below."
+                : "You need a valid password setup link to set your password. Request one below."}
             </p>
             
             {email && (
@@ -269,6 +265,7 @@ function SetupPasswordForm() {
                 
                 {email ? (
                   <Button
+                    id="request-new-link-button"
                     type="button"
                     onClick={handleRequestNewLink}
                     disabled={requestingLink}
@@ -304,12 +301,7 @@ function SetupPasswordForm() {
     );
   }
 
-  // Don't show password form if link is expired - user must request a new link
-  if (isLinkExpired && !isAuthenticated) {
-    // This should be caught by isLinkError check above, but adding as safety
-    return null;
-  }
-
+  // User is authenticated - show password form
   return (
     <div className="flex min-h-screen items-center justify-center p-4 md:p-6">
       <Card className="w-full max-w-md">
@@ -381,6 +373,7 @@ function SetupPasswordForm() {
             </div>
 
             <Button
+              id="set-password-button"
               type="submit"
               disabled={loading || !password || !confirmPassword}
               className="w-full"
