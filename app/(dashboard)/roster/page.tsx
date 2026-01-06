@@ -827,6 +827,18 @@ export default function RosterPage() {
                                             >
                                               {member.email}
                                             </button>
+                                            {member.altEmail && (
+                                              <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  window.location.href = `mailto:${member.altEmail}`;
+                                                }}
+                                                className="text-xs text-muted-foreground/70 hover:text-foreground truncate block cursor-pointer text-left bg-transparent border-0 p-0 m-0"
+                                              >
+                                                {member.altEmail}
+                                              </button>
+                                            )}
                                           </div>
                                         </Link>
                                         <div className="flex items-center gap-3 mt-0.5 ml-[2.625rem]">
@@ -973,6 +985,18 @@ export default function RosterPage() {
                                             >
                                               {member.email}
                                             </button>
+                                            {member.altEmail && (
+                                              <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  window.location.href = `mailto:${member.altEmail}`;
+                                                }}
+                                                className="text-xs text-muted-foreground/70 hover:text-foreground hover:underline truncate block cursor-pointer text-left bg-transparent border-0 p-0 m-0"
+                                              >
+                                                {member.altEmail}
+                                              </button>
+                                            )}
                                           </div>
                                         </Link>
                                       </TableCell>
@@ -1131,6 +1155,18 @@ export default function RosterPage() {
                                             >
                                               {member.email}
                                             </button>
+                                            {member.altEmail && (
+                                              <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  window.location.href = `mailto:${member.altEmail}`;
+                                                }}
+                                                className="text-xs text-muted-foreground/70 hover:text-foreground truncate block cursor-pointer text-left bg-transparent border-0 p-0 m-0"
+                                              >
+                                                {member.altEmail}
+                                              </button>
+                                            )}
                                           </div>
                                         </Link>
                                         <div className="flex items-center gap-3 mt-0.5 flex-wrap ml-[2.625rem]">
@@ -1276,6 +1312,18 @@ export default function RosterPage() {
                                             >
                                               {member.email}
                                             </button>
+                                            {member.altEmail && (
+                                              <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  window.location.href = `mailto:${member.altEmail}`;
+                                                }}
+                                                className="text-xs text-muted-foreground/70 hover:text-foreground hover:underline truncate block cursor-pointer text-left bg-transparent border-0 p-0 m-0"
+                                              >
+                                                {member.altEmail}
+                                              </button>
+                                            )}
                                           </div>
                                         </Link>
                                       </TableCell>
