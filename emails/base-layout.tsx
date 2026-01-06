@@ -38,7 +38,7 @@ export function BaseLayout({
                   src={gymLogoUrl}
                   width="48"
                   height="48"
-                  alt={gymName || "TOM"}
+                  alt={gymName || "SOMAS"}
                   className="rounded-xl my-0 mx-auto"
                 />
               ) : (
@@ -49,12 +49,12 @@ export function BaseLayout({
                     .map((n) => n[0])
                     .join("")
                     .toUpperCase()
-                        .slice(0, 3)
-                    : "TOM"}
+                        .slice(0, 5)
+                    : "SOMAS"}
                 </div>
               )}
               <Text className="text-white text-lg font-semibold mt-3 mb-0">
-                {gymName || "TOM"}
+                {gymName || "SOMAS"}
               </Text>
             </Section>
 

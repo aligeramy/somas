@@ -29,7 +29,7 @@ export function PasswordResetEmail({
       </Text>
 
       <Text className="text-[15px] text-gray-600 leading-6 mb-6">
-        We received a request to reset your password for your <strong>{gymName || "TOM"}</strong> account. Click the button below to set a new password.
+        We received a request to reset your password for your <strong>{gymName || "SOMAS"}</strong> account. Click the button below to set a new password.
       </Text>
 
       <Section className="text-center mb-6">

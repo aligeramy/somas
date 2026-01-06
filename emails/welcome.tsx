@@ -21,7 +21,7 @@ export function WelcomeEmail({
       gymLogoUrl={gymLogoUrl}
     >
       <Heading className="text-[28px] font-bold text-zinc-900 mb-6 text-center">
-        Welcome to TOM App!
+        Welcome to SOMAS App!
       </Heading>
 
       <Text className="text-base text-zinc-900 mb-4">
@@ -29,7 +29,7 @@ export function WelcomeEmail({
       </Text>
 
       <Text className="text-[15px] text-gray-600 leading-6 mb-6">
-        We're excited to have you join <strong>{gymName || "TOM"}</strong> on the TOM App! Your account has been created and you're all set to start
+        We're excited to have you join <strong>{gymName || "SOMAS"}</strong> on the SOMAS App! Your account has been created and you're all set to start
         managing your training schedule, RSVPs, and team communication.
       </Text>
 

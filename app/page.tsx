@@ -81,7 +81,7 @@ export default async function HomePage() {
           <LaserFlowBg />
           <div className="flex flex-col items-center gap-6 text-center max-w-3xl relative z-10">
             <h1 className="text-5xl font-bold tracking-tight md:text-6xl lg:text-7xl">
-              TOM
+              SOMAS
             </h1>
             <p className="text-muted-foreground text-xl md:text-2xl max-w-2xl">
               Titans of Mississauga

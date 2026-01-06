@@ -201,7 +201,7 @@ export async function GET(request: Request) {
               }
 
               await resend.emails.send({
-                from: `${process.env.RESEND_FROM_NAME || "TOM"} <${process.env.RESEND_FROM_EMAIL || "noreply@mail.titansofmississauga.ca"}>`,
+                from: `${process.env.RESEND_FROM_NAME || "SOMAS"} <${process.env.RESEND_FROM_EMAIL || "noreply@mail.titansofmississauga.ca"}>`,
                 to: recipients,
                 subject: `${event.title} - ${getReminderSubject(reminderType)}`,
                 react: EventReminderEmail({

@@ -74,7 +74,7 @@ async function sendTestWelcomeEmail(email: string) {
     const result = await resend.emails.send({
       from: `${process.env.RESEND_FROM_NAME} <${process.env.RESEND_FROM_EMAIL}>`,
       to: email,
-      subject: `Get Started with ${gymName || "TOM"} - Account Setup`,
+      subject: `Get Started with ${gymName || "SOMAS"} - Account Setup`,
       react: WelcomeEmail({
         gymName: gymName,
         gymLogoUrl: gymLogoUrl,

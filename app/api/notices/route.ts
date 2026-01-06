@@ -147,7 +147,7 @@ export async function POST(request: Request) {
               recipients.push(member.altEmail);
             }
             return resend.emails.send({
-              from: `${process.env.RESEND_FROM_NAME || "TOM"} <${process.env.RESEND_FROM_EMAIL || "noreply@mail.titansofmississauga.ca"}>`,
+              from: `${process.env.RESEND_FROM_NAME || "SOMAS"} <${process.env.RESEND_FROM_EMAIL || "noreply@mail.titansofmississauga.ca"}>`,
               to: recipients,
               subject: `Notice: ${title}`,
               react: NoticeEmail({
