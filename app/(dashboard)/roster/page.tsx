@@ -67,6 +67,7 @@ interface User {
   name: string | null;
   phone: string | null;
   address: string | null;
+  altEmail?: string | null;
   homePhone?: string | null;
   workPhone?: string | null;
   cellPhone?: string | null;
@@ -118,6 +119,7 @@ export default function RosterPage() {
     name: "",
     phone: "",
     address: "",
+    altEmail: "",
     homePhone: "",
     workPhone: "",
     cellPhone: "",
@@ -288,6 +290,7 @@ export default function RosterPage() {
       name: member.name || "",
       phone: member.phone || "",
       address: member.address || "",
+      altEmail: member.altEmail || "",
       homePhone: member.homePhone || "",
       workPhone: member.workPhone || "",
       cellPhone: member.cellPhone || "",
@@ -1526,6 +1529,18 @@ export default function RosterPage() {
                   placeholder="Address"
                   className="h-11 rounded-xl"
                   autoComplete="off"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Alternate Email</Label>
+                <Input
+                  type="email"
+                  value={editForm.altEmail}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, altEmail: e.target.value })
+                  }
+                  placeholder="Alternate email address"
+                  className="h-11 rounded-xl"
                 />
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
