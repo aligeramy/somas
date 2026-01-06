@@ -41,6 +41,7 @@ export async function GET(request: Request) {
         name: users.name,
         phone: users.phone,
         address: users.address,
+        altEmail: users.altEmail,
         homePhone: users.homePhone,
         workPhone: users.workPhone,
         cellPhone: users.cellPhone,
