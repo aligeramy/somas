@@ -9,6 +9,8 @@ import {
   IconMail,
   IconPhone,
   IconUser,
+  IconMedicalCross,
+  IconCalendar,
 } from "@tabler/icons-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -36,6 +38,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -59,10 +62,17 @@ interface AthleteDetails {
   emergencyContactPhone: string | null;
   emergencyContactRelationship: string | null;
   emergencyContactEmail: string | null;
+  medicalConditions: string | null;
+  medications: string | null;
+  allergies: string | null;
+  dateOfBirth: string | null;
+  joinDate: string | null;
   role: "owner" | "coach" | "athlete";
   avatarUrl: string | null;
   onboarded: boolean;
+  notifPreferences: Record<string, any> | null;
   createdAt: string;
+  updatedAt: string;
 }
 
 export default function AthleteDetailPage() {
@@ -88,6 +98,11 @@ export default function AthleteDetailPage() {
     emergencyContactPhone: "",
     emergencyContactRelationship: "",
     emergencyContactEmail: "",
+    medicalConditions: "",
+    medications: "",
+    allergies: "",
+    dateOfBirth: "",
+    joinDate: "",
     role: "",
   });
   const editAddressInputRef = useRef<HTMLInputElement>(null);
@@ -171,6 +186,11 @@ export default function AthleteDetailPage() {
       emergencyContactPhone: athlete.emergencyContactPhone || "",
       emergencyContactRelationship: athlete.emergencyContactRelationship || "",
       emergencyContactEmail: athlete.emergencyContactEmail || "",
+      medicalConditions: athlete.medicalConditions || "",
+      medications: athlete.medications || "",
+      allergies: athlete.allergies || "",
+      dateOfBirth: athlete.dateOfBirth ? new Date(athlete.dateOfBirth).toISOString().split('T')[0] : "",
+      joinDate: athlete.joinDate ? new Date(athlete.joinDate).toISOString().split('T')[0] : "",
       role: athlete.role,
     });
     setIsEditDialogOpen(true);
@@ -511,6 +531,127 @@ export default function AthleteDetailPage() {
                 </CardHeader>
               </Card>
             )}
+
+          {/* Medical Information */}
+          <Card className="rounded-xl">
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <IconMedicalCross className="h-5 w-5" />
+                Medical Information
+              </CardTitle>
+              <CardDescription>
+                Medical conditions, medications, and allergies
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {athlete.medications ? (
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground font-medium">Medications</p>
+                  <p className="text-sm whitespace-pre-wrap bg-muted/50 rounded-lg p-3">{athlete.medications}</p>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground font-medium">Medications</p>
+                  <p className="text-sm text-muted-foreground italic">No medications listed</p>
+                </div>
+              )}
+              {athlete.medicalConditions ? (
+                <div className="space-y-1 pt-2 border-t">
+                  <p className="text-xs text-muted-foreground font-medium">Medical Conditions</p>
+                  <p className="text-sm whitespace-pre-wrap bg-muted/50 rounded-lg p-3">{athlete.medicalConditions}</p>
+                </div>
+              ) : (
+                <div className="space-y-1 pt-2 border-t">
+                  <p className="text-xs text-muted-foreground font-medium">Medical Conditions</p>
+                  <p className="text-sm text-muted-foreground italic">No medical conditions listed</p>
+                </div>
+              )}
+              {athlete.allergies ? (
+                <div className="space-y-1 pt-2 border-t">
+                  <p className="text-xs text-muted-foreground font-medium">Allergies</p>
+                  <p className="text-sm whitespace-pre-wrap bg-muted/50 rounded-lg p-3">{athlete.allergies}</p>
+                </div>
+              ) : (
+                <div className="space-y-1 pt-2 border-t">
+                  <p className="text-xs text-muted-foreground font-medium">Allergies</p>
+                  <p className="text-sm text-muted-foreground italic">No allergies listed</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Additional Information */}
+          <Card className="rounded-xl">
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <IconCalendar className="h-5 w-5" />
+                Additional Information
+              </CardTitle>
+              <CardDescription>
+                Membership details and account information
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                {athlete.dateOfBirth ? (
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">Date of Birth</p>
+                    <p className="text-sm">
+                      {new Date(athlete.dateOfBirth).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      })}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">Date of Birth</p>
+                    <p className="text-sm text-muted-foreground italic">Not provided</p>
+                  </div>
+                )}
+                {athlete.joinDate ? (
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">Join Date</p>
+                    <p className="text-sm">
+                      {new Date(athlete.joinDate).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      })}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">Join Date</p>
+                    <p className="text-sm text-muted-foreground italic">Not provided</p>
+                  </div>
+                )}
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2 pt-2 border-t">
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">Account Created</p>
+                  <p className="text-sm">
+                    {new Date(athlete.createdAt).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    })}
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">Last Updated</p>
+                  <p className="text-sm">
+                    {new Date(athlete.updatedAt).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    })}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
 
@@ -671,6 +812,78 @@ export default function AthleteDetailPage() {
                   placeholder="Emergency contact email"
                   className="h-11 rounded-xl"
                 />
+              </div>
+              <div className="space-y-2 pt-2 border-t">
+                <Label>Medications</Label>
+                <Textarea
+                  value={editForm.medications}
+                  onChange={(e) =>
+                    setEditForm({
+                      ...editForm,
+                      medications: e.target.value,
+                    })
+                  }
+                  placeholder="List any medications the athlete is currently taking"
+                  className="rounded-xl min-h-[100px]"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Medical Conditions</Label>
+                <Textarea
+                  value={editForm.medicalConditions}
+                  onChange={(e) =>
+                    setEditForm({
+                      ...editForm,
+                      medicalConditions: e.target.value,
+                    })
+                  }
+                  placeholder="List any medical conditions"
+                  className="rounded-xl min-h-[100px]"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Allergies</Label>
+                <Textarea
+                  value={editForm.allergies}
+                  onChange={(e) =>
+                    setEditForm({
+                      ...editForm,
+                      allergies: e.target.value,
+                    })
+                  }
+                  placeholder="List any allergies"
+                  className="rounded-xl min-h-[100px]"
+                />
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2 pt-2 border-t">
+                <div className="space-y-2">
+                  <Label>Date of Birth</Label>
+                  <Input
+                    type="date"
+                    value={editForm.dateOfBirth}
+                    onChange={(e) =>
+                      setEditForm({
+                        ...editForm,
+                        dateOfBirth: e.target.value,
+                      })
+                    }
+                    className="h-11 rounded-xl"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Join Date</Label>
+                  <Input
+                    type="date"
+                    value={editForm.joinDate}
+                    onChange={(e) =>
+                      setEditForm({
+                        ...editForm,
+                        joinDate: e.target.value,
+                      })
+                    }
+                    className="h-11 rounded-xl"
+                  />
+                </div>
               </div>
               {isOwner && athlete?.role !== "owner" && (
                 <div className="space-y-2">

@@ -35,6 +35,8 @@ interface AthleteDashboardProps {
   occurrences: Occurrence[];
   activeNotice: ActiveNotice | null;
   isOnboarded: boolean;
+  gymLogo: string | null;
+  gymName: string | null;
 }
 
 export function AthleteDashboard({
@@ -42,6 +44,8 @@ export function AthleteDashboard({
   occurrences,
   activeNotice,
   isOnboarded,
+  gymLogo,
+  gymName,
 }: AthleteDashboardProps) {
   const [rsvpStates, setRsvpStates] = useState<Record<string, string | null>>(
     Object.fromEntries(occurrences.map((o) => [o.id, o.rsvpStatus])),
@@ -114,6 +118,17 @@ export function AthleteDashboard({
 
       <div className="flex-1 overflow-auto min-h-0">
         <div className="p-4 lg:p-6 space-y-6 max-w-2xl mx-auto">
+          {/* Gym Logo - Mobile Only */}
+          {gymLogo && (
+            <div className="lg:hidden flex justify-center py-4">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={gymLogo}
+                alt={gymName || "Club"}
+                className="w-[150px]"
+              />
+            </div>
+          )}
 
           {/* Active Notice */}
           {activeNotice && (
