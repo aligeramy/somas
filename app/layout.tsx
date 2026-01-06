@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Titans of Mississauga",
-  description: "Club management and athlete coordination platform",
+  title: "SOMAS - Special Olympics Mississauga Alpine Skiing",
+  description: "Club management and athlete coordination platform for Special Olympics Mississauga Alpine Skiing",
   manifest: "/manifest.json",
   icons: {
     icon: [
@@ -29,13 +29,13 @@ export const metadata: Metadata = {
   },
   appleWebApp: {
     capable: true,
-    statusBarStyle: "black-translucent",
-    title: "Titans",
+    statusBarStyle: "default",
+    title: "SOMAS",
   },
   other: {
     "apple-mobile-web-app-capable": "yes",
-    "apple-mobile-web-app-status-bar-style": "black-translucent",
-    "apple-mobile-web-app-title": "Titans",
+    "apple-mobile-web-app-status-bar-style": "default",
+    "apple-mobile-web-app-title": "SOMAS",
   },
 };
 
