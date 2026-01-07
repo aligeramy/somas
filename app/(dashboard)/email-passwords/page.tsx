@@ -9,7 +9,7 @@ import {
   IconSearch,
   IconX,
 } from "@tabler/icons-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -62,12 +62,7 @@ export default function EmailPasswordsPage() {
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [results, setResults] = useState<EmailResult[] | null>(null);
 
-  useEffect(() => {
-    fetchUsers();
-    // biome-ignore lint/correctness/useExhaustiveDependencies: fetchUsers should only run once on mount
-  }, []);
-
-  async function fetchUsers() {
+  const fetchUsers = useCallback(async () => {
     try {
       const response = await fetch("/api/admin/users");
       if (!response.ok) throw new Error("Failed to fetch users");
@@ -80,7 +75,11 @@ export default function EmailPasswordsPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
 
   const filteredUsers = users.filter((user) => {
     const matchesSearch =
