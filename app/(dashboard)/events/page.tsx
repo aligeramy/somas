@@ -25,7 +25,7 @@ import {
 import { format } from "date-fns";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CustomEventCalendar } from "@/components/custom-event-calendar";
 import { PageHeader } from "@/components/page-header";
 import { RealtimeChat } from "@/components/realtime-chat";
@@ -245,6 +245,22 @@ function EventChatContent({
   );
 }
 
+// Color palette for events
+const EVENT_COLORS = [
+  "bg-blue-500",
+  "bg-purple-500",
+  "bg-pink-500",
+  "bg-indigo-500",
+  "bg-cyan-500",
+  "bg-teal-500",
+  "bg-orange-500",
+  "bg-amber-500",
+  "bg-lime-500",
+  "bg-emerald-500",
+  "bg-violet-500",
+  "bg-fuchsia-500",
+];
+
 export default function EventsPage() {
   const searchParams = useSearchParams();
   const isEventsMobile = useIsEventsMobile();
@@ -329,6 +345,28 @@ export default function EventsPage() {
   const [addDateDialogOpen, setAddDateDialogOpen] = useState(false);
   const [customDate, setCustomDate] = useState<Date | null>(null);
   const [addingDate, setAddingDate] = useState(false);
+
+  // Get unique events and assign colors
+  const uniqueEvents = useMemo(() => {
+    const eventMap = new Map<string, { id: string; title: string; color: string }>();
+    events.forEach((event) => {
+      if (!eventMap.has(event.id)) {
+        const colorIndex = eventMap.size % EVENT_COLORS.length;
+        eventMap.set(event.id, {
+          id: event.id,
+          title: event.title,
+          color: EVENT_COLORS[colorIndex],
+        });
+      }
+    });
+    return Array.from(eventMap.values());
+  }, [events]);
+
+  // Get color for an event
+  const getEventColor = (eventId: string): string => {
+    const event = uniqueEvents.find((e) => e.id === eventId);
+    return event?.color || "bg-primary";
+  };
 
   // Load or create channel when event is selected
   useEffect(() => {
@@ -1570,7 +1608,7 @@ export default function EventsPage() {
     const showBackButton = mobileView !== "events";
 
     return (
-      <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
+      <div className="flex flex-1 flex-col min-h-0 h-full">
         {/* Custom Mobile Header */}
         <div className="flex items-center justify-between px-6 h-14 shrink-0 border-b bg-background">
           <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -1750,14 +1788,14 @@ export default function EventsPage() {
         <Tabs
           value={mobileView}
           onValueChange={(value) => setMobileView(value as typeof mobileView)}
-          className="flex-1 flex flex-col min-h-0 overflow-hidden"
+          className="flex-1 flex flex-col min-h-0"
         >
           {/* Events Tab - Fullscreen */}
           <TabsContent
             value="events"
-            className="flex-1 flex flex-col min-h-0 m-0 overflow-hidden"
+            className="flex-1 flex flex-col min-h-0 m-0 h-0"
           >
-            <ScrollArea className="flex-1">
+            <div className="flex-1 overflow-y-auto overscroll-contain h-full" style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
               <div className="p-4">
                 {initialLoading ? (
                   <div className="space-y-3">
@@ -1850,21 +1888,24 @@ export default function EventsPage() {
                                     isPast ? "opacity-60" : ""
                                   } ${occ.status === "canceled" ? "opacity-40" : ""}`}
                                 >
-                                  <div className="flex items-center gap-2 p-4">
+                                  <div className="flex items-center gap-6 p-4">
                                     <div
-                                      className="h-16 w-16 rounded-xl flex flex-col items-center justify-center shrink-0 bg-muted"
+                                      className="h-16 w-16 rounded-xl flex flex-col items-center justify-center shrink-0 bg-black dark:bg-white"
                                     >
-                                      <span className="text-2xl font-bold leading-none">
+                                      <span className="text-2xl font-bold leading-none text-white dark:text-black">
                                         {dateInfo.day}
                                       </span>
-                                      <span className="text-xs font-medium opacity-70 mt-1">
+                                      <span className="text-xs font-medium opacity-70 mt-1 text-white dark:text-black">
                                         {dateInfo.month}
                                       </span>
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                      <p className="font-semibold text-base mb-1">
-                                        {occ.event.title}
-                                      </p>
+                                      <div className="flex items-center gap-2 mb-1">
+                                        <div className={`h-2 w-2 rounded-full shrink-0 ${getEventColor(occ.event.id)}`} />
+                                        <p className="font-semibold text-base">
+                                          {occ.event.title}
+                                        </p>
+                                      </div>
                                       <p className="text-sm opacity-80 mb-1">
                                         {dateInfo.weekday} • {formatTime(occ.event.startTime)}
                                       </p>
@@ -2003,7 +2044,7 @@ export default function EventsPage() {
                   </div>
                 )}
               </div>
-            </ScrollArea>
+            </div>
           </TabsContent>
 
           {/* Occurrences Tab - Fullscreen */}
@@ -2066,19 +2107,17 @@ export default function EventsPage() {
                                 <button
                                   type="button"
                                   onClick={() => selectOccurrence(occ)}
-                                  className="flex-1 text-left flex items-center gap-4 min-w-0"
+                                  className="flex-1 text-left flex items-center gap-6 min-w-0"
                                 >
                                   <div
-                                    className={`h-16 w-16 rounded-xl flex flex-col items-center justify-center shrink-0 ${
-                                      isSelected
-                                        ? "bg-primary-foreground/20"
-                                        : "bg-muted"
+                                    className={`h-16 w-16 rounded-xl flex flex-col items-center justify-center shrink-0 bg-black dark:bg-white ${
+                                      isSelected ? "ring-2 ring-primary" : ""
                                     }`}
                                   >
-                                    <span className="text-2xl font-bold leading-none">
+                                    <span className="text-2xl font-bold leading-none text-white dark:text-black">
                                       {dateInfo.day}
                                     </span>
-                                    <span className="text-xs font-medium opacity-70 mt-1">
+                                    <span className="text-xs font-medium opacity-70 mt-1 text-white dark:text-black">
                                       {dateInfo.month}
                                     </span>
                                   </div>
@@ -3301,7 +3340,7 @@ export default function EventsPage() {
                           onClick={() =>
                             setSelectedOccurrenceForAthleteDetail(occ)
                           }
-                          className={`w-full text-left p-3 rounded-xl mb-1 transition-all flex items-center gap-3 ${
+                          className={`w-full text-left p-3 rounded-xl mb-1 transition-all flex items-center gap-4 ${
                             selectedOccurrenceForAthleteDetail?.id === occ.id
                               ? "bg-primary/10 ring-1 ring-primary"
                               : "hover:bg-muted"
@@ -4557,7 +4596,7 @@ export default function EventsPage() {
                             key={occ.id}
                             type="button"
                             onClick={() => selectOccurrence(occ)}
-                            className={`w-full text-left p-3 rounded-xl mb-1 transition-all flex items-center gap-3 ${
+                            className={`w-full text-left p-3 rounded-xl mb-1 transition-all flex items-center gap-4 ${
                               selectedOccurrence?.id === occ.id
                                 ? "bg-primary/10 ring-1 ring-primary"
                                 : "hover:bg-muted"
@@ -4566,14 +4605,22 @@ export default function EventsPage() {
                             <div
                               className={`h-14 w-14 rounded-xl flex flex-col items-center justify-center shrink-0 ${
                                 selectedOccurrence?.id === occ.id
-                                  ? "bg-primary text-primary-foreground"
-                                  : "bg-muted"
+                                  ? "bg-primary text-primary-foreground ring-2 ring-primary"
+                                  : "bg-black dark:bg-white"
                               }`}
                             >
-                              <span className="text-xl font-bold leading-none">
+                              <span className={`text-xl font-bold leading-none ${
+                                selectedOccurrence?.id === occ.id
+                                  ? ""
+                                  : "text-white dark:text-black"
+                              }`}>
                                 {dateInfo.day}
                               </span>
-                              <span className="text-[10px] font-medium opacity-70 mt-0.5">
+                              <span className={`text-[10px] font-medium opacity-70 mt-0.5 ${
+                                selectedOccurrence?.id === occ.id
+                                  ? ""
+                                  : "text-white dark:text-black"
+                              }`}>
                                 {dateInfo.month}
                               </span>
                             </div>
