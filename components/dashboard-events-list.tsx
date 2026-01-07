@@ -474,9 +474,9 @@ export function DashboardEventsList({
                                             {goingAthletes.map((athlete) => (
                                               <div
                                                 key={athlete.id}
-                                                className="flex items-center gap-2"
+                                                className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-emerald-500/10"
                                               >
-                                                <Avatar className="h-8 w-8 border border-emerald-500">
+                                                <Avatar className="h-8 w-8 border-0">
                                                   <AvatarImage
                                                     src={
                                                       athlete.avatarUrl ||
@@ -517,9 +517,9 @@ export function DashboardEventsList({
                                               .map((athlete) => (
                                                 <div
                                                   key={athlete.id}
-                                                  className="flex items-center gap-2"
+                                                  className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-red-500/10"
                                                 >
-                                                  <Avatar className="h-8 w-8 border border-red-500">
+                                                  <Avatar className="h-8 w-8 border-0">
                                                     <AvatarImage
                                                       src={
                                                         athlete.avatarUrl ||
@@ -833,9 +833,9 @@ export function DashboardEventsList({
                                             {goingAthletes.map((athlete) => (
                                               <div
                                                 key={athlete.id}
-                                                className="flex items-center gap-2"
+                                                className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-emerald-500/10"
                                               >
-                                                <Avatar className="h-8 w-8 border border-emerald-500">
+                                                <Avatar className="h-8 w-8 border-0">
                                                   <AvatarImage
                                                     src={
                                                       athlete.avatarUrl ||
@@ -876,9 +876,9 @@ export function DashboardEventsList({
                                               .map((athlete) => (
                                                 <div
                                                   key={athlete.id}
-                                                  className="flex items-center gap-2"
+                                                  className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-red-500/10"
                                                 >
-                                                  <Avatar className="h-8 w-8 border border-red-500">
+                                                  <Avatar className="h-8 w-8 border-0">
                                                     <AvatarImage
                                                       src={
                                                         athlete.avatarUrl ||

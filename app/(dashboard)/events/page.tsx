@@ -267,6 +267,7 @@ export default function EventsPage() {
     "session",
   );
   const [cameFromSessionView, setCameFromSessionView] = useState(false);
+  const cameFromSessionViewRef = useRef(false);
   const [eventDetailTab, setEventDetailTab] = useState<"details" | "chat">(
     "details",
   );
@@ -309,6 +310,8 @@ export default function EventsPage() {
   const [athleteEventDetailTab, setAthleteEventDetailTab] = useState<
     "details" | "chat"
   >("details");
+  const [athleteFilterTab, setAthleteFilterTab] = useState<"all" | "going" | "not_going" | "pending">("all");
+  const [coachFilterTab, setCoachFilterTab] = useState<"all" | "going" | "not_going" | "pending">("all");
   const [athleteEventChannelId, setAthleteEventChannelId] = useState<
     string | null
   >(null);
@@ -531,7 +534,14 @@ export default function EventsPage() {
     try {
       setRsvpLoading(true);
       const response = await fetch(`/api/rsvp?occurrenceId=${occurrenceId}`);
-      if (!response.ok) throw new Error("Failed to load RSVPs");
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.error || `Failed to load RSVPs: ${response.status} ${response.statusText}`;
+        console.error("RSVP loading error:", errorMessage);
+        // Set empty array on error instead of throwing
+        setOccurrenceRsvps([]);
+        return;
+      }
       const data = await response.json();
       setOccurrenceRsvps(
         (data.rsvps || []).map(
@@ -559,7 +569,9 @@ export default function EventsPage() {
         ),
       );
     } catch (err) {
-      console.error(err);
+      console.error("RSVP loading error:", err);
+      // Set empty array on error instead of throwing
+      setOccurrenceRsvps([]);
     } finally {
       setRsvpLoading(false);
     }
@@ -1171,22 +1183,32 @@ export default function EventsPage() {
     }
   }
 
-  function selectEvent(event: Event) {
+  function selectEvent(event: Event, skipViewChange = false) {
     // If clicking the same event that's already selected
     if (event.id === selectedEventIdRef.current) {
       // On mobile, always navigate forward instead of deselecting
       if (isEventsMobile) {
-        if (currentUserRole === "athlete") {
-          // For athletes, ensure event is set and navigate to occurrences
-          setSelectedEventForAthlete(event);
-          // Don't auto-select first occurrence - user must click
-          setSelectedOccurrenceForAthleteDetail(null);
-          setMobileView("occurrences");
+        if (!skipViewChange) {
+          if (currentUserRole === "athlete") {
+            // For athletes, ensure event is set and navigate to occurrences
+            setSelectedEventForAthlete(event);
+            // Don't auto-select first occurrence - user must click
+            setSelectedOccurrenceForAthleteDetail(null);
+            setMobileView("occurrences");
+          } else {
+            setMobileView("occurrences");
+          }
         } else {
-          setMobileView("occurrences");
+          // When skipping view change, still set athlete event if needed
+          if (currentUserRole === "athlete") {
+            setSelectedEventForAthlete(event);
+          }
         }
-        // Reset session view flag when navigating normally
-        setCameFromSessionView(false);
+        // Only reset session view flag if not already set (preserve it when coming from session view)
+        if (!cameFromSessionView && !skipViewChange) {
+          setCameFromSessionView(false);
+          cameFromSessionViewRef.current = false;
+        }
         return;
       }
       // On desktop, deselect the event
@@ -1204,16 +1226,29 @@ export default function EventsPage() {
       // The useEffect will set it to true when we actually navigate away
       if (isEventsMobile) {
         hasNavigatedAwayRef.current = false;
-        // Reset session view flag when navigating normally
-        setCameFromSessionView(false);
-        if (currentUserRole === "athlete") {
-          // For athletes, go to occurrences view to pick which day
-          setSelectedEventForAthlete(event);
-          // Don't auto-select first occurrence - user must click
-          setSelectedOccurrenceForAthleteDetail(null);
-          setMobileView("occurrences");
+        // Only reset session view flag if not already set (preserve it when coming from session view)
+        if (!cameFromSessionView && !skipViewChange) {
+          setCameFromSessionView(false);
+          cameFromSessionViewRef.current = false;
+        }
+        // If skipViewChange is true (coming from session view), don't set view to occurrences
+        // selectOccurrence will handle the view change
+        if (!skipViewChange) {
+          if (currentUserRole === "athlete") {
+            // For athletes, go to occurrences view to pick which day
+            setSelectedEventForAthlete(event);
+            // Don't auto-select first occurrence - user must click
+            setSelectedOccurrenceForAthleteDetail(null);
+            setMobileView("occurrences");
+          } else {
+            setMobileView("occurrences");
+          }
         } else {
-          setMobileView("occurrences");
+          // When coming from session view, still set athlete event but don't change view yet
+          // selectOccurrence will handle the view change
+          if (currentUserRole === "athlete") {
+            setSelectedEventForAthlete(event);
+          }
         }
       }
     }
@@ -1223,6 +1258,11 @@ export default function EventsPage() {
     setSelectedOccurrence(occurrence);
     loadOccurrenceRsvps(occurrence.id);
     if (isEventsMobile && occurrence) {
+      // Track if we're coming from occurrences view (session view)
+      if (mobileView === "occurrences") {
+        setCameFromSessionView(true);
+        cameFromSessionViewRef.current = true;
+      }
       if (currentUserRole === "athlete") {
         setSelectedOccurrenceForAthleteDetail(occurrence);
       }
@@ -1482,16 +1522,23 @@ export default function EventsPage() {
       if (mobileView === "chat") {
         setMobileView("details");
       } else if (mobileView === "details") {
-        // If we came from session view, go directly back to events
-        if (cameFromSessionView) {
+        // For athletes, skip occurrences and go directly to events
+        // For coaches/owners, check if we came from session view
+        if (currentUserRole === "athlete") {
           setMobileView("events");
           setCameFromSessionView(false);
+          cameFromSessionViewRef.current = false;
+        } else if (cameFromSessionViewRef.current) {
+          setMobileView("events");
+          setCameFromSessionView(false);
+          cameFromSessionViewRef.current = false;
         } else {
           setMobileView("occurrences");
         }
       } else if (mobileView === "occurrences") {
         setMobileView("events");
         setCameFromSessionView(false);
+        cameFromSessionViewRef.current = false;
       }
     };
 
@@ -1590,6 +1637,116 @@ export default function EventsPage() {
           </div>
         </div>
 
+        {/* Filter Tabs - Directly under top header for details view */}
+        {mobileView === "details" && (selectedOccurrence || selectedOccurrenceForAthleteDetail) && (
+          <div className="shrink-0 border-b bg-background">
+            {currentUserRole === "athlete" ? (
+              (() => {
+                const occurrenceRsvpsForAthlete = occurrenceRsvps || [];
+                const goingUsers = occurrenceRsvpsForAthlete.filter(
+                  (r) => r.status === "going",
+                );
+                const notGoingUsers = occurrenceRsvpsForAthlete.filter(
+                  (r) => r.status === "not_going",
+                );
+                const rsvpedUserIds = new Set(
+                  occurrenceRsvpsForAthlete.map((r) => r.id),
+                );
+                const isCoachOrOwner = (userId: string, userRole?: string): boolean => {
+                  if (userRole === "coach" || userRole === "owner") return true;
+                  const member = gymMembers.find((m) => m.id === userId);
+                  return member?.role === "coach" || member?.role === "owner";
+                };
+                const isAthlete = (userId: string, userRole?: string): boolean => {
+                  if (userRole === "athlete") return true;
+                  if (userRole === "coach" || userRole === "owner") return false;
+                  const member = gymMembers.find((m) => m.id === userId);
+                  return member?.role === "athlete" || !member?.role;
+                };
+                const goingCoaches = goingUsers.filter((u) => isCoachOrOwner(u.id, u.role));
+                const goingAthletes = goingUsers.filter((u) => isAthlete(u.id, u.role));
+                const notGoingCoaches = notGoingUsers.filter((u) => isCoachOrOwner(u.id, u.role));
+                const notGoingAthletes = notGoingUsers.filter((u) => isAthlete(u.id, u.role));
+                const pendingCoaches = gymMembers.filter((m) => {
+                  const isCoach = m.role === "coach" || m.role === "owner";
+                  return isCoach && !rsvpedUserIds.has(m.id);
+                });
+                const pendingAthletes = gymMembers.filter((m) => {
+                  const isAthleteMember = m.role === "athlete" || !m.role;
+                  return isAthleteMember && !rsvpedUserIds.has(m.id);
+                });
+
+                return (
+                  <Tabs value={athleteFilterTab} onValueChange={(value) => setAthleteFilterTab(value as typeof athleteFilterTab)}>
+                    <TabsList className="w-full grid grid-cols-4 h-10 rounded-none border-b-0 bg-transparent">
+                      <TabsTrigger
+                        value="all"
+                        className="text-xs rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent"
+                      >
+                        All (
+                        {goingCoaches.length +
+                          goingAthletes.length +
+                          notGoingCoaches.length +
+                          notGoingAthletes.length +
+                          pendingCoaches.length +
+                          pendingAthletes.length}
+                        )
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="going"
+                        className="text-xs rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent"
+                      >
+                        Going ({goingCoaches.length + goingAthletes.length})
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="not_going"
+                        className="text-xs rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent"
+                      >
+                        Can't ({notGoingCoaches.length + notGoingAthletes.length})
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="pending"
+                        className="text-xs rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent"
+                      >
+                        Pending ({pendingCoaches.length + pendingAthletes.length})
+                      </TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                );
+              })()
+            ) : (
+              <Tabs value={coachFilterTab} onValueChange={(value) => setCoachFilterTab(value as typeof coachFilterTab)}>
+                <TabsList className="w-full grid grid-cols-4 h-10 rounded-none border-b-0 bg-transparent">
+                  <TabsTrigger
+                    value="all"
+                    className="text-xs rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent"
+                  >
+                    All ({gymMembers.length})
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="going"
+                    className="text-xs rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent"
+                  >
+                    Going ({goingUsers.length})
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="not_going"
+                    className="text-xs rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent"
+                  >
+                    Can't ({notGoingUsers.length})
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="pending"
+                    className="text-xs rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent"
+                  >
+                    Pending ({notAnsweredUsers.length})
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+            )}
+          </div>
+        )}
+
         <Tabs
           value={mobileView}
           onValueChange={(value) => setMobileView(value as typeof mobileView)}
@@ -1676,10 +1833,11 @@ export default function EventsPage() {
                                   key={occ.id}
                                   type="button"
                                   onClick={() => {
-                                    // Track that we came from session view
+                                    // Track that we came from session view (both state and ref)
                                     setCameFromSessionView(true);
-                                    // Select the event first
-                                    selectEvent(occ.event);
+                                    cameFromSessionViewRef.current = true;
+                                    // Select the event first, but skip view change since we'll go directly to details
+                                    selectEvent(occ.event, true);
                                     // Find and select the specific occurrence to open it
                                     const eventOccurrence = occ.event.occurrences.find(
                                       (o) => o.id === occ.id,
@@ -2114,8 +2272,8 @@ export default function EventsPage() {
                     </p>
                   </div>
                 </div>
-                <ScrollArea className="flex-1 pb-32">
-                  <div className="p-4">
+                <div className="flex-1 overflow-auto min-h-0">
+                  <div className="p-4 pb-40">
                     {selectedEventForAthlete?.description && (
                       <div className="mb-4">
                         <p className="text-sm text-muted-foreground whitespace-pre-wrap">
@@ -2312,44 +2470,7 @@ export default function EventsPage() {
                       };
 
                       return (
-                        <Tabs defaultValue="all" className="w-full">
-                          <TabsList className="w-full grid grid-cols-4 h-10 rounded-xl mb-4">
-                            <TabsTrigger
-                              value="all"
-                              className="text-xs rounded-lg"
-                            >
-                              All (
-                              {goingCoaches.length +
-                                goingAthletes.length +
-                                notGoingCoaches.length +
-                                notGoingAthletes.length +
-                                pendingCoaches.length +
-                                pendingAthletes.length}
-                              )
-                            </TabsTrigger>
-                            <TabsTrigger
-                              value="going"
-                              className="text-xs rounded-lg"
-                            >
-                              Going (
-                              {goingCoaches.length + goingAthletes.length})
-                            </TabsTrigger>
-                            <TabsTrigger
-                              value="not_going"
-                              className="text-xs rounded-lg"
-                            >
-                              Can't (
-                              {notGoingCoaches.length + notGoingAthletes.length}
-                              )
-                            </TabsTrigger>
-                            <TabsTrigger
-                              value="pending"
-                              className="text-xs rounded-lg"
-                            >
-                              Pending (
-                              {pendingCoaches.length + pendingAthletes.length})
-                            </TabsTrigger>
-                          </TabsList>
+                        <Tabs value={athleteFilterTab} onValueChange={(value) => setAthleteFilterTab(value as typeof athleteFilterTab)} className="w-full">
                           <TabsContent value="all" className="mt-0">
                             <div className="space-y-0.5">
                               {(() => {
@@ -2538,11 +2659,11 @@ export default function EventsPage() {
                       );
                     })()}
                   </div>
-                </ScrollArea>
+                </div>
               </div>
             ) : selectedOccurrence ? (
               <>
-                <div className="p-4 shrink-0">
+                <div className="p-4 shrink-0 border-b">
                   <h2 className="font-semibold text-lg">
                     {selectedEvent?.title}
                   </h2>
@@ -2553,9 +2674,9 @@ export default function EventsPage() {
                     {formatTime(selectedEvent?.startTime)}
                   </p>
                 </div>
-                <div className="flex-1 overflow-hidden pb-32">
+                <div className="flex-1 overflow-hidden">
                   {rsvpLoading ? (
-                    <div className="flex flex-col h-full p-4">
+                    <div className="flex flex-col h-full p-4 pb-40">
                       <Skeleton className="h-12 w-full mb-4 rounded-xl" />
                       <div className="space-y-3">
                         {[1, 2, 3, 4, 5].map((i) => (
@@ -2575,40 +2696,13 @@ export default function EventsPage() {
                     </div>
                   ) : (
                     <Tabs
-                      defaultValue="all"
+                      value={coachFilterTab}
+                      onValueChange={(value) => setCoachFilterTab(value as typeof coachFilterTab)}
                       className="h-full flex flex-col min-h-0"
                     >
-                      <div className="px-4 pt-4 shrink-0">
-                        <TabsList className="w-full grid grid-cols-4 h-10 rounded-xl">
-                          <TabsTrigger
-                            value="all"
-                            className="text-xs rounded-lg"
-                          >
-                            All ({gymMembers.length})
-                          </TabsTrigger>
-                          <TabsTrigger
-                            value="going"
-                            className="text-xs rounded-lg"
-                          >
-                            Going ({goingUsers.length})
-                          </TabsTrigger>
-                          <TabsTrigger
-                            value="not_going"
-                            className="text-xs rounded-lg"
-                          >
-                            Can't ({notGoingUsers.length})
-                          </TabsTrigger>
-                          <TabsTrigger
-                            value="pending"
-                            className="text-xs rounded-lg"
-                          >
-                            Pending ({notAnsweredUsers.length})
-                          </TabsTrigger>
-                        </TabsList>
-                      </div>
                       <TabsContent
                         value="all"
-                        className="flex-1 overflow-auto mt-0 p-4 min-h-0"
+                        className="flex-1 overflow-auto mt-0 p-4 pb-40 min-h-0"
                       >
                         {gymMembersLoading ? (
                           <div className="space-y-3">
@@ -2642,7 +2736,7 @@ export default function EventsPage() {
                       </TabsContent>
                       <TabsContent
                         value="going"
-                        className="flex-1 overflow-auto mt-0 p-4"
+                        className="flex-1 overflow-auto mt-0 p-4 pb-40"
                       >
                         <UserList
                           users={goingUsers.map((u) => {
@@ -2663,7 +2757,7 @@ export default function EventsPage() {
                       </TabsContent>
                       <TabsContent
                         value="not_going"
-                        className="flex-1 overflow-auto mt-0 p-4"
+                        className="flex-1 overflow-auto mt-0 p-4 pb-40"
                       >
                         <UserList
                           users={notGoingUsers.map((u) => {
@@ -2684,7 +2778,7 @@ export default function EventsPage() {
                       </TabsContent>
                       <TabsContent
                         value="pending"
-                        className="flex-1 overflow-auto mt-0 p-4"
+                        className="flex-1 overflow-auto mt-0 p-4 pb-40"
                       >
                         <UserList
                           users={notAnsweredUsers.map((u) => ({
@@ -2863,22 +2957,23 @@ export default function EventsPage() {
                     </Button>
                   )}
                 
-                {/* Cancel Session Button */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCancelDialogOpen(true)}
-                  className={`h-9 w-full gap-2 rounded-sm px-3 text-destructive hover:text-destructive ${
-                    currentUserRole !== "athlete" &&
-                    notAnsweredUsers.length > 0 &&
-                    selectedOccurrence?.status !== "canceled"
-                      ? ""
-                      : "col-span-2"
-                  }`}
-                >
-                  <IconBan className="h-4 w-4" />
-                  Cancel Session
-                </Button>
+                {/* Cancel Session Button - Only for coaches/owners */}
+                {currentUserRole !== "athlete" && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCancelDialogOpen(true)}
+                    className={`h-9 w-full gap-2 rounded-sm px-3 text-destructive hover:text-destructive ${
+                      notAnsweredUsers.length > 0 &&
+                      selectedOccurrence?.status !== "canceled"
+                        ? ""
+                        : "col-span-2"
+                    }`}
+                  >
+                    <IconBan className="h-4 w-4" />
+                    Cancel Session
+                  </Button>
+                )}
               </div>
             </div>
           )}

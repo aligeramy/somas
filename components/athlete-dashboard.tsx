@@ -104,9 +104,6 @@ export function AthleteDashboard({
     return `${displayHour}:${minutes} ${ampm}`;
   }
 
-  // Get next event
-  const nextEvent = occurrences[0];
-
   return (
     <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
       <PageHeader
@@ -116,8 +113,8 @@ export function AthleteDashboard({
         <PWAInstallButton />
       </PageHeader>
 
-      <div className="flex-1 overflow-auto min-h-0">
-        <div className="p-4 lg:p-6 space-y-6 max-w-2xl mx-auto">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0" style={{ WebkitOverflowScrolling: 'touch' }}>
+        <div className="p-4 lg:p-6 pb-8 space-y-6 max-w-2xl mx-auto">
           {/* Gym Logo - Mobile Only */}
           {gymLogo && (
             <div className="lg:hidden flex justify-center py-4">
@@ -163,308 +160,157 @@ export function AthleteDashboard({
             </Card>
           ) : (
             <>
-              {/* Featured Next Event */}
-              {nextEvent && (
-                <Card
-                  className={`rounded-xl overflow-hidden transition-all hover:shadow-md ${
-                    rsvpStates[nextEvent.id] === "going"
-                      ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800"
-                      : rsvpStates[nextEvent.id] === "not_going"
-                        ? "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800"
-                        : "bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20"
-                  }`}
-                >
-                  <CardContent className="p-6">
-                    <div className="flex items-start gap-4">
-                      {/* Big Date */}
-                      <div
-                        className={`h-20 w-20 rounded-xl flex flex-col items-center justify-center shrink-0 ${
-                          rsvpStates[nextEvent.id] === "going"
-                            ? "bg-emerald-500 text-white"
-                            : rsvpStates[nextEvent.id] === "not_going"
-                              ? "bg-red-500 text-white"
-                              : "bg-primary text-primary-foreground"
-                        }`}
-                      >
-                        <span className="text-3xl font-bold leading-none">
-                          {formatDate(nextEvent.date).day}
-                        </span>
-                        <span className="text-xs font-medium opacity-80 mt-1">
-                          {formatDate(nextEvent.date).month}
-                        </span>
-                      </div>
-
-                      {/* Event Details */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          {formatDate(nextEvent.date).relative && (
-                            <Badge
-                              variant="secondary"
-                              className="text-xs rounded-md"
-                            >
-                              {formatDate(nextEvent.date).relative}
-                            </Badge>
-                          )}
-                          <span className="text-xs text-muted-foreground">
-                            Next up
-                          </span>
-                        </div>
-                        <Link
-                          href={`/events?eventId=${nextEvent.eventId}&occurrenceId=${nextEvent.id}`}
-                          className="block"
-                        >
-                          <h2 className="text-xl font-semibold hover:underline">
-                            {nextEvent.eventTitle}
-                          </h2>
-                          <p className="text-sm text-muted-foreground mt-1 flex items-center gap-2">
-                            <span className="whitespace-nowrap">
-                              {formatDate(nextEvent.date).weekday}
-                            </span>
-                            <span>•</span>
-                            <span className="flex items-center gap-1">
-                              <IconClock className="h-3.5 w-3.5" />
-                              {formatTime(nextEvent.startTime)} -{" "}
-                              {formatTime(nextEvent.endTime)}
-                            </span>
-                          </p>
-                        </Link>
-
-                        {/* Coaches and Athletes */}
-                        <div className="flex items-center gap-2 mt-3 flex-wrap">
-                          {nextEvent.goingCoaches.length > 0 && (
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              {nextEvent.goingCoaches.map((coach) => {
-                                const getInitials = (name: string | null, email: string) => {
-                                  if (name) {
-                                    return name
-                                      .split(" ")
-                                      .map((n) => n[0])
-                                      .join("")
-                                      .toUpperCase()
-                                      .slice(0, 2);
-                                  }
-                                  return email[0].toUpperCase();
-                                };
-                                return (
-                                  <Badge
-                                    key={coach.id}
-                                    variant="secondary"
-                                    className="h-6 w-6 rounded-full p-0 flex items-center justify-center shrink-0 border-transparent bg-emerald-500 text-white"
-                                  >
-                                    <span className="text-[9px] font-medium">
-                                      {getInitials(coach.name, coach.email)}
-                                    </span>
-                                  </Badge>
-                                );
-                              })}
-                            </div>
-                          )}
-                          {nextEvent.goingAthletesCount > 0 && (
-                            <span className="text-sm text-emerald-600 font-medium">
-                              {nextEvent.goingAthletesCount} going
-                            </span>
-                          )}
-                        </div>
-
-                        {/* RSVP Buttons */}
-                        <div
-                          className="flex gap-2 mt-4 relative z-20"
-                          onClick={(e) => e.stopPropagation()}
-                          onMouseDown={(e) => e.stopPropagation()}
-                        >
-                          <Button
-                            size="lg"
-                            variant={
-                              rsvpStates[nextEvent.id] === "going"
-                                ? "default"
-                                : "outline"
-                            }
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              handleRsvp(nextEvent.id, "going");
-                            }}
-                            onMouseDown={(e) => {
-                              e.stopPropagation();
-                            }}
-                            disabled={loading === nextEvent.id}
-                            className={`flex-1 h-10 sm:h-12 rounded-xl gap-1.5 sm:gap-2 text-sm sm:text-base ${
-                              rsvpStates[nextEvent.id] === "going"
-                                ? "bg-emerald-600 hover:bg-emerald-700"
-                                : ""
-                            }`}
-                            type="button"
-                          >
-                            <IconCheck className="h-4 w-4 sm:h-5 sm:w-5" />
-                            {rsvpStates[nextEvent.id] === "going"
-                              ? "Going!"
-                              : "I'm In"}
-                          </Button>
-                          <Button
-                            size="lg"
-                            variant={
-                              rsvpStates[nextEvent.id] === "not_going"
-                                ? "secondary"
-                                : "outline"
-                            }
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              handleRsvp(nextEvent.id, "not_going");
-                            }}
-                            onMouseDown={(e) => {
-                              e.stopPropagation();
-                            }}
-                            disabled={loading === nextEvent.id}
-                            className={`flex-1 h-10 sm:h-12 rounded-xl gap-1.5 sm:gap-2 text-sm sm:text-base ${
-                              rsvpStates[nextEvent.id] === "not_going"
-                                ? "bg-red-400 hover:bg-red-500 text-white"
-                                : ""
-                            }`}
-                            type="button"
-                          >
-                            <IconX className="h-4 w-4 sm:h-5 sm:w-5" />
-                            <span className="hidden sm:inline">
-                              Can't Make It
-                            </span>
-                            <span className="sm:hidden">Can't Go</span>
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Rest of Events */}
-              {occurrences.length > 1 && (
-                <div className="space-y-2">
-                  <h3 className="text-sm font-medium text-muted-foreground px-1">
+              {/* All Events */}
+              {occurrences.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground px-1 mb-3 md:mb-2">
                     Coming Up
                   </h3>
-                  {occurrences.slice(1).map((occ) => {
+                  <div className="bg-card md:bg-transparent rounded-lg md:rounded-none border border-border md:border-0 md:shadow-none overflow-hidden">
+                  {occurrences.map((occ, index) => {
                     const dateInfo = formatDate(occ.date);
                     const rsvpStatus = rsvpStates[occ.id];
                     const isLoading = loading === occ.id;
 
                     return (
-                      <Card
-                        key={occ.id}
-                        className={`rounded-xl transition-all hover:shadow-md ${
-                          rsvpStatus === "not_going"
-                            ? "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800"
-                            : ""
-                        }`}
-                      >
-                        <CardContent className="p-4">
-                          <div className="flex items-center gap-4">
-                            {/* Date */}
-                            <div
-                              className={`h-14 w-14 rounded-xl flex flex-col items-center justify-center shrink-0 ${
-                                rsvpStatus === "going"
-                                  ? "bg-emerald-100 dark:bg-emerald-950/50"
-                                  : rsvpStatus === "not_going"
-                                    ? "bg-red-100 dark:bg-red-950/50"
-                                    : "bg-primary/10"
-                              }`}
-                            >
-                              <span
-                                className={`text-lg font-bold leading-none ${
+                      <div key={occ.id} className="md:mb-3">
+                        <div
+                          className={`md:rounded-xl transition-all md:border md:shadow-sm md:bg-card md:hover:shadow-md ${
+                            rsvpStatus === "not_going"
+                              ? "md:bg-red-50 md:dark:bg-red-950/30 md:border-red-200 md:dark:border-red-800"
+                              : ""
+                          }`}
+                        >
+                          <div className="px-4 py-3 md:p-4 active:bg-muted/50 md:active:bg-transparent">
+                            <div className="flex items-center gap-3 md:gap-4">
+                              {/* Date - Compact on mobile, bigger on desktop */}
+                              <div
+                                className={`h-12 w-12 md:h-16 md:w-16 rounded-lg md:rounded-xl flex flex-col items-center justify-center shrink-0 ${
                                   rsvpStatus === "going"
-                                    ? "text-emerald-600"
+                                    ? "bg-emerald-100 dark:bg-emerald-950/50"
                                     : rsvpStatus === "not_going"
-                                      ? "text-red-600"
-                                      : ""
+                                      ? "bg-red-100 dark:bg-red-950/50"
+                                      : "bg-black dark:bg-white"
                                 }`}
                               >
-                                {dateInfo.day}
-                              </span>
-                              <span className="text-[10px] font-medium text-muted-foreground">
-                                {dateInfo.month}
-                              </span>
-                            </div>
+                                <span
+                                  className={`text-base md:text-xl font-bold leading-none ${
+                                    rsvpStatus === "going"
+                                      ? "text-emerald-600 dark:text-emerald-400"
+                                      : rsvpStatus === "not_going"
+                                        ? "text-red-600 dark:text-red-400"
+                                        : "text-white dark:text-black"
+                                  }`}
+                                >
+                                  {dateInfo.day}
+                                </span>
+                                <span className={`text-[9px] md:text-xs font-medium mt-0.5 ${
+                                  rsvpStatus === "going" || rsvpStatus === "not_going"
+                                    ? "text-muted-foreground"
+                                    : "text-white dark:text-black"
+                                }`}>
+                                  {dateInfo.month}
+                                </span>
+                              </div>
 
-                            {/* Details */}
-                            <div className="flex-1 min-w-0">
-                              <Link
-                                href={`/events?eventId=${occ.eventId}&occurrenceId=${occ.id}`}
-                                className="block"
-                              >
-                                <p className="font-medium hover:underline">
-                                  {occ.eventTitle}
-                                </p>
-                                <p className="text-xs text-muted-foreground flex items-center gap-1">
-                                  <IconClock className="h-3 w-3" />
-                                  {formatTime(occ.startTime)}
-                                </p>
-                              </Link>
-                              {/* Coaches and Athletes */}
-                              <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                                {occ.goingCoaches.length > 0 && (
-                                  <div className="flex items-center gap-1 flex-wrap">
-                                    {occ.goingCoaches.map((coach) => (
-                                      <Badge
-                                        key={coach.id}
-                                        variant="secondary"
-                                        className="text-[10px] rounded-md"
-                                      >
-                                        {coach.name || coach.email}
-                                      </Badge>
-                                    ))}
+                              {/* Details - List item style on mobile */}
+                              <div className="flex-1 min-w-0">
+                                <Link
+                                  href={`/events?eventId=${occ.eventId}&occurrenceId=${occ.id}`}
+                                  className="block"
+                                >
+                                  <p className="font-semibold text-base md:text-base hover:underline line-clamp-1">
+                                    {occ.eventTitle}
+                                  </p>
+                                  <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                      <IconClock className="h-3 w-3" />
+                                      {formatTime(occ.startTime)}
+                                    </p>
+                                    {/* Coaches and Athletes - Inline */}
+                                    {occ.goingCoaches.length > 0 && (
+                                      <>
+                                        <span className="text-muted-foreground">•</span>
+                                        <div className="flex items-center gap-1 flex-wrap">
+                                          {occ.goingCoaches.slice(0, 2).map((coach) => (
+                                            <Badge
+                                              key={coach.id}
+                                              variant="secondary"
+                                              className="text-[9px] md:text-[10px] rounded-md px-1.5 py-0 h-4 md:h-5 bg-muted"
+                                            >
+                                              {coach.name?.split(" ")[0] || coach.email.split("@")[0]}
+                                            </Badge>
+                                          ))}
+                                          {occ.goingCoaches.length > 2 && (
+                                            <span className="text-[9px] md:text-[10px] text-muted-foreground">
+                                              +{occ.goingCoaches.length - 2}
+                                            </span>
+                                          )}
+                                        </div>
+                                      </>
+                                    )}
+                                    {occ.goingAthletesCount > 0 && (
+                                      <>
+                                        <span className="text-muted-foreground">•</span>
+                                        <span className="text-[10px] md:text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                                          {occ.goingAthletesCount} going
+                                        </span>
+                                      </>
+                                    )}
                                   </div>
-                                )}
-                                {occ.goingAthletesCount > 0 && (
-                                  <span className="text-xs text-emerald-600 font-medium">
-                                    {occ.goingAthletesCount} going
-                                  </span>
-                                )}
+                                </Link>
+                              </div>
+
+                              {/* RSVP Buttons - Compact on mobile */}
+                              <div className="flex gap-1.5 shrink-0">
+                                <Button
+                                  size="sm"
+                                  variant={
+                                    rsvpStatus === "going" ? "default" : "outline"
+                                  }
+                                  onClick={() => {
+                                    handleRsvp(occ.id, "going");
+                                  }}
+                                  disabled={isLoading}
+                                  className={`h-9 w-9 md:h-9 md:w-9 p-0 rounded-lg ${
+                                    rsvpStatus === "going"
+                                      ? "bg-emerald-600 hover:bg-emerald-700 border-0"
+                                      : "border-border"
+                                  }`}
+                                >
+                                  <IconCheck className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant={
+                                    rsvpStatus === "not_going"
+                                      ? "secondary"
+                                      : "outline"
+                                  }
+                                  onClick={() => {
+                                    handleRsvp(occ.id, "not_going");
+                                  }}
+                                  disabled={isLoading}
+                                  className={`h-9 w-9 md:h-9 md:w-9 p-0 rounded-lg ${
+                                    rsvpStatus === "not_going"
+                                      ? "bg-red-500 hover:bg-red-600 text-white border-0"
+                                      : "border-border"
+                                  }`}
+                                >
+                                  <IconX className="h-4 w-4" />
+                                </Button>
                               </div>
                             </div>
-
-                            {/* RSVP Buttons */}
-                            <div className="flex gap-1">
-                              <Button
-                                size="sm"
-                                variant={
-                                  rsvpStatus === "going" ? "default" : "outline"
-                                }
-                                onClick={() => {
-                                  handleRsvp(occ.id, "going");
-                                }}
-                                disabled={isLoading}
-                                className={`h-9 w-9 p-0 rounded-lg ${
-                                  rsvpStatus === "going"
-                                    ? "bg-emerald-600 hover:bg-emerald-700"
-                                    : ""
-                                }`}
-                              >
-                                <IconCheck className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant={
-                                  rsvpStatus === "not_going"
-                                    ? "secondary"
-                                    : "outline"
-                                }
-                                onClick={() => {
-                                  handleRsvp(occ.id, "not_going");
-                                }}
-                                disabled={isLoading}
-                                className={`h-9 w-9 p-0 rounded-lg ${
-                                  rsvpStatus === "not_going"
-                                    ? "bg-red-400 hover:bg-red-500 text-white"
-                                    : ""
-                                }`}
-                              >
-                                <IconX className="h-4 w-4" />
-                              </Button>
-                            </div>
                           </div>
-                        </CardContent>
-                      </Card>
+                        </div>
+                        {/* Divider between items on mobile */}
+                        {index < occurrences.length - 1 && (
+                          <div className="h-px bg-border mx-4 md:hidden" />
+                        )}
+                      </div>
                     );
                   })}
+                  </div>
                 </div>
               )}
             </>
