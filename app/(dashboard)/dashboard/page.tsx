@@ -6,6 +6,7 @@ import {
   IconUsers,
 } from "@tabler/icons-react";
 import { and, asc, desc, eq, gte, inArray, sql } from "drizzle-orm";
+import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
 import { AthleteDashboard } from "@/components/athlete-dashboard";
@@ -567,7 +568,10 @@ function DashboardContent({
     icon: React.ComponentType<{ className?: string }>;
     color: string;
   }>;
-  upcomingOccurrences: Array<{ occurrence: any; event: any }>;
+  upcomingOccurrences: Array<{
+    occurrence: typeof eventOccurrences.$inferSelect;
+    event: typeof events.$inferSelect;
+  }>;
   rsvpsByOccurrence: Map<
     string,
     {
@@ -669,8 +673,13 @@ function DashboardContent({
         {/* Gym Logo - Mobile Only */}
         {gymLogo && (
           <div className="lg:hidden flex justify-center py-2">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={gymLogo} alt={gymName || "Club"} className="w-[150px]" />
+            <Image
+              src={gymLogo}
+              alt={gymName || "Club"}
+              width={150}
+              height={150}
+              className="w-[150px] h-auto"
+            />
           </div>
         )}
 
@@ -731,10 +740,11 @@ function DashboardContent({
                     >
                       <div className="flex gap-3">
                         {post.imageUrl && (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
+                          <Image
                             src={post.imageUrl}
                             alt={post.title}
+                            width={80}
+                            height={80}
                             className="rounded-lg object-cover w-20 h-20 md:w-16 md:h-16"
                           />
                         )}

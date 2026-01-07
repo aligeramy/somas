@@ -515,17 +515,21 @@ export default function CalendarPage() {
 
               return (
                 <div
-                  key={idx}
+                  key={format(day, "yyyy-MM-dd")}
                   className={dayClasses}
-                  onClick={() => hasEvents && handleDayClick(day)}
-                  onKeyDown={(e) => {
-                    if ((e.key === "Enter" || e.key === " ") && hasEvents) {
-                      e.preventDefault();
-                      handleDayClick(day);
-                    }
-                  }}
-                  role={hasEvents ? "button" : undefined}
-                  tabIndex={hasEvents ? 0 : undefined}
+                  {...(hasEvents
+                    ? {
+                        onClick: () => handleDayClick(day),
+                        onKeyDown: (e: React.KeyboardEvent) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            handleDayClick(day);
+                          }
+                        },
+                        role: "button",
+                        tabIndex: 0,
+                      }
+                    : {})}
                 >
                   <span className="text-sm font-semibold mb-1">
                     {format(day, "d")}

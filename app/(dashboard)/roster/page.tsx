@@ -19,7 +19,6 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -321,8 +320,9 @@ export default function RosterPage() {
 
       // Convert empty strings to null for optional fields
       Object.keys(updateData).forEach((key) => {
-        if (updateData[key as keyof typeof updateData] === "") {
-          updateData[key as keyof typeof updateData] = null as any;
+        const typedKey = key as keyof typeof updateData;
+        if (updateData[typedKey] === "") {
+          (updateData[typedKey] as unknown) = null;
         }
       });
 
@@ -472,7 +472,7 @@ export default function RosterPage() {
               <span className="hidden sm:inline">Add Member</span>
             </Button>
           </DialogTrigger>
-          <DialogContent className="!rounded-none !max-w-none !w-screen !h-screen !max-h-screen !m-0 !p-0 !inset-0 !translate-x-0 !translate-y-0 !top-0 !left-0 flex flex-col">
+          <DialogContent className="rounded-none! max-w-none! w-screen! h-screen! max-h-screen! m-0! p-0! inset-0! translate-x-0! translate-y-0! top-0! left-0! flex flex-col">
             <div className="flex-1 min-h-0 flex flex-col">
               <DialogHeader className="shrink-0 px-6 pt-6 pb-4 border-b dark:border-border/70 bg-background">
                 <DialogTitle className="text-2xl">Add New Member</DialogTitle>
