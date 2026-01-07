@@ -44,6 +44,13 @@ interface GymMember {
   avatarUrl: string | null;
 }
 
+interface ChannelAvatar {
+  id: string;
+  name: string | null;
+  avatarUrl: string | null;
+  email: string;
+}
+
 export default function ChatPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -70,6 +77,9 @@ export default function ChatPage() {
   const supabase = createClient();
   const isMobile = useIsMobile();
   const [showChatView, setShowChatView] = useState(false);
+  const [channelAvatars, setChannelAvatars] = useState<
+    Map<string, ChannelAvatar[]>
+  >(new Map());
 
   // Load unread counts
   const loadUnreadCounts = useCallback(async () => {
@@ -135,7 +145,7 @@ export default function ChatPage() {
 
         const { data: userData } = await supabase
           .from("User")
-          .select("gymId")
+          .select("gymId, name, email")
           .eq("id", user.id)
           .single();
 
@@ -161,12 +171,21 @@ export default function ChatPage() {
           );
           setChannels(sortedChannels);
           // Auto-select global channel if available, otherwise first channel
-          if (sortedChannels.length > 0) {
+          // Only auto-select on desktop - on mobile, show the list first
+          // Check isMobile at runtime to avoid dependency issues
+          if (sortedChannels.length > 0 && window.innerWidth >= 768) {
             const globalChannel = sortedChannels.find(
               (c: Channel) => c.type === "global",
             );
             setSelectedChannel(globalChannel?.id || sortedChannels[0].id);
           }
+
+          // Load avatars for channels in the background (non-blocking)
+          loadChannelAvatars(sortedChannels, user.id, userData.gymId).catch(
+            (error) => {
+              console.error("Error loading channel avatars:", error);
+            },
+          );
         }
       } catch (error) {
         console.error("Error loading channels:", error);
@@ -175,10 +194,131 @@ export default function ChatPage() {
       }
     }
 
+    async function loadChannelAvatars(
+      channels: Channel[],
+      currentUserId: string,
+      gymId: string,
+    ) {
+      try {
+        const avatarsMap = new Map<string, ChannelAvatar[]>();
+        const dmChannels = channels.filter((c) => c.type === "dm");
+        const groupChannels = channels.filter((c) => c.type === "group");
+
+        // Load DM avatars in parallel
+        const dmPromises = dmChannels.map(async (channel) => {
+          // Try name first, then email - do both queries in parallel
+          const [userByName, userByEmail] = await Promise.all([
+            supabase
+              .from("User")
+              .select("id, name, avatarUrl, email")
+              .eq("gymId", gymId)
+              .neq("id", currentUserId)
+              .eq("name", channel.name)
+              .limit(1)
+              .maybeSingle(),
+            supabase
+              .from("User")
+              .select("id, name, avatarUrl, email")
+              .eq("gymId", gymId)
+              .neq("id", currentUserId)
+              .eq("email", channel.name)
+              .limit(1)
+              .maybeSingle(),
+          ]);
+
+          const otherUser = userByName.data || userByEmail.data;
+          if (otherUser) {
+            return {
+              channelId: channel.id,
+              avatar: [
+                {
+                  id: otherUser.id,
+                  name: otherUser.name,
+                  avatarUrl: otherUser.avatarUrl,
+                  email: otherUser.email,
+                },
+              ],
+            };
+          }
+          return null;
+        });
+
+        // Load group avatars in parallel
+        const groupPromises = groupChannels.map(async (channel) => {
+          const { data: messages } = await supabase
+            .from("Message")
+            .select("senderId")
+            .eq("channelId", channel.id)
+            .order("createdAt", { ascending: false })
+            .limit(50);
+
+          if (messages && messages.length > 0) {
+            const uniqueSenderIds = [
+              ...new Set(
+                messages
+                  .map((m) => m.senderId)
+                  .filter((id) => id !== currentUserId),
+              ),
+            ].slice(0, 3);
+
+            if (uniqueSenderIds.length > 0) {
+              const { data: users } = await supabase
+                .from("User")
+                .select("id, name, avatarUrl, email")
+                .in("id", uniqueSenderIds)
+                .eq("gymId", gymId);
+
+              if (users) {
+                return {
+                  channelId: channel.id,
+                  avatar: users.map((u) => ({
+                    id: u.id,
+                    name: u.name,
+                    avatarUrl: u.avatarUrl,
+                    email: u.email,
+                  })),
+                };
+              }
+            }
+          }
+          return null;
+        });
+
+        // Wait for all promises and update the map
+        const [dmResults, groupResults] = await Promise.all([
+          Promise.all(dmPromises),
+          Promise.all(groupPromises),
+        ]);
+
+        dmResults.forEach((result) => {
+          if (result) {
+            avatarsMap.set(result.channelId, result.avatar);
+          }
+        });
+
+        groupResults.forEach((result) => {
+          if (result) {
+            avatarsMap.set(result.channelId, result.avatar);
+          }
+        });
+
+        setChannelAvatars(avatarsMap);
+      } catch (error) {
+        console.error("Error loading channel avatars:", error);
+      }
+    }
+
     loadUser();
     loadChannels();
     loadUnreadCounts();
   }, [supabase, loadUnreadCounts]);
+
+  // Reset chat view when navigating to chat page on mobile
+  useEffect(() => {
+    if (isMobile) {
+      setShowChatView(false);
+    }
+  }, [isMobile]);
 
   // Mark messages as read when channel is selected
   useEffect(() => {
@@ -188,12 +328,8 @@ export default function ChatPage() {
       setTimeout(() => {
         loadUnreadCounts();
       }, 500);
-      // On mobile, show chat view when channel is selected
-      if (isMobile) {
-        setShowChatView(true);
-      }
     }
-  }, [selectedChannel, markChannelAsRead, loadUnreadCounts, isMobile]);
+  }, [selectedChannel, markChannelAsRead, loadUnreadCounts]);
 
   // Poll for unread counts periodically
   useEffect(() => {
@@ -382,6 +518,93 @@ export default function ChatPage() {
 
   const selectedChannelData = channels.find((c) => c.id === selectedChannel);
 
+  // Component to render channel avatar(s)
+  function ChannelAvatarDisplay({
+    channel,
+    size = "md",
+  }: {
+    channel: Channel;
+    size?: "sm" | "md";
+  }) {
+    const avatars = channelAvatars.get(channel.id) || [];
+    const avatarSize = size === "sm" ? "h-4 w-4" : "h-5 w-5";
+    const avatarHeight = size === "sm" ? "16px" : "20px";
+    const borderWidth = size === "sm" ? "1px" : "2px";
+    const offset = size === "sm" ? 8 : 10;
+    const containerWidth = size === "sm" ? 12 : 12;
+
+    if (channel.type === "global") {
+      return <IconWorld className={`${avatarSize} shrink-0`} />;
+    }
+
+    if (channel.type === "dm" && avatars.length > 0) {
+      const user = avatars[0];
+      return (
+        <Avatar className={`${avatarSize} shrink-0`}>
+          <AvatarImage src={user.avatarUrl || undefined} />
+          <AvatarFallback className="text-xs">
+            {user.name?.[0]?.toUpperCase() || user.email[0].toUpperCase()}
+          </AvatarFallback>
+        </Avatar>
+      );
+    }
+
+    if (channel.type === "group") {
+      if (avatars.length === 0) {
+        return <IconUsers className={`${avatarSize} shrink-0`} />;
+      }
+
+      // Stack up to 3 avatars
+      const displayAvatars = avatars.slice(0, 3);
+      const remainingCount = avatars.length - 3;
+
+      return (
+        <div
+          className="relative flex shrink-0 items-center"
+          style={{
+            width: `${Math.min(displayAvatars.length, 3) * containerWidth + 8}px`,
+            height: avatarHeight,
+          }}
+        >
+          {displayAvatars.map((user, index) => (
+            <Avatar
+              key={user.id}
+              className={`${avatarSize} absolute`}
+              style={{
+                left: `${index * offset}px`,
+                zIndex: displayAvatars.length - index,
+                borderWidth: borderWidth,
+                borderStyle: "solid",
+                borderColor: "hsl(var(--background))",
+              }}
+            >
+              <AvatarImage src={user.avatarUrl || undefined} />
+              <AvatarFallback className="text-xs">
+                {user.name?.[0]?.toUpperCase() || user.email[0].toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+          ))}
+          {remainingCount > 0 && (
+            <div
+              className={`${avatarSize} absolute rounded-full bg-muted flex items-center justify-center text-xs font-medium`}
+              style={{
+                left: `${displayAvatars.length * offset}px`,
+                zIndex: 0,
+                borderWidth: borderWidth,
+                borderStyle: "solid",
+                borderColor: "hsl(var(--background))",
+              }}
+            >
+              +{remainingCount}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    return <IconUser className={`${avatarSize} shrink-0`} />;
+  }
+
   if (loading) {
     return (
       <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
@@ -394,7 +617,7 @@ export default function ChatPage() {
               </div>
             </div>
           </div>
-          <div className="flex-1 flex flex-col bg-card border rounded-xl shadow-sm overflow-hidden min-h-0">
+          <div className="flex-1 flex flex-col bg-card border lg:rounded-xl shadow-sm overflow-hidden min-h-0">
             <div className="flex flex-1 items-center justify-center">
               <div className="animate-pulse text-muted-foreground">
                 Loading...
@@ -446,9 +669,9 @@ export default function ChatPage() {
             onOpenChange={handleDialogOpenChange}
           >
             <DialogTrigger asChild>
-              <Button className="rounded-xl">
+              <Button className="rounded-sm capitalize" data-show-text-mobile>
                 <IconPlus className="mr-2 h-4 w-4" />
-                New Chat
+                start new chat
               </Button>
             </DialogTrigger>
             <DialogContent className="rounded-xl">
@@ -631,9 +854,9 @@ export default function ChatPage() {
                                 setSelectedChannel(channel.id);
                                 setShowChatView(true);
                               }}
-                              className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-muted transition-colors mb-1"
+                              className="w-full flex items-center gap-3 p-3 hover:bg-muted transition-colors mb-1"
                             >
-                              <IconWorld className="h-5 w-5 shrink-0" />
+                              <ChannelAvatarDisplay channel={channel} />
                               <div className="flex-1 text-left min-w-0">
                                 <div className="font-medium text-sm truncate">
                                   {channel.name}
@@ -665,9 +888,9 @@ export default function ChatPage() {
                                 setSelectedChannel(channel.id);
                                 setShowChatView(true);
                               }}
-                              className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-muted transition-colors mb-1"
+                              className="w-full flex items-center gap-3 p-3 hover:bg-muted transition-colors mb-1"
                             >
-                              <IconUser className="h-5 w-5 shrink-0" />
+                              <ChannelAvatarDisplay channel={channel} />
                               <div className="flex-1 text-left min-w-0">
                                 <div className="font-medium text-sm truncate">
                                   {channel.name}
@@ -699,9 +922,9 @@ export default function ChatPage() {
                                 setSelectedChannel(channel.id);
                                 setShowChatView(true);
                               }}
-                              className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-muted transition-colors mb-1"
+                              className="w-full flex items-center gap-3 p-3 hover:bg-muted transition-colors mb-1"
                             >
-                              <IconUsers className="h-5 w-5 shrink-0" />
+                              <ChannelAvatarDisplay channel={channel} />
                               <div className="flex-1 text-left min-w-0">
                                 <div className="font-medium text-sm truncate">
                                   {channel.name}
@@ -941,7 +1164,7 @@ export default function ChatPage() {
                               style={{ boxSizing: "border-box" }}
                             >
                               <div className="flex items-center gap-2 min-w-0">
-                                <IconWorld className="h-4 w-4 shrink-0" />
+                                <ChannelAvatarDisplay channel={channel} size="sm" />
                                 <span className="font-medium text-sm truncate min-w-0 flex-1">
                                   {channel.name}
                                 </span>
@@ -996,7 +1219,7 @@ export default function ChatPage() {
                               style={{ boxSizing: "border-box" }}
                             >
                               <div className="flex items-center gap-2 min-w-0">
-                                <IconUser className="h-4 w-4 shrink-0" />
+                                <ChannelAvatarDisplay channel={channel} size="sm" />
                                 <span className="font-medium text-sm truncate min-w-0 flex-1">
                                   {channel.name}
                                 </span>
@@ -1045,7 +1268,7 @@ export default function ChatPage() {
                               style={{ boxSizing: "border-box" }}
                             >
                               <div className="flex items-center gap-2 min-w-0">
-                                <IconUsers className="h-4 w-4 shrink-0" />
+                                <ChannelAvatarDisplay channel={channel} size="sm" />
                                 <span className="font-medium text-sm truncate min-w-0 flex-1">
                                   {channel.name}
                                 </span>

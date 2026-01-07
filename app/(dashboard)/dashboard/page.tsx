@@ -418,7 +418,7 @@ export default async function DashboardPage() {
   };
 
   return (
-    <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
+    <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden dark:bg-[#000000]">
       <PageHeader
         title={
           <div className="flex items-center gap-3">
@@ -436,7 +436,7 @@ export default async function DashboardPage() {
         description="Here's what's happening with your team"
       >
         <PWAInstallButton />
-        <Button size="sm" className="gap-2 rounded-xl" asChild>
+        <Button size="sm" className="gap-2 rounded-sm" asChild>
           <Link href="/events/new">
             <IconPlus className="h-4 w-4" />
             New Event
@@ -622,15 +622,15 @@ function DashboardContent({
   gymName: string | null;
 }) {
   return (
-    <div className="flex-1 overflow-auto min-h-0">
-      <div className="space-y-4">
+    <div className="flex-1 overflow-auto min-h-0 dark:bg-[#000000]">
+      <div className="space-y-4 md:space-y-6 px-4 md:px-6 pb-4">
         {/* Active Notice */}
         {activeNotice && (
           <Card className="rounded-xl border border-primary/20 bg-primary/5">
-            <CardContent className="px-4 py-2">
+            <CardContent className="px-4 py-3 md:py-2">
               <div className="flex-1 min-w-0 space-y-1">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="font-semibold text-sm leading-tight">
+                  <h3 className="font-semibold text-sm md:text-sm leading-tight">
                     {activeNotice.title}
                   </h3>
                   <Badge variant="default" className="rounded-lg text-xs">
@@ -668,14 +668,14 @@ function DashboardContent({
 
         {/* Gym Logo - Mobile Only */}
         {gymLogo && (
-          <div className="lg:hidden flex justify-center py-4">
+          <div className="lg:hidden flex justify-center py-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={gymLogo} alt={gymName || "Club"} className="w-[150px]" />
           </div>
         )}
 
         {/* Content Grid */}
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid gap-2 md:gap-4 lg:gap-6 lg:grid-cols-2">
           {/* Upcoming Events */}
           <DashboardEventsList
             upcomingOccurrences={upcomingOccurrences}
@@ -685,48 +685,49 @@ function DashboardContent({
           />
 
           {/* Latest Posts */}
-          <Card className="rounded-xl">
-            <CardHeader className="pb-2">
+          <Card className="rounded-xl md:rounded-xl border-0 md:border shadow-none md:shadow-sm bg-transparent md:bg-card">
+            <CardHeader className="pb-2 px-0 md:px-6 pt-0 md:pt-6">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base font-semibold">
+                <CardTitle className="font-semibold text-lg md:text-base">
                   Latest Posts
                 </CardTitle>
                 <Button
                   variant="ghost"
                   size="sm"
                   asChild
-                  className="text-muted-foreground rounded-xl"
+                  className="text-muted-foreground rounded-lg md:rounded-xl text-sm"
                 >
                   <Link href="/blog">
-                    View all
+                    <span className="md:hidden">All</span>
+                    <span className="hidden md:inline">View all</span>
                     <IconChevronRight className="h-4 w-4 ml-1" />
                   </Link>
                 </Button>
               </div>
             </CardHeader>
-            <CardContent className="pt-0">
+            <CardContent className="pt-0 px-0 md:px-6">
               {latestPosts.length === 0 ? (
-                <div className="py-8 text-center">
-                  <IconCalendar className="h-10 w-10 mx-auto mb-3 text-muted-foreground/30" />
-                  <p className="text-sm text-muted-foreground mb-4">
+                <div className="text-center py-12 md:py-8">
+                  <IconCalendar className="mx-auto mb-3 text-muted-foreground/30 h-12 w-12 md:h-10 md:w-10" />
+                  <p className="text-muted-foreground mb-4 text-base md:text-sm">
                     No blog posts yet
                   </p>
                   <Button
                     variant="outline"
                     size="sm"
                     asChild
-                    className="rounded-xl"
+                    className="rounded-lg md:rounded-xl"
                   >
                     <Link href="/blog">View blog</Link>
                   </Button>
                 </div>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-3 md:space-y-2">
                   {latestPosts.map((post) => (
                     <Link
                       key={post.id}
                       href={`/blog/${post.id}`}
-                      className="block p-3 rounded-xl hover:bg-muted/50 transition-colors"
+                      className="block transition-all bg-card border border-border rounded-2xl shadow-sm p-4 active:scale-[0.98] hover:bg-muted/30 md:bg-transparent md:border-0 md:shadow-none md:p-3 md:rounded-xl md:hover:bg-muted/50 md:active:scale-100"
                     >
                       <div className="flex gap-3">
                         {post.imageUrl && (
@@ -734,25 +735,25 @@ function DashboardContent({
                           <img
                             src={post.imageUrl}
                             alt={post.title}
-                            className="w-16 h-16 rounded-lg object-cover"
+                            className="rounded-lg object-cover w-20 h-20 md:w-16 md:h-16"
                           />
                         )}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
                             <Badge
                               variant="outline"
-                              className="rounded-lg text-xs"
+                              className="rounded-md md:rounded-lg text-xs"
                             >
                               {post.type}
                             </Badge>
-                            <span className="text-xs text-muted-foreground">
+                            <span className="text-muted-foreground text-xs">
                               {post.author.name}
                             </span>
                           </div>
-                          <h3 className="font-semibold text-sm truncate">
+                          <h3 className="font-semibold truncate text-base mb-1 md:text-sm md:mb-0">
                             {post.title}
                           </h3>
-                          <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
+                          <p className="text-muted-foreground line-clamp-2 text-sm mt-1 md:text-xs">
                             {post.content}
                           </p>
                         </div>

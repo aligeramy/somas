@@ -100,7 +100,7 @@ export default async function DashboardLayout({
 
   return (
     <SidebarProvider
-      className="p-4 lg:p-6 xl:p-4 h-[100dvh] overflow-hidden"
+      className="lg:p-6 xl:p-4 h-[100dvh] overflow-hidden"
       suppressHydrationWarning
       style={
         {
@@ -110,8 +110,8 @@ export default async function DashboardLayout({
       }
     >
       <AppSidebarWrapper />
-      <SidebarInset>
-        <div className="flex flex-1 flex-col min-h-0 h-full overflow-y-auto pb-16 lg:pb-0">
+      <SidebarInset className="dark:bg-[#000000]">
+        <div className="flex flex-1 flex-col min-h-0 h-full overflow-y-auto pb-16 lg:pb-0 dark:bg-[#000000]">
           {children}
         </div>
       </SidebarInset>

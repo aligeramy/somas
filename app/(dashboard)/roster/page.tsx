@@ -60,6 +60,7 @@ import {
 } from "@/components/ui/table";
 import { useGooglePlacesAutocomplete } from "@/hooks/use-google-places-autocomplete";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { MobileMemberActions } from "@/components/mobile-member-actions";
 
 interface User {
   id: string;
@@ -145,6 +146,10 @@ export default function RosterPage() {
   // Current user info
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
   const _isMobile = useIsMobile();
+
+  // Mobile member actions drawer
+  const [selectedMember, setSelectedMember] = useState<User | null>(null);
+  const [isMemberDrawerOpen, setIsMemberDrawerOpen] = useState(false);
 
   const fetchCurrentUser = useCallback(async () => {
     try {
@@ -469,7 +474,7 @@ export default function RosterPage() {
           </DialogTrigger>
           <DialogContent className="!rounded-none !max-w-none !w-screen !h-screen !max-h-screen !m-0 !p-0 !inset-0 !translate-x-0 !translate-y-0 !top-0 !left-0 flex flex-col">
             <div className="flex-1 min-h-0 flex flex-col">
-              <DialogHeader className="shrink-0 px-6 pt-6 pb-4 border-b bg-background">
+              <DialogHeader className="shrink-0 px-6 pt-6 pb-4 border-b dark:border-border/70 bg-background">
                 <DialogTitle className="text-2xl">Add New Member</DialogTitle>
                 <DialogDescription>
                   Invite a single coach or athlete by email.
@@ -682,7 +687,7 @@ export default function RosterPage() {
                   </form>
                 </div>
               </div>
-              <div className="shrink-0 px-6 py-4 border-t bg-background sticky bottom-0 z-10">
+              <div className="shrink-0 px-6 py-4 border-t dark:border-border/70 bg-background sticky bottom-0 z-10">
                 <div className="flex justify-end gap-3">
                   <Button
                     variant="outline"
@@ -708,9 +713,9 @@ export default function RosterPage() {
 
       <div className="flex-1 overflow-hidden min-h-0">
         <div className="h-full overflow-auto">
-          <div className="space-y-4 p-4">
+          <div className="space-y-4">
             {loading && roster.length === 0 ? (
-              <Card className="rounded-xl">
+              <Card className="rounded-none sm:rounded-xl">
                 <CardHeader>
                   <Skeleton className="h-6 w-48 mb-2" />
                   <Skeleton className="h-4 w-64" />
@@ -741,29 +746,23 @@ export default function RosterPage() {
                 </CardContent>
               </Card>
             ) : roster.length === 0 ? (
-              <Card className="rounded-xl">
+              <Card className="rounded-none sm:rounded-xl">
                 <CardContent className="pt-6 text-center text-muted-foreground">
                   No members in your gym yet. Add one to get started!
                 </CardContent>
               </Card>
             ) : (
-              <Card className="rounded-xl h-full flex flex-col">
-                <CardHeader className="shrink-0">
-                  <CardTitle>Current Members</CardTitle>
-                  <CardDescription>
-                    {roster.length} member{roster.length !== 1 ? "s" : ""} in
-                    your gym
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="p-0 flex-1 min-h-0 overflow-hidden">
+              <div className="w-full h-full flex flex-col">
+                <div className="flex-1 min-h-0 overflow-hidden">
                   <ScrollArea className="h-full">
-                    <div className="p-4">
+                    <div>
                       {/* Coaches Section */}
                       {roster.filter(
                         (m) => m.role === "coach" || m.role === "owner",
                       ).length > 0 && (
-                        <div className="mb-6">
-                          <h3 className="font-semibold text-sm text-muted-foreground mb-3">
+                        <div className="my-8 lg:mb-6">
+                          <div className="flex items-center gap-3 px-4 lg:px-6 mb-5 lg:mb-3">
+                            <h3 className="font-semibold text-base text-foreground lg:text-sm lg:text-muted-foreground shrink-0">
                             Coaches (
                             {
                               roster.filter(
@@ -772,32 +771,30 @@ export default function RosterPage() {
                             }
                             )
                           </h3>
-                          {/* Mobile Card View */}
-                          <div className="lg:hidden space-y-1.5">
+                            <hr className="flex-1 border-border/50 dark:border-border/70" />
+                          </div>
+                          {/* Mobile List View */}
+                          <div className="lg:hidden">
                             {roster
                               .filter(
                                 (m) => m.role === "coach" || m.role === "owner",
                               )
                               .map((member) => (
-                                <Card
+                                <button
                                   key={member.id}
-                                  className="rounded-lg border"
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedMember(member);
+                                    setIsMemberDrawerOpen(true);
+                                  }}
+                                  className="w-full px-4 py-3 flex items-center gap-3 active:bg-muted/50 transition-colors border-b border-border/50 dark:border-border/70 last:border-b-0"
                                 >
-                                  <CardContent className="p-2.5">
-                                    <div className="flex items-center justify-between gap-2">
-                                      <div className="flex-1 min-w-0">
-                                        <Link
-                                          href={`/roster/${member.id}`}
-                                          className="flex items-center gap-2.5"
-                                        >
-                                          <Avatar className="h-8 w-8 rounded-md shrink-0">
+                                  <Avatar className="h-11 w-11 rounded-full shrink-0">
                                             <AvatarImage
-                                              src={
-                                                member.avatarUrl || undefined
-                                              }
+                                      src={member.avatarUrl || undefined}
                                               alt={member.name || member.email}
                                             />
-                                            <AvatarFallback className="rounded-md text-[10px] font-semibold">
+                                    <AvatarFallback className="rounded-full text-sm font-medium">
                                               {member.name
                                                 ? member.name
                                                     .split(" ")
@@ -805,118 +802,30 @@ export default function RosterPage() {
                                                     .join("")
                                                     .toUpperCase()
                                                     .slice(0, 2)
-                                                : member.email
-                                                    .charAt(0)
-                                                    .toUpperCase()}
+                                        : member.email.charAt(0).toUpperCase()}
                                             </AvatarFallback>
                                           </Avatar>
-                                          <div className="flex-1 min-w-0">
-                                            <div className="font-medium text-sm truncate flex items-center gap-2">
+                                  <div className="flex-1 min-w-0 text-left">
+                                    <div className="flex items-center gap-2 mb-0.5">
+                                      <span className="font-medium text-sm truncate">
                                               {member.name || "Unnamed"}
+                                      </span>
                                               <Badge
                                                 variant={
                                                   member.role === "owner"
                                                     ? "default"
                                                     : "secondary"
                                                 }
-                                                className="rounded-md text-[9px] px-1 py-0 shrink-0"
+                                        className="rounded-full text-[9px] px-1.5 py-0 shrink-0 font-medium h-4"
                                               >
                                                 {formatRoleDisplay(member.role)}
                                               </Badge>
                                             </div>
-                                            <button
-                                              type="button"
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                window.location.href = `mailto:${member.email}`;
-                                              }}
-                                              className="text-xs text-muted-foreground hover:text-foreground truncate block cursor-pointer text-left bg-transparent border-0 p-0 m-0"
-                                            >
+                                    <p className="text-xs text-muted-foreground truncate">
                                               {member.email}
-                                            </button>
-                                            {member.altEmail && (
-                                              <button
-                                                type="button"
-                                                onClick={(e) => {
-                                                  e.stopPropagation();
-                                                  window.location.href = `mailto:${member.altEmail}`;
-                                                }}
-                                                className="text-xs text-muted-foreground/70 hover:text-foreground truncate block cursor-pointer text-left bg-transparent border-0 p-0 m-0"
-                                              >
-                                                {member.altEmail}
-                                              </button>
-                                            )}
+                                    </p>
                                           </div>
-                                        </Link>
-                                        <div className="flex items-center gap-3 mt-0.5 ml-[2.625rem]">
-                                          {member.phone && (
-                                            <a
-                                              href={`tel:${member.phone.replace(/\D/g, "")}`}
-                                              onClick={(e) =>
-                                                e.stopPropagation()
-                                              }
-                                              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground shrink-0"
-                                            >
-                                              <IconPhone className="h-3 w-3 shrink-0" />
-                                              <span className="hidden sm:inline">
-                                                {member.phone}
-                                              </span>
-                                            </a>
-                                          )}
-                                        </div>
-                                      </div>
-                                      {(isOwner ||
-                                        (currentUserRole === "coach" &&
-                                          member.role === "athlete")) && (
-                                        <DropdownMenu>
-                                          <DropdownMenuTrigger asChild>
-                                            <Button
-                                              variant="ghost"
-                                              size="icon"
-                                              className="h-7 w-7 shrink-0"
-                                              onClick={(e) =>
-                                                e.stopPropagation()
-                                              }
-                                            >
-                                              <IconDotsVertical className="h-3.5 w-3.5" />
-                                            </Button>
-                                          </DropdownMenuTrigger>
-                                          <DropdownMenuContent
-                                            align="end"
-                                            className="rounded-xl"
-                                          >
-                                            <DropdownMenuItem
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                openEditDialog(member);
-                                              }}
-                                              className="gap-2"
-                                            >
-                                              <IconEdit className="h-4 w-4" />
-                                              Edit Member
-                                            </DropdownMenuItem>
-                                            {isOwner &&
-                                              member.role !== "owner" && (
-                                                <>
-                                                  <DropdownMenuSeparator />
-                                                  <DropdownMenuItem
-                                                    onClick={(e) => {
-                                                      e.stopPropagation();
-                                                      openDeleteDialog(member);
-                                                    }}
-                                                    className="gap-2 text-destructive focus:text-destructive"
-                                                  >
-                                                    <IconTrash className="h-4 w-4" />
-                                                    Remove from Gym
-                                                  </DropdownMenuItem>
-                                                </>
-                                              )}
-                                          </DropdownMenuContent>
-                                        </DropdownMenu>
-                                      )}
-                                    </div>
-                                  </CardContent>
-                                </Card>
+                                </button>
                               ))}
                           </div>
                           {/* Desktop Table View */}
@@ -1110,34 +1019,33 @@ export default function RosterPage() {
                       {roster.filter((m) => m.role === "athlete").length >
                         0 && (
                         <div>
-                          <h3 className="font-semibold text-sm text-muted-foreground mb-3">
+                          <div className="flex items-center gap-3 px-4 lg:px-6 mb-5 lg:mb-3">
+                            <h3 className="font-semibold text-base text-foreground lg:text-sm lg:text-muted-foreground shrink-0">
                             Athletes (
                             {roster.filter((m) => m.role === "athlete").length})
                           </h3>
-                          {/* Mobile Card View */}
-                          <div className="lg:hidden space-y-1.5">
+                            <hr className="flex-1 border-border/50 dark:border-border/70" />
+                          </div>
+                          {/* Mobile List View */}
+                          <div className="lg:hidden">
                             {roster
                               .filter((m) => m.role === "athlete")
                               .map((member) => (
-                                <Card
+                                <button
                                   key={member.id}
-                                  className="rounded-lg border"
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedMember(member);
+                                    setIsMemberDrawerOpen(true);
+                                  }}
+                                  className="w-full px-4 py-3 flex items-center gap-3 active:bg-muted/50 transition-colors border-b border-border/50 dark:border-border/70 last:border-b-0"
                                 >
-                                  <CardContent className="p-2.5">
-                                    <div className="flex items-center justify-between gap-2">
-                                      <div className="flex-1 min-w-0">
-                                        <Link
-                                          href={`/roster/${member.id}`}
-                                          className="flex items-center gap-2.5"
-                                        >
-                                          <Avatar className="h-8 w-8 rounded-md shrink-0">
+                                  <Avatar className="h-11 w-11 rounded-full shrink-0">
                                             <AvatarImage
-                                              src={
-                                                member.avatarUrl || undefined
-                                              }
+                                      src={member.avatarUrl || undefined}
                                               alt={member.name || member.email}
                                             />
-                                            <AvatarFallback className="rounded-md text-[10px] font-semibold">
+                                    <AvatarFallback className="rounded-full text-sm font-medium">
                                               {member.name
                                                 ? member.name
                                                     .split(" ")
@@ -1145,117 +1053,18 @@ export default function RosterPage() {
                                                     .join("")
                                                     .toUpperCase()
                                                     .slice(0, 2)
-                                                : member.email
-                                                    .charAt(0)
-                                                    .toUpperCase()}
+                                        : member.email.charAt(0).toUpperCase()}
                                             </AvatarFallback>
                                           </Avatar>
-                                          <div className="flex-1 min-w-0">
-                                            <div className="font-medium text-sm truncate">
+                                  <div className="flex-1 min-w-0 text-left">
+                                    <span className="font-medium text-sm truncate block mb-0.5">
                                               {member.name || "Unnamed"}
-                                            </div>
-                                            <button
-                                              type="button"
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                window.location.href = `mailto:${member.email}`;
-                                              }}
-                                              className="text-xs text-muted-foreground hover:text-foreground truncate block cursor-pointer text-left bg-transparent border-0 p-0 m-0"
-                                            >
+                                    </span>
+                                    <p className="text-xs text-muted-foreground truncate">
                                               {member.email}
-                                            </button>
-                                            {member.altEmail && (
-                                              <button
-                                                type="button"
-                                                onClick={(e) => {
-                                                  e.stopPropagation();
-                                                  window.location.href = `mailto:${member.altEmail}`;
-                                                }}
-                                                className="text-xs text-muted-foreground/70 hover:text-foreground truncate block cursor-pointer text-left bg-transparent border-0 p-0 m-0"
-                                              >
-                                                {member.altEmail}
-                                              </button>
-                                            )}
+                                    </p>
                                           </div>
-                                        </Link>
-                                        <div className="flex items-center gap-3 mt-0.5 flex-wrap ml-[2.625rem]">
-                                          {(member.cellPhone ||
-                                            member.phone) && (
-                                            <a
-                                              href={`tel:${(member.cellPhone || member.phone || "").replace(/\D/g, "")}`}
-                                              onClick={(e) =>
-                                                e.stopPropagation()
-                                              }
-                                              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground shrink-0"
-                                            >
-                                              <IconPhone className="h-3 w-3 shrink-0" />
-                                              <span className="hidden sm:inline">
-                                                {member.cellPhone ||
-                                                  member.phone}
-                                              </span>
-                                            </a>
-                                          )}
-                                          {member.emergencyContactName && (
-                                            <div className="text-xs text-muted-foreground truncate hidden md:inline">
-                                              E: {member.emergencyContactName}
-                                              {member.emergencyContactRelationship &&
-                                                ` (${member.emergencyContactRelationship})`}
-                                            </div>
-                                          )}
-                                        </div>
-                                      </div>
-                                      {(isOwner ||
-                                        (currentUserRole === "coach" &&
-                                          member.role === "athlete")) && (
-                                        <DropdownMenu>
-                                          <DropdownMenuTrigger asChild>
-                                            <Button
-                                              variant="ghost"
-                                              size="icon"
-                                              className="h-7 w-7 shrink-0"
-                                              onClick={(e) =>
-                                                e.stopPropagation()
-                                              }
-                                            >
-                                              <IconDotsVertical className="h-3.5 w-3.5" />
-                                            </Button>
-                                          </DropdownMenuTrigger>
-                                          <DropdownMenuContent
-                                            align="end"
-                                            className="rounded-xl"
-                                          >
-                                            <DropdownMenuItem
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                openEditDialog(member);
-                                              }}
-                                              className="gap-2"
-                                            >
-                                              <IconEdit className="h-4 w-4" />
-                                              Edit Member
-                                            </DropdownMenuItem>
-                                            {isOwner &&
-                                              member.role !== "owner" && (
-                                                <>
-                                                  <DropdownMenuSeparator />
-                                                  <DropdownMenuItem
-                                                    onClick={(e) => {
-                                                      e.stopPropagation();
-                                                      openDeleteDialog(member);
-                                                    }}
-                                                    className="gap-2 text-destructive focus:text-destructive"
-                                                  >
-                                                    <IconTrash className="h-4 w-4" />
-                                                    Remove from Gym
-                                                  </DropdownMenuItem>
-                                                </>
-                                              )}
-                                          </DropdownMenuContent>
-                                        </DropdownMenu>
-                                      )}
-                                    </div>
-                                  </CardContent>
-                                </Card>
+                                </button>
                               ))}
                           </div>
                           {/* Desktop Table View */}
@@ -1541,8 +1350,8 @@ export default function RosterPage() {
                       )}
                     </div>
                   </ScrollArea>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             )}
           </div>
         </div>
@@ -1779,6 +1588,25 @@ export default function RosterPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Mobile Member Actions Drawer */}
+      {selectedMember && (
+        <MobileMemberActions
+          member={selectedMember}
+          userRole={currentUserRole}
+          isOwner={isOwner}
+          open={isMemberDrawerOpen}
+          onOpenChange={setIsMemberDrawerOpen}
+          onEdit={() => {
+            setIsMemberDrawerOpen(false);
+            openEditDialog(selectedMember);
+          }}
+          onDelete={() => {
+            setIsMemberDrawerOpen(false);
+            openDeleteDialog(selectedMember);
+          }}
+        />
+      )}
     </div>
   );
 }

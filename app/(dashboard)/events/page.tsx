@@ -3,6 +3,7 @@
 import {
   IconAlertTriangle,
   IconArrowLeft,
+  IconArrowRight,
   IconBan,
   IconBell,
   IconCalendar,
@@ -41,12 +42,18 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  Drawer,
+  DrawerContent,
+  DrawerTitle,
+} from "@/components/ui/drawer";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -256,6 +263,10 @@ export default function EventsPage() {
   const [mobileView, setMobileView] = useState<
     "events" | "occurrences" | "details" | "chat"
   >("events");
+  const [mobileSortMode, setMobileSortMode] = useState<"event" | "session">(
+    "session",
+  );
+  const [cameFromSessionView, setCameFromSessionView] = useState(false);
   const [eventDetailTab, setEventDetailTab] = useState<"details" | "chat">(
     "details",
   );
@@ -1174,6 +1185,8 @@ export default function EventsPage() {
         } else {
           setMobileView("occurrences");
         }
+        // Reset session view flag when navigating normally
+        setCameFromSessionView(false);
         return;
       }
       // On desktop, deselect the event
@@ -1191,6 +1204,8 @@ export default function EventsPage() {
       // The useEffect will set it to true when we actually navigate away
       if (isEventsMobile) {
         hasNavigatedAwayRef.current = false;
+        // Reset session view flag when navigating normally
+        setCameFromSessionView(false);
         if (currentUserRole === "athlete") {
           // For athletes, go to occurrences view to pick which day
           setSelectedEventForAthlete(event);
@@ -1467,9 +1482,16 @@ export default function EventsPage() {
       if (mobileView === "chat") {
         setMobileView("details");
       } else if (mobileView === "details") {
-        setMobileView("occurrences");
+        // If we came from session view, go directly back to events
+        if (cameFromSessionView) {
+          setMobileView("events");
+          setCameFromSessionView(false);
+        } else {
+          setMobileView("occurrences");
+        }
       } else if (mobileView === "occurrences") {
         setMobileView("events");
+        setCameFromSessionView(false);
       }
     };
 
@@ -1503,7 +1525,7 @@ export default function EventsPage() {
     return (
       <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
         {/* Custom Mobile Header */}
-        <div className="flex items-center justify-between px-4 h-14 shrink-0 border-b bg-background">
+        <div className="flex items-center justify-between px-6 h-14 shrink-0 border-b bg-background">
           <div className="flex items-center gap-3 flex-1 min-w-0">
             {showBackButton && (
               <Button
@@ -1521,12 +1543,37 @@ export default function EventsPage() {
           </div>
           <div className="flex items-center gap-2 shrink-0">
             {mobileView === "events" && (
-              <Button size="sm" className="gap-2 rounded-xl" asChild>
-                <Link href="/events/new">
-                  <IconPlus className="h-4 w-4" />
-                  New Event
-                </Link>
-              </Button>
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setMobileSortMode(
+                      mobileSortMode === "event" ? "session" : "event",
+                    )
+                  }
+                  className="gap-2 rounded-sm text-xs px-3 h-8"
+                  data-show-text-mobile
+                >
+                  {mobileSortMode === "event" ? (
+                    <>
+                      <IconCalendar className="h-3.5 w-3.5" />
+                      Sort by Session
+                    </>
+                  ) : (
+                    <>
+                      <IconList className="h-3.5 w-3.5" />
+                      Sort by Event
+                    </>
+                  )}
+                </Button>
+                <Button size="sm" className="gap-2 rounded-sm text-xs px-3 h-8" asChild>
+                  <Link href="/events/new">
+                    <IconPlus className="h-4 w-4" />
+                    New Event
+                  </Link>
+                </Button>
+              </>
             )}
             {(mobileView === "details" || mobileView === "occurrences") &&
               (selectedEvent || selectedEventForAthlete) && (
@@ -1583,6 +1630,148 @@ export default function EventsPage() {
                       <Link href="/events/new">Create your first event</Link>
                     </Button>
                   </div>
+                ) : mobileSortMode === "session" ? (
+                  (() => {
+                    // Flatten all occurrences from all events and sort by date
+                    const allOccurrences = events
+                      .flatMap((event) =>
+                        event.occurrences
+                          .filter((occ) => occ.status === "scheduled")
+                          .map((occ) => ({
+                            ...occ,
+                            event,
+                          })),
+                      )
+                      .sort((a, b) => {
+                        const dateA = new Date(a.date).getTime();
+                        const dateB = new Date(b.date).getTime();
+                        return dateA - dateB;
+                      });
+
+                    const futureOccurrences = allOccurrences.filter(
+                      (occ) => !isPastDate(occ.date),
+                    );
+                    const pastOccurrences = allOccurrences.filter((occ) =>
+                      isPastDate(occ.date),
+                    );
+                    const displayedSessions = showPastEvents
+                      ? [...futureOccurrences, ...pastOccurrences]
+                      : futureOccurrences;
+
+                    return (
+                      <div className="space-y-3">
+                        {displayedSessions.length === 0 ? (
+                          <div className="p-8 text-center text-muted-foreground">
+                            <IconCalendar className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                            <p className="text-sm">No upcoming sessions</p>
+                          </div>
+                        ) : (
+                          <>
+                            {displayedSessions.map((occ) => {
+                              const isPast = isPastDate(occ.date);
+                              const dateInfo = formatDate(occ.date);
+                              const userRsvpStatus = currentUserRsvps.get(occ.id);
+                              return (
+                                <button
+                                  key={occ.id}
+                                  type="button"
+                                  onClick={() => {
+                                    // Track that we came from session view
+                                    setCameFromSessionView(true);
+                                    // Select the event first
+                                    selectEvent(occ.event);
+                                    // Find and select the specific occurrence to open it
+                                    const eventOccurrence = occ.event.occurrences.find(
+                                      (o) => o.id === occ.id,
+                                    );
+                                    if (eventOccurrence) {
+                                      selectOccurrence(eventOccurrence);
+                                    }
+                                  }}
+                                  className={`w-full rounded-xl transition-all bg-card hover:bg-muted/50 text-left ${
+                                    isPast ? "opacity-60" : ""
+                                  } ${occ.status === "canceled" ? "opacity-40" : ""}`}
+                                >
+                                  <div className="flex items-center gap-2 p-4">
+                                    <div
+                                      className="h-16 w-16 rounded-xl flex flex-col items-center justify-center shrink-0 bg-muted"
+                                    >
+                                      <span className="text-2xl font-bold leading-none">
+                                        {dateInfo.day}
+                                      </span>
+                                      <span className="text-xs font-medium opacity-70 mt-1">
+                                        {dateInfo.month}
+                                      </span>
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="font-semibold text-base mb-1">
+                                        {occ.event.title}
+                                      </p>
+                                      <p className="text-sm opacity-80 mb-1">
+                                        {dateInfo.weekday} • {formatTime(occ.event.startTime)}
+                                      </p>
+                                      {occ.status === "canceled" && (
+                                        <Badge
+                                          variant="destructive"
+                                          className="text-xs mt-1"
+                                        >
+                                          Canceled
+                                        </Badge>
+                                      )}
+                                    </div>
+                                    <div className="flex items-center gap-2 shrink-0">
+                                      {/* User's RSVP Status */}
+                                      {occurrenceRsvpsLoading ? (
+                                        <Skeleton className="h-5 w-16 rounded shrink-0" />
+                                      ) : (
+                                        <>
+                                          {userRsvpStatus === "going" && (
+                                            <Badge
+                                              variant="outline"
+                                              className="text-xs text-emerald-600 border-emerald-200 bg-emerald-50 dark:bg-emerald-950/50 dark:text-emerald-400 dark:border-emerald-800 shrink-0"
+                                            >
+                                              Going
+                                            </Badge>
+                                          )}
+                                          {userRsvpStatus === "not_going" && (
+                                            <Badge
+                                              variant="outline"
+                                              className="text-xs text-red-600 border-red-200 bg-red-50 dark:bg-red-950/50 dark:text-red-400 dark:border-red-800 shrink-0"
+                                            >
+                                              Can't Go
+                                            </Badge>
+                                          )}
+                                          {!userRsvpStatus && (
+                                            <Badge
+                                              variant="outline"
+                                              className="text-xs text-amber-600 border-amber-200 bg-amber-50 dark:bg-amber-950/50 dark:text-amber-400 dark:border-amber-800 shrink-0"
+                                            >
+                                              Pending
+                                            </Badge>
+                                          )}
+                                        </>
+                                      )}
+                                    </div>
+                                  </div>
+                                </button>
+                              );
+                            })}
+                            {pastOccurrences.length > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => setShowPastEvents(!showPastEvents)}
+                                className="w-full mt-4 p-3 text-sm text-muted-foreground hover:text-foreground flex items-center justify-center gap-2 rounded-xl"
+                              >
+                                <IconHistory className="h-4 w-4" />
+                                {showPastEvents ? "Hide" : "Show"} past sessions (
+                                {pastOccurrences.length})
+                              </button>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    );
+                  })()
                 ) : (
                   <div className="space-y-3">
                     {events.map((event) => (
@@ -1903,113 +2092,29 @@ export default function EventsPage() {
             selectedOccurrenceForAthleteDetail ? (
               <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
                 <div className="p-4 shrink-0 border-b">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 min-w-0">
-                      <h2 className="font-semibold text-lg">
-                        {selectedEventForAthlete?.title}
-                      </h2>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {
-                          formatDate(selectedOccurrenceForAthleteDetail.date)
-                            .weekday
-                        }
-                        ,{" "}
-                        {
-                          formatDate(selectedOccurrenceForAthleteDetail.date)
-                            .month
-                        }{" "}
-                        {
-                          formatDate(selectedOccurrenceForAthleteDetail.date)
-                            .day
-                        }{" "}
-                        • {formatTime(selectedEventForAthlete?.startTime)}
-                      </p>
-                    </div>
-                    <div className="flex gap-2 shrink-0">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={async () => {
-                          const response = await fetch("/api/rsvp", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                              occurrenceId:
-                                selectedOccurrenceForAthleteDetail.id,
-                              status: "going",
-                            }),
-                          });
-                          if (response.ok) {
-                            setCurrentUserRsvps((prev) => {
-                              const newMap = new Map(prev);
-                              newMap.set(
-                                selectedOccurrenceForAthleteDetail.id,
-                                "going",
-                              );
-                              return newMap;
-                            });
-                            loadOccurrenceRsvps(
-                              selectedOccurrenceForAthleteDetail.id,
-                            );
-                          }
-                        }}
-                        className={`h-9 rounded-xl gap-1.5 px-3 ${
-                          currentUserRsvps.get(
-                            selectedOccurrenceForAthleteDetail.id,
-                          ) === "going"
-                            ? "!bg-emerald-600 hover:!bg-emerald-700 !text-white border-emerald-600"
-                            : "border-emerald-400 text-emerald-400 hover:bg-emerald-50 hover:text-emerald-500 dark:hover:bg-emerald-950"
-                        }`}
-                      >
-                        <IconCheck className="h-4 w-4" />
-                        {currentUserRsvps.get(
-                          selectedOccurrenceForAthleteDetail.id,
-                        ) === "going"
-                          ? "Going!"
-                          : "Going"}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={async () => {
-                          const response = await fetch("/api/rsvp", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                              occurrenceId:
-                                selectedOccurrenceForAthleteDetail.id,
-                              status: "not_going",
-                            }),
-                          });
-                          if (response.ok) {
-                            setCurrentUserRsvps((prev) => {
-                              const newMap = new Map(prev);
-                              newMap.set(
-                                selectedOccurrenceForAthleteDetail.id,
-                                "not_going",
-                              );
-                              return newMap;
-                            });
-                            loadOccurrenceRsvps(
-                              selectedOccurrenceForAthleteDetail.id,
-                            );
-                          }
-                        }}
-                        className={`h-9 rounded-xl gap-1.5 px-3 ${
-                          currentUserRsvps.get(
-                            selectedOccurrenceForAthleteDetail.id,
-                          ) === "not_going"
-                            ? "!bg-red-600 hover:!bg-red-700 !text-white border-red-600"
-                            : "border-red-400 text-red-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950"
-                        }`}
-                      >
-                        <IconX className="h-4 w-4" />
-                        Can't
-                      </Button>
-                    </div>
+                  <div className="flex-1 min-w-0">
+                    <h2 className="font-semibold text-lg">
+                      {selectedEventForAthlete?.title}
+                    </h2>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {
+                        formatDate(selectedOccurrenceForAthleteDetail.date)
+                          .weekday
+                      }
+                      ,{" "}
+                      {
+                        formatDate(selectedOccurrenceForAthleteDetail.date)
+                          .month
+                      }{" "}
+                      {
+                        formatDate(selectedOccurrenceForAthleteDetail.date)
+                          .day
+                      }{" "}
+                      • {formatTime(selectedEventForAthlete?.startTime)}
+                    </p>
                   </div>
                 </div>
-                <ScrollArea className="flex-1">
+                <ScrollArea className="flex-1 pb-32">
                   <div className="p-4">
                     {selectedEventForAthlete?.description && (
                       <div className="mb-4">
@@ -2188,20 +2293,17 @@ export default function EventsPage() {
                         return (
                           <div
                             key={user.id}
-                            className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 transition-colors"
+                            className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted/50 transition-colors"
                           >
-                            <Avatar className="h-10 w-10 rounded-xl">
+                            <Avatar className="h-8 w-8 rounded-lg shrink-0">
                               <AvatarImage src={user.avatarUrl || undefined} />
-                              <AvatarFallback className="rounded-xl text-xs bg-muted">
+                              <AvatarFallback className="rounded-lg text-xs bg-muted">
                                 {getInitials(user.name, user.email)}
                               </AvatarFallback>
                             </Avatar>
                             <div className="flex-1 min-w-0">
                               <p className="font-medium text-sm truncate">
                                 {user.name || "Unnamed"}
-                              </p>
-                              <p className="text-xs text-muted-foreground truncate">
-                                {user.email}
                               </p>
                             </div>
                             {renderStatusBadge(displayStatus)}
@@ -2249,7 +2351,7 @@ export default function EventsPage() {
                             </TabsTrigger>
                           </TabsList>
                           <TabsContent value="all" className="mt-0">
-                            <div className="space-y-3">
+                            <div className="space-y-0.5">
                               {(() => {
                                 const allCoaches = [
                                   ...goingCoaches.map((c) => ({
@@ -2296,7 +2398,7 @@ export default function EventsPage() {
                                         <p className="text-xs font-medium text-muted-foreground mb-2">
                                           Coaches
                                         </p>
-                                        <div className="space-y-1">
+                                        <div className="space-y-0.5">
                                           {allCoaches.map((coach) =>
                                             renderUserItem(coach, true),
                                           )}
@@ -2308,7 +2410,7 @@ export default function EventsPage() {
                                         <p className="text-xs font-medium text-muted-foreground mb-2">
                                           Athletes
                                         </p>
-                                        <div className="space-y-1">
+                                        <div className="space-y-0.5">
                                           {allAthletes.map((athlete) =>
                                             renderUserItem(athlete, false),
                                           )}
@@ -2327,13 +2429,13 @@ export default function EventsPage() {
                             </div>
                           </TabsContent>
                           <TabsContent value="going" className="mt-0">
-                            <div className="space-y-3">
+                            <div className="space-y-0.5">
                               {goingCoaches.length > 0 && (
                                 <div>
                                   <p className="text-xs font-medium text-muted-foreground mb-2">
                                     Coaches
                                   </p>
-                                  <div className="space-y-1">
+                                  <div className="space-y-0.5">
                                     {goingCoaches.map((coach) =>
                                       renderUserItem(coach, true, "going"),
                                     )}
@@ -2345,7 +2447,7 @@ export default function EventsPage() {
                                   <p className="text-xs font-medium text-muted-foreground mb-2">
                                     Athletes
                                   </p>
-                                  <div className="space-y-1">
+                                  <div className="space-y-0.5">
                                     {goingAthletes.map((athlete) =>
                                       renderUserItem(athlete, false, "going"),
                                     )}
@@ -2361,13 +2463,13 @@ export default function EventsPage() {
                             </div>
                           </TabsContent>
                           <TabsContent value="not_going" className="mt-0">
-                            <div className="space-y-3">
+                            <div className="space-y-0.5">
                               {notGoingCoaches.length > 0 && (
                                 <div>
                                   <p className="text-xs font-medium text-muted-foreground mb-2">
                                     Coaches
                                   </p>
-                                  <div className="space-y-1">
+                                  <div className="space-y-0.5">
                                     {notGoingCoaches.map((coach) =>
                                       renderUserItem(coach, true, "not_going"),
                                     )}
@@ -2379,7 +2481,7 @@ export default function EventsPage() {
                                   <p className="text-xs font-medium text-muted-foreground mb-2">
                                     Athletes
                                   </p>
-                                  <div className="space-y-1">
+                                  <div className="space-y-0.5">
                                     {notGoingAthletes.map((athlete) =>
                                       renderUserItem(
                                         athlete,
@@ -2399,13 +2501,13 @@ export default function EventsPage() {
                             </div>
                           </TabsContent>
                           <TabsContent value="pending" className="mt-0">
-                            <div className="space-y-3">
+                            <div className="space-y-0.5">
                               {pendingCoaches.length > 0 && (
                                 <div>
                                   <p className="text-xs font-medium text-muted-foreground mb-2">
                                     Coaches
                                   </p>
-                                  <div className="space-y-1">
+                                  <div className="space-y-0.5">
                                     {pendingCoaches.map((coach) =>
                                       renderUserItem(coach, true, "pending"),
                                     )}
@@ -2417,7 +2519,7 @@ export default function EventsPage() {
                                   <p className="text-xs font-medium text-muted-foreground mb-2">
                                     Athletes
                                   </p>
-                                  <div className="space-y-1">
+                                  <div className="space-y-0.5">
                                     {pendingAthletes.map((athlete) =>
                                       renderUserItem(athlete, false, "pending"),
                                     )}
@@ -2450,36 +2552,8 @@ export default function EventsPage() {
                     {formatDate(selectedOccurrence.date).day} •{" "}
                     {formatTime(selectedEvent?.startTime)}
                   </p>
-                  <div className="flex flex-col gap-2 mt-4">
-                    {notAnsweredUsers.length > 0 &&
-                      selectedOccurrence.status !== "canceled" && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={handleSendReminders}
-                          disabled={sendingReminder}
-                          className="w-full gap-2 rounded-xl"
-                        >
-                          <IconBell className="h-4 w-4" />
-                          {sendingReminder
-                            ? "Sending..."
-                            : `Send Reminders (${notAnsweredUsers.length})`}
-                        </Button>
-                      )}
-                    {selectedOccurrence.status !== "canceled" && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setCancelDialogOpen(true)}
-                        className="w-full text-destructive hover:text-destructive rounded-xl"
-                      >
-                        <IconX className="h-4 w-4 mr-2" />
-                        Cancel Session
-                      </Button>
-                    )}
-                  </div>
                 </div>
-                <div className="flex-1 overflow-hidden">
+                <div className="flex-1 overflow-hidden pb-32">
                   {rsvpLoading ? (
                     <div className="flex flex-col h-full p-4">
                       <Skeleton className="h-12 w-full mb-4 rounded-xl" />
@@ -2673,6 +2747,141 @@ export default function EventsPage() {
             )}
           </TabsContent>
         </Tabs>
+        
+        {/* Fixed Action Buttons - Above Bottom Nav */}
+        {mobileView === "details" &&
+          (selectedOccurrence || selectedOccurrenceForAthleteDetail) &&
+          ((currentUserRole === "athlete" &&
+            selectedOccurrenceForAthleteDetail?.status !== "canceled") ||
+            (currentUserRole !== "athlete" &&
+              selectedOccurrence &&
+              selectedOccurrence.status !== "canceled")) && (
+            <div className="fixed bottom-16 left-0 right-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t p-4 lg:hidden">
+              <div className="grid grid-cols-2 gap-2">
+                {/* Going Button */}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={async () => {
+                    const occurrenceId = currentUserRole === "athlete"
+                      ? selectedOccurrenceForAthleteDetail?.id
+                      : selectedOccurrence?.id;
+                    if (!occurrenceId) return;
+                    const response = await fetch("/api/rsvp", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        occurrenceId,
+                        status: "going",
+                      }),
+                    });
+                    if (response.ok) {
+                      setCurrentUserRsvps((prev) => {
+                        const newMap = new Map(prev);
+                        newMap.set(occurrenceId, "going");
+                        return newMap;
+                      });
+                      if (occurrenceId) loadOccurrenceRsvps(occurrenceId);
+                    }
+                  }}
+                  className={`h-9 rounded-sm gap-2 px-3 w-full ${
+                    currentUserRsvps.get(
+                      currentUserRole === "athlete"
+                        ? selectedOccurrenceForAthleteDetail?.id || ""
+                        : selectedOccurrence?.id || "",
+                    ) === "going"
+                      ? "!bg-emerald-600 hover:!bg-emerald-700 !text-white border-emerald-600"
+                      : "border-emerald-400 text-emerald-400 hover:bg-emerald-50 hover:text-emerald-500 dark:hover:bg-emerald-950"
+                  }`}
+                >
+                  <IconCheck className="h-4 w-4" />
+                  {currentUserRsvps.get(
+                    currentUserRole === "athlete"
+                      ? selectedOccurrenceForAthleteDetail?.id || ""
+                      : selectedOccurrence?.id || "",
+                  ) === "going"
+                    ? "Going!"
+                    : "Going"}
+                </Button>
+                
+                {/* Not Going Button */}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={async () => {
+                    const occurrenceId = currentUserRole === "athlete"
+                      ? selectedOccurrenceForAthleteDetail?.id
+                      : selectedOccurrence?.id;
+                    if (!occurrenceId) return;
+                    const response = await fetch("/api/rsvp", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        occurrenceId,
+                        status: "not_going",
+                      }),
+                    });
+                    if (response.ok) {
+                      setCurrentUserRsvps((prev) => {
+                        const newMap = new Map(prev);
+                        newMap.set(occurrenceId, "not_going");
+                        return newMap;
+                      });
+                      if (occurrenceId) loadOccurrenceRsvps(occurrenceId);
+                    }
+                  }}
+                  className={`h-9 rounded-sm gap-2 px-3 w-full ${
+                    currentUserRsvps.get(
+                      currentUserRole === "athlete"
+                        ? selectedOccurrenceForAthleteDetail?.id || ""
+                        : selectedOccurrence?.id || "",
+                    ) === "not_going"
+                      ? "!bg-red-600 hover:!bg-red-700 !text-white border-red-600"
+                      : "border-red-400 text-red-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950"
+                  }`}
+                >
+                  <IconX className="h-4 w-4" />
+                  Not Going
+                </Button>
+                
+                {/* Send Reminders Button - Only for non-athletes */}
+                {currentUserRole !== "athlete" &&
+                  notAnsweredUsers.length > 0 &&
+                  selectedOccurrence &&
+                  selectedOccurrence.status !== "canceled" && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleSendReminders}
+                      disabled={sendingReminder}
+                      className="h-9 w-full gap-2 rounded-sm px-3"
+                    >
+                      <IconBell className="h-4 w-4" />
+                      {sendingReminder
+                        ? "Sending..."
+                        : `Send Reminders (${notAnsweredUsers.length})`}
+                    </Button>
+                  )}
+                
+                {/* Cancel Session Button */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCancelDialogOpen(true)}
+                  className={`h-9 w-full gap-2 rounded-sm px-3 text-destructive hover:text-destructive ${
+                    currentUserRole !== "athlete" &&
+                    notAnsweredUsers.length > 0 &&
+                    selectedOccurrence?.status !== "canceled"
+                      ? ""
+                      : "col-span-2"
+                  }`}
+                >
+                  <IconBan className="h-4 w-4" />
+                  Cancel Session
+                </Button>
+              </div>
+            </div>
+          )}
       </div>
     );
   }
@@ -4927,11 +5136,18 @@ function UserList({
   onEditRsvp,
   currentUserRole,
 }: UserListProps) {
+  const isMobile = useIsMobile();
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  
   // Filter to only include coaches/owners and athletes (exclude any other roles)
   const filteredUsers = users.filter((u) => {
     const role = u.role;
     return role === "coach" || role === "owner" || role === "athlete" || !role;
   });
+  
+  const selectedUser = selectedUserId
+    ? filteredUsers.find((u) => u.id === selectedUserId)
+    : null;
 
   if (filteredUsers.length === 0) {
     return (
@@ -4948,143 +5164,158 @@ function UserList({
   const athletes = filteredUsers.filter((u) => u.role === "athlete" || !u.role);
 
   return (
-    <div className="space-y-1">
-      {coaches.map((user) => (
-        <div
-          key={user.id}
-          className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 transition-colors group"
-        >
-          <Avatar className="h-10 w-10 rounded-xl">
-            <AvatarImage src={user.avatarUrl || undefined} />
-            <AvatarFallback className="rounded-xl text-xs bg-linear-to-br from-primary/20 to-primary/5">
-              {getInitials(user.name, user.email)}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1 min-w-0">
-            <p className="font-medium text-sm truncate">
-              {user.name || "Unnamed"}
-            </p>
-            <p className="text-xs text-muted-foreground truncate">
-              {user.email}
-            </p>
+    <div className="space-y-0.5">
+      {coaches.length > 0 && (
+        <>
+          <div className="flex items-center gap-2 my-2">
+            <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">Coaches</span>
+            <hr className="flex-1 border-border" />
           </div>
-          <div className="flex items-center gap-2">
-            {user.status === "going" && (
-              <div className="flex items-center gap-1 text-emerald-600 bg-emerald-100 dark:bg-emerald-950/50 px-2.5 py-1 rounded-full text-xs font-medium">
-                <IconCheck className="h-3 w-3" />
-                Going
+          {coaches.map((user) => (
+            <div
+              key={user.id}
+              className={`flex items-center gap-2 p-2 rounded-lg transition-colors group ${
+                isMobile && onEditRsvp
+                  ? "cursor-pointer active:bg-muted/70"
+                  : "hover:bg-muted/50"
+              }`}
+              onClick={isMobile && onEditRsvp ? () => setSelectedUserId(user.id) : undefined}
+            >
+              <Avatar className="h-8 w-8 rounded-lg shrink-0">
+                <AvatarImage src={user.avatarUrl || undefined} />
+                <AvatarFallback className="rounded-lg text-xs bg-linear-to-br from-primary/20 to-primary/5">
+                  {getInitials(user.name, user.email)}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-sm truncate">
+                  {user.name || "Unnamed"}
+                </p>
               </div>
-            )}
-            {user.status === "not_going" && (
-              <div className="flex items-center gap-1 text-red-600 bg-red-100 dark:bg-red-950/50 px-2.5 py-1 rounded-full text-xs font-medium">
-                <IconX className="h-3 w-3" />
-                Can't Go
-              </div>
-            )}
-            {user.status === null && (
-              <div className="flex items-center gap-1 text-amber-600 bg-amber-100 dark:bg-amber-950/50 px-2.5 py-1 rounded-full text-xs font-medium">
-                <IconBell className="h-3 w-3" />
-                Pending
-              </div>
-            )}
-            {onEditRsvp && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <IconDotsVertical className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="rounded-xl">
-                  <DropdownMenuItem asChild>
-                    <Link
-                      href={`/chat?userId=${user.id}`}
-                      className="flex items-center gap-2 cursor-pointer"
-                    >
-                      <IconMessageCircle className="h-4 w-4" />
-                      Chat
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link
-                      href={`/roster/${user.id}`}
-                      className="flex items-center gap-2 cursor-pointer"
-                    >
-                      <IconUsers className="h-4 w-4" />
-                      View Profile
-                    </Link>
-                  </DropdownMenuItem>
-                  {(currentUserRole === "owner" ||
-                    currentUserRole === "coach") &&
-                    user.status === null && (
-                      <>
-                        <DropdownMenuSeparator />
-                        {(user.phone || user.cellPhone) && (
-                          <DropdownMenuItem asChild>
-                            <a
-                              href={`tel:${(user.phone || user.cellPhone || "").replace(/\D/g, "")}`}
-                              className="flex items-center gap-2 cursor-pointer"
-                            >
-                              <IconPhone className="h-4 w-4" />
-                              Call
-                            </a>
-                          </DropdownMenuItem>
+              <div className="flex items-center gap-2">
+                {user.status === "going" && (
+                  <div className="flex items-center gap-1 text-emerald-600 bg-emerald-100 dark:bg-emerald-950/50 px-2.5 py-1 rounded-full text-xs font-medium">
+                    <IconCheck className="h-3 w-3" />
+                    Going
+                  </div>
+                )}
+                {user.status === "not_going" && (
+                  <div className="flex items-center gap-1 text-red-600 bg-red-100 dark:bg-red-950/50 px-2.5 py-1 rounded-full text-xs font-medium">
+                    <IconX className="h-3 w-3" />
+                    Can't Go
+                  </div>
+                )}
+                {user.status === null && (
+                  <div className="flex items-center gap-1 text-amber-600 bg-amber-100 dark:bg-amber-950/50 px-2.5 py-1 rounded-full text-xs font-medium">
+                    <IconBell className="h-3 w-3" />
+                    Pending
+                  </div>
+                )}
+                {onEditRsvp && !isMobile && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <IconDotsVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="rounded-xl">
+                      <DropdownMenuItem asChild>
+                        <Link
+                          href={`/chat?userId=${user.id}`}
+                          className="flex items-center gap-2 cursor-pointer"
+                        >
+                          <IconMessageCircle className="h-4 w-4" />
+                          Chat
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link
+                          href={`/roster/${user.id}`}
+                          className="flex items-center gap-2 cursor-pointer"
+                        >
+                          <IconUsers className="h-4 w-4" />
+                          View Profile
+                        </Link>
+                      </DropdownMenuItem>
+                      {(currentUserRole === "owner" ||
+                        currentUserRole === "coach") &&
+                        user.status === null && (
+                          <>
+                            <DropdownMenuSeparator />
+                            {(user.phone || user.cellPhone) && (
+                              <DropdownMenuItem asChild>
+                                <a
+                                  href={`tel:${(user.phone || user.cellPhone || "").replace(/\D/g, "")}`}
+                                  className="flex items-center gap-2 cursor-pointer"
+                                >
+                                  <IconPhone className="h-4 w-4" />
+                                  Call
+                                </a>
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuItem asChild>
+                              <a
+                                href={`mailto:${user.email}`}
+                                className="flex items-center gap-2 cursor-pointer"
+                              >
+                                <IconMail className="h-4 w-4" />
+                                Email
+                              </a>
+                            </DropdownMenuItem>
+                          </>
                         )}
-                        <DropdownMenuItem asChild>
-                          <a
-                            href={`mailto:${user.email}`}
-                            className="flex items-center gap-2 cursor-pointer"
-                          >
-                            <IconMail className="h-4 w-4" />
-                            Email
-                          </a>
-                        </DropdownMenuItem>
-                      </>
-                    )}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={() => onEditRsvp(user.id, "going")}
-                    className="gap-2"
-                  >
-                    <IconCheck className="h-4 w-4 text-emerald-600" />
-                    Mark as Going
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => onEditRsvp(user.id, "not_going")}
-                    className="gap-2"
-                  >
-                    <IconX className="h-4 w-4 text-red-600" />
-                    Mark as Can't Go
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
-          </div>
-        </div>
-      ))}
-      {coaches.length > 0 && athletes.length > 0 && (
-        <hr className="my-3 border-border" />
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={() => onEditRsvp(user.id, "going")}
+                        className="gap-2"
+                      >
+                        <IconCheck className="h-4 w-4 text-emerald-600" />
+                        Mark as Going
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => onEditRsvp(user.id, "not_going")}
+                        className="gap-2"
+                      >
+                        <IconX className="h-4 w-4 text-red-600" />
+                        Mark as Can't Go
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+              </div>
+            </div>
+          ))}
+        </>
       )}
-      {athletes.map((user) => (
+      {athletes.length > 0 && (
+        <>
+          <div className="flex items-center gap-2 my-2">
+            <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">Athletes</span>
+            <hr className="flex-1 border-border" />
+          </div>
+          {athletes.map((user) => (
         <div
           key={user.id}
-          className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 transition-colors group"
+          className={`flex items-center gap-2 p-2 rounded-lg transition-colors group ${
+            isMobile && onEditRsvp
+              ? "cursor-pointer active:bg-muted/70"
+              : "hover:bg-muted/50"
+          }`}
+          onClick={isMobile && onEditRsvp ? () => setSelectedUserId(user.id) : undefined}
         >
-          <Avatar className="h-10 w-10 rounded-xl">
+          <Avatar className="h-8 w-8 rounded-lg shrink-0">
             <AvatarImage src={user.avatarUrl || undefined} />
-            <AvatarFallback className="rounded-xl text-xs bg-linear-to-br from-primary/20 to-primary/5">
+            <AvatarFallback className="rounded-lg text-xs bg-linear-to-br from-primary/20 to-primary/5">
               {getInitials(user.name, user.email)}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
             <p className="font-medium text-sm truncate">
               {user.name || "Unnamed"}
-            </p>
-            <p className="text-xs text-muted-foreground truncate">
-              {user.email}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -5106,7 +5337,7 @@ function UserList({
                 Pending
               </div>
             )}
-            {onEditRsvp && (
+            {onEditRsvp && !isMobile && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -5184,6 +5415,115 @@ function UserList({
           </div>
         </div>
       ))}
+        </>
+      )}
+      
+      {/* Mobile Drawer for User Actions */}
+      {isMobile && selectedUser && (
+        <Drawer open={!!selectedUser} onOpenChange={(open) => !open && setSelectedUserId(null)}>
+          <DrawerContent className="max-h-[85vh]">
+            <div className="px-4 pt-4 pb-3 border-b">
+              <div className="flex items-center gap-3 mb-3">
+                <Avatar className="h-14 w-14 rounded-xl shrink-0">
+                  <AvatarImage src={selectedUser.avatarUrl || undefined} />
+                  <AvatarFallback className="rounded-xl text-base font-semibold">
+                    {getInitials(selectedUser.name, selectedUser.email)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <DrawerTitle className="text-lg font-semibold truncate">
+                    {selectedUser.name || "Unnamed"}
+                  </DrawerTitle>
+                  <p className="text-sm text-muted-foreground truncate">
+                    {selectedUser.email}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div
+              className="px-4 py-3 space-y-1 overflow-y-auto"
+              style={{
+                paddingBottom: `calc(0.75rem + env(safe-area-inset-bottom, 0))`,
+              }}
+            >
+              <Button
+                variant="ghost"
+                className="w-full justify-start gap-3 h-12 px-3"
+                asChild
+              >
+                <Link href={`/chat?userId=${selectedUser.id}`}>
+                  <IconMessageCircle className="h-5 w-5" />
+                  <span>Chat</span>
+                </Link>
+              </Button>
+              <Button
+                variant="ghost"
+                className="w-full justify-start gap-3 h-12 px-3"
+                asChild
+              >
+                <Link href={`/roster/${selectedUser.id}`}>
+                  <IconUsers className="h-5 w-5" />
+                  <span>View Profile</span>
+                </Link>
+              </Button>
+              {(currentUserRole === "owner" || currentUserRole === "coach") &&
+                selectedUser.status === null && (
+                  <>
+                    {(selectedUser.phone || selectedUser.cellPhone) && (
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start gap-3 h-12 px-3"
+                        onClick={() => {
+                          window.location.href = `tel:${(selectedUser.phone || selectedUser.cellPhone || "").replace(/\D/g, "")}`;
+                        }}
+                      >
+                        <IconPhone className="h-5 w-5" />
+                        <span>Call</span>
+                      </Button>
+                    )}
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start gap-3 h-12 px-3"
+                      onClick={() => {
+                        window.location.href = `mailto:${selectedUser.email}`;
+                      }}
+                    >
+                      <IconMail className="h-5 w-5" />
+                      <span>Email</span>
+                    </Button>
+                  </>
+                )}
+              {onEditRsvp && (
+                <>
+                  <div className="h-px bg-border my-2" />
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start gap-3 h-12 px-3"
+                    onClick={() => {
+                      onEditRsvp(selectedUser.id, "going");
+                      setSelectedUserId(null);
+                    }}
+                  >
+                    <IconCheck className="h-5 w-5 text-emerald-600" />
+                    <span>Mark as Going</span>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start gap-3 h-12 px-3"
+                    onClick={() => {
+                      onEditRsvp(selectedUser.id, "not_going");
+                      setSelectedUserId(null);
+                    }}
+                  >
+                    <IconX className="h-5 w-5 text-red-600" />
+                    <span>Mark as Can't Go</span>
+                  </Button>
+                </>
+              )}
+            </div>
+          </DrawerContent>
+        </Drawer>
+      )}
     </div>
   );
 }

@@ -41,7 +41,7 @@ export function PWAInstallButton() {
     <>
       <Button
         size="sm"
-        className="gap-2 rounded-xl [&>span]:!inline [&>span]:!text-sm"
+        className="gap-2 rounded-sm [&>span]:!inline [&>span]:!text-sm"
         onClick={handleInstall}
         variant="outline"
         data-show-text-mobile
