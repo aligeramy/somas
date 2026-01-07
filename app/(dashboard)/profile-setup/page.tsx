@@ -69,13 +69,19 @@ export default function ProfileSetupPage() {
       setLoadingProfile(true);
       const response = await fetch("/api/profile");
 
-      if (response.status === 401 && retryCountRef.current < 2) {
-        // Session not ready yet, retry after a short delay
-        retryCountRef.current += 1;
-        setTimeout(() => {
-          loadUserProfile();
-        }, 500);
-        return;
+      if (response.status === 401) {
+        if (retryCountRef.current < 2) {
+          // Session not ready yet, retry after a short delay
+          retryCountRef.current += 1;
+          setTimeout(() => {
+            loadUserProfile();
+          }, 500);
+          return;
+        } else {
+          // After retries exhausted, redirect to login
+          router.push("/login");
+          return;
+        }
       }
 
       if (response.ok) {
@@ -108,6 +114,10 @@ export default function ProfileSetupPage() {
           );
         if (data.user.avatarUrl) setAvatarPreview(data.user.avatarUrl);
         retryCountRef.current = 0; // Reset on success
+      } else if (response.status === 404) {
+        // User not found in database - this is okay, they can still fill out the form
+        // The API will create the user when they submit
+        retryCountRef.current = 0;
       } else if (retryCountRef.current < 2) {
         // If response is not ok, try retrying once after a delay
         retryCountRef.current += 1;
@@ -125,7 +135,7 @@ export default function ProfileSetupPage() {
         }, 1000);
         return;
       }
-      console.log("Could not load existing profile");
+      console.log("Could not load existing profile - form will still be available");
     } finally {
       setLoadingProfile(false);
     }

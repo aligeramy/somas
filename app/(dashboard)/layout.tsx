@@ -66,9 +66,53 @@ export default async function DashboardLayout({
     }
   }
 
-  // If user doesn't exist in DB, create them
+  // If user doesn't exist in DB, create them automatically
   if (!dbUser) {
-    redirect("/register");
+    try {
+      // Get user email from auth
+      const userEmail = user.email;
+      if (!userEmail) {
+        console.error("User has no email in auth");
+        redirect("/login");
+      }
+
+      // Create user record with default values
+      // Default to athlete role - they can be updated later if needed
+      const [newUser] = await db
+        .insert(users)
+        .values({
+          id: user.id,
+          email: userEmail,
+          role: "athlete",
+          onboarded: false,
+        })
+        .returning();
+
+      dbUser = newUser;
+
+      // Immediately redirect to profile-setup since they're not onboarded
+      if (!isOnboardingPage) {
+        redirect("/profile-setup");
+      }
+    } catch (createError: any) {
+      console.error("Failed to create user record:", createError);
+      // If creation fails (e.g., duplicate key), try to fetch again
+      try {
+        const result = await db
+          .select()
+          .from(users)
+          .where(eq(users.id, user.id))
+          .limit(1);
+        dbUser = result[0];
+        if (!dbUser) {
+          // Still no user, redirect to login to prevent infinite loop
+          redirect("/login");
+        }
+      } catch (fetchError) {
+        console.error("Failed to fetch user after creation error:", fetchError);
+        redirect("/login");
+      }
+    }
   }
 
   // Check onboarding status (skip if already on onboarding pages to avoid redirect loop)
