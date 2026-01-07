@@ -69,10 +69,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Gym not found" }, { status: 400 });
     }
 
-    const { userIds } = await request.json();
+    const { userIds, testEmail } = await request.json();
 
     if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
       return NextResponse.json({ error: "No users selected" }, { status: 400 });
+    }
+
+    // For test emails, only allow single user
+    if (testEmail && userIds.length > 1) {
+      return NextResponse.json(
+        { error: "Test email can only be sent for one user at a time" },
+        { status: 400 },
+      );
     }
 
     // Get selected users (only from same gym for security)
@@ -165,16 +173,22 @@ export async function POST(request: Request) {
         // Send email with credentials
         const loginUrl = `${appUrl}/login`;
         const messageId = `${Date.now()}-${targetUser.id}-${Math.random().toString(36).substring(7)}`;
+        
+        // Use test email if provided, otherwise use user's email
+        const recipientEmail = testEmail || targetUser.email;
+        const emailSubject = testEmail
+          ? `[TEST] Welcome to ${gym.name} - Your Login Credentials`
+          : `Welcome to ${gym.name} - Your Login Credentials`;
 
         const emailResult = await resend.emails.send({
           from: `${process.env.RESEND_FROM_NAME} <${process.env.RESEND_FROM_EMAIL}>`,
-          to: targetUser.email,
-          subject: `Welcome to ${gym.name} - Your Login Credentials`,
+          to: recipientEmail,
+          subject: emailSubject,
           react: LoginCredentialsEmail({
             gymName: gym.name,
             gymLogoUrl: gym.logoUrl,
             userName: targetUser.name || targetUser.email,
-            email: targetUser.email,
+            email: targetUser.email, // Always show the actual user's email in the email content
             password: password,
             loginUrl,
           }),
@@ -186,13 +200,13 @@ export async function POST(request: Request) {
 
         if (emailResult.error) {
           results.push({
-            email: targetUser.email,
+            email: recipientEmail,
             success: false,
             error: emailResult.error.message,
           });
         } else {
           results.push({
-            email: targetUser.email,
+            email: recipientEmail,
             success: true,
           });
         }

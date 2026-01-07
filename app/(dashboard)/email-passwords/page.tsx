@@ -7,6 +7,7 @@ import {
   IconMail,
   IconMailForward,
   IconSearch,
+  IconTestPipe,
   IconX,
 } from "@tabler/icons-react";
 import { useEffect, useState, useCallback } from "react";
@@ -21,7 +22,15 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -61,6 +70,11 @@ export default function EmailPasswordsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [results, setResults] = useState<EmailResult[] | null>(null);
+  const [testDialogOpen, setTestDialogOpen] = useState(false);
+  const [testUserId, setTestUserId] = useState<string>("");
+  const [testEmail, setTestEmail] = useState("");
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<EmailResult | null>(null);
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -138,6 +152,43 @@ export default function EmailPasswordsPage() {
     }
   }
 
+  async function sendTestEmail() {
+    if (!testUserId || !testEmail) return;
+
+    setTesting(true);
+    setTestResult(null);
+
+    try {
+      const response = await fetch("/api/admin/send-credentials", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userIds: [testUserId],
+          testEmail: testEmail,
+        }),
+      });
+
+      const data = await response.json();
+      if (data.results && data.results.length > 0) {
+        setTestResult(data.results[0]);
+        if (data.results[0].success) {
+          // Clear form on success
+          setTestEmail("");
+          setTestUserId("");
+        }
+      }
+    } catch (error) {
+      console.error("Error sending test email:", error);
+      setTestResult({
+        email: testEmail,
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    } finally {
+      setTesting(false);
+    }
+  }
+
   const selectedCount = selectedUsers.size;
   const successCount = results?.filter((r) => r.success).length || 0;
   const failCount = results?.filter((r) => !r.success).length || 0;
@@ -172,6 +223,15 @@ export default function EmailPasswordsPage() {
                 <IconMailForward className="h-4 w-4 mr-2" />
               )}
               Send Credentials ({selectedCount})
+            </Button>
+            <Button
+              onClick={() => setTestDialogOpen(true)}
+              disabled={sending || users.length === 0}
+              variant="outline"
+              className="flex-1 sm:flex-none"
+            >
+              <IconTestPipe className="h-4 w-4 mr-2" />
+              Test Email
             </Button>
           </div>
 
@@ -210,6 +270,102 @@ export default function EmailPasswordsPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Test Email Dialog */}
+      <Dialog open={testDialogOpen} onOpenChange={setTestDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Send Test Email</DialogTitle>
+            <DialogDescription>
+              Select a user's credentials and enter a test email address to
+              preview the email.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="test-user">Select User</Label>
+              <Select value={testUserId} onValueChange={setTestUserId}>
+                <SelectTrigger id="test-user">
+                  <SelectValue placeholder="Choose a user..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {users.map((user) => (
+                    <SelectItem key={user.id} value={user.id}>
+                      {user.name || user.email} ({user.email})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="test-email">Test Email Address</Label>
+              <Input
+                id="test-email"
+                type="email"
+                placeholder="test@example.com"
+                value={testEmail}
+                onChange={(e) => setTestEmail(e.target.value)}
+              />
+            </div>
+            {testResult && (
+              <div
+                className={`p-4 rounded-lg ${
+                  testResult.success
+                    ? "bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800"
+                    : "bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  {testResult.success ? (
+                    <>
+                      <IconCheck className="h-4 w-4 text-green-600" />
+                      <span className="text-green-600 font-medium">
+                        Test email sent successfully!
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <IconX className="h-4 w-4 text-red-600" />
+                      <span className="text-red-600 font-medium">
+                        Failed to send test email
+                      </span>
+                    </>
+                  )}
+                </div>
+                {testResult.error && (
+                  <p className="text-sm text-red-600 mt-2">
+                    {testResult.error}
+                  </p>
+                )}
+              </div>
+            )}
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setTestDialogOpen(false);
+                  setTestResult(null);
+                  setTestEmail("");
+                  setTestUserId("");
+                }}
+              >
+                Close
+              </Button>
+              <Button
+                onClick={sendTestEmail}
+                disabled={testing || !testUserId || !testEmail}
+              >
+                {testing ? (
+                  <IconLoader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <IconMailForward className="h-4 w-4 mr-2" />
+                )}
+                Send Test Email
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Filters */}
       <Card>
