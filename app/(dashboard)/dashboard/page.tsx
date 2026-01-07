@@ -41,15 +41,7 @@ export default async function DashboardPage() {
   }
 
   const [dbUser] = await db
-    .select({
-      id: users.id,
-      name: users.name,
-      email: users.email,
-      role: users.role,
-      gymId: users.gymId,
-      onboarded: users.onboarded,
-      avatarUrl: users.avatarUrl,
-    })
+    .select()
     .from(users)
     .where(eq(users.id, authUser.id))
     .limit(1);
