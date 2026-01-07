@@ -2,6 +2,7 @@
 
 import {
   IconArrowRight,
+  IconBan,
   IconCheck,
   IconEdit,
   IconX,
@@ -25,6 +26,7 @@ export function MobileEventActions({
   eventTitle,
   open,
   onOpenChange,
+  onRsvpUpdate,
 }: {
   eventId: string;
   occurrenceId: string;
@@ -34,6 +36,7 @@ export function MobileEventActions({
   eventTitle: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onRsvpUpdate?: (occurrenceId: string, status: "going" | "not_going" | null) => void;
 }) {
   const router = useRouter();
   const [canceling, setCanceling] = useState(false);
@@ -65,6 +68,10 @@ export function MobileEventActions({
   async function handleRsvp(status: "going" | "not_going") {
     if (rsvping || isCanceled) return;
     setRsvping(true);
+    // Optimistically update parent state immediately
+    if (onRsvpUpdate) {
+      onRsvpUpdate(occurrenceId, status);
+    }
     try {
       const response = await fetch("/api/rsvp", {
         method: "POST",
@@ -80,14 +87,17 @@ export function MobileEventActions({
     } catch (err) {
       console.error(err);
       alert("Failed to RSVP");
+      // Revert optimistic update on error
+      if (onRsvpUpdate && currentRsvpStatus) {
+        onRsvpUpdate(occurrenceId, currentRsvpStatus);
+      }
     } finally {
       setRsvping(false);
     }
   }
 
-  const isOwner = userRole === "owner";
   const isCoachOrOwner = userRole === "owner" || userRole === "coach";
-  const showRsvpOptions = isOwner && !isCanceled;
+  const showRsvpOptions = isCoachOrOwner && !isCanceled;
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
@@ -122,24 +132,26 @@ export function MobileEventActions({
         <div
           className="px-4 py-3 space-y-2.5 overflow-y-auto"
           style={{
-            paddingBottom: `calc(0.75rem + env(safe-area-inset-bottom, 0))`,
+            paddingBottom: `calc(1.5rem + env(safe-area-inset-bottom, 0))`,
           }}
         >
-          {/* RSVP Actions (for owners) */}
+          {/* RSVP Actions (for coaches/owners) */}
           {showRsvpOptions && (
             <div className="flex gap-2">
               <Button
                 variant="outline"
                 size="sm"
-                className={`flex-1 justify-center gap-2 px-4 py-2.5 h-10 ${
+                className={`flex-1 justify-center gap-2 px-4 py-2.5 h-10 transition-opacity ${
                   currentRsvpStatus === "going"
                     ? "bg-emerald-500 text-white border-emerald-500 hover:bg-emerald-600 dark:bg-emerald-600 dark:text-white dark:border-emerald-600 dark:hover:bg-emerald-700"
-                    : "bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-950/50 dark:text-emerald-400 dark:border-emerald-800 dark:hover:bg-emerald-950/70"
+                    : currentRsvpStatus === "not_going"
+                      ? "bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-950/50 dark:text-emerald-400 dark:border-emerald-800 dark:hover:bg-emerald-950/70 opacity-60"
+                      : "bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-950/50 dark:text-emerald-400 dark:border-emerald-800 dark:hover:bg-emerald-950/70"
                 }`}
                 onClick={() => {
                   handleRsvp("going");
                 }}
-                disabled={rsvping || currentRsvpStatus === "going"}
+                disabled={rsvping}
               >
                 <IconCheck className="h-4 w-4" />
                 Going
@@ -147,15 +159,17 @@ export function MobileEventActions({
               <Button
                 variant="outline"
                 size="sm"
-                className={`flex-1 justify-center gap-2 px-4 py-2.5 h-10 ${
+                className={`flex-1 justify-center gap-2 px-4 py-2.5 h-10 transition-opacity ${
                   currentRsvpStatus === "not_going"
                     ? "bg-red-500 text-white border-red-500 hover:bg-red-600 dark:bg-red-600 dark:text-white dark:border-red-600 dark:hover:bg-red-700"
-                    : "bg-red-50 text-red-600 border-red-200 hover:bg-red-100 dark:bg-red-950/50 dark:text-red-400 dark:border-red-800 dark:hover:bg-red-950/70"
+                    : currentRsvpStatus === "going"
+                      ? "bg-red-50 text-red-600 border-red-200 hover:bg-red-100 dark:bg-red-950/50 dark:text-red-400 dark:border-red-800 dark:hover:bg-red-950/70 opacity-60"
+                      : "bg-red-50 text-red-600 border-red-200 hover:bg-red-100 dark:bg-red-950/50 dark:text-red-400 dark:border-red-800 dark:hover:bg-red-950/70"
                 }`}
                 onClick={() => {
                   handleRsvp("not_going");
                 }}
-                disabled={rsvping || currentRsvpStatus === "not_going"}
+                disabled={rsvping}
               >
                 <IconX className="h-4 w-4" />
                 Can't Go
@@ -200,7 +214,7 @@ export function MobileEventActions({
                     </>
                   ) : (
                     <>
-                      <IconX className="h-4 w-4" />
+                      <IconBan className="h-4 w-4" />
                       Cancel Session
                     </>
                   )}

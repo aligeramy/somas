@@ -1,7 +1,6 @@
 import {
   IconCalendar,
   IconCheck,
-  IconChevronRight,
   IconPlus,
   IconUsers,
 } from "@tabler/icons-react";
@@ -10,6 +9,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
 import { AthleteDashboard } from "@/components/athlete-dashboard";
+import { CoachDashboard } from "@/components/coach-dashboard";
 import { DashboardEventsList } from "@/components/dashboard-events-list";
 import { PageHeader } from "@/components/page-header";
 import { PWAInstallBanner } from "@/components/pwa-install-banner";
@@ -17,7 +17,7 @@ import { PWAInstallButton } from "@/components/pwa-install-button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   blogPosts,
@@ -236,7 +236,7 @@ export default async function DashboardPage() {
       and(eq(events.gymId, dbUser.gymId), gte(eventOccurrences.date, today)),
     )
     .orderBy(asc(eventOccurrences.date))
-    .limit(5);
+    .limit(10);
 
   const recentRsvps = await db
     .select({ count: sql<number>`count(*)` })
@@ -300,6 +300,12 @@ export default async function DashboardPage() {
         email: string;
         avatarUrl: string | null;
       }>;
+      notGoingAthletes: Array<{
+        id: string;
+        name: string | null;
+        email: string;
+        avatarUrl: string | null;
+      }>;
     }
   >();
 
@@ -312,6 +318,7 @@ export default async function DashboardPage() {
       notGoing: [],
       goingCoaches: [],
       goingAthletes: [],
+      notGoingAthletes: [],
     };
     if (rsvp.status === "going") {
       current.going.push(rsvp.user);
@@ -333,6 +340,15 @@ export default async function DashboardPage() {
       }
     } else if (rsvp.status === "not_going") {
       current.notGoing.push(rsvp.user);
+      // Track not going athletes separately for attendance
+      if (rsvp.user.role === "athlete") {
+        current.notGoingAthletes.push({
+          id: rsvp.user.id,
+          name: rsvp.user.name,
+          email: rsvp.user.email,
+          avatarUrl: rsvp.user.avatarUrl,
+        });
+      }
     }
     rsvpsByOccurrence.set(rsvp.occurrenceId, current);
 
@@ -417,6 +433,61 @@ export default async function DashboardPage() {
     }
     return email[0].toUpperCase();
   };
+
+  // For coaches, use the new list view dashboard
+  if (dbUser.role === "coach" || dbUser.role === "owner") {
+    const occurrencesWithRsvp = upcomingOccurrences.map(
+      ({ occurrence, event }) => {
+        const rsvpData = rsvpsByOccurrence.get(occurrence.id) || {
+          goingCoaches: [],
+          goingAthletes: [],
+          notGoingAthletes: [],
+        };
+        return {
+          id: occurrence.id,
+          date:
+            occurrence.date instanceof Date
+              ? occurrence.date.toISOString()
+              : occurrence.date,
+          status: occurrence.status,
+          eventId: event.id,
+          eventTitle: event.title,
+          startTime: event.startTime,
+          endTime: event.endTime,
+          rsvpStatus: currentUserRsvpMap.get(occurrence.id) || null,
+          goingCoaches: rsvpData.goingCoaches.map((c) => ({
+            id: c.id,
+            name: c.name,
+            email: c.email,
+          })),
+          goingAthletes: rsvpData.goingAthletes.map((a) => ({
+            id: a.id,
+            name: a.name,
+            email: a.email,
+          })),
+          goingAthletesCount: rsvpData.goingAthletes.length,
+          notGoingAthletes: rsvpData.notGoingAthletes.map((a) => ({
+            id: a.id,
+            name: a.name,
+            email: a.email,
+          })),
+          notGoingAthletesCount: rsvpData.notGoingAthletes.length,
+        };
+      },
+    );
+
+    return (
+      <CoachDashboard
+        userName={dbUser.name}
+        occurrences={occurrencesWithRsvp}
+        activeNotice={activeNotice || null}
+        isOnboarded={dbUser.onboarded}
+        gymLogo={gymLogo}
+        gymName={gymName}
+        userRole={dbUser.role}
+      />
+    );
+  }
 
   return (
     <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden dark:bg-[#000000]">
@@ -693,87 +764,19 @@ function DashboardContent({
             currentUserRsvpMap={currentUserRsvpMap}
           />
 
-          {/* Latest Posts */}
-          <Card className="rounded-xl md:rounded-xl border-0 md:border shadow-none md:shadow-sm bg-transparent md:bg-card">
-            <CardHeader className="pb-2 px-0 md:px-6 pt-0 md:pt-6">
-              <div className="flex items-center justify-between">
-                <CardTitle className="font-semibold text-lg md:text-base">
-                  Latest Posts
-                </CardTitle>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  asChild
-                  className="text-muted-foreground rounded-lg md:rounded-xl text-sm"
-                >
-                  <Link href="/blog">
-                    <span className="md:hidden">All</span>
-                    <span className="hidden md:inline">View all</span>
-                    <IconChevronRight className="h-4 w-4 ml-1" />
-                  </Link>
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-0 px-0 md:px-6">
-              {latestPosts.length === 0 ? (
-                <div className="text-center py-12 md:py-8">
-                  <IconCalendar className="mx-auto mb-3 text-muted-foreground/30 h-12 w-12 md:h-10 md:w-10" />
-                  <p className="text-muted-foreground mb-4 text-base md:text-sm">
-                    No blog posts yet
-                  </p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    asChild
-                    className="rounded-lg md:rounded-xl"
-                  >
-                    <Link href="/blog">View blog</Link>
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-3 md:space-y-2">
-                  {latestPosts.map((post) => (
-                    <Link
-                      key={post.id}
-                      href={`/blog/${post.id}`}
-                      className="block transition-all bg-card border border-border rounded-2xl shadow-sm p-4 active:scale-[0.98] hover:bg-muted/30 md:bg-transparent md:border-0 md:shadow-none md:p-3 md:rounded-xl md:hover:bg-muted/50 md:active:scale-100"
-                    >
-                      <div className="flex gap-3">
-                        {post.imageUrl && (
-                          <Image
-                            src={post.imageUrl}
-                            alt={post.title}
-                            width={80}
-                            height={80}
-                            className="rounded-lg object-cover w-20 h-20 md:w-16 md:h-16"
-                          />
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <Badge
-                              variant="outline"
-                              className="rounded-md md:rounded-lg text-xs"
-                            >
-                              {post.type}
-                            </Badge>
-                            <span className="text-muted-foreground text-xs">
-                              {post.author.name}
-                            </span>
-                          </div>
-                          <h3 className="font-semibold truncate text-base mb-1 md:text-sm md:mb-0">
-                            {post.title}
-                          </h3>
-                          <p className="text-muted-foreground line-clamp-2 text-sm mt-1 md:text-xs">
-                            {post.content}
-                          </p>
-                        </div>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          {/* Show link to blog only when there are no posts */}
+          {latestPosts.length === 0 && (
+            <div className="flex justify-center">
+              <Button
+                variant="outline"
+                size="sm"
+                asChild
+                className="rounded-lg md:rounded-xl"
+              >
+                <Link href="/blog">View blog in dashboard</Link>
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </div>
