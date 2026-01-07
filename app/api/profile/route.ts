@@ -5,15 +5,25 @@ import { db } from "@/lib/db";
 import { createClient } from "@/lib/supabase/server";
 
 export async function GET() {
+  console.log("[API /profile GET] Request received");
+  
   try {
     const supabase = await createClient();
     const {
       data: { user },
+      error: authError,
     } = await supabase.auth.getUser();
 
+    if (authError) {
+      console.log("[API /profile GET] Auth error:", authError.message);
+    }
+
     if (!user) {
+      console.log("[API /profile GET] No user in session, returning 401");
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    console.log("[API /profile GET] User authenticated:", user.email);
 
     const [dbUser] = await db
       .select()
@@ -22,8 +32,11 @@ export async function GET() {
       .limit(1);
 
     if (!dbUser) {
+      console.log("[API /profile GET] User not found in DB:", user.id);
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
+    
+    console.log("[API /profile GET] User found:", dbUser.name, "| onboarded:", dbUser.onboarded);
 
     return NextResponse.json({
       user: {

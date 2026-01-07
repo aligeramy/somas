@@ -5392,10 +5392,11 @@ function UserList({
             <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">Athletes</span>
             <hr className="flex-1 border-border" />
           </div>
+          <div className="divide-y divide-border">
           {athletes.map((user) => (
         <div
           key={user.id}
-          className={`flex items-center gap-2 p-2 rounded-lg transition-colors group ${
+          className={`flex items-center gap-2 p-2 transition-colors group ${
             isMobile && onEditRsvp
               ? "cursor-pointer active:bg-muted/70"
               : "hover:bg-muted/50"
@@ -5510,6 +5511,7 @@ function UserList({
           </div>
         </div>
       ))}
+          </div>
         </>
       )}
       

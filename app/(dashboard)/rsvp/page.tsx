@@ -1155,7 +1155,11 @@ export default function RSVPPage() {
                               handleRSVP(occ.id, "not_going");
                             }}
                             disabled={isUpdating}
-                            className="h-8 md:h-9 rounded-xl text-xs md:text-sm px-2 md:px-3"
+                            className={`h-8 md:h-9 rounded-xl text-xs md:text-sm px-2 md:px-3 ${
+                              rsvpStatus === "not_going"
+                                ? "bg-red-600 hover:bg-red-700 text-white"
+                                : ""
+                            }`}
                           >
                             <IconX className="h-3 w-3 md:h-4 md:w-4 md:mr-1" />
                             <span className="hidden sm:inline">Can't Go</span>
