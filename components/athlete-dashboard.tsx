@@ -177,7 +177,7 @@ export function AthleteDashboard({
                         <div
                           className={`md:rounded-xl transition-all md:border md:shadow-sm md:bg-card md:hover:shadow-md ${
                             rsvpStatus === "not_going"
-                              ? "md:bg-red-50 md:dark:bg-red-950/30 md:border-red-200 md:dark:border-red-800"
+                              ? "md:bg-red-50 md:dark:bg-red-950/30 "
                               : ""
                           }`}
                         >
