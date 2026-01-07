@@ -64,7 +64,7 @@ export default function EmailPasswordsPage() {
 
   useEffect(() => {
     fetchUsers();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // biome-ignore lint/correctness/useExhaustiveDependencies: fetchUsers should only run once on mount
   }, []);
 
   async function fetchUsers() {
