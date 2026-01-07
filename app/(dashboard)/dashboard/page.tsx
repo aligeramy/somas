@@ -13,6 +13,7 @@ import { DashboardEventsList } from "@/components/dashboard-events-list";
 import { PageHeader } from "@/components/page-header";
 import { PWAInstallBanner } from "@/components/pwa-install-banner";
 import { PWAInstallButton } from "@/components/pwa-install-button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -40,7 +41,15 @@ export default async function DashboardPage() {
   }
 
   const [dbUser] = await db
-    .select()
+    .select({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      role: users.role,
+      gymId: users.gymId,
+      onboarded: users.onboarded,
+      avatarUrl: users.avatarUrl,
+    })
     .from(users)
     .where(eq(users.id, authUser.id))
     .limit(1);
@@ -404,18 +413,33 @@ export default async function DashboardPage() {
     },
   ];
 
+  const getInitials = (name: string | null, email: string) => {
+    if (name) {
+      return name
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2);
+    }
+    return email[0].toUpperCase();
+  };
+
   return (
     <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
       <PageHeader
         title={
-          <>
-            Welcome back
-            {dbUser.name && (
-              <span className="text-sm font-normal text-muted-foreground">
-                , {dbUser.name.split(" ")[0]}
-              </span>
-            )}
-          </>
+          <div className="flex items-center gap-3">
+            <Avatar className="h-8 w-8">
+              <AvatarImage src={dbUser?.avatarUrl || undefined} />
+              <AvatarFallback className="text-sm">
+                {getInitials(dbUser?.name || null, dbUser?.email || "")}
+              </AvatarFallback>
+            </Avatar>
+            <span className="font-semibold">
+              {dbUser?.name || dbUser?.email || "User"}
+            </span>
+          </div>
         }
         description="Here's what's happening with your team"
       >

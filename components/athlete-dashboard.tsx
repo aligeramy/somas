@@ -233,15 +233,30 @@ export function AthleteDashboard({
                         <div className="flex items-center gap-2 mt-3 flex-wrap">
                           {nextEvent.goingCoaches.length > 0 && (
                             <div className="flex items-center gap-1.5 flex-wrap">
-                              {nextEvent.goingCoaches.map((coach) => (
-                                <Badge
-                                  key={coach.id}
-                                  variant="secondary"
-                                  className="text-xs rounded-md"
-                                >
-                                  {coach.name || coach.email}
-                                </Badge>
-                              ))}
+                              {nextEvent.goingCoaches.map((coach) => {
+                                const getInitials = (name: string | null, email: string) => {
+                                  if (name) {
+                                    return name
+                                      .split(" ")
+                                      .map((n) => n[0])
+                                      .join("")
+                                      .toUpperCase()
+                                      .slice(0, 2);
+                                  }
+                                  return email[0].toUpperCase();
+                                };
+                                return (
+                                  <Badge
+                                    key={coach.id}
+                                    variant="secondary"
+                                    className="h-6 w-6 rounded-full p-0 flex items-center justify-center shrink-0 border-transparent bg-emerald-500 text-white"
+                                  >
+                                    <span className="text-[9px] font-medium">
+                                      {getInitials(coach.name, coach.email)}
+                                    </span>
+                                  </Badge>
+                                );
+                              })}
                             </div>
                           )}
                           {nextEvent.goingAthletesCount > 0 && (
