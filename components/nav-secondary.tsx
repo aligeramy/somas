@@ -37,7 +37,7 @@ export function NavSecondary({
               !item.external &&
               (pathname === item.url || pathname.startsWith(item.url));
             const isExternal = item.external || item.url.startsWith("http");
-            
+
             return (
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton

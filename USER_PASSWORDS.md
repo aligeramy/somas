@@ -1,0 +1,21 @@
+# User Passwords for Non-Onboarded Users
+
+Generated passwords for users who haven't completed onboarding.
+
+## Passwords
+
+| Name | Email | Role | Password | User ID |
+|------|-------|------|----------|---------|
+| Fariba Akbar | faribaakbar@hotmail.com | athlete | `therock` | 2bb0fc74-0d3a-4ca1-bc56-960cce122e7c |
+| Tatiana Bell | bellfrancesca@bell.net | athlete | `johncena` | 7f7e141c-ee02-47f7-a136-8e931715a423 |
+| Mitra Jabbour | girltakesflight@gmail.com | athlete | `hulkhogan` | f294fb66-4c84-49b0-b602-b3d1c8b82d2b |
+| Luke Drummond | lisaverdone@hotmail.com | athlete | `austin` | 0be52ade-8fb3-4140-a338-726a1ffcfac2 |
+| Mazin Turki | tslafa@hotmail.com | athlete | `undertaker` | c2d420f0-e398-4be9-8dab-1c4d4388cd0b |
+| Erik Singer | eriksinger2@yahoo.ca | coach | `goldberg` | 3265fb61-ad5a-4a6c-b9ec-b6ed9b4c1535 |
+
+## Notes
+
+- All passwords are simple wrestler names (easy to remember)
+- Users should change their passwords after first login
+- Passwords will be set in Supabase Auth when sending credentials via the email-passwords page
+

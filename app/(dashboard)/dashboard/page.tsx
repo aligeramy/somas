@@ -4,7 +4,6 @@ import {
   IconChevronRight,
   IconPlus,
   IconUsers,
-  IconX,
 } from "@tabler/icons-react";
 import { and, asc, desc, eq, gte, inArray, sql } from "drizzle-orm";
 import Link from "next/link";
@@ -62,7 +61,7 @@ export default async function DashboardPage() {
     .from(gyms)
     .where(eq(gyms.id, dbUser.gymId))
     .limit(1);
-  
+
   const gymLogo = gym?.logoUrl || null;
   const gymName = gym?.name || null;
 
@@ -337,7 +336,10 @@ export default async function DashboardPage() {
 
     // Track current user's RSVP status
     if (rsvp.user.id === dbUser.id) {
-      currentUserRsvpMap.set(rsvp.occurrenceId, rsvp.status as "going" | "not_going");
+      currentUserRsvpMap.set(
+        rsvp.occurrenceId,
+        rsvp.status as "going" | "not_going",
+      );
     }
   });
 
@@ -652,11 +654,7 @@ function DashboardContent({
         {gymLogo && (
           <div className="lg:hidden flex justify-center py-4">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={gymLogo}
-              alt={gymName || "Club"}
-              className="w-[150px]"
-            />
+            <img src={gymLogo} alt={gymName || "Club"} className="w-[150px]" />
           </div>
         )}
 
@@ -754,4 +752,3 @@ function DashboardContent({
     </div>
   );
 }
-

@@ -252,8 +252,8 @@ export function AthleteDashboard({
                         </div>
 
                         {/* RSVP Buttons */}
-                        <div 
-                          className="flex gap-2 mt-4 relative z-20" 
+                        <div
+                          className="flex gap-2 mt-4 relative z-20"
                           onClick={(e) => e.stopPropagation()}
                           onMouseDown={(e) => e.stopPropagation()}
                         >
@@ -309,7 +309,9 @@ export function AthleteDashboard({
                             type="button"
                           >
                             <IconX className="h-4 w-4 sm:h-5 sm:w-5" />
-                            <span className="hidden sm:inline">Can't Make It</span>
+                            <span className="hidden sm:inline">
+                              Can't Make It
+                            </span>
                             <span className="sm:hidden">Can't Go</span>
                           </Button>
                         </div>

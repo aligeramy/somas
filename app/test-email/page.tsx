@@ -2,8 +2,6 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
@@ -11,6 +9,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export default function TestEmailPage() {
   const [email, setEmail] = useState("ali@softxinnovations.ca");
@@ -71,7 +71,11 @@ export default function TestEmailPage() {
             />
           </div>
 
-          <Button onClick={handleSend} disabled={loading || !email} className="w-full">
+          <Button
+            onClick={handleSend}
+            disabled={loading || !email}
+            className="w-full"
+          >
             {loading ? "Sending..." : "Send Test Email"}
           </Button>
 
@@ -91,4 +95,3 @@ export default function TestEmailPage() {
     </div>
   );
 }
-

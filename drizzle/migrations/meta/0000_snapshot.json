@@ -535,10 +535,7 @@
         "EventOccurrence_eventId_date_key": {
           "name": "EventOccurrence_eventId_date_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "eventId",
-            "date"
-          ]
+          "columns": ["eventId", "date"]
         }
       },
       "policies": {},
@@ -735,9 +732,7 @@
         "Gym_createdById_unique": {
           "name": "Gym_createdById_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "createdById"
-          ]
+          "columns": ["createdById"]
         }
       },
       "policies": {},
@@ -885,9 +880,7 @@
         "Invitation_token_unique": {
           "name": "Invitation_token_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "token"
-          ]
+          "columns": ["token"]
         }
       },
       "policies": {},
@@ -1218,11 +1211,7 @@
         "ReminderLog_unique": {
           "name": "ReminderLog_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "occurrenceId",
-            "userId",
-            "reminderType"
-          ]
+          "columns": ["occurrenceId", "userId", "reminderType"]
         }
       },
       "policies": {},
@@ -1319,10 +1308,7 @@
         "RSVP_userId_occurrenceId_key": {
           "name": "RSVP_userId_occurrenceId_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "userId",
-            "occurrenceId"
-          ]
+          "columns": ["userId", "occurrenceId"]
         }
       },
       "policies": {},
@@ -1534,9 +1520,7 @@
         "User_email_unique": {
           "name": "User_email_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "email"
-          ]
+          "columns": ["email"]
         }
       },
       "policies": {},
@@ -1548,36 +1532,22 @@
     "public.ChannelType": {
       "name": "ChannelType",
       "schema": "public",
-      "values": [
-        "global",
-        "dm",
-        "group"
-      ]
+      "values": ["global", "dm", "group"]
     },
     "public.EventOccurrenceStatus": {
       "name": "EventOccurrenceStatus",
       "schema": "public",
-      "values": [
-        "scheduled",
-        "canceled"
-      ]
+      "values": ["scheduled", "canceled"]
     },
     "public.RSVPStatus": {
       "name": "RSVPStatus",
       "schema": "public",
-      "values": [
-        "going",
-        "not_going"
-      ]
+      "values": ["going", "not_going"]
     },
     "public.UserRole": {
       "name": "UserRole",
       "schema": "public",
-      "values": [
-        "owner",
-        "coach",
-        "athlete"
-      ]
+      "values": ["owner", "coach", "athlete"]
     }
   },
   "schemas": {},

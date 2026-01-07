@@ -8,12 +8,12 @@ import {
 } from "@tabler/icons-react";
 import Link from "next/link";
 import { useState } from "react";
+import { EventActionsDropdown } from "@/components/event-actions-dropdown";
+import { MobileEventActions } from "@/components/mobile-event-actions";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { EventActionsDropdown } from "@/components/event-actions-dropdown";
-import { MobileEventActions } from "@/components/mobile-event-actions";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface DashboardEventsListProps {
@@ -199,7 +199,8 @@ export function DashboardEventsList({
                           {event.title}
                         </p>
                         <p className="text-xs text-muted-foreground truncate mt-0.5">
-                          {formatTime(event.startTime)} - {formatTime(event.endTime)}
+                          {formatTime(event.startTime)} -{" "}
+                          {formatTime(event.endTime)}
                         </p>
                         {/* Coaches and athletes */}
                         {(goingCoaches.length > 0 ||
@@ -224,7 +225,8 @@ export function DashboardEventsList({
                             {rsvpData.notGoing
                               .filter(
                                 (user) =>
-                                  user.role === "coach" || user.role === "owner",
+                                  user.role === "coach" ||
+                                  user.role === "owner",
                               )
                               .map((coach) => (
                                 <Badge
@@ -291,7 +293,10 @@ export function DashboardEventsList({
                                         src={athlete.avatarUrl || undefined}
                                       />
                                       <AvatarFallback className="text-[9px] bg-muted">
-                                        {getInitials(athlete.name, athlete.email)}
+                                        {getInitials(
+                                          athlete.name,
+                                          athlete.email,
+                                        )}
                                       </AvatarFallback>
                                     </Avatar>
                                   ))}
@@ -352,4 +357,3 @@ export function DashboardEventsList({
     </>
   );
 }
-

@@ -29,7 +29,9 @@ export function PasswordResetEmail({
       </Text>
 
       <Text className="text-[15px] text-gray-600 leading-6 mb-6">
-        We received a request to reset your password for your <strong>{gymName || "SOMAS"}</strong> account. Click the button below to set a new password.
+        We received a request to reset your password for your{" "}
+        <strong>{gymName || "SOMAS"}</strong> account. Click the button below to
+        set a new password.
       </Text>
 
       <Section className="text-center mb-6">
@@ -42,7 +44,8 @@ export function PasswordResetEmail({
       </Section>
 
       <Text className="text-[13px] text-gray-500 leading-6 mb-4">
-        This link will expire in 24 hours for security. If you didn't request a password reset, you can safely ignore this email.
+        This link will expire in 24 hours for security. If you didn't request a
+        password reset, you can safely ignore this email.
       </Text>
 
       <Text className="text-[13px] text-gray-400 text-center m-0">
@@ -53,4 +56,3 @@ export function PasswordResetEmail({
 }
 
 export default PasswordResetEmail;
-

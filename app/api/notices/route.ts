@@ -1,8 +1,8 @@
 import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
-import { NoticeEmail } from "@/emails/notice";
 import { notices, users } from "@/drizzle/schema";
+import { NoticeEmail } from "@/emails/notice";
 import { db } from "@/lib/db";
 import { createClient } from "@/lib/supabase/server";
 
@@ -121,7 +121,11 @@ export async function POST(request: Request) {
       try {
         // Get all gym members (including altEmail)
         const gymMembers = await db
-          .select({ email: users.email, altEmail: users.altEmail, name: users.name })
+          .select({
+            email: users.email,
+            altEmail: users.altEmail,
+            name: users.name,
+          })
           .from(users)
           .where(eq(users.gymId, dbUser.gymId));
 
@@ -146,22 +150,27 @@ export async function POST(request: Request) {
             if (member.altEmail) {
               recipients.push(member.altEmail);
             }
-            return resend.emails.send({
-              from: `${process.env.RESEND_FROM_NAME || "SOMAS"} <${process.env.RESEND_FROM_EMAIL || "noreply@mail.titansofmississauga.ca"}>`,
-              to: recipients,
-              subject: `Notice: ${title}`,
-              react: NoticeEmail({
-                gymName: gym?.name || null,
-                gymLogoUrl: gym?.logoUrl || null,
-                userName: member.name || "Team Member",
-                noticeTitle: title,
-                noticeContent: content,
-                authorName: authorName,
-              }),
-            }).catch((error) => {
-              console.error(`Failed to send notice email to ${member.email}:`, error);
-              return { error: member.email };
-            });
+            return resend.emails
+              .send({
+                from: `${process.env.RESEND_FROM_NAME || "SOMAS"} <${process.env.RESEND_FROM_EMAIL || "noreply@mail.titansofmississauga.ca"}>`,
+                to: recipients,
+                subject: `Notice: ${title}`,
+                react: NoticeEmail({
+                  gymName: gym?.name || null,
+                  gymLogoUrl: gym?.logoUrl || null,
+                  userName: member.name || "Team Member",
+                  noticeTitle: title,
+                  noticeContent: content,
+                  authorName: authorName,
+                }),
+              })
+              .catch((error) => {
+                console.error(
+                  `Failed to send notice email to ${member.email}:`,
+                  error,
+                );
+                return { error: member.email };
+              });
           });
 
         // Wait for all emails to be sent (or fail)

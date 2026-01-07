@@ -37,15 +37,19 @@ export async function POST(request: Request) {
         const supabaseAdmin = createAdminClient();
 
         // Check if user already exists
-        const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
-        const existingUser = existingUsers?.users?.find(u => u.email === email);
+        const { data: existingUsers } =
+          await supabaseAdmin.auth.admin.listUsers();
+        const existingUser = existingUsers?.users?.find(
+          (u) => u.email === email,
+        );
 
         if (existingUser) {
           // User exists - generate recovery link
-          const { data: resetData, error: resetError } = await supabaseAdmin.auth.admin.generateLink({
-            type: "recovery",
-            email: email,
-          });
+          const { data: resetData, error: resetError } =
+            await supabaseAdmin.auth.admin.generateLink({
+              type: "recovery",
+              email: email,
+            });
 
           if (resetError) {
             console.error("Recovery link error:", resetError);
@@ -56,12 +60,13 @@ export async function POST(request: Request) {
         } else {
           // Create new user with random password
           const randomPassword = randomBytes(16).toString("hex");
-          const { data: authData, error: createError } = await supabaseAdmin.auth.admin.createUser({
-            email,
-            password: randomPassword,
-            email_confirm: true, // Auto-confirm so they can use magic link
-            user_metadata: { name: userName },
-          });
+          const { data: authData, error: createError } =
+            await supabaseAdmin.auth.admin.createUser({
+              email,
+              password: randomPassword,
+              email_confirm: true, // Auto-confirm so they can use magic link
+              user_metadata: { name: userName },
+            });
 
           if (createError) {
             console.error("Create user error:", createError);
@@ -75,10 +80,11 @@ export async function POST(request: Request) {
           userId = authData.user?.id || null;
 
           // Generate invite/magic link for new user
-          const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.generateLink({
-            type: "magiclink",
-            email: email,
-          });
+          const { data: inviteData, error: inviteError } =
+            await supabaseAdmin.auth.admin.generateLink({
+              type: "magiclink",
+              email: email,
+            });
 
           if (inviteError) {
             console.error("Invite link error:", inviteError);
@@ -127,9 +133,10 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("Test welcome email error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to send email" },
+      {
+        error: error instanceof Error ? error.message : "Failed to send email",
+      },
       { status: 500 },
     );
   }
 }
-

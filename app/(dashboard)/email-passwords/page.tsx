@@ -3,7 +3,6 @@
 import {
   IconCheck,
   IconFilter,
-  IconKey,
   IconLoader2,
   IconMail,
   IconMailForward,
@@ -54,14 +53,13 @@ interface EmailResult {
   error?: string;
 }
 
-export default function AdminEmailsPage() {
+export default function EmailPasswordsPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
-  const [onboardedFilter, setOnboardedFilter] = useState<string>("all");
   const [results, setResults] = useState<EmailResult[] | null>(null);
 
   useEffect(() => {
@@ -74,7 +72,9 @@ export default function AdminEmailsPage() {
       const response = await fetch("/api/admin/users");
       if (!response.ok) throw new Error("Failed to fetch users");
       const data = await response.json();
-      setUsers(data.users);
+      // Filter to only non-onboarded users
+      const nonOnboardedUsers = data.users.filter((u: User) => !u.onboarded);
+      setUsers(nonOnboardedUsers);
     } catch (error) {
       console.error("Error fetching users:", error);
     } finally {
@@ -87,11 +87,7 @@ export default function AdminEmailsPage() {
       user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (user.name?.toLowerCase() || "").includes(searchQuery.toLowerCase());
     const matchesRole = roleFilter === "all" || user.role === roleFilter;
-    const matchesOnboarded =
-      onboardedFilter === "all" ||
-      (onboardedFilter === "yes" && user.onboarded) ||
-      (onboardedFilter === "no" && !user.onboarded);
-    return matchesSearch && matchesRole && matchesOnboarded;
+    return matchesSearch && matchesRole;
   });
 
   function toggleSelectAll() {
@@ -112,19 +108,18 @@ export default function AdminEmailsPage() {
     setSelectedUsers(newSelected);
   }
 
-  async function sendEmails(type: "welcome" | "reset") {
+  async function sendCredentials() {
     if (selectedUsers.size === 0) return;
 
     setSending(true);
     setResults(null);
 
     try {
-      const response = await fetch("/api/admin/emails/send", {
+      const response = await fetch("/api/admin/send-credentials", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           userIds: Array.from(selectedUsers),
-          type,
         }),
       });
 
@@ -132,11 +127,13 @@ export default function AdminEmailsPage() {
       setResults(data.results);
 
       if (data.success) {
-        // Refresh users to update onboarded status if needed
+        // Clear selection after successful send
+        setSelectedUsers(new Set());
+        // Optionally refresh users
         fetchUsers();
       }
     } catch (error) {
-      console.error("Error sending emails:", error);
+      console.error("Error sending credentials:", error);
     } finally {
       setSending(false);
     }
@@ -148,24 +145,25 @@ export default function AdminEmailsPage() {
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6 pb-24 lg:pb-6">
-      <PageHeader title="Email Management" />
+      <PageHeader title="Send Login Credentials" />
 
       {/* Action Bar */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2">
             <IconMail className="h-5 w-5" />
-            Send Bulk Emails
+            Send Login Credentials
           </CardTitle>
           <CardDescription>
-            Select users from the table below and send welcome or password reset
-            emails
+            Select users who haven't onboarded and send them their login
+            credentials via email. Passwords are simple and easy to remember
+            (e.g., gymtime, johncena, workout).
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col sm:flex-row gap-3">
             <Button
-              onClick={() => sendEmails("welcome")}
+              onClick={sendCredentials}
               disabled={sending || selectedCount === 0}
               className="flex-1 sm:flex-none"
             >
@@ -174,20 +172,7 @@ export default function AdminEmailsPage() {
               ) : (
                 <IconMailForward className="h-4 w-4 mr-2" />
               )}
-              Send Welcome Email ({selectedCount})
-            </Button>
-            <Button
-              onClick={() => sendEmails("reset")}
-              disabled={sending || selectedCount === 0}
-              variant="outline"
-              className="flex-1 sm:flex-none"
-            >
-              {sending ? (
-                <IconLoader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <IconKey className="h-4 w-4 mr-2" />
-              )}
-              Send Password Reset ({selectedCount})
+              Send Credentials ({selectedCount})
             </Button>
           </div>
 
@@ -252,16 +237,6 @@ export default function AdminEmailsPage() {
                 <SelectItem value="athlete">Athlete</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={onboardedFilter} onValueChange={setOnboardedFilter}>
-              <SelectTrigger className="w-full sm:w-[160px]">
-                <SelectValue placeholder="Onboarded" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="yes">Onboarded</SelectItem>
-                <SelectItem value="no">Not Onboarded</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
         </CardContent>
       </Card>
@@ -269,10 +244,10 @@ export default function AdminEmailsPage() {
       {/* Users Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Users ({filteredUsers.length})</CardTitle>
+          <CardTitle>Non-Onboarded Users ({filteredUsers.length})</CardTitle>
           <CardDescription>
-            Select users to send emails. Users who haven't onboarded yet are
-            highlighted.
+            Select users to send login credentials. Only users who haven't
+            completed onboarding are shown.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -298,26 +273,25 @@ export default function AdminEmailsPage() {
                     <TableHead>Name</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Role</TableHead>
-                    <TableHead>Status</TableHead>
                     <TableHead>Joined</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredUsers.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8">
-                        <p className="text-muted-foreground">No users found</p>
+                      <TableCell colSpan={5} className="text-center py-8">
+                        <p className="text-muted-foreground">
+                          {users.length === 0
+                            ? "No non-onboarded users found"
+                            : "No users match your filters"}
+                        </p>
                       </TableCell>
                     </TableRow>
                   ) : (
                     filteredUsers.map((user) => (
                       <TableRow
                         key={user.id}
-                        className={
-                          !user.onboarded
-                            ? "bg-amber-50/50 dark:bg-amber-950/20"
-                            : ""
-                        }
+                        className="bg-amber-50/50 dark:bg-amber-950/20"
                       >
                         <TableCell>
                           <Checkbox
@@ -344,23 +318,6 @@ export default function AdminEmailsPage() {
                           >
                             {user.role}
                           </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {user.onboarded ? (
-                            <Badge
-                              variant="outline"
-                              className="text-green-600 border-green-600"
-                            >
-                              Onboarded
-                            </Badge>
-                          ) : (
-                            <Badge
-                              variant="outline"
-                              className="text-amber-600 border-amber-600"
-                            >
-                              Pending
-                            </Badge>
-                          )}
                         </TableCell>
                         <TableCell className="text-muted-foreground">
                           {new Date(user.createdAt).toLocaleDateString()}

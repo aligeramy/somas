@@ -91,7 +91,7 @@ export function RealtimeChat({
       }
     }, 200);
     return () => clearTimeout(timer);
-  }, [channelId, scrollRef]);
+  }, [scrollRef]);
 
   // Also scroll when loading completes
   useEffect(() => {

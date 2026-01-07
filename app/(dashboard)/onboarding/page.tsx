@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useDropzone } from "react-dropzone";
-import { useGooglePlacesAutocomplete } from "@/hooks/use-google-places-autocomplete";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -14,6 +13,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useGooglePlacesAutocomplete } from "@/hooks/use-google-places-autocomplete";
 import { createClient } from "@/lib/supabase/client";
 
 export default function OnboardingPage() {
@@ -23,7 +23,7 @@ export default function OnboardingPage() {
   const [address, setAddress] = useState("");
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const addressInputRef = useRef<HTMLInputElement>(null);
-  
+
   useGooglePlacesAutocomplete(addressInputRef, (address) => {
     setAddress(address);
   });
@@ -35,6 +35,7 @@ export default function OnboardingPage() {
 
   useEffect(() => {
     loadUserProfile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function loadUserProfile() {
@@ -243,7 +244,11 @@ export default function OnboardingPage() {
               </div>
             </div>
 
-            <Button type="submit" disabled={loading || !name} className="w-full">
+            <Button
+              type="submit"
+              disabled={loading || !name}
+              className="w-full"
+            >
               {loading ? "Saving..." : "Complete Profile"}
             </Button>
           </form>

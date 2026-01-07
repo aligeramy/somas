@@ -3,7 +3,6 @@
 import { IconBuilding, IconCamera, IconCheck } from "@tabler/icons-react";
 import { useEffect, useRef, useState } from "react";
 import { useDropzone } from "react-dropzone";
-import { useGooglePlacesAutocomplete } from "@/hooks/use-google-places-autocomplete";
 import { PageHeader } from "@/components/page-header";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -18,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
+import { useGooglePlacesAutocomplete } from "@/hooks/use-google-places-autocomplete";
 import { createClient } from "@/lib/supabase/client";
 
 interface UserProfile {
@@ -68,7 +68,7 @@ export default function ProfilePage() {
   const [altEmail, setAltEmail] = useState("");
   const [homePhone, setHomePhone] = useState("");
   const addressInputRef = useRef<HTMLInputElement>(null);
-  
+
   useGooglePlacesAutocomplete(addressInputRef, (address) => {
     setAddress(address);
   });
@@ -138,7 +138,7 @@ export default function ProfilePage() {
   useEffect(() => {
     loadProfile();
     loadGym();
-  }, []);
+  }, [loadGym, loadProfile]);
 
   async function loadProfile() {
     try {
@@ -587,7 +587,8 @@ export default function ProfilePage() {
             <CardHeader>
               <CardTitle className="text-base">Medical Information</CardTitle>
               <CardDescription>
-                Important health information for coaches and emergency responders
+                Important health information for coaches and emergency
+                responders
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">

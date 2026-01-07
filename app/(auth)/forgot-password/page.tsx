@@ -1,6 +1,6 @@
 "use client";
 
-import { IconArrowLeft, IconMail, IconCheck } from "@tabler/icons-react";
+import { IconArrowLeft, IconCheck, IconMail } from "@tabler/icons-react";
 import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -55,7 +55,10 @@ export default function ForgotPasswordPage() {
       setSuccess(true);
       setError(null);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Failed to send password reset email. Please try again.";
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : "Failed to send password reset email. Please try again.";
       setError(errorMessage);
       setSuccess(false);
     } finally {
@@ -69,7 +72,8 @@ export default function ForgotPasswordPage() {
         <CardHeader>
           <CardTitle>Reset Your Password</CardTitle>
           <CardDescription>
-            Enter your email address and we'll send you a link to reset your password.
+            Enter your email address and we'll send you a link to reset your
+            password.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -80,10 +84,13 @@ export default function ForgotPasswordPage() {
                 <p className="text-sm font-medium">Email Sent!</p>
               </div>
               <p className="text-sm text-muted-foreground">
-                If an account exists with this email, a password reset link has been sent. Please check your inbox and follow the instructions to reset your password.
+                If an account exists with this email, a password reset link has
+                been sent. Please check your inbox and follow the instructions
+                to reset your password.
               </p>
               <p className="text-xs text-muted-foreground">
-                The link will expire in 24 hours. If you don't see the email, check your spam folder.
+                The link will expire in 24 hours. If you don't see the email,
+                check your spam folder.
               </p>
               <Button asChild className="w-full" variant="outline">
                 <Link href="/login">
@@ -142,4 +149,3 @@ export default function ForgotPasswordPage() {
     </div>
   );
 }
-

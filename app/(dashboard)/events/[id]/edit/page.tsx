@@ -13,7 +13,6 @@ import { addDays, addMonths, addWeeks, format, startOfToday } from "date-fns";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useGooglePlacesAutocomplete } from "@/hooks/use-google-places-autocomplete";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -25,6 +24,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -36,14 +43,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { useGooglePlacesAutocomplete } from "@/hooks/use-google-places-autocomplete";
 
 const DAYS_OF_WEEK = [
   { value: "MO", label: "Monday", index: 1 },
@@ -92,7 +92,7 @@ export default function EditEventPage() {
   const [location, setLocation] = useState("");
   const [startDate, setStartDate] = useState<Date>(startOfToday());
   const locationInputRef = useRef<HTMLInputElement>(null);
-  
+
   useGooglePlacesAutocomplete(locationInputRef, (address) => {
     setLocation(address);
   });

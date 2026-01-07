@@ -1,19 +1,13 @@
 "use client";
 
-import {
-  IconCheck,
-  IconEdit,
-  IconX,
-} from "@tabler/icons-react";
+import { IconCheck, IconEdit, IconX } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Drawer,
-  DrawerClose,
   DrawerContent,
   DrawerDescription,
-  DrawerFooter,
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
@@ -102,7 +96,9 @@ export function MobileEventActions({
             className="w-full justify-start gap-2"
             onClick={() => {
               onOpenChange(false);
-              router.push(`/events?eventId=${eventId}&occurrenceId=${occurrenceId}`);
+              router.push(
+                `/events?eventId=${eventId}&occurrenceId=${occurrenceId}`,
+              );
             }}
           >
             <IconCheck className="h-4 w-4" />
@@ -182,4 +178,3 @@ export function MobileEventActions({
     </Drawer>
   );
 }
-

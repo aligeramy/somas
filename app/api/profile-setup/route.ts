@@ -50,7 +50,7 @@ export async function POST(request: Request) {
     let dateOfBirthDate: Date | null = null;
     if (dateOfBirth && dateOfBirth.trim() !== "") {
       const parsedDate = new Date(dateOfBirth);
-      if (!isNaN(parsedDate.getTime())) {
+      if (!Number.isNaN(parsedDate.getTime())) {
         dateOfBirthDate = parsedDate;
       }
     }

@@ -1,9 +1,9 @@
 /**
  * Script to send welcome emails to all users who haven't completed onboarding
- * 
+ *
  * Usage:
  *   npx tsx scripts/send-welcome-emails.ts
- * 
+ *
  * Or with specific gym:
  *   npx tsx scripts/send-welcome-emails.ts --gym-id <gym-id>
  */
@@ -43,7 +43,8 @@ async function sendWelcomeEmails(gymId?: string) {
     let errors = 0;
 
     // Helper function to delay between requests (Resend rate limit: 2 requests/second)
-    const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+    const delay = (ms: number) =>
+      new Promise((resolve) => setTimeout(resolve, ms));
 
     for (let i = 0; i < usersToEmail.length; i++) {
       const user = usersToEmail[i];
@@ -128,10 +129,11 @@ async function sendWelcomeEmails(gymId?: string) {
 }
 
 // Run script
-const gymId = process.argv.find((arg) => arg.startsWith("--gym-id="))?.split("=")[1];
+const gymId = process.argv
+  .find((arg) => arg.startsWith("--gym-id="))
+  ?.split("=")[1];
 
 sendWelcomeEmails(gymId).catch((error) => {
   console.error("Script failed:", error);
   process.exit(1);
 });
-

@@ -3,19 +3,18 @@
 import {
   IconArrowLeft,
   IconBriefcase,
+  IconCalendar,
   IconDeviceMobile,
   IconEdit,
   IconHome,
   IconMail,
+  IconMedicalCross,
   IconPhone,
   IconUser,
-  IconMedicalCross,
-  IconCalendar,
 } from "@tabler/icons-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useGooglePlacesAutocomplete } from "@/hooks/use-google-places-autocomplete";
 import { PageHeader } from "@/components/page-header";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -38,7 +37,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -47,6 +45,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
+import { useGooglePlacesAutocomplete } from "@/hooks/use-google-places-autocomplete";
 
 interface AthleteDetails {
   id: string;
@@ -77,7 +77,7 @@ interface AthleteDetails {
 
 export default function AthleteDetailPage() {
   const params = useParams();
-  const router = useRouter();
+  const _router = useRouter();
   const athleteId = params.id as string;
   const [athlete, setAthlete] = useState<AthleteDetails | null>(null);
   const [loading, setLoading] = useState(true);
@@ -106,7 +106,7 @@ export default function AthleteDetailPage() {
     role: "",
   });
   const editAddressInputRef = useRef<HTMLInputElement>(null);
-  
+
   useGooglePlacesAutocomplete(editAddressInputRef, (address) => {
     setEditForm({ ...editForm, address });
   });
@@ -189,8 +189,12 @@ export default function AthleteDetailPage() {
       medicalConditions: athlete.medicalConditions || "",
       medications: athlete.medications || "",
       allergies: athlete.allergies || "",
-      dateOfBirth: athlete.dateOfBirth ? new Date(athlete.dateOfBirth).toISOString().split('T')[0] : "",
-      joinDate: athlete.joinDate ? new Date(athlete.joinDate).toISOString().split('T')[0] : "",
+      dateOfBirth: athlete.dateOfBirth
+        ? new Date(athlete.dateOfBirth).toISOString().split("T")[0]
+        : "",
+      joinDate: athlete.joinDate
+        ? new Date(athlete.joinDate).toISOString().split("T")[0]
+        : "",
       role: athlete.role,
     });
     setIsEditDialogOpen(true);
@@ -237,7 +241,10 @@ export default function AthleteDetailPage() {
 
   const isOwner = currentUserRole === "owner";
   const isCoach = currentUserRole === "coach";
-  const canEdit = isOwner || (isCoach && athlete?.role === "athlete") || (currentUserId && athlete?.id === currentUserId);
+  const canEdit =
+    isOwner ||
+    (isCoach && athlete?.role === "athlete") ||
+    (currentUserId && athlete?.id === currentUserId);
 
   if (loading) {
     return (
@@ -287,10 +294,7 @@ export default function AthleteDetailPage() {
       >
         <div className="flex gap-2">
           {canEdit && (
-            <Button
-              onClick={openEditDialog}
-              className="rounded-xl gap-2"
-            >
+            <Button onClick={openEditDialog} className="rounded-xl gap-2">
               <IconEdit className="h-4 w-4" />
               Edit
             </Button>
@@ -370,7 +374,9 @@ export default function AthleteDetailPage() {
                 </div>
                 {athlete.altEmail && (
                   <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground">Alternate Email</p>
+                    <p className="text-xs text-muted-foreground">
+                      Alternate Email
+                    </p>
                     <a
                       href={`mailto:${athlete.altEmail}`}
                       className="flex items-center gap-2 text-sm text-primary hover:underline"
@@ -546,35 +552,59 @@ export default function AthleteDetailPage() {
             <CardContent className="space-y-4">
               {athlete.medications ? (
                 <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground font-medium">Medications</p>
-                  <p className="text-sm whitespace-pre-wrap bg-muted/50 rounded-lg p-3">{athlete.medications}</p>
+                  <p className="text-xs text-muted-foreground font-medium">
+                    Medications
+                  </p>
+                  <p className="text-sm whitespace-pre-wrap bg-muted/50 rounded-lg p-3">
+                    {athlete.medications}
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground font-medium">Medications</p>
-                  <p className="text-sm text-muted-foreground italic">No medications listed</p>
+                  <p className="text-xs text-muted-foreground font-medium">
+                    Medications
+                  </p>
+                  <p className="text-sm text-muted-foreground italic">
+                    No medications listed
+                  </p>
                 </div>
               )}
               {athlete.medicalConditions ? (
                 <div className="space-y-1 pt-2 border-t">
-                  <p className="text-xs text-muted-foreground font-medium">Medical Conditions</p>
-                  <p className="text-sm whitespace-pre-wrap bg-muted/50 rounded-lg p-3">{athlete.medicalConditions}</p>
+                  <p className="text-xs text-muted-foreground font-medium">
+                    Medical Conditions
+                  </p>
+                  <p className="text-sm whitespace-pre-wrap bg-muted/50 rounded-lg p-3">
+                    {athlete.medicalConditions}
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-1 pt-2 border-t">
-                  <p className="text-xs text-muted-foreground font-medium">Medical Conditions</p>
-                  <p className="text-sm text-muted-foreground italic">No medical conditions listed</p>
+                  <p className="text-xs text-muted-foreground font-medium">
+                    Medical Conditions
+                  </p>
+                  <p className="text-sm text-muted-foreground italic">
+                    No medical conditions listed
+                  </p>
                 </div>
               )}
               {athlete.allergies ? (
                 <div className="space-y-1 pt-2 border-t">
-                  <p className="text-xs text-muted-foreground font-medium">Allergies</p>
-                  <p className="text-sm whitespace-pre-wrap bg-muted/50 rounded-lg p-3">{athlete.allergies}</p>
+                  <p className="text-xs text-muted-foreground font-medium">
+                    Allergies
+                  </p>
+                  <p className="text-sm whitespace-pre-wrap bg-muted/50 rounded-lg p-3">
+                    {athlete.allergies}
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-1 pt-2 border-t">
-                  <p className="text-xs text-muted-foreground font-medium">Allergies</p>
-                  <p className="text-sm text-muted-foreground italic">No allergies listed</p>
+                  <p className="text-xs text-muted-foreground font-medium">
+                    Allergies
+                  </p>
+                  <p className="text-sm text-muted-foreground italic">
+                    No allergies listed
+                  </p>
                 </div>
               )}
             </CardContent>
@@ -595,57 +625,70 @@ export default function AthleteDetailPage() {
               <div className="grid gap-4 sm:grid-cols-2">
                 {athlete.dateOfBirth ? (
                   <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground">Date of Birth</p>
+                    <p className="text-xs text-muted-foreground">
+                      Date of Birth
+                    </p>
                     <p className="text-sm">
-                      {new Date(athlete.dateOfBirth).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                      })}
+                      {new Date(athlete.dateOfBirth).toLocaleDateString(
+                        "en-US",
+                        {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        },
+                      )}
                     </p>
                   </div>
                 ) : (
                   <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground">Date of Birth</p>
-                    <p className="text-sm text-muted-foreground italic">Not provided</p>
+                    <p className="text-xs text-muted-foreground">
+                      Date of Birth
+                    </p>
+                    <p className="text-sm text-muted-foreground italic">
+                      Not provided
+                    </p>
                   </div>
                 )}
                 {athlete.joinDate ? (
                   <div className="space-y-1">
                     <p className="text-xs text-muted-foreground">Join Date</p>
                     <p className="text-sm">
-                      {new Date(athlete.joinDate).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
+                      {new Date(athlete.joinDate).toLocaleDateString("en-US", {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
                       })}
                     </p>
                   </div>
                 ) : (
                   <div className="space-y-1">
                     <p className="text-xs text-muted-foreground">Join Date</p>
-                    <p className="text-sm text-muted-foreground italic">Not provided</p>
+                    <p className="text-sm text-muted-foreground italic">
+                      Not provided
+                    </p>
                   </div>
                 )}
               </div>
               <div className="grid gap-4 sm:grid-cols-2 pt-2 border-t">
                 <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground">Account Created</p>
+                  <p className="text-xs text-muted-foreground">
+                    Account Created
+                  </p>
                   <p className="text-sm">
-                    {new Date(athlete.createdAt).toLocaleDateString('en-US', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric'
+                    {new Date(athlete.createdAt).toLocaleDateString("en-US", {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
                     })}
                   </p>
                 </div>
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground">Last Updated</p>
                   <p className="text-sm">
-                    {new Date(athlete.updatedAt).toLocaleDateString('en-US', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric'
+                    {new Date(athlete.updatedAt).toLocaleDateString("en-US", {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
                     })}
                   </p>
                 </div>

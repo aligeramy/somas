@@ -1,10 +1,10 @@
-import { randomBytes } from "crypto";
-import { readFileSync } from "fs";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { randomBytes } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import * as schema from "@/drizzle/schema";
 import { users } from "@/drizzle/schema";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 // Load .env file manually
 const envFile = readFileSync(".env", "utf-8");
@@ -120,7 +120,7 @@ async function createUsers() {
       if (authError || !authData.user) {
         console.error(
           `❌ Failed to create ${userData.email}:`,
-          authError?.message || "Unknown error"
+          authError?.message || "Unknown error",
         );
         continue;
       }
@@ -151,7 +151,7 @@ async function createUsers() {
   // Handle Dennis Gaul - he shares email with Alex Gaul
   // We'll add him as a note in the credentials
   console.log(
-    "\n⚠️  Note: Dennis Gaul shares email (alex@gaul.ca) with Alex Gaul"
+    "\n⚠️  Note: Dennis Gaul shares email (alex@gaul.ca) with Alex Gaul",
   );
 
   return credentials;
@@ -160,9 +160,9 @@ async function createUsers() {
 // Run the script
 createUsers()
   .then((credentials) => {
-    console.log("\n" + "=".repeat(60));
+    console.log(`\n${"=".repeat(60)}`);
     console.log("USER CREDENTIALS");
-    console.log("=".repeat(60) + "\n");
+    console.log(`${"=".repeat(60)}\n`);
 
     credentials.forEach((cred) => {
       console.log(`Email: ${cred.email}`);
@@ -174,7 +174,7 @@ createUsers()
     });
 
     console.log(
-      "\n⚠️  IMPORTANT: Save these credentials securely. Passwords cannot be recovered!"
+      "\n⚠️  IMPORTANT: Save these credentials securely. Passwords cannot be recovered!",
     );
     process.exit(0);
   })
@@ -182,4 +182,3 @@ createUsers()
     console.error("Fatal error:", error);
     process.exit(1);
   });
-

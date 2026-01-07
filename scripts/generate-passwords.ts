@@ -1,8 +1,8 @@
-import { randomBytes } from "crypto";
+import { randomBytes } from "node:crypto";
+// Load .env manually
+import { readFileSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
 
-// Load .env manually
-import { readFileSync } from "fs";
 const envFile = readFileSync(".env", "utf-8");
 const envVars: Record<string, string> = {};
 envFile.split("\n").forEach((line) => {
@@ -100,11 +100,14 @@ async function generatePasswords() {
         {
           password: password,
           email_confirm: true,
-        }
+        },
       );
 
       if (error) {
-        console.error(`❌ Failed to set password for ${user.email}:`, error.message);
+        console.error(
+          `❌ Failed to set password for ${user.email}:`,
+          error.message,
+        );
         continue;
       }
 
@@ -127,9 +130,9 @@ async function generatePasswords() {
 
 generatePasswords()
   .then((credentials) => {
-    console.log("\n" + "=".repeat(70));
+    console.log(`\n${"=".repeat(70)}`);
     console.log("USER CREDENTIALS - SOMAS PLATFORM");
-    console.log("=".repeat(70) + "\n");
+    console.log(`${"=".repeat(70)}\n`);
 
     credentials.forEach((cred, index) => {
       console.log(`${index + 1}. ${cred.name}`);
@@ -146,7 +149,7 @@ generatePasswords()
     console.log("=".repeat(70));
 
     // Also write to markdown file
-    const fs = require("fs");
+    const fs = require("node:fs");
     let markdown = `# SOMAS Platform - User Credentials\n\n`;
     markdown += `Generated: ${new Date().toISOString()}\n\n`;
     markdown += `---\n\n`;
@@ -175,4 +178,3 @@ generatePasswords()
     console.error("Fatal error:", error);
     process.exit(1);
   });
-

@@ -5,6 +5,7 @@ import {
   IconCalendar,
   IconCamera,
   IconCheck,
+  IconDeviceFloppy,
   IconDeviceMobile,
   IconHome,
   IconMail,
@@ -14,17 +15,16 @@ import {
   IconPill,
   IconUser,
   IconUserCircle,
-  IconDeviceFloppy,
 } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { DatePicker } from "@/components/ui/date-picker";
-import { createClient } from "@/lib/supabase/client";
 import { useGooglePlacesAutocomplete } from "@/hooks/use-google-places-autocomplete";
+import { createClient } from "@/lib/supabase/client";
 
 export default function ProfileSetupPage() {
   const router = useRouter();
@@ -62,13 +62,13 @@ export default function ProfileSetupPage() {
   useEffect(() => {
     loadUserProfile();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [loadUserProfile]);
 
   async function loadUserProfile() {
     try {
       setLoadingProfile(true);
       const response = await fetch("/api/profile");
-      
+
       if (response.status === 401 && retryCountRef.current < 2) {
         // Session not ready yet, retry after a short delay
         retryCountRef.current += 1;
@@ -77,7 +77,7 @@ export default function ProfileSetupPage() {
         }, 500);
         return;
       }
-      
+
       if (response.ok) {
         const data = await response.json();
         // Pre-populate fields if user already has data (from invitation)
@@ -93,7 +93,9 @@ export default function ProfileSetupPage() {
         if (data.user.emergencyContactPhone)
           setEmergencyContactPhone(data.user.emergencyContactPhone);
         if (data.user.emergencyContactRelationship)
-          setEmergencyContactRelationship(data.user.emergencyContactRelationship);
+          setEmergencyContactRelationship(
+            data.user.emergencyContactRelationship,
+          );
         if (data.user.emergencyContactEmail)
           setEmergencyContactEmail(data.user.emergencyContactEmail);
         if (data.user.medicalConditions)
@@ -223,7 +225,7 @@ export default function ProfileSetupPage() {
 
       setSuccess(true);
       setTimeout(() => {
-      router.push("/dashboard");
+        router.push("/dashboard");
       }, 1000);
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
@@ -238,7 +240,7 @@ export default function ProfileSetupPage() {
         <PageHeader title="Complete Your Profile" />
         <div className="flex flex-1 items-center justify-center">
           <div className="animate-pulse text-muted-foreground">Loading...</div>
-            </div>
+        </div>
       </div>
     );
   }
@@ -252,7 +254,9 @@ export default function ProfileSetupPage() {
         <Button
           onClick={(e) => {
             e.preventDefault();
-            const form = document.getElementById("profile-setup-form") as HTMLFormElement;
+            const form = document.getElementById(
+              "profile-setup-form",
+            ) as HTMLFormElement;
             form?.requestSubmit();
           }}
           disabled={loading || !name}
@@ -331,7 +335,9 @@ export default function ProfileSetupPage() {
             <div className="space-y-4 py-6">
               <div className="flex items-center gap-3">
                 <hr className="w-8 border-border" />
-                <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground whitespace-nowrap">Basic Information</h3>
+                <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground whitespace-nowrap">
+                  Basic Information
+                </h3>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="space-y-2">
@@ -353,7 +359,10 @@ export default function ProfileSetupPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="dateOfBirth" className="flex items-center gap-2">
+                  <Label
+                    htmlFor="dateOfBirth"
+                    className="flex items-center gap-2"
+                  >
                     <IconCalendar className="h-4 w-4" />
                     Date of Birth
                   </Label>
@@ -409,7 +418,9 @@ export default function ProfileSetupPage() {
             <div className="space-y-4 py-6">
               <div className="flex items-center gap-3">
                 <hr className="w-8 border-border" />
-                <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground whitespace-nowrap">Contact Information</h3>
+                <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground whitespace-nowrap">
+                  Contact Information
+                </h3>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="space-y-2">
@@ -431,7 +442,10 @@ export default function ProfileSetupPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="homePhone" className="flex items-center gap-2">
+                  <Label
+                    htmlFor="homePhone"
+                    className="flex items-center gap-2"
+                  >
                     <IconHome className="h-4 w-4" />
                     Home Phone
                   </Label>
@@ -449,7 +463,10 @@ export default function ProfileSetupPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="workPhone" className="flex items-center gap-2">
+                  <Label
+                    htmlFor="workPhone"
+                    className="flex items-center gap-2"
+                  >
                     <IconPhone className="h-4 w-4" />
                     Work Phone
                   </Label>
@@ -467,7 +484,10 @@ export default function ProfileSetupPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="cellPhone" className="flex items-center gap-2">
+                  <Label
+                    htmlFor="cellPhone"
+                    className="flex items-center gap-2"
+                  >
                     <IconDeviceMobile className="h-4 w-4" />
                     Cell Phone
                   </Label>
@@ -497,7 +517,10 @@ export default function ProfileSetupPage() {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="emergencyContactName" className="flex items-center gap-2">
+                  <Label
+                    htmlFor="emergencyContactName"
+                    className="flex items-center gap-2"
+                  >
                     <IconUser className="h-4 w-4" />
                     Contact Name
                   </Label>
@@ -506,9 +529,7 @@ export default function ProfileSetupPage() {
                     <Input
                       id="emergencyContactName"
                       value={emergencyContactName}
-                      onChange={(e) =>
-                        setEmergencyContactName(e.target.value)
-                      }
+                      onChange={(e) => setEmergencyContactName(e.target.value)}
                       placeholder="Enter emergency contact name"
                       className="pl-9"
                     />
@@ -516,7 +537,10 @@ export default function ProfileSetupPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="emergencyContactRelationship" className="flex items-center gap-2">
+                  <Label
+                    htmlFor="emergencyContactRelationship"
+                    className="flex items-center gap-2"
+                  >
                     <IconUser className="h-4 w-4" />
                     Relationship
                   </Label>
@@ -535,7 +559,10 @@ export default function ProfileSetupPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="emergencyContactPhone" className="flex items-center gap-2">
+                  <Label
+                    htmlFor="emergencyContactPhone"
+                    className="flex items-center gap-2"
+                  >
                     <IconPhone className="h-4 w-4" />
                     Phone
                   </Label>
@@ -544,9 +571,7 @@ export default function ProfileSetupPage() {
                     <Input
                       id="emergencyContactPhone"
                       value={emergencyContactPhone}
-                      onChange={(e) =>
-                        setEmergencyContactPhone(e.target.value)
-                      }
+                      onChange={(e) => setEmergencyContactPhone(e.target.value)}
                       placeholder="Enter emergency contact phone"
                       type="tel"
                       className="pl-9"
@@ -555,7 +580,10 @@ export default function ProfileSetupPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="emergencyContactEmail" className="flex items-center gap-2">
+                  <Label
+                    htmlFor="emergencyContactEmail"
+                    className="flex items-center gap-2"
+                  >
                     <IconMail className="h-4 w-4" />
                     Email
                   </Label>
@@ -564,9 +592,7 @@ export default function ProfileSetupPage() {
                     <Input
                       id="emergencyContactEmail"
                       value={emergencyContactEmail}
-                      onChange={(e) =>
-                        setEmergencyContactEmail(e.target.value)
-                      }
+                      onChange={(e) => setEmergencyContactEmail(e.target.value)}
                       placeholder="Enter emergency contact email"
                       type="email"
                       className="pl-9"
@@ -587,7 +613,10 @@ export default function ProfileSetupPage() {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="medicalConditions" className="flex items-center gap-2">
+                  <Label
+                    htmlFor="medicalConditions"
+                    className="flex items-center gap-2"
+                  >
                     <IconMedicalCross className="h-4 w-4" />
                     Medical Conditions
                   </Label>
@@ -604,7 +633,10 @@ export default function ProfileSetupPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="medications" className="flex items-center gap-2">
+                  <Label
+                    htmlFor="medications"
+                    className="flex items-center gap-2"
+                  >
                     <IconPill className="h-4 w-4" />
                     Medications
                   </Label>
@@ -621,7 +653,10 @@ export default function ProfileSetupPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="allergies" className="flex items-center gap-2">
+                  <Label
+                    htmlFor="allergies"
+                    className="flex items-center gap-2"
+                  >
                     <IconAlertCircle className="h-4 w-4" />
                     Allergies
                   </Label>

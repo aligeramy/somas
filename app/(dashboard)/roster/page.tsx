@@ -12,7 +12,6 @@ import {
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useDropzone } from "react-dropzone";
-import { useGooglePlacesAutocomplete } from "@/hooks/use-google-places-autocomplete";
 import { PageHeader } from "@/components/page-header";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -59,6 +58,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useGooglePlacesAutocomplete } from "@/hooks/use-google-places-autocomplete";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface User {
@@ -93,7 +93,7 @@ export default function RosterPage() {
   const [address, setAddress] = useState("");
   const [homePhone, setHomePhone] = useState("");
   const addressInputRef = useRef<HTMLInputElement>(null);
-  
+
   useGooglePlacesAutocomplete(addressInputRef, (address) => {
     setAddress(address);
   });
@@ -130,7 +130,7 @@ export default function RosterPage() {
     role: "",
   });
   const editAddressInputRef = useRef<HTMLInputElement>(null);
-  
+
   useGooglePlacesAutocomplete(editAddressInputRef, (address) => {
     setEditForm({ ...editForm, address });
   });
@@ -384,7 +384,11 @@ export default function RosterPage() {
           onOpenChange={setIsImportRosterDialogOpen}
         >
           <DialogTrigger asChild>
-            <Button variant="outline" size="icon" className="rounded-xl sm:rounded-xl sm:size-auto sm:px-4 sm:gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              className="rounded-xl sm:rounded-xl sm:size-auto sm:px-4 sm:gap-2"
+            >
               <IconUpload className="h-4 w-4 sm:mr-2" />
               <span className="hidden sm:inline">Import</span>
             </Button>
@@ -455,7 +459,10 @@ export default function RosterPage() {
           }}
         >
           <DialogTrigger asChild>
-            <Button size="icon" className="rounded-xl sm:rounded-xl sm:size-auto sm:px-4 sm:gap-2">
+            <Button
+              size="icon"
+              className="rounded-xl sm:rounded-xl sm:size-auto sm:px-4 sm:gap-2"
+            >
               <IconPlus className="h-4 w-4 sm:mr-2" />
               <span className="hidden sm:inline">Add Member</span>
             </Button>
@@ -1125,7 +1132,9 @@ export default function RosterPage() {
                                         >
                                           <Avatar className="h-8 w-8 rounded-md shrink-0">
                                             <AvatarImage
-                                              src={member.avatarUrl || undefined}
+                                              src={
+                                                member.avatarUrl || undefined
+                                              }
                                               alt={member.name || member.email}
                                             />
                                             <AvatarFallback className="rounded-md text-[10px] font-semibold">

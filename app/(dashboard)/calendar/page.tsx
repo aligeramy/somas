@@ -92,7 +92,9 @@ export default function CalendarPage() {
   const [loading, setLoading] = useState(true);
   const [rsvpDialogOpen, setRsvpDialogOpen] = useState(false);
   const [updatingRsvp, setUpdatingRsvp] = useState<string | null>(null);
-  const [cancelingOccurrence, setCancelingOccurrence] = useState<string | null>(null);
+  const [cancelingOccurrence, setCancelingOccurrence] = useState<string | null>(
+    null,
+  );
   const [coachAttendees, setCoachAttendees] = useState<
     Record<string, CoachAttendee[]>
   >({});
@@ -309,7 +311,7 @@ export default function CalendarPage() {
 
     try {
       setCancelingOccurrence(occurrenceId);
-      
+
       // Find the occurrence to get the event ID
       const occurrence = events.find((occ) => occ.id === occurrenceId);
       if (!occurrence) {

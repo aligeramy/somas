@@ -45,10 +45,10 @@ export function BaseLayout({
                 <div className="w-12 h-12 rounded-xl bg-white text-zinc-900 text-lg font-semibold flex items-center justify-center my-0 mx-auto leading-[48px] text-center">
                   {gymName?.trim()
                     ? gymName
-                    .split(" ")
-                    .map((n) => n[0])
-                    .join("")
-                    .toUpperCase()
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")
+                        .toUpperCase()
                         .slice(0, 5)
                     : "SOMAS"}
                 </div>

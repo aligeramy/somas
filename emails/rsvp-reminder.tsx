@@ -80,4 +80,3 @@ export function RsvpReminderEmail({
 }
 
 export default RsvpReminderEmail;
-

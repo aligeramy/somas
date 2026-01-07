@@ -25,7 +25,8 @@ export default async function DashboardLayout({
   // Get current pathname to avoid redirect loops
   const headersList = await headers();
   const pathname = headersList.get("x-pathname") || "";
-  const isOnboardingPage = pathname === "/onboarding" || pathname === "/profile-setup";
+  const isOnboardingPage =
+    pathname === "/onboarding" || pathname === "/profile-setup";
 
   // Check if user exists in our database with retry logic
   let dbUser;

@@ -16,7 +16,7 @@ export function usePWAInstall() {
 
   useEffect(() => {
     setIsMounted(true);
-    
+
     // Check if app is already installed
     if (window.matchMedia("(display-mode: standalone)").matches) {
       setIsInstalled(true);
@@ -74,7 +74,7 @@ export function usePWAInstall() {
         return false;
       }
     }
-    
+
     // For iOS Safari or other browsers without beforeinstallprompt
     // Return false so the UI can show instructions
     return false;
@@ -91,4 +91,3 @@ export function usePWAInstall() {
     hasNativePrompt: !!deferredPrompt,
   };
 }
-

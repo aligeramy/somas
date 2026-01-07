@@ -1,8 +1,8 @@
 "use client";
 
 import { IconDownload, IconX } from "@tabler/icons-react";
-import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { usePWAInstall } from "@/hooks/use-pwa-install";
 
@@ -71,7 +71,9 @@ export function PWAInstallBanner() {
         </div>
         <div className="flex-1 min-w-0">
           <p className="font-medium text-sm">Install Titans App</p>
-          <p className="text-xs text-muted-foreground truncate">Quick access from your home screen</p>
+          <p className="text-xs text-muted-foreground truncate">
+            Quick access from your home screen
+          </p>
         </div>
         <div className="flex items-center gap-1">
           <Button
@@ -95,4 +97,3 @@ export function PWAInstallBanner() {
     </div>
   );
 }
-

@@ -31,7 +31,8 @@ export async function GET(request: Request) {
       return NextResponse.json({
         id: dbUser.id,
         email: dbUser.email,
-        primaryEmail: dbUser.altEmail === emailParam ? dbUser.email : emailParam,
+        primaryEmail:
+          dbUser.altEmail === emailParam ? dbUser.email : emailParam,
         role: dbUser.role,
         gymId: dbUser.gymId,
       });
@@ -74,4 +75,3 @@ export async function GET(request: Request) {
     );
   }
 }
-
