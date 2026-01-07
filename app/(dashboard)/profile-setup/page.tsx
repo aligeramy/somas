@@ -17,7 +17,7 @@ import {
   IconUserCircle,
 } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -47,9 +47,10 @@ export default function ProfileSetupPage() {
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [loadingProfile, setLoadingProfile] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const addressInputRef = useRef<HTMLInputElement>(null);
   const retryCountRef = useRef(0);
@@ -59,12 +60,14 @@ export default function ProfileSetupPage() {
     setAddress(address);
   });
 
+  // Ensure component is mounted before making API calls
   useEffect(() => {
-    loadUserProfile();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loadUserProfile]);
+    setMounted(true);
+  }, []);
 
-  async function loadUserProfile() {
+  const loadUserProfile = useCallback(async () => {
+    if (!mounted) return;
+    
     try {
       setLoadingProfile(true);
       const response = await fetch("/api/profile");
@@ -139,7 +142,13 @@ export default function ProfileSetupPage() {
     } finally {
       setLoadingProfile(false);
     }
-  }
+  }, [mounted, router]);
+
+  useEffect(() => {
+    if (mounted) {
+      loadUserProfile();
+    }
+  }, [mounted, loadUserProfile]);
 
   function handleAvatarClick() {
     fileInputRef.current?.click();
@@ -244,22 +253,15 @@ export default function ProfileSetupPage() {
     }
   }
 
-  if (loadingProfile) {
-    return (
-      <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
-        <PageHeader title="Complete Your Profile" />
-        <div className="flex flex-1 items-center justify-center">
-          <div className="animate-pulse text-muted-foreground">Loading...</div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
       <PageHeader
         title="Complete Your Profile"
-        description="Set up your profile to get started with Titans of Mississauga. You can edit any pre-filled information."
+        description={
+          loadingProfile
+            ? "Loading your existing profile..."
+            : "Set up your profile to get started with Titans of Mississauga. You can edit any pre-filled information."
+        }
       >
         <Button
           onClick={(e) => {
