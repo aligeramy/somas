@@ -3,6 +3,7 @@
 import {
   IconAlertTriangle,
   IconArrowLeft,
+  IconArrowRight,
   IconBan,
   IconBell,
   IconCalendar,
@@ -24,7 +25,7 @@ import {
 import { format } from "date-fns";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CustomEventCalendar } from "@/components/custom-event-calendar";
 import { PageHeader } from "@/components/page-header";
 import { RealtimeChat } from "@/components/realtime-chat";
@@ -41,12 +42,18 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  Drawer,
+  DrawerContent,
+  DrawerTitle,
+} from "@/components/ui/drawer";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -238,6 +245,22 @@ function EventChatContent({
   );
 }
 
+// Color palette for events
+const EVENT_COLORS = [
+  "bg-blue-500",
+  "bg-purple-500",
+  "bg-pink-500",
+  "bg-indigo-500",
+  "bg-cyan-500",
+  "bg-teal-500",
+  "bg-orange-500",
+  "bg-amber-500",
+  "bg-lime-500",
+  "bg-emerald-500",
+  "bg-violet-500",
+  "bg-fuchsia-500",
+];
+
 export default function EventsPage() {
   const searchParams = useSearchParams();
   const isEventsMobile = useIsEventsMobile();
@@ -256,12 +279,19 @@ export default function EventsPage() {
   const [mobileView, setMobileView] = useState<
     "events" | "occurrences" | "details" | "chat"
   >("events");
+  const [mobileSortMode, setMobileSortMode] = useState<"event" | "session">(
+    "session",
+  );
+  const [cameFromSessionView, setCameFromSessionView] = useState(false);
+  const cameFromSessionViewRef = useRef(false);
   const [eventDetailTab, setEventDetailTab] = useState<"details" | "chat">(
     "details",
   );
   const [eventChannelId, setEventChannelId] = useState<string | null>(null);
   const [eventChatDialogOpen, setEventChatDialogOpen] = useState(false);
-  const [eventChatEventId, setEventChatEventId] = useState<string | null>(null);
+  const [eventChatEventId, _setEventChatEventId] = useState<string | null>(
+    null,
+  );
   const [eventChatChannelId, setEventChatChannelId] = useState<string | null>(
     null,
   );
@@ -296,6 +326,8 @@ export default function EventsPage() {
   const [athleteEventDetailTab, setAthleteEventDetailTab] = useState<
     "details" | "chat"
   >("details");
+  const [athleteFilterTab, setAthleteFilterTab] = useState<"all" | "going" | "not_going" | "pending">("all");
+  const [coachFilterTab, setCoachFilterTab] = useState<"all" | "going" | "not_going" | "pending">("all");
   const [athleteEventChannelId, setAthleteEventChannelId] = useState<
     string | null
   >(null);
@@ -313,6 +345,28 @@ export default function EventsPage() {
   const [addDateDialogOpen, setAddDateDialogOpen] = useState(false);
   const [customDate, setCustomDate] = useState<Date | null>(null);
   const [addingDate, setAddingDate] = useState(false);
+
+  // Get unique events and assign colors
+  const uniqueEvents = useMemo(() => {
+    const eventMap = new Map<string, { id: string; title: string; color: string }>();
+    events.forEach((event) => {
+      if (!eventMap.has(event.id)) {
+        const colorIndex = eventMap.size % EVENT_COLORS.length;
+        eventMap.set(event.id, {
+          id: event.id,
+          title: event.title,
+          color: EVENT_COLORS[colorIndex],
+        });
+      }
+    });
+    return Array.from(eventMap.values());
+  }, [events]);
+
+  // Get color for an event
+  const getEventColor = (eventId: string): string => {
+    const event = uniqueEvents.find((e) => e.id === eventId);
+    return event?.color || "bg-primary";
+  };
 
   // Load or create channel when event is selected
   useEffect(() => {
@@ -490,7 +544,7 @@ export default function EventsPage() {
         }
       }
     },
-    [searchParams, isEventsMobile],
+    [searchParams, isEventsMobile, mobileView],
   ); // Removed selectedEvent dependency to prevent infinite loops
 
   const loadGymMembers = useCallback(async () => {
@@ -518,7 +572,14 @@ export default function EventsPage() {
     try {
       setRsvpLoading(true);
       const response = await fetch(`/api/rsvp?occurrenceId=${occurrenceId}`);
-      if (!response.ok) throw new Error("Failed to load RSVPs");
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.error || `Failed to load RSVPs: ${response.status} ${response.statusText}`;
+        console.error("RSVP loading error:", errorMessage);
+        // Set empty array on error instead of throwing
+        setOccurrenceRsvps([]);
+        return;
+      }
       const data = await response.json();
       setOccurrenceRsvps(
         (data.rsvps || []).map(
@@ -546,7 +607,9 @@ export default function EventsPage() {
         ),
       );
     } catch (err) {
-      console.error(err);
+      console.error("RSVP loading error:", err);
+      // Set empty array on error instead of throwing
+      setOccurrenceRsvps([]);
     } finally {
       setRsvpLoading(false);
     }
@@ -611,9 +674,14 @@ export default function EventsPage() {
   useEffect(() => {
     const eventIdParam = searchParams.get("eventId");
     const occurrenceIdParam = searchParams.get("occurrenceId");
-    
+
     // If URL params are present and events are already loaded, reload to ensure selection matches
-    if ((eventIdParam || occurrenceIdParam) && !initialLoading && events.length > 0 && !isInitialMount.current) {
+    if (
+      (eventIdParam || occurrenceIdParam) &&
+      !initialLoading &&
+      events.length > 0 &&
+      !isInitialMount.current
+    ) {
       loadEvents(false);
     }
   }, [searchParams, initialLoading, events.length, loadEvents]);
@@ -691,16 +759,22 @@ export default function EventsPage() {
 
   // Load user RSVPs when event is selected
   useEffect(() => {
-    const eventId = currentUserRole === "athlete" 
-      ? selectedEventForAthlete?.id 
-      : selectedEvent?.id;
+    const eventId =
+      currentUserRole === "athlete"
+        ? selectedEventForAthlete?.id
+        : selectedEvent?.id;
     if (eventId) {
       loadCurrentUserRsvps(eventId);
     } else {
       setCurrentUserRsvps(new Map());
       setOccurrenceRsvpsLoading(false);
     }
-  }, [selectedEvent?.id, selectedEventForAthlete?.id, currentUserRole, loadCurrentUserRsvps]);
+  }, [
+    selectedEvent?.id,
+    selectedEventForAthlete?.id,
+    currentUserRole,
+    loadCurrentUserRsvps,
+  ]);
 
   // Load RSVP summaries for owner/coach view when event is selected
   const loadOccurrenceSummaries = useCallback(async () => {
@@ -1147,19 +1221,31 @@ export default function EventsPage() {
     }
   }
 
-  function selectEvent(event: Event) {
+  function selectEvent(event: Event, skipViewChange = false) {
     // If clicking the same event that's already selected
     if (event.id === selectedEventIdRef.current) {
       // On mobile, always navigate forward instead of deselecting
       if (isEventsMobile) {
-        if (currentUserRole === "athlete") {
-          // For athletes, ensure event is set and navigate to occurrences
-          setSelectedEventForAthlete(event);
-          // Don't auto-select first occurrence - user must click
-          setSelectedOccurrenceForAthleteDetail(null);
-          setMobileView("occurrences");
+        if (!skipViewChange) {
+          if (currentUserRole === "athlete") {
+            // For athletes, ensure event is set and navigate to occurrences
+            setSelectedEventForAthlete(event);
+            // Don't auto-select first occurrence - user must click
+            setSelectedOccurrenceForAthleteDetail(null);
+            setMobileView("occurrences");
+          } else {
+            setMobileView("occurrences");
+          }
         } else {
-          setMobileView("occurrences");
+          // When skipping view change, still set athlete event if needed
+          if (currentUserRole === "athlete") {
+            setSelectedEventForAthlete(event);
+          }
+        }
+        // Only reset session view flag if not already set (preserve it when coming from session view)
+        if (!cameFromSessionView && !skipViewChange) {
+          setCameFromSessionView(false);
+          cameFromSessionViewRef.current = false;
         }
         return;
       }
@@ -1178,14 +1264,29 @@ export default function EventsPage() {
       // The useEffect will set it to true when we actually navigate away
       if (isEventsMobile) {
         hasNavigatedAwayRef.current = false;
-        if (currentUserRole === "athlete") {
-          // For athletes, go to occurrences view to pick which day
-          setSelectedEventForAthlete(event);
-          // Don't auto-select first occurrence - user must click
-          setSelectedOccurrenceForAthleteDetail(null);
-          setMobileView("occurrences");
+        // Only reset session view flag if not already set (preserve it when coming from session view)
+        if (!cameFromSessionView && !skipViewChange) {
+          setCameFromSessionView(false);
+          cameFromSessionViewRef.current = false;
+        }
+        // If skipViewChange is true (coming from session view), don't set view to occurrences
+        // selectOccurrence will handle the view change
+        if (!skipViewChange) {
+          if (currentUserRole === "athlete") {
+            // For athletes, go to occurrences view to pick which day
+            setSelectedEventForAthlete(event);
+            // Don't auto-select first occurrence - user must click
+            setSelectedOccurrenceForAthleteDetail(null);
+            setMobileView("occurrences");
+          } else {
+            setMobileView("occurrences");
+          }
         } else {
-          setMobileView("occurrences");
+          // When coming from session view, still set athlete event but don't change view yet
+          // selectOccurrence will handle the view change
+          if (currentUserRole === "athlete") {
+            setSelectedEventForAthlete(event);
+          }
         }
       }
     }
@@ -1195,6 +1296,11 @@ export default function EventsPage() {
     setSelectedOccurrence(occurrence);
     loadOccurrenceRsvps(occurrence.id);
     if (isEventsMobile && occurrence) {
+      // Track if we're coming from occurrences view (session view)
+      if (mobileView === "occurrences") {
+        setCameFromSessionView(true);
+        cameFromSessionViewRef.current = true;
+      }
       if (currentUserRole === "athlete") {
         setSelectedOccurrenceForAthleteDetail(occurrence);
       }
@@ -1260,10 +1366,9 @@ export default function EventsPage() {
   }
 
   // Get occurrences from the appropriate event source
-  const eventForOccurrences = currentUserRole === "athlete" 
-    ? selectedEventForAthlete 
-    : selectedEvent;
-  
+  const eventForOccurrences =
+    currentUserRole === "athlete" ? selectedEventForAthlete : selectedEvent;
+
   const futureOccurrences =
     eventForOccurrences?.occurrences.filter((o) => !isPastDate(o.date)) || [];
   const pastOccurrences =
@@ -1411,7 +1516,8 @@ export default function EventsPage() {
 
   // Ensure mobile view shows details when clicking from dashboard with eventId and occurrenceId
   useEffect(() => {
-    if (!isEventsMobile || currentUserRole === "athlete" || initialLoading) return;
+    if (!isEventsMobile || currentUserRole === "athlete" || initialLoading)
+      return;
 
     const eventIdParam = searchParams.get("eventId");
     const occurrenceIdParam = searchParams.get("occurrenceId");
@@ -1454,9 +1560,23 @@ export default function EventsPage() {
       if (mobileView === "chat") {
         setMobileView("details");
       } else if (mobileView === "details") {
-        setMobileView("occurrences");
+        // For athletes, skip occurrences and go directly to events
+        // For coaches/owners, check if we came from session view
+        if (currentUserRole === "athlete") {
+          setMobileView("events");
+          setCameFromSessionView(false);
+          cameFromSessionViewRef.current = false;
+        } else if (cameFromSessionViewRef.current) {
+          setMobileView("events");
+          setCameFromSessionView(false);
+          cameFromSessionViewRef.current = false;
+        } else {
+          setMobileView("occurrences");
+        }
       } else if (mobileView === "occurrences") {
         setMobileView("events");
+        setCameFromSessionView(false);
+        cameFromSessionViewRef.current = false;
       }
     };
 
@@ -1488,9 +1608,9 @@ export default function EventsPage() {
     const showBackButton = mobileView !== "events";
 
     return (
-      <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
+      <div className="flex flex-1 flex-col min-h-0 h-full">
         {/* Custom Mobile Header */}
-        <div className="flex items-center justify-between px-4 h-14 shrink-0 border-b bg-background">
+        <div className="flex items-center justify-between px-6 h-14 shrink-0 border-b bg-background">
           <div className="flex items-center gap-3 flex-1 min-w-0">
             {showBackButton && (
               <Button
@@ -1502,48 +1622,188 @@ export default function EventsPage() {
                 <IconArrowLeft className="h-5 w-5" />
               </Button>
             )}
-            <h1 className="font-semibold text-base truncate">{getPageTitle()}</h1>
+            <h1 className="font-semibold text-base truncate">
+              {getPageTitle()}
+            </h1>
           </div>
           <div className="flex items-center gap-2 shrink-0">
             {mobileView === "events" && (
-              <Button size="sm" className="gap-2 rounded-xl" asChild>
-                <Link href="/events/new">
-                  <IconPlus className="h-4 w-4" />
-                  New Event
-                </Link>
-              </Button>
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setMobileSortMode(
+                      mobileSortMode === "event" ? "session" : "event",
+                    )
+                  }
+                  className="gap-2 rounded-sm text-xs px-3 h-8"
+                  data-show-text-mobile
+                >
+                  {mobileSortMode === "event" ? (
+                    <>
+                      <IconCalendar className="h-3.5 w-3.5" />
+                      Sort by Session
+                    </>
+                  ) : (
+                    <>
+                      <IconList className="h-3.5 w-3.5" />
+                      Sort by Event
+                    </>
+                  )}
+                </Button>
+                <Button size="sm" className="gap-2 rounded-sm text-xs px-3 h-8" asChild>
+                  <Link href="/events/new">
+                    <IconPlus className="h-4 w-4" />
+                    New Event
+                  </Link>
+                </Button>
+              </>
             )}
-            {(mobileView === "details" || mobileView === "occurrences") && (selectedEvent || selectedEventForAthlete) && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setMobileView("chat")}
-                className="h-9 rounded-xl gap-2"
-              >
-                <IconMessageCircle className="h-5 w-5" />
-                Chat
-              </Button>
-            )}
+            {(mobileView === "details" || mobileView === "occurrences") &&
+              (selectedEvent || selectedEventForAthlete) && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setMobileView("chat")}
+                  className="h-9 rounded-xl gap-2"
+                >
+                  <IconMessageCircle className="h-5 w-5" />
+                  Chat
+                </Button>
+              )}
           </div>
         </div>
+
+        {/* Filter Tabs - Directly under top header for details view */}
+        {mobileView === "details" && (selectedOccurrence || selectedOccurrenceForAthleteDetail) && (
+          <div className="shrink-0 border-b bg-background">
+            {currentUserRole === "athlete" ? (
+              (() => {
+                const occurrenceRsvpsForAthlete = occurrenceRsvps || [];
+                const goingUsers = occurrenceRsvpsForAthlete.filter(
+                  (r) => r.status === "going",
+                );
+                const notGoingUsers = occurrenceRsvpsForAthlete.filter(
+                  (r) => r.status === "not_going",
+                );
+                const rsvpedUserIds = new Set(
+                  occurrenceRsvpsForAthlete.map((r) => r.id),
+                );
+                const isCoachOrOwner = (userId: string, userRole?: string): boolean => {
+                  if (userRole === "coach" || userRole === "owner") return true;
+                  const member = gymMembers.find((m) => m.id === userId);
+                  return member?.role === "coach" || member?.role === "owner";
+                };
+                const isAthlete = (userId: string, userRole?: string): boolean => {
+                  if (userRole === "athlete") return true;
+                  if (userRole === "coach" || userRole === "owner") return false;
+                  const member = gymMembers.find((m) => m.id === userId);
+                  return member?.role === "athlete" || !member?.role;
+                };
+                const goingCoaches = goingUsers.filter((u) => isCoachOrOwner(u.id, u.role));
+                const goingAthletes = goingUsers.filter((u) => isAthlete(u.id, u.role));
+                const notGoingCoaches = notGoingUsers.filter((u) => isCoachOrOwner(u.id, u.role));
+                const notGoingAthletes = notGoingUsers.filter((u) => isAthlete(u.id, u.role));
+                const pendingCoaches = gymMembers.filter((m) => {
+                  const isCoach = m.role === "coach" || m.role === "owner";
+                  return isCoach && !rsvpedUserIds.has(m.id);
+                });
+                const pendingAthletes = gymMembers.filter((m) => {
+                  const isAthleteMember = m.role === "athlete" || !m.role;
+                  return isAthleteMember && !rsvpedUserIds.has(m.id);
+                });
+
+                return (
+                  <Tabs value={athleteFilterTab} onValueChange={(value) => setAthleteFilterTab(value as typeof athleteFilterTab)}>
+                    <TabsList className="w-full grid grid-cols-4 h-10 rounded-none border-b-0 bg-transparent">
+                      <TabsTrigger
+                        value="all"
+                        className="text-xs rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent"
+                      >
+                        All (
+                        {goingCoaches.length +
+                          goingAthletes.length +
+                          notGoingCoaches.length +
+                          notGoingAthletes.length +
+                          pendingCoaches.length +
+                          pendingAthletes.length}
+                        )
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="going"
+                        className="text-xs rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent"
+                      >
+                        Going ({goingCoaches.length + goingAthletes.length})
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="not_going"
+                        className="text-xs rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent"
+                      >
+                        Can't ({notGoingCoaches.length + notGoingAthletes.length})
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="pending"
+                        className="text-xs rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent"
+                      >
+                        Pending ({pendingCoaches.length + pendingAthletes.length})
+                      </TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                );
+              })()
+            ) : (
+              <Tabs value={coachFilterTab} onValueChange={(value) => setCoachFilterTab(value as typeof coachFilterTab)}>
+                <TabsList className="w-full grid grid-cols-4 h-10 rounded-none border-b-0 bg-transparent">
+                  <TabsTrigger
+                    value="all"
+                    className="text-xs rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent"
+                  >
+                    All ({gymMembers.length})
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="going"
+                    className="text-xs rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent"
+                  >
+                    Going ({goingUsers.length})
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="not_going"
+                    className="text-xs rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent"
+                  >
+                    Can't ({notGoingUsers.length})
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="pending"
+                    className="text-xs rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent"
+                  >
+                    Pending ({notAnsweredUsers.length})
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+            )}
+          </div>
+        )}
 
         <Tabs
           value={mobileView}
           onValueChange={(value) => setMobileView(value as typeof mobileView)}
-          className="flex-1 flex flex-col min-h-0 overflow-hidden"
+          className="flex-1 flex flex-col min-h-0"
         >
-
           {/* Events Tab - Fullscreen */}
           <TabsContent
             value="events"
-            className="flex-1 flex flex-col min-h-0 m-0 overflow-hidden"
+            className="flex-1 flex flex-col min-h-0 m-0 h-0"
           >
-            <ScrollArea className="flex-1">
+            <div className="flex-1 overflow-y-auto overscroll-contain h-full" style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
               <div className="p-4">
                 {initialLoading ? (
                   <div className="space-y-3">
                     {[1, 2, 3, 4].map((i) => (
-                      <div key={i} className="relative w-full rounded-xl bg-card p-4">
+                      <div
+                        key={i}
+                        className="relative w-full rounded-xl bg-card p-4"
+                      >
                         <div className="flex items-start gap-3">
                           <div className="flex-1 space-y-2">
                             <Skeleton className="h-5 w-3/4 rounded" />
@@ -1565,13 +1825,160 @@ export default function EventsPage() {
                       <Link href="/events/new">Create your first event</Link>
                     </Button>
                   </div>
+                ) : mobileSortMode === "session" ? (
+                  (() => {
+                    // Flatten all occurrences from all events and sort by date
+                    const allOccurrences = events
+                      .flatMap((event) =>
+                        event.occurrences
+                          .filter((occ) => occ.status === "scheduled")
+                          .map((occ) => ({
+                            ...occ,
+                            event,
+                          })),
+                      )
+                      .sort((a, b) => {
+                        const dateA = new Date(a.date).getTime();
+                        const dateB = new Date(b.date).getTime();
+                        return dateA - dateB;
+                      });
+
+                    const futureOccurrences = allOccurrences.filter(
+                      (occ) => !isPastDate(occ.date),
+                    );
+                    const pastOccurrences = allOccurrences.filter((occ) =>
+                      isPastDate(occ.date),
+                    );
+                    const displayedSessions = showPastEvents
+                      ? [...futureOccurrences, ...pastOccurrences]
+                      : futureOccurrences;
+
+                    return (
+                      <div className="space-y-3">
+                        {displayedSessions.length === 0 ? (
+                          <div className="p-8 text-center text-muted-foreground">
+                            <IconCalendar className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                            <p className="text-sm">No upcoming sessions</p>
+                          </div>
+                        ) : (
+                          <>
+                            {displayedSessions.map((occ) => {
+                              const isPast = isPastDate(occ.date);
+                              const dateInfo = formatDate(occ.date);
+                              const userRsvpStatus = currentUserRsvps.get(occ.id);
+                              return (
+                                <button
+                                  key={occ.id}
+                                  type="button"
+                                  onClick={() => {
+                                    // Track that we came from session view (both state and ref)
+                                    setCameFromSessionView(true);
+                                    cameFromSessionViewRef.current = true;
+                                    // Select the event first, but skip view change since we'll go directly to details
+                                    selectEvent(occ.event, true);
+                                    // Find and select the specific occurrence to open it
+                                    const eventOccurrence = occ.event.occurrences.find(
+                                      (o) => o.id === occ.id,
+                                    );
+                                    if (eventOccurrence) {
+                                      selectOccurrence(eventOccurrence);
+                                    }
+                                  }}
+                                  className={`w-full rounded-xl transition-all bg-card hover:bg-muted/50 text-left ${
+                                    isPast ? "opacity-60" : ""
+                                  } ${occ.status === "canceled" ? "opacity-40" : ""}`}
+                                >
+                                  <div className="flex items-center gap-6 p-4">
+                                    <div
+                                      className="h-16 w-16 rounded-xl flex flex-col items-center justify-center shrink-0 bg-black dark:bg-white"
+                                    >
+                                      <span className="text-2xl font-bold leading-none text-white dark:text-black">
+                                        {dateInfo.day}
+                                      </span>
+                                      <span className="text-xs font-medium opacity-70 mt-1 text-white dark:text-black">
+                                        {dateInfo.month}
+                                      </span>
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-2 mb-1">
+                                        <div className={`h-2 w-2 rounded-full shrink-0 ${getEventColor(occ.event.id)}`} />
+                                        <p className="font-semibold text-base">
+                                          {occ.event.title}
+                                        </p>
+                                      </div>
+                                      <p className="text-sm opacity-80 mb-1">
+                                        {dateInfo.weekday} • {formatTime(occ.event.startTime)}
+                                      </p>
+                                      {occ.status === "canceled" && (
+                                        <Badge
+                                          variant="destructive"
+                                          className="text-xs mt-1"
+                                        >
+                                          Canceled
+                                        </Badge>
+                                      )}
+                                    </div>
+                                    <div className="flex items-center gap-2 shrink-0">
+                                      {/* User's RSVP Status */}
+                                      {occurrenceRsvpsLoading ? (
+                                        <Skeleton className="h-5 w-16 rounded shrink-0" />
+                                      ) : (
+                                        <>
+                                          {userRsvpStatus === "going" && (
+                                            <Badge
+                                              variant="outline"
+                                              className="text-xs text-emerald-600 border-emerald-200 bg-emerald-50 dark:bg-emerald-950/50 dark:text-emerald-400 dark:border-emerald-800 shrink-0"
+                                            >
+                                              Going
+                                            </Badge>
+                                          )}
+                                          {userRsvpStatus === "not_going" && (
+                                            <Badge
+                                              variant="outline"
+                                              className="text-xs text-red-600 border-red-200 bg-red-50 dark:bg-red-950/50 dark:text-red-400 dark:border-red-800 shrink-0"
+                                            >
+                                              Can't Go
+                                            </Badge>
+                                          )}
+                                          {!userRsvpStatus && (
+                                            <Badge
+                                              variant="outline"
+                                              className="text-xs text-amber-600 border-amber-200 bg-amber-50 dark:bg-amber-950/50 dark:text-amber-400 dark:border-amber-800 shrink-0"
+                                            >
+                                              Pending
+                                            </Badge>
+                                          )}
+                                        </>
+                                      )}
+                                    </div>
+                                  </div>
+                                </button>
+                              );
+                            })}
+                            {pastOccurrences.length > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => setShowPastEvents(!showPastEvents)}
+                                className="w-full mt-4 p-3 text-sm text-muted-foreground hover:text-foreground flex items-center justify-center gap-2 rounded-xl"
+                              >
+                                <IconHistory className="h-4 w-4" />
+                                {showPastEvents ? "Hide" : "Show"} past sessions (
+                                {pastOccurrences.length})
+                              </button>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    );
+                  })()
                 ) : (
                   <div className="space-y-3">
                     {events.map((event) => (
                       <div
                         key={event.id}
                         className={`relative w-full rounded-xl transition-all ${
-                          selectedEvent?.id === event.id && (!isEventsMobile || mobileView !== "events")
+                          selectedEvent?.id === event.id &&
+                          (!isEventsMobile || mobileView !== "events")
                             ? "bg-primary text-primary-foreground"
                             : "bg-card hover:bg-muted/50"
                         }`}
@@ -1637,7 +2044,7 @@ export default function EventsPage() {
                   </div>
                 )}
               </div>
-            </ScrollArea>
+            </div>
           </TabsContent>
 
           {/* Occurrences Tab - Fullscreen */}
@@ -1645,25 +2052,25 @@ export default function EventsPage() {
             value="occurrences"
             className="flex-1 flex flex-col min-h-0 m-0 overflow-hidden"
           >
-            {(selectedEvent || selectedEventForAthlete) ? (
+            {selectedEvent || selectedEventForAthlete ? (
               <>
                 <div className="p-4 shrink-0">
                   <h2 className="font-semibold text-lg">
-                    {currentUserRole === "athlete" 
-                      ? selectedEventForAthlete?.title 
+                    {currentUserRole === "athlete"
+                      ? selectedEventForAthlete?.title
                       : selectedEvent?.title}
                   </h2>
                   <p className="text-sm text-muted-foreground mt-1">
                     {formatTime(
                       currentUserRole === "athlete"
                         ? selectedEventForAthlete?.startTime
-                        : selectedEvent?.startTime
+                        : selectedEvent?.startTime,
                     )}{" "}
                     -{" "}
                     {formatTime(
                       currentUserRole === "athlete"
                         ? selectedEventForAthlete?.endTime
-                        : selectedEvent?.endTime
+                        : selectedEvent?.endTime,
                     )}
                   </p>
                 </div>
@@ -1682,9 +2089,11 @@ export default function EventsPage() {
                           const rsvpSummary = occurrenceRsvpSummaries[occ.id];
                           const goingCount = rsvpSummary?.goingCount || 0;
                           const notGoingCount = rsvpSummary?.notGoingCount || 0;
-                          const isSelected = currentUserRole === "athlete"
-                            ? selectedOccurrenceForAthleteDetail?.id === occ.id
-                            : selectedOccurrence?.id === occ.id;
+                          const isSelected =
+                            currentUserRole === "athlete"
+                              ? selectedOccurrenceForAthleteDetail?.id ===
+                                occ.id
+                              : selectedOccurrence?.id === occ.id;
                           return (
                             <div
                               key={occ.id}
@@ -1698,19 +2107,17 @@ export default function EventsPage() {
                                 <button
                                   type="button"
                                   onClick={() => selectOccurrence(occ)}
-                                  className="flex-1 text-left flex items-center gap-4 min-w-0"
+                                  className="flex-1 text-left flex items-center gap-6 min-w-0"
                                 >
                                   <div
-                                    className={`h-16 w-16 rounded-xl flex flex-col items-center justify-center shrink-0 ${
-                                      isSelected
-                                        ? "bg-primary-foreground/20"
-                                        : "bg-muted"
+                                    className={`h-16 w-16 rounded-xl flex flex-col items-center justify-center shrink-0 bg-black dark:bg-white ${
+                                      isSelected ? "ring-2 ring-primary" : ""
                                     }`}
                                   >
-                                    <span className="text-2xl font-bold leading-none">
+                                    <span className="text-2xl font-bold leading-none text-white dark:text-black">
                                       {dateInfo.day}
                                     </span>
-                                    <span className="text-xs font-medium opacity-70 mt-1">
+                                    <span className="text-xs font-medium opacity-70 mt-1 text-white dark:text-black">
                                       {dateInfo.month}
                                     </span>
                                   </div>
@@ -1722,7 +2129,7 @@ export default function EventsPage() {
                                       {formatTime(
                                         currentUserRole === "athlete"
                                           ? selectedEventForAthlete?.startTime
-                                          : selectedEvent?.startTime
+                                          : selectedEvent?.startTime,
                                       )}
                                     </p>
                                     {/* RSVP counts for coaches/owners */}
@@ -1730,9 +2137,7 @@ export default function EventsPage() {
                                       currentUserRole === "coach") && (
                                       <div
                                         className={`flex items-center gap-2 mt-1 ${
-                                          isSelected
-                                            ? "opacity-90"
-                                            : ""
+                                          isSelected ? "opacity-90" : ""
                                         }`}
                                       >
                                         <div className="flex items-center gap-1">
@@ -1779,34 +2184,49 @@ export default function EventsPage() {
                                   {/* User's RSVP Status */}
                                   {occurrenceRsvpsLoading ? (
                                     <Skeleton className="h-5 w-5 rounded shrink-0" />
-                                  ) : (() => {
-                                    const userRsvpStatus = currentUserRsvps.get(occ.id);
-                                    if (userRsvpStatus === "going") {
+                                  ) : (
+                                    (() => {
+                                      const userRsvpStatus =
+                                        currentUserRsvps.get(occ.id);
+                                      if (userRsvpStatus === "going") {
+                                        return (
+                                          <div
+                                            className={`flex items-center shrink-0 ${
+                                              isSelected
+                                                ? "text-primary-foreground"
+                                                : "text-emerald-600"
+                                            }`}
+                                          >
+                                            <IconCheck className="h-5 w-5" />
+                                          </div>
+                                        );
+                                      }
+                                      if (userRsvpStatus === "not_going") {
+                                        return (
+                                          <div
+                                            className={`flex items-center shrink-0 ${
+                                              isSelected
+                                                ? "text-primary-foreground"
+                                                : "text-red-600"
+                                            }`}
+                                          >
+                                            <IconX className="h-5 w-5" />
+                                          </div>
+                                        );
+                                      }
                                       return (
-                                        <div className={`flex items-center shrink-0 ${
-                                          isSelected ? "text-primary-foreground" : "text-emerald-600"
-                                        }`}>
-                                          <IconCheck className="h-5 w-5" />
+                                        <div
+                                          className={`flex items-center shrink-0 ${
+                                            isSelected
+                                              ? "text-primary-foreground/60"
+                                              : "text-amber-600"
+                                          }`}
+                                        >
+                                          <IconBell className="h-4 w-4" />
                                         </div>
                                       );
-                                    }
-                                    if (userRsvpStatus === "not_going") {
-                                      return (
-                                        <div className={`flex items-center shrink-0 ${
-                                          isSelected ? "text-primary-foreground" : "text-red-600"
-                                        }`}>
-                                          <IconX className="h-5 w-5" />
-                                        </div>
-                                      );
-                                    }
-                                    return (
-                                      <div className={`flex items-center shrink-0 ${
-                                        isSelected ? "text-primary-foreground/60" : "text-amber-600"
-                                      }`}>
-                                        <IconBell className="h-4 w-4" />
-                                      </div>
-                                    );
-                                  })()}
+                                    })()
+                                  )}
                                   <div className="flex flex-col items-end gap-1">
                                     {occ.status === "canceled" && (
                                       <Badge
@@ -1865,95 +2285,34 @@ export default function EventsPage() {
             value="details"
             className="flex-1 flex flex-col min-h-0 m-0 overflow-hidden"
           >
-            {currentUserRole === "athlete" && selectedOccurrenceForAthleteDetail ? (
+            {currentUserRole === "athlete" &&
+            selectedOccurrenceForAthleteDetail ? (
               <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
                 <div className="p-4 shrink-0 border-b">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 min-w-0">
-                      <h2 className="font-semibold text-lg">
-                        {selectedEventForAthlete?.title}
-                      </h2>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {formatDate(selectedOccurrenceForAthleteDetail.date).weekday},{" "}
-                        {formatDate(selectedOccurrenceForAthleteDetail.date).month}{" "}
-                        {formatDate(selectedOccurrenceForAthleteDetail.date).day} •{" "}
-                        {formatTime(selectedEventForAthlete?.startTime)}
-                      </p>
-                    </div>
-                    <div className="flex gap-2 shrink-0">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={async () => {
-                          const response = await fetch("/api/rsvp", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                              occurrenceId: selectedOccurrenceForAthleteDetail.id,
-                              status: "going",
-                            }),
-                          });
-                          if (response.ok) {
-                            setCurrentUserRsvps((prev) => {
-                              const newMap = new Map(prev);
-                              newMap.set(
-                                selectedOccurrenceForAthleteDetail.id,
-                                "going",
-                              );
-                              return newMap;
-                            });
-                            loadOccurrenceRsvps(selectedOccurrenceForAthleteDetail.id);
-                          }
-                        }}
-                        className={`h-9 rounded-xl gap-1.5 px-3 ${
-                          currentUserRsvps.get(selectedOccurrenceForAthleteDetail.id) === "going"
-                            ? "!bg-emerald-600 hover:!bg-emerald-700 !text-white border-emerald-600"
-                            : "border-emerald-400 text-emerald-400 hover:bg-emerald-50 hover:text-emerald-500 dark:hover:bg-emerald-950"
-                        }`}
-                      >
-                        <IconCheck className="h-4 w-4" />
-                        {currentUserRsvps.get(selectedOccurrenceForAthleteDetail.id) === "going"
-                          ? "Going!"
-                          : "Going"}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={async () => {
-                          const response = await fetch("/api/rsvp", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                              occurrenceId: selectedOccurrenceForAthleteDetail.id,
-                              status: "not_going",
-                            }),
-                          });
-                          if (response.ok) {
-                            setCurrentUserRsvps((prev) => {
-                              const newMap = new Map(prev);
-                              newMap.set(
-                                selectedOccurrenceForAthleteDetail.id,
-                                "not_going",
-                              );
-                              return newMap;
-                            });
-                            loadOccurrenceRsvps(selectedOccurrenceForAthleteDetail.id);
-                          }
-                        }}
-                        className={`h-9 rounded-xl gap-1.5 px-3 ${
-                          currentUserRsvps.get(selectedOccurrenceForAthleteDetail.id) === "not_going"
-                            ? "!bg-red-600 hover:!bg-red-700 !text-white border-red-600"
-                            : "border-red-400 text-red-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950"
-                        }`}
-                      >
-                        <IconX className="h-4 w-4" />
-                        Can't
-                      </Button>
-                    </div>
+                  <div className="flex-1 min-w-0">
+                    <h2 className="font-semibold text-lg">
+                      {selectedEventForAthlete?.title}
+                    </h2>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {
+                        formatDate(selectedOccurrenceForAthleteDetail.date)
+                          .weekday
+                      }
+                      ,{" "}
+                      {
+                        formatDate(selectedOccurrenceForAthleteDetail.date)
+                          .month
+                      }{" "}
+                      {
+                        formatDate(selectedOccurrenceForAthleteDetail.date)
+                          .day
+                      }{" "}
+                      • {formatTime(selectedEventForAthlete?.startTime)}
+                    </p>
                   </div>
                 </div>
-                <ScrollArea className="flex-1">
-                  <div className="p-4">
+                <div className="flex-1 overflow-auto min-h-0">
+                  <div className="p-4 pb-40">
                     {selectedEventForAthlete?.description && (
                       <div className="mb-4">
                         <p className="text-sm text-muted-foreground whitespace-pre-wrap">
@@ -1977,17 +2336,29 @@ export default function EventsPage() {
                       const notGoingUsers = occurrenceRsvpsForAthlete.filter(
                         (r) => r.status === "not_going",
                       );
-                      const rsvpedUserIds = new Set(occurrenceRsvpsForAthlete.map((r) => r.id));
+                      const rsvpedUserIds = new Set(
+                        occurrenceRsvpsForAthlete.map((r) => r.id),
+                      );
 
-                      const isCoachOrOwner = (userId: string, userRole?: string): boolean => {
-                        if (userRole === "coach" || userRole === "owner") return true;
+                      const isCoachOrOwner = (
+                        userId: string,
+                        userRole?: string,
+                      ): boolean => {
+                        if (userRole === "coach" || userRole === "owner")
+                          return true;
                         const member = gymMembers.find((m) => m.id === userId);
-                        return member?.role === "coach" || member?.role === "owner";
+                        return (
+                          member?.role === "coach" || member?.role === "owner"
+                        );
                       };
 
-                      const isAthlete = (userId: string, userRole?: string): boolean => {
+                      const isAthlete = (
+                        userId: string,
+                        userRole?: string,
+                      ): boolean => {
                         if (userRole === "athlete") return true;
-                        if (userRole === "coach" || userRole === "owner") return false;
+                        if (userRole === "coach" || userRole === "owner")
+                          return false;
                         const member = gymMembers.find((m) => m.id === userId);
                         return member?.role === "athlete" || !member?.role;
                       };
@@ -2022,7 +2393,8 @@ export default function EventsPage() {
                         });
                       const pendingCoaches = gymMembers
                         .filter((m) => {
-                          const isCoach = m.role === "coach" || m.role === "owner";
+                          const isCoach =
+                            m.role === "coach" || m.role === "owner";
                           return isCoach && !rsvpedUserIds.has(m.id);
                         })
                         .map((m) => ({
@@ -2042,7 +2414,8 @@ export default function EventsPage() {
                         });
                       const pendingAthletes = gymMembers
                         .filter((m) => {
-                          const isAthleteMember = m.role === "athlete" || !m.role;
+                          const isAthleteMember =
+                            m.role === "athlete" || !m.role;
                           return isAthleteMember && !rsvpedUserIds.has(m.id);
                         })
                         .map((m) => ({
@@ -2089,31 +2462,45 @@ export default function EventsPage() {
                       };
 
                       const renderUserItem = (
-                        user: typeof goingCoaches[0] | typeof goingAthletes[0] | typeof notGoingCoaches[0] | typeof notGoingAthletes[0] | typeof pendingCoaches[0] | typeof pendingAthletes[0],
+                        user:
+                          | (typeof goingCoaches)[0]
+                          | (typeof goingAthletes)[0]
+                          | (typeof notGoingCoaches)[0]
+                          | (typeof notGoingAthletes)[0]
+                          | (typeof pendingCoaches)[0]
+                          | (typeof pendingAthletes)[0],
                         _isCoach: boolean,
-                        displayStatusOverride?: "going" | "not_going" | "pending",
+                        displayStatusOverride?:
+                          | "going"
+                          | "not_going"
+                          | "pending",
                       ) => {
-                        const displayStatus: "going" | "not_going" | "pending" = displayStatusOverride 
-                          || ("displayStatus" in user && (user.displayStatus === "going" || user.displayStatus === "not_going" || user.displayStatus === "pending") 
-                            ? user.displayStatus 
-                            : (user.status === "going" ? "going" : user.status === "not_going" ? "not_going" : "pending"));
+                        const displayStatus: "going" | "not_going" | "pending" =
+                          displayStatusOverride ||
+                          ("displayStatus" in user &&
+                          (user.displayStatus === "going" ||
+                            user.displayStatus === "not_going" ||
+                            user.displayStatus === "pending")
+                            ? user.displayStatus
+                            : user.status === "going"
+                              ? "going"
+                              : user.status === "not_going"
+                                ? "not_going"
+                                : "pending");
                         return (
                           <div
                             key={user.id}
-                            className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 transition-colors"
+                            className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted/50 transition-colors"
                           >
-                            <Avatar className="h-10 w-10 rounded-xl">
+                            <Avatar className="h-8 w-8 rounded-lg shrink-0">
                               <AvatarImage src={user.avatarUrl || undefined} />
-                              <AvatarFallback className="rounded-xl text-xs bg-muted">
+                              <AvatarFallback className="rounded-lg text-xs bg-muted">
                                 {getInitials(user.name, user.email)}
                               </AvatarFallback>
                             </Avatar>
                             <div className="flex-1 min-w-0">
                               <p className="font-medium text-sm truncate">
                                 {user.name || "Unnamed"}
-                              </p>
-                              <p className="text-xs text-muted-foreground truncate">
-                                {user.email}
                               </p>
                             </div>
                             {renderStatusBadge(displayStatus)}
@@ -2122,30 +2509,9 @@ export default function EventsPage() {
                       };
 
                       return (
-                        <Tabs defaultValue="all" className="w-full">
-                          <TabsList className="w-full grid grid-cols-4 h-10 rounded-xl mb-4">
-                            <TabsTrigger value="all" className="text-xs rounded-lg">
-                              All (
-                              {goingCoaches.length +
-                                goingAthletes.length +
-                                notGoingCoaches.length +
-                                notGoingAthletes.length +
-                                pendingCoaches.length +
-                                pendingAthletes.length}
-                              )
-                            </TabsTrigger>
-                            <TabsTrigger value="going" className="text-xs rounded-lg">
-                              Going ({goingCoaches.length + goingAthletes.length})
-                            </TabsTrigger>
-                            <TabsTrigger value="not_going" className="text-xs rounded-lg">
-                              Can't ({notGoingCoaches.length + notGoingAthletes.length})
-                            </TabsTrigger>
-                            <TabsTrigger value="pending" className="text-xs rounded-lg">
-                              Pending ({pendingCoaches.length + pendingAthletes.length})
-                            </TabsTrigger>
-                          </TabsList>
+                        <Tabs value={athleteFilterTab} onValueChange={(value) => setAthleteFilterTab(value as typeof athleteFilterTab)} className="w-full">
                           <TabsContent value="all" className="mt-0">
-                            <div className="space-y-3">
+                            <div className="space-y-0.5">
                               {(() => {
                                 const allCoaches = [
                                   ...goingCoaches.map((c) => ({
@@ -2192,7 +2558,7 @@ export default function EventsPage() {
                                         <p className="text-xs font-medium text-muted-foreground mb-2">
                                           Coaches
                                         </p>
-                                        <div className="space-y-1">
+                                        <div className="space-y-0.5">
                                           {allCoaches.map((coach) =>
                                             renderUserItem(coach, true),
                                           )}
@@ -2204,7 +2570,7 @@ export default function EventsPage() {
                                         <p className="text-xs font-medium text-muted-foreground mb-2">
                                           Athletes
                                         </p>
-                                        <div className="space-y-1">
+                                        <div className="space-y-0.5">
                                           {allAthletes.map((athlete) =>
                                             renderUserItem(athlete, false),
                                           )}
@@ -2223,13 +2589,13 @@ export default function EventsPage() {
                             </div>
                           </TabsContent>
                           <TabsContent value="going" className="mt-0">
-                            <div className="space-y-3">
+                            <div className="space-y-0.5">
                               {goingCoaches.length > 0 && (
                                 <div>
                                   <p className="text-xs font-medium text-muted-foreground mb-2">
                                     Coaches
                                   </p>
-                                  <div className="space-y-1">
+                                  <div className="space-y-0.5">
                                     {goingCoaches.map((coach) =>
                                       renderUserItem(coach, true, "going"),
                                     )}
@@ -2241,28 +2607,29 @@ export default function EventsPage() {
                                   <p className="text-xs font-medium text-muted-foreground mb-2">
                                     Athletes
                                   </p>
-                                  <div className="space-y-1">
+                                  <div className="space-y-0.5">
                                     {goingAthletes.map((athlete) =>
                                       renderUserItem(athlete, false, "going"),
                                     )}
                                   </div>
                                 </div>
                               )}
-                              {goingCoaches.length === 0 && goingAthletes.length === 0 && (
-                                <div className="text-center text-sm text-muted-foreground py-8">
-                                  No one is going
-                                </div>
-                              )}
+                              {goingCoaches.length === 0 &&
+                                goingAthletes.length === 0 && (
+                                  <div className="text-center text-sm text-muted-foreground py-8">
+                                    No one is going
+                                  </div>
+                                )}
                             </div>
                           </TabsContent>
                           <TabsContent value="not_going" className="mt-0">
-                            <div className="space-y-3">
+                            <div className="space-y-0.5">
                               {notGoingCoaches.length > 0 && (
                                 <div>
                                   <p className="text-xs font-medium text-muted-foreground mb-2">
                                     Coaches
                                   </p>
-                                  <div className="space-y-1">
+                                  <div className="space-y-0.5">
                                     {notGoingCoaches.map((coach) =>
                                       renderUserItem(coach, true, "not_going"),
                                     )}
@@ -2274,28 +2641,33 @@ export default function EventsPage() {
                                   <p className="text-xs font-medium text-muted-foreground mb-2">
                                     Athletes
                                   </p>
-                                  <div className="space-y-1">
+                                  <div className="space-y-0.5">
                                     {notGoingAthletes.map((athlete) =>
-                                      renderUserItem(athlete, false, "not_going"),
+                                      renderUserItem(
+                                        athlete,
+                                        false,
+                                        "not_going",
+                                      ),
                                     )}
                                   </div>
                                 </div>
                               )}
-                              {notGoingCoaches.length === 0 && notGoingAthletes.length === 0 && (
-                                <div className="text-center text-sm text-muted-foreground py-8">
-                                  No one can't make it
-                                </div>
-                              )}
+                              {notGoingCoaches.length === 0 &&
+                                notGoingAthletes.length === 0 && (
+                                  <div className="text-center text-sm text-muted-foreground py-8">
+                                    No one can't make it
+                                  </div>
+                                )}
                             </div>
                           </TabsContent>
                           <TabsContent value="pending" className="mt-0">
-                            <div className="space-y-3">
+                            <div className="space-y-0.5">
                               {pendingCoaches.length > 0 && (
                                 <div>
                                   <p className="text-xs font-medium text-muted-foreground mb-2">
                                     Coaches
                                   </p>
-                                  <div className="space-y-1">
+                                  <div className="space-y-0.5">
                                     {pendingCoaches.map((coach) =>
                                       renderUserItem(coach, true, "pending"),
                                     )}
@@ -2307,29 +2679,30 @@ export default function EventsPage() {
                                   <p className="text-xs font-medium text-muted-foreground mb-2">
                                     Athletes
                                   </p>
-                                  <div className="space-y-1">
+                                  <div className="space-y-0.5">
                                     {pendingAthletes.map((athlete) =>
                                       renderUserItem(athlete, false, "pending"),
                                     )}
                                   </div>
                                 </div>
                               )}
-                              {pendingCoaches.length === 0 && pendingAthletes.length === 0 && (
-                                <div className="text-center text-sm text-muted-foreground py-8">
-                                  Everyone has responded
-                                </div>
-                              )}
+                              {pendingCoaches.length === 0 &&
+                                pendingAthletes.length === 0 && (
+                                  <div className="text-center text-sm text-muted-foreground py-8">
+                                    Everyone has responded
+                                  </div>
+                                )}
                             </div>
                           </TabsContent>
                         </Tabs>
                       );
                     })()}
                   </div>
-                </ScrollArea>
+                </div>
               </div>
             ) : selectedOccurrence ? (
               <>
-                <div className="p-4 shrink-0">
+                <div className="p-4 shrink-0 border-b">
                   <h2 className="font-semibold text-lg">
                     {selectedEvent?.title}
                   </h2>
@@ -2339,38 +2712,10 @@ export default function EventsPage() {
                     {formatDate(selectedOccurrence.date).day} •{" "}
                     {formatTime(selectedEvent?.startTime)}
                   </p>
-                  <div className="flex flex-col gap-2 mt-4">
-                    {notAnsweredUsers.length > 0 &&
-                      selectedOccurrence.status !== "canceled" && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={handleSendReminders}
-                          disabled={sendingReminder}
-                          className="w-full gap-2 rounded-xl"
-                        >
-                          <IconBell className="h-4 w-4" />
-                          {sendingReminder
-                            ? "Sending..."
-                            : `Send Reminders (${notAnsweredUsers.length})`}
-                        </Button>
-                      )}
-                    {selectedOccurrence.status !== "canceled" && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setCancelDialogOpen(true)}
-                        className="w-full text-destructive hover:text-destructive rounded-xl"
-                      >
-                        <IconX className="h-4 w-4 mr-2" />
-                        Cancel Session
-                      </Button>
-                    )}
-                  </div>
                 </div>
                 <div className="flex-1 overflow-hidden">
                   {rsvpLoading ? (
-                    <div className="flex flex-col h-full p-4">
+                    <div className="flex flex-col h-full p-4 pb-40">
                       <Skeleton className="h-12 w-full mb-4 rounded-xl" />
                       <div className="space-y-3">
                         {[1, 2, 3, 4, 5].map((i) => (
@@ -2390,40 +2735,13 @@ export default function EventsPage() {
                     </div>
                   ) : (
                     <Tabs
-                      defaultValue="all"
+                      value={coachFilterTab}
+                      onValueChange={(value) => setCoachFilterTab(value as typeof coachFilterTab)}
                       className="h-full flex flex-col min-h-0"
                     >
-                      <div className="px-4 pt-4 shrink-0">
-                        <TabsList className="w-full grid grid-cols-4 h-10 rounded-xl">
-                          <TabsTrigger
-                            value="all"
-                            className="text-xs rounded-lg"
-                          >
-                            All ({gymMembers.length})
-                          </TabsTrigger>
-                          <TabsTrigger
-                            value="going"
-                            className="text-xs rounded-lg"
-                          >
-                            Going ({goingUsers.length})
-                          </TabsTrigger>
-                          <TabsTrigger
-                            value="not_going"
-                            className="text-xs rounded-lg"
-                          >
-                            Can't ({notGoingUsers.length})
-                          </TabsTrigger>
-                          <TabsTrigger
-                            value="pending"
-                            className="text-xs rounded-lg"
-                          >
-                            Pending ({notAnsweredUsers.length})
-                          </TabsTrigger>
-                        </TabsList>
-                      </div>
                       <TabsContent
                         value="all"
-                        className="flex-1 overflow-auto mt-0 p-4 min-h-0"
+                        className="flex-1 overflow-auto mt-0 p-4 pb-40 min-h-0"
                       >
                         {gymMembersLoading ? (
                           <div className="space-y-3">
@@ -2457,7 +2775,7 @@ export default function EventsPage() {
                       </TabsContent>
                       <TabsContent
                         value="going"
-                        className="flex-1 overflow-auto mt-0 p-4"
+                        className="flex-1 overflow-auto mt-0 p-4 pb-40"
                       >
                         <UserList
                           users={goingUsers.map((u) => {
@@ -2478,7 +2796,7 @@ export default function EventsPage() {
                       </TabsContent>
                       <TabsContent
                         value="not_going"
-                        className="flex-1 overflow-auto mt-0 p-4"
+                        className="flex-1 overflow-auto mt-0 p-4 pb-40"
                       >
                         <UserList
                           users={notGoingUsers.map((u) => {
@@ -2499,7 +2817,7 @@ export default function EventsPage() {
                       </TabsContent>
                       <TabsContent
                         value="pending"
-                        className="flex-1 overflow-auto mt-0 p-4"
+                        className="flex-1 overflow-auto mt-0 p-4 pb-40"
                       >
                         <UserList
                           users={notAnsweredUsers.map((u) => ({
@@ -2528,7 +2846,7 @@ export default function EventsPage() {
           {/* Chat Tab */}
           <TabsContent
             value="chat"
-            key={`chat-${selectedEvent?.id || selectedEventForAthlete?.id || 'none'}-${mobileView}`}
+            key={`chat-${selectedEvent?.id || selectedEventForAthlete?.id || "none"}-${mobileView}`}
             className="flex-1 flex flex-col min-h-0 m-0 overflow-hidden"
           >
             {selectedEvent && eventChannelId ? (
@@ -2562,6 +2880,142 @@ export default function EventsPage() {
             )}
           </TabsContent>
         </Tabs>
+        
+        {/* Fixed Action Buttons - Above Bottom Nav */}
+        {mobileView === "details" &&
+          (selectedOccurrence || selectedOccurrenceForAthleteDetail) &&
+          ((currentUserRole === "athlete" &&
+            selectedOccurrenceForAthleteDetail?.status !== "canceled") ||
+            (currentUserRole !== "athlete" &&
+              selectedOccurrence &&
+              selectedOccurrence.status !== "canceled")) && (
+            <div className="fixed bottom-16 left-0 right-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t p-4 lg:hidden">
+              <div className="grid grid-cols-2 gap-2">
+                {/* Going Button */}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={async () => {
+                    const occurrenceId = currentUserRole === "athlete"
+                      ? selectedOccurrenceForAthleteDetail?.id
+                      : selectedOccurrence?.id;
+                    if (!occurrenceId) return;
+                    const response = await fetch("/api/rsvp", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        occurrenceId,
+                        status: "going",
+                      }),
+                    });
+                    if (response.ok) {
+                      setCurrentUserRsvps((prev) => {
+                        const newMap = new Map(prev);
+                        newMap.set(occurrenceId, "going");
+                        return newMap;
+                      });
+                      if (occurrenceId) loadOccurrenceRsvps(occurrenceId);
+                    }
+                  }}
+                  className={`h-9 rounded-sm gap-2 px-3 w-full ${
+                    currentUserRsvps.get(
+                      currentUserRole === "athlete"
+                        ? selectedOccurrenceForAthleteDetail?.id || ""
+                        : selectedOccurrence?.id || "",
+                    ) === "going"
+                      ? "!bg-emerald-600 hover:!bg-emerald-700 !text-white border-emerald-600"
+                      : "border-emerald-400 text-emerald-400 hover:bg-emerald-50 hover:text-emerald-500 dark:hover:bg-emerald-950"
+                  }`}
+                >
+                  <IconCheck className="h-4 w-4" />
+                  {currentUserRsvps.get(
+                    currentUserRole === "athlete"
+                      ? selectedOccurrenceForAthleteDetail?.id || ""
+                      : selectedOccurrence?.id || "",
+                  ) === "going"
+                    ? "Going!"
+                    : "Going"}
+                </Button>
+                
+                {/* Not Going Button */}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={async () => {
+                    const occurrenceId = currentUserRole === "athlete"
+                      ? selectedOccurrenceForAthleteDetail?.id
+                      : selectedOccurrence?.id;
+                    if (!occurrenceId) return;
+                    const response = await fetch("/api/rsvp", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        occurrenceId,
+                        status: "not_going",
+                      }),
+                    });
+                    if (response.ok) {
+                      setCurrentUserRsvps((prev) => {
+                        const newMap = new Map(prev);
+                        newMap.set(occurrenceId, "not_going");
+                        return newMap;
+                      });
+                      if (occurrenceId) loadOccurrenceRsvps(occurrenceId);
+                    }
+                  }}
+                  className={`h-9 rounded-sm gap-2 px-3 w-full ${
+                    currentUserRsvps.get(
+                      currentUserRole === "athlete"
+                        ? selectedOccurrenceForAthleteDetail?.id || ""
+                        : selectedOccurrence?.id || "",
+                    ) === "not_going"
+                      ? "!bg-red-600 hover:!bg-red-700 !text-white border-red-600"
+                      : "border-red-400 text-red-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950"
+                  }`}
+                >
+                  <IconX className="h-4 w-4" />
+                  Not Going
+                </Button>
+                
+                {/* Send Reminders Button - Only for non-athletes */}
+                {currentUserRole !== "athlete" &&
+                  notAnsweredUsers.length > 0 &&
+                  selectedOccurrence &&
+                  selectedOccurrence.status !== "canceled" && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleSendReminders}
+                      disabled={sendingReminder}
+                      className="h-9 w-full gap-2 rounded-sm px-3"
+                    >
+                      <IconBell className="h-4 w-4" />
+                      {sendingReminder
+                        ? "Sending..."
+                        : `Send Reminders (${notAnsweredUsers.length})`}
+                    </Button>
+                  )}
+                
+                {/* Cancel Session Button - Only for coaches/owners */}
+                {currentUserRole !== "athlete" && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCancelDialogOpen(true)}
+                    className={`h-9 w-full gap-2 rounded-sm px-3 text-destructive hover:text-destructive ${
+                      notAnsweredUsers.length > 0 &&
+                      selectedOccurrence?.status !== "canceled"
+                        ? ""
+                        : "col-span-2"
+                    }`}
+                  >
+                    <IconBan className="h-4 w-4" />
+                    Cancel Session
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
       </div>
     );
   }
@@ -2835,7 +3289,8 @@ export default function EventsPage() {
                             }
                           }}
                           className={`w-full text-left p-3 rounded-xl transition-all ${
-                            selectedEventForAthlete?.id === event.id && (!isEventsMobile || mobileView !== "events")
+                            selectedEventForAthlete?.id === event.id &&
+                            (!isEventsMobile || mobileView !== "events")
                               ? "bg-primary text-primary-foreground"
                               : "hover:bg-muted"
                           }`}
@@ -2845,7 +3300,8 @@ export default function EventsPage() {
                           </p>
                           <div
                             className={`flex items-center gap-2 mt-1.5 text-xs ${
-                              selectedEventForAthlete?.id === event.id && (!isEventsMobile || mobileView !== "events")
+                              selectedEventForAthlete?.id === event.id &&
+                              (!isEventsMobile || mobileView !== "events")
                                 ? "text-primary-foreground/70"
                                 : "text-muted-foreground"
                             }`}
@@ -2884,7 +3340,7 @@ export default function EventsPage() {
                           onClick={() =>
                             setSelectedOccurrenceForAthleteDetail(occ)
                           }
-                          className={`w-full text-left p-3 rounded-xl mb-1 transition-all flex items-center gap-3 ${
+                          className={`w-full text-left p-3 rounded-xl mb-1 transition-all flex items-center gap-4 ${
                             selectedOccurrenceForAthleteDetail?.id === occ.id
                               ? "bg-primary/10 ring-1 ring-primary"
                               : "hover:bg-muted"
@@ -2916,28 +3372,32 @@ export default function EventsPage() {
                             {/* User's RSVP Status */}
                             {occurrenceRsvpsLoading ? (
                               <Skeleton className="h-5 w-5 rounded shrink-0" />
-                            ) : (() => {
-                              const userRsvpStatus = currentUserRsvps.get(occ.id);
-                              if (userRsvpStatus === "going") {
+                            ) : (
+                              (() => {
+                                const userRsvpStatus = currentUserRsvps.get(
+                                  occ.id,
+                                );
+                                if (userRsvpStatus === "going") {
+                                  return (
+                                    <div className="flex items-center text-emerald-600 shrink-0">
+                                      <IconCheck className="h-5 w-5" />
+                                    </div>
+                                  );
+                                }
+                                if (userRsvpStatus === "not_going") {
+                                  return (
+                                    <div className="flex items-center text-red-600 shrink-0">
+                                      <IconX className="h-5 w-5" />
+                                    </div>
+                                  );
+                                }
                                 return (
-                                  <div className="flex items-center text-emerald-600 shrink-0">
-                                    <IconCheck className="h-5 w-5" />
+                                  <div className="flex items-center text-amber-600 shrink-0">
+                                    <IconBell className="h-4 w-4" />
                                   </div>
                                 );
-                              }
-                              if (userRsvpStatus === "not_going") {
-                                return (
-                                  <div className="flex items-center text-red-600 shrink-0">
-                                    <IconX className="h-5 w-5" />
-                                  </div>
-                                );
-                              }
-                              return (
-                                <div className="flex items-center text-amber-600 shrink-0">
-                                  <IconBell className="h-4 w-4" />
-                                </div>
-                              );
-                            })()}
+                              })()
+                            )}
                             {occ.status === "canceled" && (
                               <Badge
                                 variant="destructive"
@@ -3988,7 +4448,8 @@ export default function EventsPage() {
                       type="button"
                       onClick={() => selectEvent(event)}
                       className={`w-full text-left p-3 rounded-xl mb-1 transition-all ${
-                        selectedEvent?.id === event.id && (!isEventsMobile || mobileView !== "events")
+                        selectedEvent?.id === event.id &&
+                        (!isEventsMobile || mobileView !== "events")
                           ? "bg-primary text-primary-foreground"
                           : "hover:bg-muted"
                       }`}
@@ -3998,7 +4459,8 @@ export default function EventsPage() {
                       </p>
                       <div
                         className={`flex items-center gap-2 mt-1.5 text-xs ${
-                          selectedEvent?.id === event.id && (!isEventsMobile || mobileView !== "events")
+                          selectedEvent?.id === event.id &&
+                          (!isEventsMobile || mobileView !== "events")
                             ? "text-primary-foreground/70"
                             : "text-muted-foreground"
                         }`}
@@ -4018,7 +4480,8 @@ export default function EventsPage() {
                           variant="ghost"
                           size="icon"
                           className={`absolute right-2 top-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity ${
-                            selectedEvent?.id === event.id && (!isEventsMobile || mobileView !== "events")
+                            selectedEvent?.id === event.id &&
+                            (!isEventsMobile || mobileView !== "events")
                               ? "text-primary-foreground hover:bg-primary-foreground/20"
                               : ""
                           }`}
@@ -4103,7 +4566,10 @@ export default function EventsPage() {
                 <ScrollArea className="h-full">
                   <div className="p-2 space-y-2">
                     {[1, 2, 3].map((i) => (
-                      <div key={i} className="w-full rounded-xl p-3 flex items-center gap-3">
+                      <div
+                        key={i}
+                        className="w-full rounded-xl p-3 flex items-center gap-3"
+                      >
                         <Skeleton className="h-14 w-14 rounded-xl shrink-0" />
                         <div className="flex-1 space-y-2">
                           <Skeleton className="h-4 w-24 rounded" />
@@ -4130,7 +4596,7 @@ export default function EventsPage() {
                             key={occ.id}
                             type="button"
                             onClick={() => selectOccurrence(occ)}
-                            className={`w-full text-left p-3 rounded-xl mb-1 transition-all flex items-center gap-3 ${
+                            className={`w-full text-left p-3 rounded-xl mb-1 transition-all flex items-center gap-4 ${
                               selectedOccurrence?.id === occ.id
                                 ? "bg-primary/10 ring-1 ring-primary"
                                 : "hover:bg-muted"
@@ -4139,14 +4605,22 @@ export default function EventsPage() {
                             <div
                               className={`h-14 w-14 rounded-xl flex flex-col items-center justify-center shrink-0 ${
                                 selectedOccurrence?.id === occ.id
-                                  ? "bg-primary text-primary-foreground"
-                                  : "bg-muted"
+                                  ? "bg-primary text-primary-foreground ring-2 ring-primary"
+                                  : "bg-black dark:bg-white"
                               }`}
                             >
-                              <span className="text-xl font-bold leading-none">
+                              <span className={`text-xl font-bold leading-none ${
+                                selectedOccurrence?.id === occ.id
+                                  ? ""
+                                  : "text-white dark:text-black"
+                              }`}>
                                 {dateInfo.day}
                               </span>
-                              <span className="text-[10px] font-medium opacity-70 mt-0.5">
+                              <span className={`text-[10px] font-medium opacity-70 mt-0.5 ${
+                                selectedOccurrence?.id === occ.id
+                                  ? ""
+                                  : "text-white dark:text-black"
+                              }`}>
                                 {dateInfo.month}
                               </span>
                             </div>
@@ -4162,28 +4636,32 @@ export default function EventsPage() {
                               {/* User's RSVP Status */}
                               {occurrenceRsvpsLoading ? (
                                 <Skeleton className="h-5 w-5 rounded shrink-0" />
-                              ) : (() => {
-                                const userRsvpStatus = currentUserRsvps.get(occ.id);
-                                if (userRsvpStatus === "going") {
+                              ) : (
+                                (() => {
+                                  const userRsvpStatus = currentUserRsvps.get(
+                                    occ.id,
+                                  );
+                                  if (userRsvpStatus === "going") {
+                                    return (
+                                      <div className="flex items-center text-emerald-600 shrink-0">
+                                        <IconCheck className="h-5 w-5" />
+                                      </div>
+                                    );
+                                  }
+                                  if (userRsvpStatus === "not_going") {
+                                    return (
+                                      <div className="flex items-center text-red-600 shrink-0">
+                                        <IconX className="h-5 w-5" />
+                                      </div>
+                                    );
+                                  }
                                   return (
-                                    <div className="flex items-center text-emerald-600 shrink-0">
-                                      <IconCheck className="h-5 w-5" />
+                                    <div className="flex items-center text-amber-600 shrink-0">
+                                      <IconBell className="h-4 w-4" />
                                     </div>
                                   );
-                                }
-                                if (userRsvpStatus === "not_going") {
-                                  return (
-                                    <div className="flex items-center text-red-600 shrink-0">
-                                      <IconX className="h-5 w-5" />
-                                    </div>
-                                  );
-                                }
-                                return (
-                                  <div className="flex items-center text-amber-600 shrink-0">
-                                    <IconBell className="h-4 w-4" />
-                                  </div>
-                                );
-                              })()}
+                                })()
+                              )}
                               <div className="flex flex-col items-end gap-1">
                                 {occ.status === "canceled" && (
                                   <Badge
@@ -4659,7 +5137,10 @@ export default function EventsPage() {
                   setNotifyOnCancel(checked as boolean)
                 }
               />
-              <Label htmlFor="notify-on-cancel" className="cursor-pointer flex-1">
+              <Label
+                htmlFor="notify-on-cancel"
+                className="cursor-pointer flex-1"
+              >
                 Notify all users who RSVP'd "Going" via email
               </Label>
             </div>
@@ -4797,11 +5278,18 @@ function UserList({
   onEditRsvp,
   currentUserRole,
 }: UserListProps) {
+  const isMobile = useIsMobile();
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  
   // Filter to only include coaches/owners and athletes (exclude any other roles)
   const filteredUsers = users.filter((u) => {
     const role = u.role;
     return role === "coach" || role === "owner" || role === "athlete" || !role;
   });
+  
+  const selectedUser = selectedUserId
+    ? filteredUsers.find((u) => u.id === selectedUserId)
+    : null;
 
   if (filteredUsers.length === 0) {
     return (
@@ -4818,143 +5306,159 @@ function UserList({
   const athletes = filteredUsers.filter((u) => u.role === "athlete" || !u.role);
 
   return (
-    <div className="space-y-1">
-      {coaches.map((user) => (
-        <div
-          key={user.id}
-          className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 transition-colors group"
-        >
-          <Avatar className="h-10 w-10 rounded-xl">
-            <AvatarImage src={user.avatarUrl || undefined} />
-            <AvatarFallback className="rounded-xl text-xs bg-linear-to-br from-primary/20 to-primary/5">
-              {getInitials(user.name, user.email)}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1 min-w-0">
-            <p className="font-medium text-sm truncate">
-              {user.name || "Unnamed"}
-            </p>
-            <p className="text-xs text-muted-foreground truncate">
-              {user.email}
-            </p>
+    <div className="space-y-0.5">
+      {coaches.length > 0 && (
+        <>
+          <div className="flex items-center gap-2 my-2">
+            <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">Coaches</span>
+            <hr className="flex-1 border-border" />
           </div>
-          <div className="flex items-center gap-2">
-            {user.status === "going" && (
-              <div className="flex items-center gap-1 text-emerald-600 bg-emerald-100 dark:bg-emerald-950/50 px-2.5 py-1 rounded-full text-xs font-medium">
-                <IconCheck className="h-3 w-3" />
-                Going
+          {coaches.map((user) => (
+            <div
+              key={user.id}
+              className={`flex items-center gap-2 p-2 rounded-lg transition-colors group ${
+                isMobile && onEditRsvp
+                  ? "cursor-pointer active:bg-muted/70"
+                  : "hover:bg-muted/50"
+              }`}
+              onClick={isMobile && onEditRsvp ? () => setSelectedUserId(user.id) : undefined}
+            >
+              <Avatar className="h-8 w-8 rounded-lg shrink-0">
+                <AvatarImage src={user.avatarUrl || undefined} />
+                <AvatarFallback className="rounded-lg text-xs bg-linear-to-br from-primary/20 to-primary/5">
+                  {getInitials(user.name, user.email)}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-sm truncate">
+                  {user.name || "Unnamed"}
+                </p>
               </div>
-            )}
-            {user.status === "not_going" && (
-              <div className="flex items-center gap-1 text-red-600 bg-red-100 dark:bg-red-950/50 px-2.5 py-1 rounded-full text-xs font-medium">
-                <IconX className="h-3 w-3" />
-                Can't Go
-              </div>
-            )}
-            {user.status === null && (
-              <div className="flex items-center gap-1 text-amber-600 bg-amber-100 dark:bg-amber-950/50 px-2.5 py-1 rounded-full text-xs font-medium">
-                <IconBell className="h-3 w-3" />
-                Pending
-              </div>
-            )}
-            {onEditRsvp && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <IconDotsVertical className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="rounded-xl">
-                  <DropdownMenuItem asChild>
-                    <Link
-                      href={`/chat?userId=${user.id}`}
-                      className="flex items-center gap-2 cursor-pointer"
-                    >
-                      <IconMessageCircle className="h-4 w-4" />
-                      Chat
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link
-                      href={`/roster/${user.id}`}
-                      className="flex items-center gap-2 cursor-pointer"
-                    >
-                      <IconUsers className="h-4 w-4" />
-                      View Profile
-                    </Link>
-                  </DropdownMenuItem>
-                  {(currentUserRole === "owner" ||
-                    currentUserRole === "coach") &&
-                    user.status === null && (
-                      <>
-                        <DropdownMenuSeparator />
-                        {(user.phone || user.cellPhone) && (
-                          <DropdownMenuItem asChild>
-                            <a
-                              href={`tel:${(user.phone || user.cellPhone || "").replace(/\D/g, "")}`}
-                              className="flex items-center gap-2 cursor-pointer"
-                            >
-                              <IconPhone className="h-4 w-4" />
-                              Call
-                            </a>
-                          </DropdownMenuItem>
+              <div className="flex items-center gap-2">
+                {user.status === "going" && (
+                  <div className="flex items-center gap-1 text-emerald-600 bg-emerald-100 dark:bg-emerald-950/50 px-2.5 py-1 rounded-full text-xs font-medium">
+                    <IconCheck className="h-3 w-3" />
+                    Going
+                  </div>
+                )}
+                {user.status === "not_going" && (
+                  <div className="flex items-center gap-1 text-red-600 bg-red-100 dark:bg-red-950/50 px-2.5 py-1 rounded-full text-xs font-medium">
+                    <IconX className="h-3 w-3" />
+                    Can't Go
+                  </div>
+                )}
+                {user.status === null && (
+                  <div className="flex items-center gap-1 text-amber-600 bg-amber-100 dark:bg-amber-950/50 px-2.5 py-1 rounded-full text-xs font-medium">
+                    <IconBell className="h-3 w-3" />
+                    Pending
+                  </div>
+                )}
+                {onEditRsvp && !isMobile && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <IconDotsVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="rounded-xl">
+                      <DropdownMenuItem asChild>
+                        <Link
+                          href={`/chat?userId=${user.id}`}
+                          className="flex items-center gap-2 cursor-pointer"
+                        >
+                          <IconMessageCircle className="h-4 w-4" />
+                          Chat
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link
+                          href={`/roster/${user.id}`}
+                          className="flex items-center gap-2 cursor-pointer"
+                        >
+                          <IconUsers className="h-4 w-4" />
+                          View Profile
+                        </Link>
+                      </DropdownMenuItem>
+                      {(currentUserRole === "owner" ||
+                        currentUserRole === "coach") &&
+                        user.status === null && (
+                          <>
+                            <DropdownMenuSeparator />
+                            {(user.phone || user.cellPhone) && (
+                              <DropdownMenuItem asChild>
+                                <a
+                                  href={`tel:${(user.phone || user.cellPhone || "").replace(/\D/g, "")}`}
+                                  className="flex items-center gap-2 cursor-pointer"
+                                >
+                                  <IconPhone className="h-4 w-4" />
+                                  Call
+                                </a>
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuItem asChild>
+                              <a
+                                href={`mailto:${user.email}`}
+                                className="flex items-center gap-2 cursor-pointer"
+                              >
+                                <IconMail className="h-4 w-4" />
+                                Email
+                              </a>
+                            </DropdownMenuItem>
+                          </>
                         )}
-                        <DropdownMenuItem asChild>
-                          <a
-                            href={`mailto:${user.email}`}
-                            className="flex items-center gap-2 cursor-pointer"
-                          >
-                            <IconMail className="h-4 w-4" />
-                            Email
-                          </a>
-                        </DropdownMenuItem>
-                      </>
-                    )}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={() => onEditRsvp(user.id, "going")}
-                    className="gap-2"
-                  >
-                    <IconCheck className="h-4 w-4 text-emerald-600" />
-                    Mark as Going
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => onEditRsvp(user.id, "not_going")}
-                    className="gap-2"
-                  >
-                    <IconX className="h-4 w-4 text-red-600" />
-                    Mark as Can't Go
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
-          </div>
-        </div>
-      ))}
-      {coaches.length > 0 && athletes.length > 0 && (
-        <hr className="my-3 border-border" />
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={() => onEditRsvp(user.id, "going")}
+                        className="gap-2"
+                      >
+                        <IconCheck className="h-4 w-4 text-emerald-600" />
+                        Mark as Going
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => onEditRsvp(user.id, "not_going")}
+                        className="gap-2"
+                      >
+                        <IconX className="h-4 w-4 text-red-600" />
+                        Mark as Can't Go
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+              </div>
+            </div>
+          ))}
+        </>
       )}
-      {athletes.map((user) => (
+      {athletes.length > 0 && (
+        <>
+          <div className="flex items-center gap-2 my-2">
+            <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">Athletes</span>
+            <hr className="flex-1 border-border" />
+          </div>
+          <div className="divide-y divide-border">
+          {athletes.map((user) => (
         <div
           key={user.id}
-          className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 transition-colors group"
+          className={`flex items-center gap-2 p-2 transition-colors group ${
+            isMobile && onEditRsvp
+              ? "cursor-pointer active:bg-muted/70"
+              : "hover:bg-muted/50"
+          }`}
+          onClick={isMobile && onEditRsvp ? () => setSelectedUserId(user.id) : undefined}
         >
-          <Avatar className="h-10 w-10 rounded-xl">
+          <Avatar className="h-8 w-8 rounded-lg shrink-0">
             <AvatarImage src={user.avatarUrl || undefined} />
-            <AvatarFallback className="rounded-xl text-xs bg-linear-to-br from-primary/20 to-primary/5">
+            <AvatarFallback className="rounded-lg text-xs bg-linear-to-br from-primary/20 to-primary/5">
               {getInitials(user.name, user.email)}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
             <p className="font-medium text-sm truncate">
               {user.name || "Unnamed"}
-            </p>
-            <p className="text-xs text-muted-foreground truncate">
-              {user.email}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -4976,7 +5480,7 @@ function UserList({
                 Pending
               </div>
             )}
-            {onEditRsvp && (
+            {onEditRsvp && !isMobile && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -5054,6 +5558,116 @@ function UserList({
           </div>
         </div>
       ))}
+          </div>
+        </>
+      )}
+      
+      {/* Mobile Drawer for User Actions */}
+      {isMobile && selectedUser && (
+        <Drawer open={!!selectedUser} onOpenChange={(open) => !open && setSelectedUserId(null)}>
+          <DrawerContent className="max-h-[85vh]">
+            <div className="px-4 pt-4 pb-3 border-b">
+              <div className="flex items-center gap-3 mb-3">
+                <Avatar className="h-14 w-14 rounded-xl shrink-0">
+                  <AvatarImage src={selectedUser.avatarUrl || undefined} />
+                  <AvatarFallback className="rounded-xl text-base font-semibold">
+                    {getInitials(selectedUser.name, selectedUser.email)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <DrawerTitle className="text-lg font-semibold truncate">
+                    {selectedUser.name || "Unnamed"}
+                  </DrawerTitle>
+                  <p className="text-sm text-muted-foreground truncate">
+                    {selectedUser.email}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div
+              className="px-4 py-3 space-y-1 overflow-y-auto"
+              style={{
+                paddingBottom: `calc(0.75rem + env(safe-area-inset-bottom, 0))`,
+              }}
+            >
+              <Button
+                variant="ghost"
+                className="w-full justify-start gap-3 h-12 px-3"
+                asChild
+              >
+                <Link href={`/chat?userId=${selectedUser.id}`}>
+                  <IconMessageCircle className="h-5 w-5" />
+                  <span>Chat</span>
+                </Link>
+              </Button>
+              <Button
+                variant="ghost"
+                className="w-full justify-start gap-3 h-12 px-3"
+                asChild
+              >
+                <Link href={`/roster/${selectedUser.id}`}>
+                  <IconUsers className="h-5 w-5" />
+                  <span>View Profile</span>
+                </Link>
+              </Button>
+              {(currentUserRole === "owner" || currentUserRole === "coach") &&
+                selectedUser.status === null && (
+                  <>
+                    {(selectedUser.phone || selectedUser.cellPhone) && (
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start gap-3 h-12 px-3"
+                        onClick={() => {
+                          window.location.href = `tel:${(selectedUser.phone || selectedUser.cellPhone || "").replace(/\D/g, "")}`;
+                        }}
+                      >
+                        <IconPhone className="h-5 w-5" />
+                        <span>Call</span>
+                      </Button>
+                    )}
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start gap-3 h-12 px-3"
+                      onClick={() => {
+                        window.location.href = `mailto:${selectedUser.email}`;
+                      }}
+                    >
+                      <IconMail className="h-5 w-5" />
+                      <span>Email</span>
+                    </Button>
+                  </>
+                )}
+              {onEditRsvp && (
+                <>
+                  <div className="h-px bg-border my-2" />
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start gap-3 h-12 px-3"
+                    onClick={() => {
+                      onEditRsvp(selectedUser.id, "going");
+                      setSelectedUserId(null);
+                    }}
+                  >
+                    <IconCheck className="h-5 w-5 text-emerald-600" />
+                    <span>Mark as Going</span>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start gap-3 h-12 px-3"
+                    onClick={() => {
+                      onEditRsvp(selectedUser.id, "not_going");
+                      setSelectedUserId(null);
+                    }}
+                  >
+                    <IconX className="h-5 w-5 text-red-600" />
+                    <span>Mark as Can't Go</span>
+                  </Button>
+                </>
+              )}
+            </div>
+          </DrawerContent>
+        </Drawer>
+      )}
     </div>
   );
 }

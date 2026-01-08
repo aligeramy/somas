@@ -29,7 +29,8 @@ export function WelcomeEmail({
       </Text>
 
       <Text className="text-[15px] text-gray-600 leading-6 mb-6">
-        We're excited to have you join <strong>{gymName || "SOMAS"}</strong> on the SOMAS App! Your account has been created and you're all set to start
+        We're excited to have you join <strong>{gymName || "SOMAS"}</strong> on
+        the SOMAS App! Your account has been created and you're all set to start
         managing your training schedule, RSVPs, and team communication.
       </Text>
 
@@ -55,4 +56,3 @@ export function WelcomeEmail({
 }
 
 export default WelcomeEmail;
-

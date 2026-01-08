@@ -10,10 +10,10 @@ interface PageHeaderProps {
 
 export function PageHeader({ title, children }: PageHeaderProps) {
   return (
-    <div className="sticky z-10 -top-1 mb-4">
-      <header className="flex h-14 shrink-0 items-center gap-2 bg-card border rounded-xl shadow-sm px-4 lg:px-6">
+    <div className="sticky z-10 -top-1 md:hidden">
+      <header className="flex h-14 shrink-0 items-center gap-2 bg-card border shadow-sm px-4 sm:px-6 md:px-6 lg:px-8 md:rounded-md sm:rounded-none">
         <SidebarTrigger className="-ml-1 md:hidden" />
-        <div className="flex flex-1 items-center justify-between gap-4">
+        <div className="flex flex-1 items-center justify-between gap-2 sm:gap-4">
           <div className="flex items-center gap-3">
             <div>
               <h1 className="text-lg font-semibold tracking-tight">{title}</h1>
@@ -50,7 +50,7 @@ export function PageHeader({ title, children }: PageHeaderProps) {
               `}</style>
               <div
                 data-page-header
-                className="flex items-center gap-2 [&_button]:md:px-3 [&_button]:md:gap-2 [&_button]:md:size-auto [&_button]:md:h-8 [&_button]:md:w-auto [&_button_svg]:md:mr-2"
+                className="flex items-center gap-2 md:gap-3 [&_button]:md:px-3 [&_button]:md:gap-2 [&_button]:md:size-auto [&_button]:md:h-8 [&_button]:md:w-auto [&_button_svg]:md:mr-2"
               >
                 {children}
               </div>
@@ -58,7 +58,6 @@ export function PageHeader({ title, children }: PageHeaderProps) {
           )}
         </div>
       </header>
-      <hr className="mt-4 border-border" />
     </div>
   );
 }

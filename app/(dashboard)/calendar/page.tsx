@@ -80,6 +80,22 @@ interface CoachAttendee {
   cellPhone: string | null;
 }
 
+// Color palette for events (for athletes view)
+const EVENT_COLORS = [
+  "bg-blue-500",
+  "bg-purple-500",
+  "bg-pink-500",
+  "bg-indigo-500",
+  "bg-cyan-500",
+  "bg-teal-500",
+  "bg-orange-500",
+  "bg-amber-500",
+  "bg-lime-500",
+  "bg-emerald-500",
+  "bg-violet-500",
+  "bg-fuchsia-500",
+];
+
 export default function CalendarPage() {
   const [month, setMonth] = useState<Date>(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -92,7 +108,9 @@ export default function CalendarPage() {
   const [loading, setLoading] = useState(true);
   const [rsvpDialogOpen, setRsvpDialogOpen] = useState(false);
   const [updatingRsvp, setUpdatingRsvp] = useState<string | null>(null);
-  const [cancelingOccurrence, setCancelingOccurrence] = useState<string | null>(null);
+  const [cancelingOccurrence, setCancelingOccurrence] = useState<string | null>(
+    null,
+  );
   const [coachAttendees, setCoachAttendees] = useState<
     Record<string, CoachAttendee[]>
   >({});
@@ -309,7 +327,7 @@ export default function CalendarPage() {
 
     try {
       setCancelingOccurrence(occurrenceId);
-      
+
       // Find the occurrence to get the event ID
       const occurrence = events.find((occ) => occ.id === occurrenceId);
       if (!occurrence) {
@@ -371,6 +389,28 @@ export default function CalendarPage() {
 
   const isAthlete = userInfo?.role === "athlete";
 
+  // Get unique events and assign colors
+  const uniqueEvents = useMemo(() => {
+    const eventMap = new Map<string, { id: string; title: string; color: string }>();
+    events.forEach((occ) => {
+      if (!eventMap.has(occ.event.id)) {
+        const colorIndex = eventMap.size % EVENT_COLORS.length;
+        eventMap.set(occ.event.id, {
+          id: occ.event.id,
+          title: occ.event.title,
+          color: EVENT_COLORS[colorIndex],
+        });
+      }
+    });
+    return Array.from(eventMap.values());
+  }, [events]);
+
+  // Get color for an event
+  function getEventColor(eventId: string): string {
+    const event = uniqueEvents.find((e) => e.id === eventId);
+    return event?.color || "bg-primary";
+  }
+
   if (loading) {
     return (
       <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
@@ -415,11 +455,11 @@ export default function CalendarPage() {
           </div>
 
           {/* Weekday Headers */}
-          <div className="grid grid-cols-7 gap-2 mb-2">
+          <div className="grid grid-cols-7 border-b border-border">
             {weekDays.map((day) => (
               <div
                 key={day}
-                className="text-center text-xs font-medium text-muted-foreground py-1"
+                className="text-center text-xs font-medium text-muted-foreground py-2 border-r border-border last:border-r-0"
               >
                 {day}
               </div>
@@ -427,31 +467,42 @@ export default function CalendarPage() {
           </div>
 
           {/* Calendar Grid */}
-          <div className="grid grid-cols-7 gap-2">
+          <div className="grid grid-cols-7 border border-border rounded-none">
             {days.map((day, idx) => {
               const occurrences = getOccurrencesForDate(day);
               const isCurrent = isCurrentMonth(day);
               const isDayToday = isToday(day);
               const hasEvents = occurrences.length > 0;
 
+              // Calculate row and col for border styling
+              const row = Math.floor(idx / 7);
+              const col = idx % 7;
+              const isLastRow = row === Math.floor((days.length - 1) / 7);
+              const isLastCol = col === 6;
+
               let dayClasses =
-                "h-20 rounded-xl flex flex-col items-center justify-center text-sm font-medium transition-all cursor-pointer border border-border p-1 ";
+                "min-h-[100px] flex flex-col p-1.5 text-sm font-medium transition-all cursor-pointer border-r border-b border-border ";
+
+              // Remove right border on last column
+              if (isLastCol) {
+                dayClasses += "border-r-0 ";
+              }
+
+              // Remove bottom border on last row
+              if (isLastRow) {
+                dayClasses += "border-b-0 ";
+              }
 
               if (!isCurrent) {
                 dayClasses +=
-                  "text-muted-foreground/40 border-muted/50 hover:bg-muted/30 hover:text-muted-foreground/60 ";
+                  "text-muted-foreground/40 bg-muted/20 hover:bg-muted/40 ";
               } else {
                 dayClasses +=
-                  "text-foreground hover:bg-muted hover:text-foreground ";
+                  "text-foreground bg-background hover:bg-muted/50 ";
               }
 
               if (isDayToday && isCurrent) {
-                dayClasses += "ring-2 ring-primary border-primary ";
-              }
-
-              if (hasEvents && isCurrent) {
-                dayClasses +=
-                  "bg-primary/10 border-primary/50 hover:bg-primary/20 ";
+                dayClasses += "bg-primary/10 ring-2 ring-primary ring-inset ";
               }
 
               // Check if user has RSVP'd to any occurrence on this day
@@ -464,48 +515,62 @@ export default function CalendarPage() {
 
               return (
                 <div
-                  key={idx}
+                  key={format(day, "yyyy-MM-dd")}
                   className={dayClasses}
-                  onClick={() => hasEvents && handleDayClick(day)}
-                  onKeyDown={(e) => {
-                    if ((e.key === "Enter" || e.key === " ") && hasEvents) {
-                      e.preventDefault();
-                      handleDayClick(day);
-                    }
-                  }}
-                  role={hasEvents ? "button" : undefined}
-                  tabIndex={hasEvents ? 0 : undefined}
+                  {...(hasEvents
+                    ? {
+                        onClick: () => handleDayClick(day),
+                        onKeyDown: (e: React.KeyboardEvent) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            handleDayClick(day);
+                          }
+                        },
+                        role: "button",
+                        tabIndex: 0,
+                      }
+                    : {})}
                 >
-                  <span className="text-base font-semibold">
+                  <span className="text-sm font-semibold mb-1">
                     {format(day, "d")}
                   </span>
                   {hasEvents && (
-                    <div className="flex flex-wrap gap-0.5 justify-center mt-0.5">
+                    <div className="flex flex-col gap-0.5 flex-1 overflow-hidden min-h-0">
                       {occurrences.slice(0, 3).map((occ) => {
                         const rsvpStatus = isAthlete
                           ? getRSVPStatus(occ.id)
                           : null;
+                        // For athletes, use event-specific colors; for others, use RSVP-based colors
+                        const eventColor = isAthlete
+                          ? getEventColor(occ.event.id)
+                          : "bg-primary";
+                        const bgColor =
+                          occ.status === "canceled"
+                            ? "bg-destructive"
+                            : isAthlete
+                              ? eventColor
+                              : rsvpStatus === "going"
+                                ? "bg-emerald-500"
+                                : rsvpStatus === "not_going"
+                                  ? "bg-red-500"
+                                  : "bg-primary";
                         return (
                           <div
                             key={occ.id}
-                            className={`h-1.5 w-1.5 rounded-full ${
-                              occ.status === "canceled"
-                                ? "bg-destructive"
-                                : rsvpStatus === "going"
-                                  ? "bg-emerald-500"
-                                  : rsvpStatus === "not_going"
-                                    ? "bg-red-500"
-                                    : "bg-primary"
-                            }`}
+                            className={`text-[10px] px-1.5 py-0.5 rounded-sm ${bgColor} text-white font-medium truncate leading-tight`}
                             title={occ.event.title}
-                          />
+                          >
+                            <span className="truncate block">{occ.event.title}</span>
+                          </div>
                         );
                       })}
                       {occurrences.length > 3 && (
                         <div
-                          className="h-1.5 w-1.5 rounded-full bg-muted-foreground"
+                          className="text-[10px] px-1.5 py-0.5 rounded-sm bg-muted-foreground text-white font-medium truncate leading-tight"
                           title={`+${occurrences.length - 3} more`}
-                        />
+                        >
+                          +{occurrences.length - 3} more
+                        </div>
                       )}
                     </div>
                   )}
@@ -515,27 +580,56 @@ export default function CalendarPage() {
           </div>
 
           {/* Legend */}
-          <div className="flex items-center gap-6 mt-6 text-xs text-muted-foreground justify-center flex-wrap">
-            <div className="flex items-center gap-2">
-              <div className="h-3 w-3 rounded-full bg-primary" />
-              <span>Event</span>
-            </div>
-            {isAthlete && (
-              <>
-                <div className="flex items-center gap-2">
-                  <div className="h-3 w-3 rounded-full bg-emerald-500" />
-                  <span>Going</span>
+          <div className="mt-6 flex justify-center">
+            {isAthlete && uniqueEvents.length > 0 ? (
+              <div className="inline-flex items-center gap-2 flex-wrap justify-center">
+                {uniqueEvents.map((event) => (
+                  <div
+                    key={event.id}
+                    className="flex items-center gap-1.5 px-2 py-0.5 rounded-sm border border-border bg-muted/30"
+                    title={event.title}
+                  >
+                    <div
+                      className={`h-2.5 w-2.5 rounded-full ${event.color} border border-background shrink-0`}
+                    />
+                    <span className="text-xs text-foreground whitespace-nowrap">
+                      {event.title}
+                    </span>
+                  </div>
+                ))}
+                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-sm border border-destructive/50 bg-destructive/10">
+                  <div className="h-2.5 w-2.5 rounded-full bg-destructive border border-background shrink-0" />
+                  <span className="text-xs font-medium text-destructive">Canceled</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="h-3 w-3 rounded-full bg-red-500" />
-                  <span>Can't Go</span>
+              </div>
+            ) : (
+              <div className="inline-flex items-center gap-2 flex-wrap justify-center">
+                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-sm border border-border bg-muted/30">
+                  <div className="h-2.5 w-2.5 rounded-full bg-primary border border-background shrink-0" />
+                  <span className="text-xs text-foreground">Event</span>
                 </div>
-              </>
+                {isAthlete && (
+                  <>
+                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-sm border border-emerald-500/50 bg-emerald-500/10">
+                      <div className="h-2.5 w-2.5 rounded-full bg-emerald-500 border border-background shrink-0" />
+                      <span className="text-xs text-emerald-600 dark:text-emerald-400">
+                        Going
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-sm border border-red-500/50 bg-red-500/10">
+                      <div className="h-2.5 w-2.5 rounded-full bg-red-500 border border-background shrink-0" />
+                      <span className="text-xs text-red-600 dark:text-red-400">
+                        Can't Go
+                      </span>
+                    </div>
+                  </>
+                )}
+                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-sm border border-destructive/50 bg-destructive/10">
+                  <div className="h-2.5 w-2.5 rounded-full bg-destructive border border-background shrink-0" />
+                  <span className="text-xs font-medium text-destructive">Canceled</span>
+                </div>
+              </div>
             )}
-            <div className="flex items-center gap-2">
-              <div className="h-3 w-3 rounded-full bg-destructive" />
-              <span>Canceled</span>
-            </div>
           </div>
         </div>
       </div>

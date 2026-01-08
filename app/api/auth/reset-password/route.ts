@@ -19,21 +19,27 @@ export async function POST(request: Request) {
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email.trim())) {
-      return NextResponse.json({ error: "Invalid email format" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid email format" },
+        { status: 400 },
+      );
     }
 
     // Check if email matches primary email or altEmail
     const [dbUser] = await db
       .select()
       .from(users)
-      .where(or(eq(users.email, email.trim()), eq(users.altEmail, email.trim())))
+      .where(
+        or(eq(users.email, email.trim()), eq(users.altEmail, email.trim())),
+      )
       .limit(1);
 
     if (!dbUser) {
       // Don't reveal if user exists or not for security
       return NextResponse.json({
         success: true,
-        message: "If an account exists with this email, a password reset link has been sent.",
+        message:
+          "If an account exists with this email, a password reset link has been sent.",
       });
     }
 
@@ -41,7 +47,10 @@ export async function POST(request: Request) {
     const authEmail = dbUser.email;
 
     if (!dbUser.gymId) {
-      return NextResponse.json({ error: "User is not associated with a gym" }, { status: 400 });
+      return NextResponse.json(
+        { error: "User is not associated with a gym" },
+        { status: 400 },
+      );
     }
 
     // Get gym info
@@ -66,7 +75,8 @@ export async function POST(request: Request) {
       // User doesn't have an auth account yet - don't reveal this for security
       return NextResponse.json({
         success: true,
-        message: "If an account exists with this email, a password reset link has been sent.",
+        message:
+          "If an account exists with this email, a password reset link has been sent.",
       });
     }
 
@@ -118,7 +128,8 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      message: "If an account exists with this email, a password reset link has been sent.",
+      message:
+        "If an account exists with this email, a password reset link has been sent.",
     });
   } catch (error) {
     console.error("Password reset error:", error);
@@ -128,4 +139,3 @@ export async function POST(request: Request) {
     );
   }
 }
-

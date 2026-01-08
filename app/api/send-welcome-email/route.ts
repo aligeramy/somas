@@ -20,14 +20,19 @@ export async function POST(request: Request) {
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email.trim())) {
-      return NextResponse.json({ error: "Invalid email format" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid email format" },
+        { status: 400 },
+      );
     }
 
     // Check if email matches primary email or altEmail
     const [dbUser] = await db
       .select()
       .from(users)
-      .where(or(eq(users.email, email.trim()), eq(users.altEmail, email.trim())))
+      .where(
+        or(eq(users.email, email.trim()), eq(users.altEmail, email.trim())),
+      )
       .limit(1);
 
     if (!dbUser) {
@@ -38,7 +43,10 @@ export async function POST(request: Request) {
     const authEmail = dbUser.email;
 
     if (!dbUser.gymId) {
-      return NextResponse.json({ error: "User is not associated with a gym" }, { status: 400 });
+      return NextResponse.json(
+        { error: "User is not associated with a gym" },
+        { status: 400 },
+      );
     }
 
     // Get gym info
@@ -64,13 +72,12 @@ export async function POST(request: Request) {
     if (!authUser) {
       // Create user in Supabase Auth if doesn't exist
       const randomPassword = randomBytes(16).toString("hex");
-      const { error: createError } =
-        await supabaseAdmin.auth.admin.createUser({
-          email: authEmail,
-          password: randomPassword,
-          email_confirm: true,
-          user_metadata: { name: dbUser.name || null },
-        });
+      const { error: createError } = await supabaseAdmin.auth.admin.createUser({
+        email: authEmail,
+        password: randomPassword,
+        email_confirm: true,
+        user_metadata: { name: dbUser.name || null },
+      });
 
       if (createError) {
         return NextResponse.json(
@@ -146,4 +153,3 @@ export async function POST(request: Request) {
     );
   }
 }
-

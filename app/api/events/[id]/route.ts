@@ -110,7 +110,7 @@ async function generateEventOccurrences(
   // Always use the selected date as the first occurrence
   // This respects the user's date selection regardless of recurrence pattern
   const currentDate = new Date(startDate);
-  
+
   // Store the original day of month for monthly recurrence
   // This helps handle month-end dates correctly
   const originalDayOfMonth = startDate.getDate();
@@ -119,7 +119,7 @@ async function generateEventOccurrences(
   let count = 0;
   const now = new Date();
   let isFirstOccurrence = true;
-  
+
   while (currentDate <= endDate) {
     if (recurrenceCount && count >= recurrenceCount) {
       break;
@@ -149,22 +149,22 @@ async function generateEventOccurrences(
       // Safely add one month, handling month-end dates correctly
       const currentMonth = currentDate.getMonth();
       const currentYear = currentDate.getFullYear();
-      
+
       // Calculate next month and year
       let nextMonth = currentMonth + 1;
       let nextYear = currentYear;
-      
+
       if (nextMonth > 11) {
         nextMonth = 0;
         nextYear += 1;
       }
-      
+
       // Get the last day of the target month
       const lastDayOfNextMonth = new Date(nextYear, nextMonth + 1, 0).getDate();
-      
+
       // Use the original day, or the last day of the month if original day doesn't exist
       const dayToUse = Math.min(originalDayOfMonth, lastDayOfNextMonth);
-      
+
       currentDate.setFullYear(nextYear, nextMonth, dayToUse);
     }
   }

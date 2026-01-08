@@ -38,10 +38,7 @@ export async function GET(request: Request) {
         occurrences: eventOccurrences,
       })
       .from(events)
-      .innerJoin(
-        eventOccurrences,
-        eq(events.id, eventOccurrences.eventId),
-      )
+      .innerJoin(eventOccurrences, eq(events.id, eventOccurrences.eventId))
       .where(
         and(
           eq(eventOccurrences.status, "scheduled"),
@@ -109,12 +106,16 @@ export async function GET(request: Request) {
             // Fractional values represent minutes (0.02 = 30 minutes)
             const minutes = Math.round(reminderValue * 24 * 60); // Convert to minutes
             reminderDateTime = new Date(occurrenceDateTime);
-            reminderDateTime.setMinutes(reminderDateTime.getMinutes() - minutes);
+            reminderDateTime.setMinutes(
+              reminderDateTime.getMinutes() - minutes,
+            );
             reminderType = minutes === 30 ? "30_min" : `${minutes}_min`;
           } else {
             // For day-based reminders, send at start of day
             reminderDateTime = new Date(occurrenceDate);
-            reminderDateTime.setDate(reminderDateTime.getDate() - reminderValue);
+            reminderDateTime.setDate(
+              reminderDateTime.getDate() - reminderValue,
+            );
             reminderDateTime.setHours(0, 0, 0, 0);
 
             // Determine reminder type
@@ -130,15 +131,20 @@ export async function GET(request: Request) {
 
           if (reminderValue < 1) {
             // Minute-based reminder: send if we're within a 10-minute window before the reminder time
-            const minutesUntilReminder = (reminderDateTime.getTime() - now.getTime()) / (1000 * 60);
-            shouldSend = minutesUntilReminder >= -5 && minutesUntilReminder <= 5 && timeDiff > 0;
+            const minutesUntilReminder =
+              (reminderDateTime.getTime() - now.getTime()) / (1000 * 60);
+            shouldSend =
+              minutesUntilReminder >= -5 &&
+              minutesUntilReminder <= 5 &&
+              timeDiff > 0;
           } else {
             // Day-based reminder: send if today matches the reminder day
             const today = new Date(now);
             today.setHours(0, 0, 0, 0);
             const reminderDay = new Date(reminderDateTime);
             reminderDay.setHours(0, 0, 0, 0);
-            shouldSend = reminderDay.getTime() === today.getTime() && timeDiff > 0;
+            shouldSend =
+              reminderDay.getTime() === today.getTime() && timeDiff > 0;
           }
 
           if (!shouldSend) continue;
@@ -154,7 +160,11 @@ export async function GET(request: Request) {
           // Send reminders to all athletes (or only those who RSVP'd going)
           // For now, send to all athletes - you can filter by RSVP status if needed
           const targetAthletes = athletes.filter(
-            (a) => !respondedUserIds.has(a.id) || existingRsvps.find((r) => r.userId === a.id && r.status === "going"),
+            (a) =>
+              !respondedUserIds.has(a.id) ||
+              existingRsvps.find(
+                (r) => r.userId === a.id && r.status === "going",
+              ),
           );
 
           // Format date and time
@@ -267,4 +277,3 @@ function getReminderSubject(type: string): string {
       return "Reminder";
   }
 }
-

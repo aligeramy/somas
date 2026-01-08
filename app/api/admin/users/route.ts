@@ -23,11 +23,17 @@ export async function GET() {
       .limit(1);
 
     if (!dbUser || dbUser.role !== "owner") {
-      return NextResponse.json({ error: "Forbidden - Admin only" }, { status: 403 });
+      return NextResponse.json(
+        { error: "Forbidden - Admin only" },
+        { status: 403 },
+      );
     }
 
     if (!dbUser.gymId) {
-      return NextResponse.json({ error: "User must belong to a gym" }, { status: 400 });
+      return NextResponse.json(
+        { error: "User must belong to a gym" },
+        { status: 400 },
+      );
     }
 
     // Get all users in the same gym
@@ -49,10 +55,7 @@ export async function GET() {
     console.error("Error fetching users:", error);
     return NextResponse.json(
       { error: "Failed to fetch users" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-
-
-

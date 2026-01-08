@@ -50,35 +50,51 @@ export async function POST(request: Request) {
     let dateOfBirthDate: Date | null = null;
     if (dateOfBirth && dateOfBirth.trim() !== "") {
       const parsedDate = new Date(dateOfBirth);
-      if (!isNaN(parsedDate.getTime())) {
+      if (!Number.isNaN(parsedDate.getTime())) {
         dateOfBirthDate = parsedDate;
       }
     }
 
-    // Update user profile
-    await db
-      .update(users)
-      .set({
-        name: name.trim(),
-        phone: toNull(phone),
-        address: toNull(address),
-        altEmail: toNull(altEmail),
-        homePhone: toNull(homePhone),
-        workPhone: toNull(workPhone),
-        cellPhone: toNull(cellPhone),
-        emergencyContactName: toNull(emergencyContactName),
-        emergencyContactPhone: toNull(emergencyContactPhone),
-        emergencyContactRelationship: toNull(emergencyContactRelationship),
-        emergencyContactEmail: toNull(emergencyContactEmail),
-        medicalConditions: toNull(medicalConditions),
-        medications: toNull(medications),
-        allergies: toNull(allergies),
-        dateOfBirth: dateOfBirthDate,
-        avatarUrl: toNull(avatarUrl),
-        onboarded: true,
-        updatedAt: new Date(),
-      })
-      .where(eq(users.id, user.id));
+    // Check if user exists in database
+    const [existingUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, user.id))
+      .limit(1);
+
+    const userData = {
+      name: name.trim(),
+      phone: toNull(phone),
+      address: toNull(address),
+      altEmail: toNull(altEmail),
+      homePhone: toNull(homePhone),
+      workPhone: toNull(workPhone),
+      cellPhone: toNull(cellPhone),
+      emergencyContactName: toNull(emergencyContactName),
+      emergencyContactPhone: toNull(emergencyContactPhone),
+      emergencyContactRelationship: toNull(emergencyContactRelationship),
+      emergencyContactEmail: toNull(emergencyContactEmail),
+      medicalConditions: toNull(medicalConditions),
+      medications: toNull(medications),
+      allergies: toNull(allergies),
+      dateOfBirth: dateOfBirthDate,
+      avatarUrl: toNull(avatarUrl),
+      onboarded: true,
+      updatedAt: new Date(),
+    };
+
+    if (existingUser) {
+      // Update existing user
+      await db.update(users).set(userData).where(eq(users.id, user.id));
+    } else {
+      // Create new user if they don't exist (shouldn't happen with layout fix, but safety net)
+      await db.insert(users).values({
+        id: user.id,
+        email: user.email || "",
+        role: "athlete", // Default role, can be updated later
+        ...userData,
+      });
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

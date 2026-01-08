@@ -1,13 +1,15 @@
 "use client";
 
-import { IconCalendar, IconCheck, IconClock, IconX } from "@tabler/icons-react";
+import { IconCalendar, IconCheck, IconClock, IconUsers, IconX } from "@tabler/icons-react";
 import Link from "next/link";
 import { useState } from "react";
+import { MobileEventActions } from "@/components/mobile-event-actions";
 import { PageHeader } from "@/components/page-header";
 import { PWAInstallButton } from "@/components/pwa-install-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface Occurrence {
   id: string;
@@ -19,7 +21,10 @@ interface Occurrence {
   endTime: string;
   rsvpStatus: string | null;
   goingCoaches: Array<{ id: string; name: string | null; email: string }>;
+  goingAthletes: Array<{ id: string; name: string | null; email: string }>;
   goingAthletesCount: number;
+  notGoingAthletes: Array<{ id: string; name: string | null; email: string }>;
+  notGoingAthletesCount: number;
 }
 
 interface ActiveNotice {
@@ -30,27 +35,36 @@ interface ActiveNotice {
   author: { id: string; name: string | null };
 }
 
-interface AthleteDashboardProps {
+interface CoachDashboardProps {
   userName: string | null;
   occurrences: Occurrence[];
   activeNotice: ActiveNotice | null;
   isOnboarded: boolean;
   gymLogo: string | null;
   gymName: string | null;
+  userRole: string;
 }
 
-export function AthleteDashboard({
+export function CoachDashboard({
   userName,
   occurrences,
   activeNotice,
   isOnboarded,
   gymLogo,
   gymName,
-}: AthleteDashboardProps) {
+  userRole,
+}: CoachDashboardProps) {
+  const isMobile = useIsMobile();
   const [rsvpStates, setRsvpStates] = useState<Record<string, string | null>>(
     Object.fromEntries(occurrences.map((o) => [o.id, o.rsvpStatus])),
   );
   const [loading, setLoading] = useState<string | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<{
+    eventId: string;
+    occurrenceId: string;
+    eventTitle: string;
+    isCanceled: boolean;
+  } | null>(null);
 
   async function handleRsvp(
     occurrenceId: string,
@@ -171,6 +185,11 @@ export function AthleteDashboard({
                     const dateInfo = formatDate(occ.date);
                     const rsvpStatus = rsvpStates[occ.id];
                     const isLoading = loading === occ.id;
+                    const isCanceled = occ.status === "canceled";
+                    const totalAthletes = occ.goingAthletesCount + occ.notGoingAthletesCount;
+                    const attendanceRate = totalAthletes > 0 
+                      ? Math.round((occ.goingAthletesCount / totalAthletes) * 100) 
+                      : 0;
 
                     return (
                       <div key={occ.id} className="md:mb-3">
@@ -179,9 +198,22 @@ export function AthleteDashboard({
                             rsvpStatus === "not_going"
                               ? "md:bg-red-50 md:dark:bg-red-950/30 "
                               : ""
-                          }`}
+                          } ${isCanceled ? "opacity-60" : ""}`}
                         >
-                          <div className="px-4 py-3 md:p-4 active:bg-muted/50 md:active:bg-transparent">
+                          <div 
+                            className="px-4 py-3 md:p-4 active:bg-muted/50 md:active:bg-transparent cursor-pointer md:cursor-default"
+                            onClick={(e) => {
+                              if (isMobile) {
+                                e.preventDefault();
+                                setSelectedEvent({
+                                  eventId: occ.eventId,
+                                  occurrenceId: occ.id,
+                                  eventTitle: occ.eventTitle,
+                                  isCanceled,
+                                });
+                              }
+                            }}
+                          >
                             <div className="flex items-center gap-3 md:gap-4">
                               {/* Date - Compact on mobile, bigger on desktop */}
                               <div
@@ -218,16 +250,46 @@ export function AthleteDashboard({
                                 <Link
                                   href={`/events?eventId=${occ.eventId}&occurrenceId=${occ.id}`}
                                   className="block"
+                                  onClick={(e) => {
+                                    if (isMobile) {
+                                      e.preventDefault();
+                                    }
+                                  }}
                                 >
-                                  <p className="font-semibold text-base md:text-base hover:underline line-clamp-1">
-                                    {occ.eventTitle}
-                                  </p>
+                                  <div className="flex items-start justify-between gap-2 mb-1">
+                                    <p className="font-semibold text-base md:text-base hover:underline line-clamp-1">
+                                      {occ.eventTitle}
+                                    </p>
+                                    {isCanceled && (
+                                      <Badge
+                                        variant="destructive"
+                                        className="text-[10px] rounded-md shrink-0"
+                                      >
+                                        Canceled
+                                      </Badge>
+                                    )}
+                                  </div>
                                   <div className="flex items-center gap-2 mt-1 flex-wrap">
                                     <p className="text-xs text-muted-foreground flex items-center gap-1">
                                       <IconClock className="h-3 w-3" />
                                       {formatTime(occ.startTime)}
                                     </p>
-                                    {/* Coaches and Athletes - Inline */}
+                                    {/* Attendance Info */}
+                                    {totalAthletes > 0 && (
+                                      <>
+                                        <span className="text-muted-foreground">•</span>
+                                        <div className="flex items-center gap-1.5">
+                                          <IconUsers className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
+                                          <span className="text-[10px] md:text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                                            {occ.goingAthletesCount}/{totalAthletes}
+                                          </span>
+                                          <span className="text-[9px] md:text-[10px] text-muted-foreground">
+                                            ({attendanceRate}%)
+                                          </span>
+                                        </div>
+                                      </>
+                                    )}
+                                    {/* Coaches - Inline */}
                                     {occ.goingCoaches.length > 0 && (
                                       <>
                                         <span className="text-muted-foreground">•</span>
@@ -249,30 +311,24 @@ export function AthleteDashboard({
                                         </div>
                                       </>
                                     )}
-                                    {occ.goingAthletesCount > 0 && (
-                                      <>
-                                        <span className="text-muted-foreground">•</span>
-                                        <span className="text-[10px] md:text-xs text-emerald-600 dark:text-emerald-400 font-medium">
-                                          {occ.goingAthletesCount} going
-                                        </span>
-                                      </>
-                                    )}
                                   </div>
                                 </Link>
                               </div>
 
-                              {/* RSVP Buttons - Compact on mobile */}
-                              <div className="flex gap-1.5 shrink-0">
+                              {/* RSVP Buttons - Hidden on mobile, shown on desktop */}
+                              <div className="hidden md:flex gap-1.5 shrink-0">
                                 <Button
                                   size="sm"
                                   variant={
                                     rsvpStatus === "going" ? "default" : "outline"
                                   }
-                                  onClick={() => {
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
                                     handleRsvp(occ.id, "going");
                                   }}
                                   disabled={isLoading}
-                                  className={`h-9 w-9 md:h-9 md:w-9 p-0 rounded-lg ${
+                                  className={`h-9 w-9 p-0 rounded-lg ${
                                     rsvpStatus === "going"
                                       ? "bg-emerald-600 hover:bg-emerald-700 border-0"
                                       : "border-border"
@@ -287,11 +343,13 @@ export function AthleteDashboard({
                                       ? "secondary"
                                       : "outline"
                                   }
-                                  onClick={() => {
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
                                     handleRsvp(occ.id, "not_going");
                                   }}
                                   disabled={isLoading}
-                                  className={`h-9 w-9 md:h-9 md:w-9 p-0 rounded-lg ${
+                                  className={`h-9 w-9 p-0 rounded-lg ${
                                     rsvpStatus === "not_going"
                                       ? "bg-red-500 hover:bg-red-600 text-white border-0"
                                       : "border-border"
@@ -317,6 +375,30 @@ export function AthleteDashboard({
           )}
         </div>
       </div>
+
+      {/* Mobile Event Actions Drawer */}
+      {selectedEvent && (
+        <MobileEventActions
+          eventId={selectedEvent.eventId}
+          occurrenceId={selectedEvent.occurrenceId}
+          isCanceled={selectedEvent.isCanceled}
+          userRole={userRole}
+          currentRsvpStatus={
+            rsvpStates[selectedEvent.occurrenceId] as "going" | "not_going" | null
+          }
+          eventTitle={selectedEvent.eventTitle}
+          open={!!selectedEvent}
+          onOpenChange={(open) => {
+            if (!open) {
+              setSelectedEvent(null);
+            }
+          }}
+          onRsvpUpdate={(occurrenceId, status) => {
+            setRsvpStates((prev) => ({ ...prev, [occurrenceId]: status }));
+          }}
+        />
+      )}
     </div>
   );
 }
+

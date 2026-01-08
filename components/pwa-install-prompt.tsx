@@ -1,8 +1,8 @@
 "use client";
 
-import { IconX, IconDownload, IconDeviceMobile } from "@tabler/icons-react";
-import { useEffect, useState } from "react";
+import { IconDeviceMobile, IconDownload, IconX } from "@tabler/icons-react";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -15,11 +15,15 @@ import { usePWAInstall } from "@/hooks/use-pwa-install";
 
 export function PWAInstallPrompt() {
   const pathname = usePathname();
-  const { install, isInstalled, canShowInstall, hasNativePrompt } = usePWAInstall();
+  const { install, isInstalled, canShowInstall, hasNativePrompt } =
+    usePWAInstall();
   const [showPrompt, setShowPrompt] = useState(false);
-  
-  const isIOS = typeof window !== "undefined" && /iPad|iPhone|iPod/.test(navigator.userAgent);
-  const isAndroid = typeof window !== "undefined" && /Android/.test(navigator.userAgent);
+
+  const isIOS =
+    typeof window !== "undefined" &&
+    /iPad|iPhone|iPod/.test(navigator.userAgent);
+  const isAndroid =
+    typeof window !== "undefined" && /Android/.test(navigator.userAgent);
 
   // Only show on dashboard page
   const isDashboard = pathname === "/dashboard";
@@ -83,7 +87,7 @@ export function PWAInstallPrompt() {
         onClick={handleDismiss}
         aria-hidden="true"
       />
-      
+
       {/* Centered modal card */}
       <Card className="relative z-10 w-full max-w-md rounded-2xl border shadow-2xl animate-in fade-in-0 zoom-in-95 duration-200">
         <CardHeader className="text-center pb-4">
@@ -94,7 +98,8 @@ export function PWAInstallPrompt() {
             Install Titans App
           </CardTitle>
           <CardDescription className="mt-2 text-base">
-            Get quick access and a better experience by installing Titans on your device
+            Get quick access and a better experience by installing Titans on
+            your device
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -112,7 +117,7 @@ export function PWAInstallPrompt() {
               <span>Better performance</span>
             </div>
           </div>
-          
+
           <div className="flex flex-col gap-2 pt-2">
             {hasNativePrompt ? (
               <>
@@ -137,7 +142,9 @@ export function PWAInstallPrompt() {
                 <div className="text-sm text-muted-foreground space-y-2 mb-2">
                   {isIOS ? (
                     <div>
-                      <p className="font-medium text-foreground mb-2">To install on iPhone/iPad:</p>
+                      <p className="font-medium text-foreground mb-2">
+                        To install on iPhone/iPad:
+                      </p>
                       <ol className="list-decimal list-inside space-y-1 text-xs">
                         <li>Tap the Share button at the bottom</li>
                         <li>Scroll and tap &quot;Add to Home Screen&quot;</li>
@@ -146,7 +153,9 @@ export function PWAInstallPrompt() {
                     </div>
                   ) : isAndroid ? (
                     <div>
-                      <p className="font-medium text-foreground mb-2">To install on Android:</p>
+                      <p className="font-medium text-foreground mb-2">
+                        To install on Android:
+                      </p>
                       <ol className="list-decimal list-inside space-y-1 text-xs">
                         <li>Tap the menu (three dots)</li>
                         <li>Select &quot;Install app&quot;</li>
@@ -155,8 +164,13 @@ export function PWAInstallPrompt() {
                     </div>
                   ) : (
                     <div>
-                      <p className="font-medium text-foreground mb-2">To install:</p>
-                      <p className="text-xs">Look for the install icon in your browser&apos;s address bar or menu.</p>
+                      <p className="font-medium text-foreground mb-2">
+                        To install:
+                      </p>
+                      <p className="text-xs">
+                        Look for the install icon in your browser&apos;s address
+                        bar or menu.
+                      </p>
                     </div>
                   )}
                 </div>
@@ -171,7 +185,7 @@ export function PWAInstallPrompt() {
             )}
           </div>
         </CardContent>
-        
+
         {/* Close button */}
         <Button
           variant="ghost"
@@ -186,4 +200,3 @@ export function PWAInstallPrompt() {
     </div>
   );
 }
-

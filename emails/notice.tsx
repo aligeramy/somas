@@ -19,11 +19,7 @@ export function NoticeEmail({
   authorName,
 }: NoticeEmailProps) {
   return (
-    <BaseLayout
-      preview={noticeTitle}
-      gymName={gymName}
-      gymLogoUrl={gymLogoUrl}
-    >
+    <BaseLayout preview={noticeTitle} gymName={gymName} gymLogoUrl={gymLogoUrl}>
       <Heading className="text-[28px] font-bold text-zinc-900 mb-6 text-center">
         {noticeTitle}
       </Heading>
@@ -53,4 +49,3 @@ export function NoticeEmail({
 }
 
 export default NoticeEmail;
-

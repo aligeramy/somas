@@ -1,17 +1,17 @@
 /**
  * Test script to send a welcome email to a specific email address
- * 
+ *
  * Usage:
  *   npx tsx scripts/test-welcome-email.ts ali@softxinnovations.ca
  */
 
+import { resolve } from "node:path";
 // Load environment variables FIRST before any other imports
 import { config } from "dotenv";
-import { resolve } from "path";
 
 // Try loading .env.local first, then .env
-const envLocal = config({ path: resolve(process.cwd(), ".env.local") });
-const env = config({ path: resolve(process.cwd(), ".env") });
+config({ path: resolve(process.cwd(), ".env.local") });
+config({ path: resolve(process.cwd(), ".env") });
 
 // Verify required env vars
 const requiredVars = [
@@ -27,7 +27,9 @@ const missingVars = requiredVars.filter((v) => !process.env[v]);
 
 if (missingVars.length > 0) {
   console.error("❌ Missing required environment variables:");
-  missingVars.forEach((v) => console.error(`   - ${v}`));
+  for (const v of missingVars) {
+    console.error(`   - ${v}`);
+  }
   console.error("\nPlease ensure these are set in your .env file.");
   process.exit(1);
 }
@@ -113,4 +115,3 @@ sendTestWelcomeEmail(email).catch((error) => {
   console.error("Script failed:", error);
   process.exit(1);
 });
-

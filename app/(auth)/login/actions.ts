@@ -35,7 +35,6 @@ export async function loginAction(formData: FormData) {
   revalidatePath("/dashboard");
   revalidatePath("/profile-setup");
   revalidatePath("/onboarding");
-  
+
   return { success: true };
 }
-

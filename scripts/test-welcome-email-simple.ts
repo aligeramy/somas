@@ -1,20 +1,20 @@
 /**
  * Simple test script to send a welcome email (without password reset link generation)
  * For full functionality, add SUPABASE_SERVICE_ROLE_KEY to .env
- * 
+ *
  * Usage:
  *   npx tsx scripts/test-welcome-email-simple.ts ali@softxinnovations.ca
  */
 
+import { resolve } from "node:path";
 // Load environment variables FIRST before any other imports
 import { config } from "dotenv";
-import { resolve } from "path";
 
 // Try loading .env.local first, then .env
 config({ path: resolve(process.cwd(), ".env.local") });
 config({ path: resolve(process.cwd(), ".env") });
 
-import React from "react";
+import type React from "react";
 import { Resend } from "resend";
 import { WelcomeEmail } from "../emails/welcome";
 
@@ -71,8 +71,12 @@ async function sendTestWelcomeEmail(email: string) {
 
     console.log(`✅ Successfully sent welcome email to ${email}`);
     console.log(`📧 Email ID: ${result.data?.id}`);
-    console.log(`\nNote: The setup URL will require the user to request a password reset.`);
-    console.log(`For full functionality with direct password setup links, add SUPABASE_SERVICE_ROLE_KEY to .env`);
+    console.log(
+      `\nNote: The setup URL will require the user to request a password reset.`,
+    );
+    console.log(
+      `For full functionality with direct password setup links, add SUPABASE_SERVICE_ROLE_KEY to .env`,
+    );
   } catch (error) {
     console.error("❌ Error:", error instanceof Error ? error.message : error);
     process.exit(1);
@@ -92,4 +96,3 @@ sendTestWelcomeEmail(email).catch((error) => {
   console.error("Script failed:", error);
   process.exit(1);
 });
-

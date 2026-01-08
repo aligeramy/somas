@@ -1,6 +1,6 @@
 "use client";
 
-import { IconArrowLeft, IconAlertCircle, IconMail } from "@tabler/icons-react";
+import { IconAlertCircle, IconArrowLeft, IconMail } from "@tabler/icons-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
@@ -42,7 +42,9 @@ function SetupPasswordForm() {
         // If no token but we have an email, show the request link screen
         if (email) {
           setIsLinkExpired(true);
-          setError("No valid link found. Please request a new password setup link.");
+          setError(
+            "No valid link found. Please request a new password setup link.",
+          );
         }
         return;
       }
@@ -50,7 +52,7 @@ function SetupPasswordForm() {
       try {
         // Determine the OTP type based on URL param
         const otpType = tokenType === "magiclink" ? "magiclink" : "recovery";
-        
+
         const { data, error: verifyError } = await supabase.auth.verifyOtp({
           token_hash: token,
           type: otpType,
@@ -69,7 +71,8 @@ function SetupPasswordForm() {
           setIsLinkExpired(false); // Reset expired state when new link is successfully verified
         }
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : "Failed to verify link";
+        const errorMessage =
+          err instanceof Error ? err.message : "Failed to verify link";
         setError(errorMessage);
         setIsLinkExpired(true);
       } finally {
@@ -117,7 +120,10 @@ function SetupPasswordForm() {
       // Keep isLinkExpired true so we stay on the error screen
       // The user should check their email for the new link
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Failed to send new link. Please try again.";
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : "Failed to send new link. Please try again.";
       setError(errorMessage);
       setLinkSent(false);
       // Keep isLinkExpired true so we stay on the error screen
@@ -160,7 +166,7 @@ function SetupPasswordForm() {
 
         // Password updated successfully
         setSuccess(true);
-        
+
         // Use window.location for full page reload to ensure session cookies are synced
         // Redirect to dashboard - the layout will handle onboarding redirects if needed
         setTimeout(() => {
@@ -168,7 +174,9 @@ function SetupPasswordForm() {
         }, 1500);
       } else {
         // If not authenticated and no token, user needs to use the "Request New Link" button
-        setError("Please use the 'Request New Link' button to receive a password setup link.");
+        setError(
+          "Please use the 'Request New Link' button to receive a password setup link.",
+        );
         setLoading(false);
         return;
       }
@@ -189,7 +197,9 @@ function SetupPasswordForm() {
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle>Verifying your link...</CardTitle>
-            <CardDescription>Please wait while we verify your access.</CardDescription>
+            <CardDescription>
+              Please wait while we verify your access.
+            </CardDescription>
           </CardHeader>
         </Card>
       </div>
@@ -247,32 +257,28 @@ function SetupPasswordForm() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {linkSent && !error ? null : (
-              <>
-                {email ? (
-                  <Button
-                    id="request-new-link-button"
-                    type="button"
-                    onClick={handleRequestNewLink}
-                    disabled={requestingLink}
-                    className="w-full"
-                    variant="default"
-                  >
-                    {requestingLink ? (
-                      "Sending..."
-                    ) : (
-                      <>
-                        <IconMail className="h-4 w-4 mr-2" />
-                        Request New Link
-                      </>
-                    )}
-                  </Button>
+            {linkSent && !error ? null : email ? (
+              <Button
+                id="request-new-link-button"
+                type="button"
+                onClick={handleRequestNewLink}
+                disabled={requestingLink}
+                className="w-full"
+                variant="default"
+              >
+                {requestingLink ? (
+                  "Sending..."
                 ) : (
-                  <p className="text-sm text-muted-foreground text-center">
-                    Please contact your coach to request a new welcome email.
-                  </p>
+                  <>
+                    <IconMail className="h-4 w-4 mr-2" />
+                    Request New Link
+                  </>
                 )}
-              </>
+              </Button>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center">
+                Please contact your coach to request a new welcome email.
+              </p>
             )}
 
             <Button asChild className="w-full" variant="outline">
@@ -301,7 +307,9 @@ function SetupPasswordForm() {
                 : "Create a secure password for your account"}
           </CardDescription>
           {isAuthenticated && (
-            <p className="text-sm text-green-600 mt-2">✓ Link verified successfully</p>
+            <p className="text-sm text-green-600 mt-2">
+              ✓ Link verified successfully
+            </p>
           )}
         </CardHeader>
         <CardContent>
@@ -374,22 +382,23 @@ function SetupPasswordForm() {
 }
 
 // Force dynamic rendering since this page uses search params
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export default function SetupPasswordPage() {
   return (
-    <Suspense fallback={
-      <div className="flex min-h-screen items-center justify-center p-4 md:p-6">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle>Set Up Your Password</CardTitle>
-            <CardDescription>Loading...</CardDescription>
-          </CardHeader>
-        </Card>
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center p-4 md:p-6">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle>Set Up Your Password</CardTitle>
+              <CardDescription>Loading...</CardDescription>
+            </CardHeader>
+          </Card>
+        </div>
+      }
+    >
       <SetupPasswordForm />
     </Suspense>
   );
 }
-

@@ -1,15 +1,24 @@
-import { randomBytes } from "node:crypto";
 import { eq, inArray } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { gyms, users } from "@/drizzle/schema";
-import { WelcomeEmail } from "@/emails/welcome";
+import { LoginCredentialsEmail } from "@/emails/login-credentials";
 import { db } from "@/lib/db";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { getAppUrl } from "@/lib/utils";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+
+// Password mapping for non-onboarded users (all wrestler names)
+const USER_PASSWORDS: Record<string, string> = {
+  "2bb0fc74-0d3a-4ca1-bc56-960cce122e7c": "therock", // Fariba Akbar
+  "7f7e141c-ee02-47f7-a136-8e931715a423": "johncena", // Tatiana Bell
+  "f294fb66-4c84-49b0-b602-b3d1c8b82d2b": "hulkhogan", // Mitra Jabbour
+  "0be52ade-8fb3-4140-a338-726a1ffcfac2": "austin", // Luke Drummond
+  "c2d420f0-e398-4be9-8dab-1c4d4388cd0b": "undertaker", // Mazin Turki
+  "3265fb61-ad5a-4a6c-b9ec-b6ed9b4c1535": "goldberg", // Erik Singer
+};
 
 interface EmailResult {
   email: string;
@@ -60,15 +69,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Gym not found" }, { status: 400 });
     }
 
-    const { userIds, type } = await request.json();
+    const { userIds, testEmail } = await request.json();
 
     if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
       return NextResponse.json({ error: "No users selected" }, { status: 400 });
     }
 
-    if (!type || !["welcome", "reset"].includes(type)) {
+    // For test emails, only allow single user
+    if (testEmail && userIds.length > 1) {
       return NextResponse.json(
-        { error: "Invalid email type" },
+        { error: "Test email can only be sent for one user at a time" },
         { status: 400 },
       );
     }
@@ -85,7 +95,7 @@ export async function POST(request: Request) {
     const supabaseAdmin = createAdminClient();
     const results: EmailResult[] = [];
 
-    // Validate app URL - prevent localhost in production
+    // Validate app URL
     let appUrl: string;
     try {
       appUrl = getAppUrl();
@@ -108,7 +118,16 @@ export async function POST(request: Request) {
     for (let i = 0; i < gymUsers.length; i++) {
       const targetUser = gymUsers[i];
       try {
-        let setupUrl = `${appUrl}/setup-password?email=${encodeURIComponent(targetUser.email)}`;
+        // Get password for this user
+        const password = USER_PASSWORDS[targetUser.id];
+        if (!password) {
+          results.push({
+            email: targetUser.email,
+            success: false,
+            error: "No password assigned for this user",
+          });
+          continue;
+        }
 
         // Check if user exists in Supabase Auth
         const { data: authUsers } = await supabaseAdmin.auth.admin.listUsers();
@@ -116,101 +135,62 @@ export async function POST(request: Request) {
           (u) => u.email === targetUser.email,
         );
 
-        if (type === "welcome") {
-          if (!authUser) {
-            // Create user in Supabase Auth if doesn't exist
-            const randomPassword = randomBytes(16).toString("hex");
-            const { data: newAuthUser, error: createError } =
-              await supabaseAdmin.auth.admin.createUser({
-                email: targetUser.email,
-                password: randomPassword,
-                email_confirm: true,
-                user_metadata: { name: targetUser.name || null },
-              });
+        if (!authUser) {
+          // Create user in Supabase Auth if doesn't exist
+          const { error: createError } =
+            await supabaseAdmin.auth.admin.createUser({
+              email: targetUser.email,
+              password: password,
+              email_confirm: true,
+              user_metadata: { name: targetUser.name || null },
+            });
 
-            if (createError) {
-              results.push({
-                email: targetUser.email,
-                success: false,
-                error: `Failed to create auth user: ${createError.message}`,
-              });
-              continue;
-            }
-
-            // Generate magic link for new user
-            const { data: linkData, error: linkError } =
-              await supabaseAdmin.auth.admin.generateLink({
-                type: "magiclink",
-                email: targetUser.email,
-              });
-
-            if (linkError) {
-              console.error("Magic link error:", linkError);
-            } else if (linkData?.properties?.hashed_token) {
-              setupUrl = `${appUrl}/setup-password?token=${linkData.properties.hashed_token}&type=magiclink&email=${encodeURIComponent(targetUser.email)}`;
-            }
-          } else {
-            // User exists - generate recovery link
-            const { data: linkData, error: linkError } =
-              await supabaseAdmin.auth.admin.generateLink({
-                type: "recovery",
-                email: targetUser.email,
-              });
-
-            if (linkError) {
-              console.error("Recovery link error:", linkError);
-            } else if (linkData?.properties?.hashed_token) {
-              setupUrl = `${appUrl}/setup-password?token=${linkData.properties.hashed_token}&type=recovery&email=${encodeURIComponent(targetUser.email)}`;
-            }
-          }
-        } else if (type === "reset") {
-          // Password reset - user must exist
-          if (!authUser) {
+          if (createError) {
             results.push({
               email: targetUser.email,
               success: false,
-              error: "User doesn't have an auth account yet",
+              error: `Failed to create auth user: ${createError.message}`,
             });
             continue;
           }
-
-          const { data: linkData, error: linkError } =
-            await supabaseAdmin.auth.admin.generateLink({
-              type: "recovery",
-              email: targetUser.email,
+        } else {
+          // Update existing user's password
+          const { error: updateError } =
+            await supabaseAdmin.auth.admin.updateUserById(authUser.id, {
+              password: password,
             });
 
-          if (linkError) {
+          if (updateError) {
             results.push({
               email: targetUser.email,
               success: false,
-              error: `Failed to generate reset link: ${linkError.message}`,
+              error: `Failed to update password: ${updateError.message}`,
             });
             continue;
-          }
-
-          if (linkData?.properties?.hashed_token) {
-            setupUrl = `${appUrl}/setup-password?token=${linkData.properties.hashed_token}&type=recovery&email=${encodeURIComponent(targetUser.email)}`;
           }
         }
 
-        // For welcome/reset emails, only send to primary email
-        // (password setup links are tied to primary email in Supabase Auth)
-        // Alt emails will receive regular reminders/notifications, but not account setup emails
-        // Add unique message ID to prevent email threading
+        // Send email with credentials
+        const loginUrl = `${appUrl}/login`;
         const messageId = `${Date.now()}-${targetUser.id}-${Math.random().toString(36).substring(7)}`;
+        
+        // Use test email if provided, otherwise use user's email
+        const recipientEmail = testEmail || targetUser.email;
+        const emailSubject = testEmail
+          ? `[TEST] Welcome to ${gym.name} - Your Login Credentials`
+          : `Welcome to ${gym.name} - Your Login Credentials`;
+
         const emailResult = await resend.emails.send({
           from: `${process.env.RESEND_FROM_NAME} <${process.env.RESEND_FROM_EMAIL}>`,
-          to: targetUser.email,
-          subject:
-            type === "welcome"
-              ? `Get Started with ${gym.name} - Account Setup`
-              : `Password Reset - ${gym.name}`,
-          react: WelcomeEmail({
+          to: recipientEmail,
+          subject: emailSubject,
+          react: LoginCredentialsEmail({
             gymName: gym.name,
             gymLogoUrl: gym.logoUrl,
             userName: targetUser.name || targetUser.email,
-            setupUrl,
+            email: targetUser.email, // Always show the actual user's email in the email content
+            password: password,
+            loginUrl,
           }),
           headers: {
             "Message-ID": `<${messageId}@titansofmississauga.ca>`,
@@ -220,19 +200,18 @@ export async function POST(request: Request) {
 
         if (emailResult.error) {
           results.push({
-            email: targetUser.email,
+            email: recipientEmail,
             success: false,
             error: emailResult.error.message,
           });
         } else {
           results.push({
-            email: targetUser.email,
+            email: recipientEmail,
             success: true,
           });
         }
 
-        // Rate limit: wait 600ms between requests (allows max 1.67 req/sec, safely under 2/sec limit)
-        // Skip delay on last iteration
+        // Rate limit: wait 600ms between requests
         if (i < gymUsers.length - 1) {
           await delay(600);
         }
@@ -259,9 +238,9 @@ export async function POST(request: Request) {
       results,
     });
   } catch (error) {
-    console.error("Error sending emails:", error);
+    console.error("Error sending credentials:", error);
     return NextResponse.json(
-      { error: "Failed to send emails" },
+      { error: "Failed to send credentials" },
       { status: 500 },
     );
   }

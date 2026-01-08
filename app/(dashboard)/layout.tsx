@@ -25,7 +25,8 @@ export default async function DashboardLayout({
   // Get current pathname to avoid redirect loops
   const headersList = await headers();
   const pathname = headersList.get("x-pathname") || "";
-  const isOnboardingPage = pathname === "/onboarding" || pathname === "/profile-setup";
+  const isOnboardingPage =
+    pathname === "/onboarding" || pathname === "/profile-setup";
 
   // Check if user exists in our database with retry logic
   let dbUser;
@@ -65,9 +66,53 @@ export default async function DashboardLayout({
     }
   }
 
-  // If user doesn't exist in DB, create them
+  // If user doesn't exist in DB, create them automatically
   if (!dbUser) {
-    redirect("/register");
+    try {
+      // Get user email from auth
+      const userEmail = user.email;
+      if (!userEmail) {
+        console.error("User has no email in auth");
+        redirect("/login");
+      }
+
+      // Create user record with default values
+      // Default to athlete role - they can be updated later if needed
+      const [newUser] = await db
+        .insert(users)
+        .values({
+          id: user.id,
+          email: userEmail,
+          role: "athlete",
+          onboarded: false,
+        })
+        .returning();
+
+      dbUser = newUser;
+
+      // Immediately redirect to profile-setup since they're not onboarded
+      if (!isOnboardingPage) {
+        redirect("/profile-setup");
+      }
+    } catch (createError: any) {
+      console.error("Failed to create user record:", createError);
+      // If creation fails (e.g., duplicate key), try to fetch again
+      try {
+        const result = await db
+          .select()
+          .from(users)
+          .where(eq(users.id, user.id))
+          .limit(1);
+        dbUser = result[0];
+        if (!dbUser) {
+          // Still no user, redirect to login to prevent infinite loop
+          redirect("/login");
+        }
+      } catch (fetchError) {
+        console.error("Failed to fetch user after creation error:", fetchError);
+        redirect("/login");
+      }
+    }
   }
 
   // Check onboarding status (skip if already on onboarding pages to avoid redirect loop)
@@ -99,7 +144,7 @@ export default async function DashboardLayout({
 
   return (
     <SidebarProvider
-      className="p-4 lg:p-6 xl:p-4 h-[100dvh] overflow-hidden"
+      className="lg:p-6 xl:p-4 h-[100dvh] overflow-hidden"
       suppressHydrationWarning
       style={
         {
@@ -109,8 +154,8 @@ export default async function DashboardLayout({
       }
     >
       <AppSidebarWrapper />
-      <SidebarInset>
-        <div className="flex flex-1 flex-col min-h-0 h-full overflow-y-auto pb-16 lg:pb-0">
+      <SidebarInset className="dark:bg-[#000000]">
+        <div className="flex flex-1 flex-col min-h-0 h-full overflow-y-auto pb-16 lg:pb-0 dark:bg-[#000000]">
           {children}
         </div>
       </SidebarInset>

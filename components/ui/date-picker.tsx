@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { cn } from "@/lib/utils";
 import {
   Select,
   SelectContent,
@@ -9,6 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 
 interface DatePickerProps {
   value?: string; // ISO date string (YYYY-MM-DD)
@@ -182,61 +182,60 @@ export function DatePicker({
   return (
     <div className={cn("flex items-center gap-2", className)} id={id}>
       <div className="flex items-center gap-2 flex-1">
-          {/* Year Selector */}
-          <Select
-            value={selectedYear}
-            onValueChange={handleYearChange}
-            disabled={disabled}
-          >
-            <SelectTrigger className="h-9 min-w-[100px]">
-              <SelectValue placeholder="Year" />
-            </SelectTrigger>
-            <SelectContent>
-              {years.map((y) => (
-                <SelectItem key={y} value={y}>
-                  {y}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        {/* Year Selector */}
+        <Select
+          value={selectedYear}
+          onValueChange={handleYearChange}
+          disabled={disabled}
+        >
+          <SelectTrigger className="h-9 min-w-[100px]">
+            <SelectValue placeholder="Year" />
+          </SelectTrigger>
+          <SelectContent>
+            {years.map((y) => (
+              <SelectItem key={y} value={y}>
+                {y}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-          {/* Month Selector */}
-          <Select
-            value={selectedMonth}
-            onValueChange={handleMonthChange}
-            disabled={disabled}
-          >
-            <SelectTrigger className="h-9 min-w-[140px]">
-              <SelectValue placeholder="Month" />
-            </SelectTrigger>
-            <SelectContent>
-              {MONTHS.map((m) => (
-                <SelectItem key={m.value} value={m.value}>
-                  {m.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        {/* Month Selector */}
+        <Select
+          value={selectedMonth}
+          onValueChange={handleMonthChange}
+          disabled={disabled}
+        >
+          <SelectTrigger className="h-9 min-w-[140px]">
+            <SelectValue placeholder="Month" />
+          </SelectTrigger>
+          <SelectContent>
+            {MONTHS.map((m) => (
+              <SelectItem key={m.value} value={m.value}>
+                {m.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-          {/* Day Selector */}
-          <Select
-            value={selectedDay}
-            onValueChange={handleDayChange}
-            disabled={disabled || !selectedMonth || !selectedYear}
-          >
-            <SelectTrigger className="h-9 min-w-[80px]">
-              <SelectValue placeholder="Day" />
-            </SelectTrigger>
-            <SelectContent>
-              {days.map((d) => (
-                <SelectItem key={d} value={d}>
-                  {parseInt(d, 10)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        {/* Day Selector */}
+        <Select
+          value={selectedDay}
+          onValueChange={handleDayChange}
+          disabled={disabled || !selectedMonth || !selectedYear}
+        >
+          <SelectTrigger className="h-9 min-w-[80px]">
+            <SelectValue placeholder="Day" />
+          </SelectTrigger>
+          <SelectContent>
+            {days.map((d) => (
+              <SelectItem key={d} value={d}>
+                {parseInt(d, 10)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
     </div>
   );
 }
-

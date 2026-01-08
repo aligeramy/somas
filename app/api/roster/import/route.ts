@@ -86,7 +86,8 @@ export async function POST(request: Request) {
     }> = [];
 
     // Helper function to delay between requests (Resend rate limit: 2 requests/second)
-    const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+    const delay = (ms: number) =>
+      new Promise((resolve) => setTimeout(resolve, ms));
 
     for (let i = 0; i < data.length; i++) {
       const row = data[i];
@@ -97,7 +98,8 @@ export async function POST(request: Request) {
           row.Email ||
           row["email address"] ||
           row["Email Address"];
-        const name = row.name || row.Name || row["full name"] || row["Full Name"];
+        const name =
+          row.name || row.Name || row["full name"] || row["Full Name"];
         const phone = row.phone || row.Phone || row["phone number"];
         const address = row.address || row.Address;
         const roleRaw =

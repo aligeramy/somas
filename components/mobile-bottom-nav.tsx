@@ -23,8 +23,8 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
+import { cn } from "@/lib/utils";
 
 interface MobileBottomNavProps {
   userRole: string;
@@ -125,7 +125,11 @@ export function MobileBottomNav({
   return (
     <nav
       className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 lg:hidden"
-      style={{ paddingBottom: "env(safe-area-inset-bottom, 0)" }}
+      style={{
+        paddingBottom: "env(safe-area-inset-bottom, 0)",
+        paddingLeft: "env(safe-area-inset-left, 0)",
+        paddingRight: "env(safe-area-inset-right, 0)",
+      }}
     >
       <div className="flex h-16 items-center justify-around">
         {mainNavItems.map((item) => {
@@ -168,14 +172,17 @@ export function MobileBottomNav({
           </SheetTrigger>
           <SheetContent
             side="bottom"
-            className="h-[50vh] rounded-t-xl"
+            className="h-[60vh] rounded-t-xl p-0"
             style={{
-              paddingBottom: "calc(1rem + env(safe-area-inset-bottom, 0))",
+              paddingTop: "calc(0.5rem + env(safe-area-inset-top, 0))",
+              paddingBottom: "calc(1.5rem + env(safe-area-inset-bottom, 0))",
+              paddingLeft: "env(safe-area-inset-left, 0)",
+              paddingRight: "env(safe-area-inset-right, 0)",
             }}
           >
             <SheetTitle className="sr-only">Settings</SheetTitle>
-            <div className="pt-4 space-y-2">
-              {moreItems.map((item) => {
+            <div className="pt-2">
+              {moreItems.map((item, index) => {
                 const Icon = item.icon;
                 const isActive =
                   pathname === item.url || pathname.startsWith(`${item.url}/`);
@@ -185,14 +192,14 @@ export function MobileBottomNav({
                     href={item.url}
                     onClick={() => setMoreOpen(false)}
                     className={cn(
-                      "flex items-center gap-3 p-3 rounded-xl transition-colors",
+                      "flex items-center gap-3 px-6 py-4 transition-colors border-b",
                       isActive
                         ? "bg-primary/10 text-primary"
-                        : "hover:bg-muted",
+                        : "hover:bg-muted/50",
                     )}
                   >
-                    <Icon className="h-5 w-5" />
-                    <span className="font-medium">{item.title}</span>
+                    <Icon className="h-4 w-4" />
+                    <span className="text-sm font-medium">{item.title}</span>
                   </Link>
                 );
               })}
@@ -203,11 +210,11 @@ export function MobileBottomNav({
                   rel="noopener noreferrer"
                   onClick={() => setMoreOpen(false)}
                   className={cn(
-                    "flex items-center gap-3 p-3 rounded-xl transition-colors hover:bg-muted",
+                    "flex items-center gap-3 px-6 py-4 transition-colors hover:bg-muted/50 border-b",
                   )}
                 >
-                  <IconWorldWww className="h-5 w-5" />
-                  <span className="font-medium">Club Website</span>
+                  <IconWorldWww className="h-4 w-4" />
+                  <span className="text-sm font-medium">Club Website</span>
                 </a>
               )}
               <button
@@ -216,11 +223,11 @@ export function MobileBottomNav({
                   handleLogout();
                 }}
                 className={cn(
-                  "flex items-center gap-3 p-3 rounded-xl transition-colors hover:bg-muted text-destructive w-full text-left",
+                  "flex items-center gap-3 px-6 py-4 transition-colors hover:bg-muted/50 text-destructive w-full text-left border-b",
                 )}
               >
-                <IconLogout className="h-5 w-5" />
-                <span className="font-medium">Log out</span>
+                <IconLogout className="h-4 w-4" />
+                <span className="text-sm font-medium">Log out</span>
               </button>
             </div>
           </SheetContent>

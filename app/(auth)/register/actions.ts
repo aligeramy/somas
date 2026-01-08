@@ -57,8 +57,14 @@ export async function registerAction(formData: FormData) {
   // Handle auth errors
   if (error) {
     // If user already exists in auth, they should sign in instead
-    if (error.message.includes("already registered") || error.message.includes("already exists")) {
-      return { error: "An account with this email already exists. Please sign in instead." };
+    if (
+      error.message.includes("already registered") ||
+      error.message.includes("already exists")
+    ) {
+      return {
+        error:
+          "An account with this email already exists. Please sign in instead.",
+      };
     }
     return { error: error.message };
   }
