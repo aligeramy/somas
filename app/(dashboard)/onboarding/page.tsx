@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,17 +33,19 @@ export default function OnboardingPage() {
   const [error, setError] = useState<string | null>(null);
   const supabase = createClient();
 
-  useEffect(() => {
-    loadUserProfile();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loadUserProfile]);
-
-  async function loadUserProfile() {
+  const loadUserProfile = useCallback(async () => {
     try {
       setLoadingProfile(true);
       const response = await fetch("/api/profile");
       if (response.ok) {
         const data = await response.json();
+
+        // If user is already onboarded, redirect to dashboard
+        if (data.user.onboarded) {
+          router.push("/dashboard");
+          return;
+        }
+
         // Pre-populate fields if user already has data (from import)
         if (data.user.name) {
           setName(data.user.name);
@@ -64,7 +66,11 @@ export default function OnboardingPage() {
     } finally {
       setLoadingProfile(false);
     }
-  }
+  }, [router]);
+
+  useEffect(() => {
+    loadUserProfile();
+  }, [loadUserProfile]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: {

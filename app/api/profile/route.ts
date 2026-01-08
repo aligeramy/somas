@@ -64,6 +64,7 @@ export async function GET() {
         dateOfBirth: dbUser.dateOfBirth,
         avatarUrl: dbUser.avatarUrl,
         role: dbUser.role,
+        onboarded: dbUser.onboarded,
         notifPreferences: dbUser.notifPreferences || {},
       },
     });
@@ -151,6 +152,7 @@ export async function PUT(request: Request) {
         allergies: updatedUser.allergies,
         avatarUrl: updatedUser.avatarUrl,
         role: updatedUser.role,
+        onboarded: updatedUser.onboarded,
         notifPreferences: updatedUser.notifPreferences,
       },
     });
