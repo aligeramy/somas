@@ -215,12 +215,10 @@ export default function AthleteDetailPage() {
     setError(null);
 
     try {
-      // Don't send role field if editing head coach/manager (can't change their role)
-      const { role, ...restForm } = editForm;
-      const updateData =
-        athlete.role === "owner" || athlete.role === "manager"
-          ? restForm
-          : { ...restForm, role };
+      // Allow role changes for all members (API will enforce safeguards)
+      const updateData = editForm.role
+        ? { ...editForm, role: editForm.role }
+        : editForm;
 
       // Convert empty strings to null for optional fields
       Object.keys(updateData).forEach((key) => {
@@ -941,40 +939,32 @@ export default function AthleteDetailPage() {
                   />
                 </div>
               </div>
-              {isOwner &&
-                athlete?.role !== "owner" &&
-                athlete?.role !== "manager" && (
-                  <div className="space-y-2">
-                    <Label>Role</Label>
-                    <Select
-                      onValueChange={(value) =>
-                        setEditForm({ ...editForm, role: value })
-                      }
-                      value={editForm.role}
-                    >
-                      <SelectTrigger className="h-11 rounded-xl">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="rounded-xl">
-                        <SelectItem value="athlete">Athlete</SelectItem>
-                        <SelectItem value="coach">Coach</SelectItem>
-                        <SelectItem value="manager">Manager</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-              {(athlete?.role === "owner" || athlete?.role === "manager") && (
+              {isOwner && (
                 <div className="space-y-2">
                   <Label>Role</Label>
-                  <Input
-                    className="h-11 rounded-xl bg-muted"
-                    disabled
-                    value={athlete?.role === "owner" ? "Head Coach" : "Manager"}
-                  />
-                  <p className="text-muted-foreground text-xs">
-                    {athlete?.role === "owner" ? "Head Coach" : "Manager"} role
-                    cannot be changed
-                  </p>
+                  <Select
+                    onValueChange={(value) =>
+                      setEditForm({ ...editForm, role: value })
+                    }
+                    value={editForm.role}
+                  >
+                    <SelectTrigger className="h-11 rounded-xl">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl">
+                      <SelectItem value="athlete">Athlete</SelectItem>
+                      <SelectItem value="coach">Coach</SelectItem>
+                      <SelectItem value="manager">Manager</SelectItem>
+                      <SelectItem value="owner">Head Coach</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {(athlete?.role === "owner" ||
+                    athlete?.role === "manager") && (
+                    <p className="text-muted-foreground text-xs">
+                      Note: At least one Head Coach or Manager must remain in
+                      the gym.
+                    </p>
+                  )}
                 </div>
               )}
             </div>

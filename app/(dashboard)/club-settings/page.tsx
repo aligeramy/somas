@@ -628,25 +628,47 @@ export default function ClubSettingsPage() {
                                       </DropdownMenuItem>
                                     </>
                                   ) : coach.role === "manager" ? (
-                                    <DropdownMenuItem
-                                      className="rounded-lg"
-                                      disabled={changingRole === coach.id}
-                                      onClick={() =>
-                                        handleRoleChange(coach.id, "coach")
-                                      }
-                                    >
-                                      Demote to Coach
-                                    </DropdownMenuItem>
+                                    <>
+                                      <DropdownMenuItem
+                                        className="rounded-lg"
+                                        disabled={changingRole === coach.id}
+                                        onClick={() =>
+                                          handleRoleChange(coach.id, "owner")
+                                        }
+                                      >
+                                        Promote to Head Coach
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        className="rounded-lg"
+                                        disabled={changingRole === coach.id}
+                                        onClick={() =>
+                                          handleRoleChange(coach.id, "coach")
+                                        }
+                                      >
+                                        Demote to Coach
+                                      </DropdownMenuItem>
+                                    </>
                                   ) : (
-                                    <DropdownMenuItem
-                                      className="rounded-lg"
-                                      disabled={changingRole === coach.id}
-                                      onClick={() =>
-                                        handleRoleChange(coach.id, "coach")
-                                      }
-                                    >
-                                      Demote to Coach
-                                    </DropdownMenuItem>
+                                    <>
+                                      <DropdownMenuItem
+                                        className="rounded-lg"
+                                        disabled={changingRole === coach.id}
+                                        onClick={() =>
+                                          handleRoleChange(coach.id, "manager")
+                                        }
+                                      >
+                                        Change to Manager
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        className="rounded-lg"
+                                        disabled={changingRole === coach.id}
+                                        onClick={() =>
+                                          handleRoleChange(coach.id, "coach")
+                                        }
+                                      >
+                                        Demote to Coach
+                                      </DropdownMenuItem>
+                                    </>
                                   )}
                                 </DropdownMenuContent>
                               </DropdownMenu>

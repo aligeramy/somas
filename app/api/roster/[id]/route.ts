@@ -1,4 +1,4 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, inArray, ne, sql } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { users } from "@/drizzle/schema";
 import { db } from "@/lib/db";
@@ -179,26 +179,27 @@ export async function PUT(
         );
       }
 
-      // If demoting a head coach/manager to coach, ensure at least one head coach remains
+      // If changing from owner/manager to a lower role, ensure at least one owner/manager remains
       if (
         (targetMember.role === "owner" || targetMember.role === "manager") &&
-        role === "coach"
+        (role === "coach" || role === "athlete")
       ) {
-        // Count current head coaches and managers in the gym
+        // Count current head coaches and managers in the gym (excluding the one being changed)
         const headCoachCount = await db
           .select({ count: sql<number>`count(*)` })
           .from(users)
           .where(
             and(
               eq(users.gymId, dbUser.gymId),
-              sql`${users.role} IN ('owner', 'manager')`
+              inArray(users.role, ["owner", "manager"]),
+              ne(users.id, targetMember.id)
             )
           );
 
         const count = Number(headCoachCount[0]?.count || 0);
 
-        // Must have at least one head coach/manager remaining
-        if (count <= 1) {
+        // Must have at least one head coach/manager remaining after this change
+        if (count < 1) {
           return NextResponse.json(
             {
               error:
@@ -208,6 +209,9 @@ export async function PUT(
           );
         }
       }
+
+      // Allow changing between owner and manager freely (both have same permissions)
+      // No restrictions needed for owner <-> manager changes
     }
 
     const [updatedMember] = await db

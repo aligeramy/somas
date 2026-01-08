@@ -326,12 +326,10 @@ export default function RosterPage() {
     setError(null);
 
     try {
-      // Don't send role field if editing head coach/manager (can't change their role)
-      const { role, ...restForm } = editForm;
-      const updateData =
-        editingMember.role === "owner" || editingMember.role === "manager"
-          ? restForm
-          : { ...restForm, role };
+      // Allow role changes for all members (API will enforce safeguards)
+      const updateData = editForm.role
+        ? { ...editForm, role: editForm.role }
+        : editForm;
 
       // Convert empty strings to null for optional fields
       Object.keys(updateData).forEach((key) => {
@@ -547,7 +545,7 @@ export default function RosterPage() {
                           <Label htmlFor="role">Role</Label>
                           <Select
                             onValueChange={(value) =>
-                              setRole(value as "coach" | "athlete")
+                              setRole(value as "coach" | "athlete" | "manager")
                             }
                             value={role}
                           >
@@ -557,6 +555,7 @@ export default function RosterPage() {
                             <SelectContent className="rounded-xl">
                               <SelectItem value="athlete">Athlete</SelectItem>
                               <SelectItem value="coach">Coach</SelectItem>
+                              <SelectItem value="manager">Manager</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
@@ -772,7 +771,10 @@ export default function RosterPage() {
                     <div>
                       {/* Coaches Section */}
                       {roster.filter(
-                        (m) => m.role === "coach" || m.role === "owner"
+                        (m) =>
+                          m.role === "coach" ||
+                          m.role === "owner" ||
+                          m.role === "manager"
                       ).length > 0 && (
                         <div className="my-8 lg:mb-6">
                           <div className="mb-5 flex items-center gap-3 px-4 lg:mb-3 lg:px-6">
@@ -781,7 +783,9 @@ export default function RosterPage() {
                               {
                                 roster.filter(
                                   (m) =>
-                                    m.role === "coach" || m.role === "owner"
+                                    m.role === "coach" ||
+                                    m.role === "owner" ||
+                                    m.role === "manager"
                                 ).length
                               }
                               )
@@ -792,7 +796,10 @@ export default function RosterPage() {
                           <div className="lg:hidden">
                             {roster
                               .filter(
-                                (m) => m.role === "coach" || m.role === "owner"
+                                (m) =>
+                                  m.role === "coach" ||
+                                  m.role === "owner" ||
+                                  m.role === "manager"
                               )
                               .map((member) => (
                                 <button
@@ -828,7 +835,8 @@ export default function RosterPage() {
                                       <Badge
                                         className="h-4 shrink-0 rounded-full px-1.5 py-0 font-medium text-[9px]"
                                         variant={
-                                          member.role === "owner"
+                                          member.role === "owner" ||
+                                          member.role === "manager"
                                             ? "default"
                                             : "secondary"
                                         }
@@ -863,7 +871,9 @@ export default function RosterPage() {
                                 {roster
                                   .filter(
                                     (m) =>
-                                      m.role === "coach" || m.role === "owner"
+                                      m.role === "coach" ||
+                                      m.role === "owner" ||
+                                      m.role === "manager"
                                   )
                                   .map((member) => (
                                     <TableRow className="group" key={member.id}>
@@ -898,7 +908,8 @@ export default function RosterPage() {
                                               <Badge
                                                 className="rounded-md px-1.5 py-0 text-[10px]"
                                                 variant={
-                                                  member.role === "owner"
+                                                  member.role === "owner" ||
+                                                  member.role === "manager"
                                                     ? "default"
                                                     : "secondary"
                                                 }
@@ -1526,42 +1537,32 @@ export default function RosterPage() {
                   value={editForm.emergencyContactEmail}
                 />
               </div>
-              {isOwner &&
-                editingMember?.role !== "owner" &&
-                editingMember?.role !== "manager" && (
-                  <div className="space-y-2">
-                    <Label>Role</Label>
-                    <Select
-                      onValueChange={(value) =>
-                        setEditForm({ ...editForm, role: value })
-                      }
-                      value={editForm.role}
-                    >
-                      <SelectTrigger className="h-11 rounded-xl">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="rounded-xl">
-                        <SelectItem value="athlete">Athlete</SelectItem>
-                        <SelectItem value="coach">Coach</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-              {(editingMember?.role === "owner" ||
-                editingMember?.role === "manager") && (
+              {isOwner && (
                 <div className="space-y-2">
                   <Label>Role</Label>
-                  <Input
-                    className="h-11 rounded-xl bg-muted"
-                    disabled
-                    value={
-                      editingMember?.role === "owner" ? "Head Coach" : "Manager"
+                  <Select
+                    onValueChange={(value) =>
+                      setEditForm({ ...editForm, role: value })
                     }
-                  />
-                  <p className="text-muted-foreground text-xs">
-                    {editingMember?.role === "owner" ? "Head Coach" : "Manager"}{" "}
-                    role cannot be changed
-                  </p>
+                    value={editForm.role}
+                  >
+                    <SelectTrigger className="h-11 rounded-xl">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl">
+                      <SelectItem value="athlete">Athlete</SelectItem>
+                      <SelectItem value="coach">Coach</SelectItem>
+                      <SelectItem value="manager">Manager</SelectItem>
+                      <SelectItem value="owner">Head Coach</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {(editingMember?.role === "owner" ||
+                    editingMember?.role === "manager") && (
+                    <p className="text-muted-foreground text-xs">
+                      Note: At least one Head Coach or Manager must remain in
+                      the gym.
+                    </p>
+                  )}
                 </div>
               )}
             </div>
