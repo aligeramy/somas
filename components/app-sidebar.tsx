@@ -78,7 +78,7 @@ export function AppSidebar({
       title: "Members",
       url: "/roster",
       icon: IconUsers,
-      roles: ["owner"],
+      roles: ["owner", "manager"],
     },
     {
       title: "Attendance",
@@ -122,13 +122,13 @@ export function AppSidebar({
       title: "Email Management",
       url: "/admin/emails",
       icon: IconMail,
-      roles: ["owner"],
+      roles: ["owner", "manager"],
     },
     {
       title: "Club Settings",
       url: "/gym-settings",
       icon: IconBuilding,
-      roles: ["owner"],
+      roles: ["owner", "manager"],
     },
   ].filter((item) => item.roles.includes(user.role));
 

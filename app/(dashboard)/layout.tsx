@@ -140,7 +140,7 @@ export default async function DashboardLayout({
   // Only redirect if we can reliably determine we're NOT on an onboarding page
   // If pathname is empty/unclear, don't redirect to prevent loops
   if (!dbUser.onboarded && pathname && !isOnboardingPage) {
-    if (dbUser.role === "owner") {
+    if (dbUser.role === "owner" || dbUser.role === "manager") {
       redirect("/onboarding");
     } else {
       redirect("/profile-setup");

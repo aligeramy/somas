@@ -67,7 +67,7 @@ interface AthleteDetails {
   allergies: string | null;
   dateOfBirth: string | null;
   joinDate: string | null;
-  role: "owner" | "coach" | "athlete";
+  role: "owner" | "coach" | "athlete" | "manager";
   avatarUrl: string | null;
   onboarded: boolean;
   notifPreferences: Record<string, any> | null;
@@ -171,6 +171,9 @@ export default function AthleteDetailPage() {
     if (role === "owner") {
       return "Head Coach";
     }
+    if (role === "manager") {
+      return "Manager";
+    }
     return role.charAt(0).toUpperCase() + role.slice(1);
   }
 
@@ -212,10 +215,12 @@ export default function AthleteDetailPage() {
     setError(null);
 
     try {
-      // Don't send role field if editing head coach (can't change head coach role)
+      // Don't send role field if editing head coach/manager (can't change their role)
       const { role, ...restForm } = editForm;
       const updateData =
-        athlete.role === "owner" ? restForm : { ...restForm, role };
+        athlete.role === "owner" || athlete.role === "manager"
+          ? restForm
+          : { ...restForm, role };
 
       // Convert empty strings to null for optional fields
       Object.keys(updateData).forEach((key) => {
@@ -245,7 +250,7 @@ export default function AthleteDetailPage() {
     }
   }
 
-  const isOwner = currentUserRole === "owner";
+  const isOwner = currentUserRole === "owner" || currentUserRole === "manager";
   const isCoach = currentUserRole === "coach";
   const canEdit =
     isOwner ||
@@ -337,7 +342,7 @@ export default function AthleteDetailPage() {
                     <Badge
                       className="rounded-lg"
                       variant={
-                        athlete.role === "owner"
+                        athlete.role === "owner" || athlete.role === "manager"
                           ? "default"
                           : athlete.role === "coach"
                             ? "secondary"
@@ -936,35 +941,39 @@ export default function AthleteDetailPage() {
                   />
                 </div>
               </div>
-              {isOwner && athlete?.role !== "owner" && (
-                <div className="space-y-2">
-                  <Label>Role</Label>
-                  <Select
-                    onValueChange={(value) =>
-                      setEditForm({ ...editForm, role: value })
-                    }
-                    value={editForm.role}
-                  >
-                    <SelectTrigger className="h-11 rounded-xl">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-xl">
-                      <SelectItem value="athlete">Athlete</SelectItem>
-                      <SelectItem value="coach">Coach</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-              {athlete?.role === "owner" && (
+              {isOwner &&
+                athlete?.role !== "owner" &&
+                athlete?.role !== "manager" && (
+                  <div className="space-y-2">
+                    <Label>Role</Label>
+                    <Select
+                      onValueChange={(value) =>
+                        setEditForm({ ...editForm, role: value })
+                      }
+                      value={editForm.role}
+                    >
+                      <SelectTrigger className="h-11 rounded-xl">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl">
+                        <SelectItem value="athlete">Athlete</SelectItem>
+                        <SelectItem value="coach">Coach</SelectItem>
+                        <SelectItem value="manager">Manager</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              {(athlete?.role === "owner" || athlete?.role === "manager") && (
                 <div className="space-y-2">
                   <Label>Role</Label>
                   <Input
                     className="h-11 rounded-xl bg-muted"
                     disabled
-                    value="Head Coach"
+                    value={athlete?.role === "owner" ? "Head Coach" : "Manager"}
                   />
                   <p className="text-muted-foreground text-xs">
-                    Head Coach role cannot be changed
+                    {athlete?.role === "owner" ? "Head Coach" : "Manager"} role
+                    cannot be changed
                   </p>
                 </div>
               )}

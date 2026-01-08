@@ -38,7 +38,11 @@ export async function POST(request: Request) {
     }
 
     // Only head coaches and coaches can send reminders
-    if (dbUser.role !== "owner" && dbUser.role !== "coach") {
+    if (
+      dbUser.role !== "owner" &&
+      dbUser.role !== "manager" &&
+      dbUser.role !== "coach"
+    ) {
       return NextResponse.json(
         { error: "Only head coaches and coaches can send reminders" },
         { status: 403 }

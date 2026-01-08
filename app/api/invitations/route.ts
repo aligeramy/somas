@@ -45,7 +45,11 @@ export async function POST(request: Request) {
     }
 
     // Only head coaches and coaches can invite
-    if (dbUser.role !== "owner" && dbUser.role !== "coach") {
+    if (
+      dbUser.role !== "owner" &&
+      dbUser.role !== "manager" &&
+      dbUser.role !== "coach"
+    ) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

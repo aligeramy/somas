@@ -33,7 +33,11 @@ export async function POST(
       );
     }
 
-    if (dbUser.role !== "owner" && dbUser.role !== "coach") {
+    if (
+      dbUser.role !== "owner" &&
+      dbUser.role !== "manager" &&
+      dbUser.role !== "coach"
+    ) {
       return NextResponse.json(
         { error: "Only head coaches and coaches can add occurrences" },
         { status: 403 }
@@ -130,7 +134,11 @@ export async function DELETE(
       );
     }
 
-    if (dbUser.role !== "owner" && dbUser.role !== "coach") {
+    if (
+      dbUser.role !== "owner" &&
+      dbUser.role !== "manager" &&
+      dbUser.role !== "coach"
+    ) {
       return NextResponse.json(
         { error: "Only head coaches and coaches can remove occurrences" },
         { status: 403 }

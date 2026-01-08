@@ -28,8 +28,8 @@ export async function GET() {
       );
     }
 
-    // Only head coaches can view/edit gym
-    if (dbUser.role !== "owner") {
+    // Only head coaches/managers can view/edit gym
+    if (!isOwnerOrManager(dbUser.role)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -74,8 +74,8 @@ export async function PUT(request: Request) {
       );
     }
 
-    // Only head coaches can edit gym
-    if (dbUser.role !== "owner") {
+    // Only head coaches/managers can edit gym
+    if (!isOwnerOrManager(dbUser.role)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

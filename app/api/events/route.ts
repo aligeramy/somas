@@ -28,8 +28,12 @@ export async function POST(request: Request) {
       );
     }
 
-    // Only head coaches and coaches can create events
-    if (dbUser.role !== "owner" && dbUser.role !== "coach") {
+    // Only head coaches, managers, and coaches can create events
+    if (
+      dbUser.role !== "owner" &&
+      dbUser.role !== "manager" &&
+      dbUser.role !== "coach"
+    ) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

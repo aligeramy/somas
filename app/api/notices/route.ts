@@ -83,8 +83,12 @@ export async function POST(request: Request) {
       );
     }
 
-    // Only head coaches and coaches can create notices
-    if (dbUser.role !== "owner" && dbUser.role !== "coach") {
+    // Only head coaches, managers, and coaches can create notices
+    if (
+      dbUser.role !== "owner" &&
+      dbUser.role !== "manager" &&
+      dbUser.role !== "coach"
+    ) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -218,7 +222,11 @@ export async function PUT(request: Request) {
     }
 
     // Only head coaches and coaches can update notices
-    if (dbUser.role !== "owner" && dbUser.role !== "coach") {
+    if (
+      dbUser.role !== "owner" &&
+      dbUser.role !== "manager" &&
+      dbUser.role !== "coach"
+    ) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

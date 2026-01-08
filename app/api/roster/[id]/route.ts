@@ -112,8 +112,8 @@ export async function PUT(
       );
     }
 
-    // Only head coaches can edit members (coaches can only edit themselves or athletes)
-    if (dbUser.role !== "owner") {
+    // Only head coaches/managers can edit members (coaches can only edit themselves or athletes)
+    if (!isOwnerOrManager(dbUser.role)) {
       // Check if editing self or an athlete
       if (id !== user.id) {
         const [targetMember] = await db
@@ -157,10 +157,10 @@ export async function PUT(
 
     // Validate role change
     if (role) {
-      // Only head coaches can change roles
-      if (dbUser.role !== "owner") {
+      // Only head coaches/managers can change roles
+      if (!isOwnerOrManager(dbUser.role)) {
         return NextResponse.json(
-          { error: "Only head coaches can change member roles" },
+          { error: "Only head coaches and managers can change member roles" },
           { status: 403 }
         );
       }
@@ -178,22 +178,30 @@ export async function PUT(
         );
       }
 
-      // If demoting a head coach to coach, ensure at least one head coach remains
-      if (targetMember.role === "owner" && role === "coach") {
-        // Count current head coaches in the gym
+      // If demoting a head coach/manager to coach, ensure at least one head coach remains
+      if (
+        (targetMember.role === "owner" || targetMember.role === "manager") &&
+        role === "coach"
+      ) {
+        // Count current head coaches and managers in the gym
         const headCoachCount = await db
           .select({ count: sql<number>`count(*)` })
           .from(users)
-          .where(and(eq(users.gymId, dbUser.gymId), eq(users.role, "owner")));
+          .where(
+            and(
+              eq(users.gymId, dbUser.gymId),
+              sql`${users.role} IN ('owner', 'manager')`
+            )
+          );
 
         const count = Number(headCoachCount[0]?.count || 0);
 
-        // Must have at least one head coach remaining
+        // Must have at least one head coach/manager remaining
         if (count <= 1) {
           return NextResponse.json(
             {
               error:
-                "Cannot demote the last head coach. At least one head coach must remain.",
+                "Cannot demote the last head coach or manager. At least one must remain.",
             },
             { status: 400 }
           );
@@ -269,10 +277,10 @@ export async function DELETE(
       );
     }
 
-    // Only head coaches can remove members
-    if (dbUser.role !== "owner") {
+    // Only head coaches/managers can remove members
+    if (!isOwnerOrManager(dbUser.role)) {
       return NextResponse.json(
-        { error: "Only head coaches can remove members" },
+        { error: "Only head coaches and managers can remove members" },
         { status: 403 }
       );
     }

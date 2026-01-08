@@ -22,7 +22,7 @@ export async function GET() {
       .where(eq(users.id, user.id))
       .limit(1);
 
-    if (!dbUser || dbUser.role !== "owner") {
+    if (!(dbUser && isOwnerOrManager(dbUser.role))) {
       return NextResponse.json(
         { error: "Forbidden - Admin only" },
         { status: 403 }

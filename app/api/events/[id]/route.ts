@@ -203,7 +203,11 @@ export async function PUT(
       );
     }
 
-    if (dbUser.role !== "owner" && dbUser.role !== "coach") {
+    if (
+      dbUser.role !== "owner" &&
+      dbUser.role !== "manager" &&
+      dbUser.role !== "coach"
+    ) {
       return NextResponse.json(
         { error: "Only head coaches and coaches can edit events" },
         { status: 403 }
@@ -473,7 +477,11 @@ export async function DELETE(
       );
     }
 
-    if (dbUser.role !== "owner" && dbUser.role !== "coach") {
+    if (
+      dbUser.role !== "owner" &&
+      dbUser.role !== "manager" &&
+      dbUser.role !== "coach"
+    ) {
       return NextResponse.json(
         { error: "Only head coaches and coaches can delete events" },
         { status: 403 }

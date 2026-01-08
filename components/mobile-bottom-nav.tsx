@@ -72,13 +72,13 @@ export function MobileBottomNav({
       icon: IconListCheck,
       roles: ["athlete"],
     },
-    ...(userRole === "owner"
+    ...(userRole === "owner" || userRole === "manager"
       ? [
           {
             title: "Members",
             url: "/roster",
             icon: IconUsers,
-            roles: ["owner"],
+            roles: ["owner", "manager"],
           },
         ]
       : []),
@@ -114,7 +114,7 @@ export function MobileBottomNav({
       title: "Email Management",
       url: "/admin/emails",
       icon: IconMail,
-      roles: ["owner"], // Only owners can access email management
+      roles: ["owner", "manager"], // Only owners/managers can access email management
     },
   ].filter((item) => item.roles.includes(userRole));
 

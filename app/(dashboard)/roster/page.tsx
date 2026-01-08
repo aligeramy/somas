@@ -70,7 +70,7 @@ interface User {
   emergencyContactPhone?: string | null;
   emergencyContactRelationship?: string | null;
   emergencyContactEmail?: string | null;
-  role: "owner" | "coach" | "athlete";
+  role: "owner" | "coach" | "athlete" | "manager";
   avatarUrl: string | null;
   onboarded: boolean;
   createdAt: string;
@@ -80,6 +80,9 @@ export default function RosterPage() {
   const formatRoleDisplay = (role: string) => {
     if (role === "owner") {
       return "Head Coach";
+    }
+    if (role === "manager") {
+      return "Manager";
     }
     return role.charAt(0).toUpperCase() + role.slice(1);
   };
@@ -101,7 +104,7 @@ export default function RosterPage() {
   const [emergencyContactRelationship, setEmergencyContactRelationship] =
     useState("");
   const [emergencyContactEmail, setEmergencyContactEmail] = useState("");
-  const [role, setRole] = useState<"coach" | "athlete">("athlete");
+  const [role, setRole] = useState<"coach" | "athlete" | "manager">("athlete");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -323,10 +326,12 @@ export default function RosterPage() {
     setError(null);
 
     try {
-      // Don't send role field if editing head coach (can't change head coach role)
+      // Don't send role field if editing head coach/manager (can't change their role)
       const { role, ...restForm } = editForm;
       const updateData =
-        editingMember.role === "owner" ? restForm : { ...restForm, role };
+        editingMember.role === "owner" || editingMember.role === "manager"
+          ? restForm
+          : { ...restForm, role };
 
       // Convert empty strings to null for optional fields
       Object.keys(updateData).forEach((key) => {
@@ -388,7 +393,7 @@ export default function RosterPage() {
     }
   }
 
-  const isOwner = currentUserRole === "owner";
+  const isOwner = currentUserRole === "owner" || currentUserRole === "manager";
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
@@ -995,7 +1000,8 @@ export default function RosterPage() {
                                                   Edit Member
                                                 </DropdownMenuItem>
                                                 {isOwner &&
-                                                  member.role !== "owner" && (
+                                                  member.role !== "owner" &&
+                                                  member.role !== "manager" && (
                                                     <>
                                                       <DropdownMenuSeparator />
                                                       <DropdownMenuItem
@@ -1335,7 +1341,8 @@ export default function RosterPage() {
                                                   Edit Member
                                                 </DropdownMenuItem>
                                                 {isOwner &&
-                                                  member.role !== "owner" && (
+                                                  member.role !== "owner" &&
+                                                  member.role !== "manager" && (
                                                     <>
                                                       <DropdownMenuSeparator />
                                                       <DropdownMenuItem
@@ -1519,35 +1526,41 @@ export default function RosterPage() {
                   value={editForm.emergencyContactEmail}
                 />
               </div>
-              {isOwner && editingMember?.role !== "owner" && (
-                <div className="space-y-2">
-                  <Label>Role</Label>
-                  <Select
-                    onValueChange={(value) =>
-                      setEditForm({ ...editForm, role: value })
-                    }
-                    value={editForm.role}
-                  >
-                    <SelectTrigger className="h-11 rounded-xl">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-xl">
-                      <SelectItem value="athlete">Athlete</SelectItem>
-                      <SelectItem value="coach">Coach</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-              {editingMember?.role === "owner" && (
+              {isOwner &&
+                editingMember?.role !== "owner" &&
+                editingMember?.role !== "manager" && (
+                  <div className="space-y-2">
+                    <Label>Role</Label>
+                    <Select
+                      onValueChange={(value) =>
+                        setEditForm({ ...editForm, role: value })
+                      }
+                      value={editForm.role}
+                    >
+                      <SelectTrigger className="h-11 rounded-xl">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl">
+                        <SelectItem value="athlete">Athlete</SelectItem>
+                        <SelectItem value="coach">Coach</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              {(editingMember?.role === "owner" ||
+                editingMember?.role === "manager") && (
                 <div className="space-y-2">
                   <Label>Role</Label>
                   <Input
                     className="h-11 rounded-xl bg-muted"
                     disabled
-                    value="Head Coach"
+                    value={
+                      editingMember?.role === "owner" ? "Head Coach" : "Manager"
+                    }
                   />
                   <p className="text-muted-foreground text-xs">
-                    Head Coach role cannot be changed
+                    {editingMember?.role === "owner" ? "Head Coach" : "Manager"}{" "}
+                    role cannot be changed
                   </p>
                 </div>
               )}

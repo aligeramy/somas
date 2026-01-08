@@ -48,7 +48,10 @@ export async function GET(request: Request) {
 
     // Additional security check: verify user has access to this channel type
     // Owners and coaches have access to all channels in their gym
-    const isOwnerOrCoach = dbUser.role === "owner" || dbUser.role === "coach";
+    const isOwnerOrCoach =
+      dbUser.role === "owner" ||
+      dbUser.role === "manager" ||
+      dbUser.role === "coach";
 
     if (channel.type === "global") {
       // Global channels are accessible to all gym members - already verified above
@@ -200,7 +203,10 @@ export async function POST(request: Request) {
 
     // Additional security check: verify user has access to this channel type
     // Owners and coaches have access to all channels in their gym
-    const isOwnerOrCoach = dbUser.role === "owner" || dbUser.role === "coach";
+    const isOwnerOrCoach =
+      dbUser.role === "owner" ||
+      dbUser.role === "manager" ||
+      dbUser.role === "coach";
 
     if (channel.type === "global") {
       // Global channels are accessible to all gym members - already verified above

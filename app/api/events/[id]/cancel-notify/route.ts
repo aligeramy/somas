@@ -37,7 +37,11 @@ export async function POST(
       );
     }
 
-    if (dbUser.role !== "owner" && dbUser.role !== "coach") {
+    if (
+      dbUser.role !== "owner" &&
+      dbUser.role !== "manager" &&
+      dbUser.role !== "coach"
+    ) {
       return NextResponse.json(
         { error: "Only head coaches and coaches can cancel events" },
         { status: 403 }

@@ -14,7 +14,12 @@ import {
 } from "drizzle-orm/pg-core";
 
 // Enums
-export const userRoleEnum = pgEnum("UserRole", ["owner", "coach", "athlete"]);
+export const userRoleEnum = pgEnum("UserRole", [
+  "owner",
+  "coach",
+  "athlete",
+  "manager",
+]);
 export const eventOccurrenceStatusEnum = pgEnum("EventOccurrenceStatus", [
   "scheduled",
   "canceled",

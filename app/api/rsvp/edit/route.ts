@@ -26,10 +26,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Only head coaches and coaches can edit RSVPs
-    if (dbUser.role !== "owner" && dbUser.role !== "coach") {
+    // Only head coaches, managers, and coaches can edit RSVPs
+    if (
+      dbUser.role !== "owner" &&
+      dbUser.role !== "manager" &&
+      dbUser.role !== "coach"
+    ) {
       return NextResponse.json(
-        { error: "Only head coaches and coaches can edit RSVPs" },
+        { error: "Only head coaches, managers, and coaches can edit RSVPs" },
         { status: 403 }
       );
     }

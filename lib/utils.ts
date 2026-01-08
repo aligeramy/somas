@@ -25,3 +25,17 @@ export function getAppUrl(): string {
 
   return url;
 }
+
+/**
+ * Check if a user role has owner/manager permissions (head coach level)
+ */
+export function isOwnerOrManager(role: string | null | undefined): boolean {
+  return role === "owner" || role === "manager";
+}
+
+/**
+ * Check if a user role has coach-level permissions (owner, manager, or coach)
+ */
+export function isCoachOrAbove(role: string | null | undefined): boolean {
+  return role === "owner" || role === "manager" || role === "coach";
+}

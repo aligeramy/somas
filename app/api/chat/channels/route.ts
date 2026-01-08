@@ -59,8 +59,11 @@ export async function GET(request: Request) {
       )
       .orderBy(channels.createdAt);
 
-    // Owners and coaches can see all channels in their gym
-    const isOwnerOrCoach = dbUser.role === "owner" || dbUser.role === "coach";
+    // Owners, managers, and coaches can see all channels in their gym
+    const isOwnerOrCoach =
+      dbUser.role === "owner" ||
+      dbUser.role === "manager" ||
+      dbUser.role === "coach";
 
     // Get channels where the user has sent messages (for DM and group filtering)
     const userMessageChannels = await db

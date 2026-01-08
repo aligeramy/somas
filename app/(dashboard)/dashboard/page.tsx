@@ -270,7 +270,11 @@ export default async function DashboardPage() {
           goingAthletes: [],
         };
         // Separate coaches and athletes
-        if (rsvp.user.role === "coach" || rsvp.user.role === "owner") {
+        if (
+          rsvp.user.role === "coach" ||
+          rsvp.user.role === "owner" ||
+          rsvp.user.role === "manager"
+        ) {
           current.goingCoaches.push({
             id: rsvp.user.id,
             name: rsvp.user.name,
@@ -564,7 +568,11 @@ export default async function DashboardPage() {
   };
 
   // For coaches, use the new list view dashboard
-  if (dbUser.role === "coach" || dbUser.role === "owner") {
+  if (
+    dbUser.role === "coach" ||
+    dbUser.role === "owner" ||
+    dbUser.role === "manager"
+  ) {
     const occurrencesWithRsvp = upcomingOccurrences.map(
       ({ occurrence, event }) => {
         const rsvpData = rsvpsByOccurrence.get(occurrence.id) || {

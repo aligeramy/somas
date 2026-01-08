@@ -25,14 +25,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Athletes, coaches, and owners can RSVP
+    // Athletes, coaches, managers, and owners can RSVP
     if (
       dbUser.role !== "athlete" &&
       dbUser.role !== "coach" &&
+      dbUser.role !== "manager" &&
       dbUser.role !== "owner"
     ) {
       return NextResponse.json(
-        { error: "Only athletes, coaches, and owners can RSVP" },
+        { error: "Only athletes, coaches, managers, and owners can RSVP" },
         { status: 403 }
       );
     }
@@ -184,9 +185,13 @@ export async function GET(request: Request) {
     if (summaryOccurrences) {
       const occurrenceIds = summaryOccurrences.split(",");
 
-      // For owner/coach, filter by gymId for security
+      // For owner/manager/coach, filter by gymId for security
       let rsvpsList;
-      if (dbUser.role === "owner" || dbUser.role === "coach") {
+      if (
+        dbUser.role === "owner" ||
+        dbUser.role === "manager" ||
+        dbUser.role === "coach"
+      ) {
         if (!dbUser.gymId) {
           return NextResponse.json(
             { error: "User must belong to a gym" },
@@ -284,9 +289,13 @@ export async function GET(request: Request) {
       return NextResponse.json({ summary: summaryMap });
     }
 
-    // If owner or coach, get all RSVPs for their gym
+    // If owner, manager, or coach, get all RSVPs for their gym
     // Otherwise, get only user's RSVPs
-    if (dbUser.role === "owner" || dbUser.role === "coach") {
+    if (
+      dbUser.role === "owner" ||
+      dbUser.role === "manager" ||
+      dbUser.role === "coach"
+    ) {
       if (!dbUser.gymId) {
         return NextResponse.json(
           { error: "User must belong to a gym" },

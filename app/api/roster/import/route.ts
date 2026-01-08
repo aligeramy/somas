@@ -46,8 +46,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Gym not found" }, { status: 400 });
     }
 
-    // Only head coaches can import roster
-    if (dbUser.role !== "owner") {
+    // Only head coaches/managers can import roster
+    if (!isOwnerOrManager(dbUser.role)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
