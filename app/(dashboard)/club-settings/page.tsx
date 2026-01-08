@@ -113,7 +113,9 @@ export default function ClubSettingsPage() {
     setLoadingCoaches(true);
     try {
       const response = await fetch("/api/roster");
-      if (!response.ok) throw new Error("Failed to load coaches");
+      if (!response.ok) {
+        throw new Error("Failed to load coaches");
+      }
       const data = await response.json();
       // Include both coaches and owners (head coaches)
       const coachesList = data.roster.filter(
@@ -130,7 +132,9 @@ export default function ClubSettingsPage() {
   const loadCurrentUserRole = useCallback(async () => {
     try {
       const response = await fetch("/api/user-info");
-      if (!response.ok) throw new Error("Failed to load user role");
+      if (!response.ok) {
+        throw new Error("Failed to load user role");
+      }
       const data = await response.json();
       setCurrentUserRole(data.role);
     } catch (err) {
@@ -142,7 +146,9 @@ export default function ClubSettingsPage() {
     try {
       setLoading(true);
       const response = await fetch("/api/club");
-      if (!response.ok) throw new Error("Failed to load club");
+      if (!response.ok) {
+        throw new Error("Failed to load club");
+      }
       const data = await response.json();
       setClub(data.club);
       setClubName(data.club.name || "");
@@ -174,7 +180,9 @@ export default function ClubSettingsPage() {
         const {
           data: { user: authUser },
         } = await supabase.auth.getUser();
-        if (!authUser) throw new Error("Not authenticated");
+        if (!authUser) {
+          throw new Error("Not authenticated");
+        }
 
         const fileExt = clubLogoFile.name.split(".").pop();
         const fileName = `${authUser.id}-${Date.now()}.${fileExt}`;
@@ -207,7 +215,9 @@ export default function ClubSettingsPage() {
         }),
       });
 
-      if (!clubResponse.ok) throw new Error("Failed to save club");
+      if (!clubResponse.ok) {
+        throw new Error("Failed to save club");
+      }
 
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
@@ -385,6 +395,7 @@ export default function ClubSettingsPage() {
                   <button
                     {...getLogoRootProps()}
                     className="absolute right-0 bottom-0 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-colors hover:bg-primary/90"
+                    type="button"
                   >
                     <input {...getLogoInputProps()} />
                     <IconCamera className="h-4 w-4" />

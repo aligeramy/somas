@@ -168,12 +168,16 @@ export default function AthleteDetailPage() {
   }
 
   function formatRoleDisplay(role: string) {
-    if (role === "owner") return "Head Coach";
+    if (role === "owner") {
+      return "Head Coach";
+    }
     return role.charAt(0).toUpperCase() + role.slice(1);
   }
 
   function openEditDialog() {
-    if (!athlete) return;
+    if (!athlete) {
+      return;
+    }
     setEditForm({
       name: athlete.name || "",
       phone: athlete.phone || "",
@@ -201,7 +205,9 @@ export default function AthleteDetailPage() {
   }
 
   async function handleSaveEdit() {
-    if (!athlete) return;
+    if (!athlete) {
+      return;
+    }
     setSaving(true);
     setError(null);
 

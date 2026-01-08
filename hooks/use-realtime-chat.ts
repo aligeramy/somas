@@ -70,7 +70,9 @@ export function useRealtimeChat({
         const response = await fetch(
           `/api/chat/messages?channelId=${channelId}`
         );
-        if (!response.ok) throw new Error("Failed to load messages");
+        if (!response.ok) {
+          throw new Error("Failed to load messages");
+        }
 
         const result = await response.json();
         const formattedMessages: ChatMessage[] = (result.messages || [])
@@ -129,7 +131,9 @@ export function useRealtimeChat({
   }, [channelId, onMessage]);
 
   useEffect(() => {
-    if (!channelId) return;
+    if (!channelId) {
+      return;
+    }
 
     // Subscribe to realtime updates
     const realtimeChannel = supabase
@@ -148,7 +152,9 @@ export function useRealtimeChat({
             const response = await fetch(
               `/api/chat/messages/${payload.new.id}`
             );
-            if (!response.ok) return;
+            if (!response.ok) {
+              return;
+            }
 
             const result = await response.json();
             const newMessage: ChatMessage = {

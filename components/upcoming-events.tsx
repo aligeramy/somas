@@ -25,10 +25,14 @@ interface UpcomingEventsProps {
 
 export function UpcomingEvents({ occurrences }: UpcomingEventsProps) {
   const formatDate = (dateValue: string | Date | undefined | null) => {
-    if (!dateValue) return "Invalid date";
+    if (!dateValue) {
+      return "Invalid date";
+    }
     const date =
       typeof dateValue === "string" ? new Date(dateValue) : dateValue;
-    if (Number.isNaN(date.getTime())) return String(dateValue);
+    if (Number.isNaN(date.getTime())) {
+      return String(dateValue);
+    }
     return date.toLocaleDateString("en-US", {
       weekday: "short",
       month: "short",
@@ -37,10 +41,14 @@ export function UpcomingEvents({ occurrences }: UpcomingEventsProps) {
   };
 
   const formatTime = (time: string | undefined | null) => {
-    if (!time) return "";
+    if (!time) {
+      return "";
+    }
     const [hours, minutes] = time.split(":");
     const hour = Number.parseInt(hours, 10);
-    if (Number.isNaN(hour)) return time;
+    if (Number.isNaN(hour)) {
+      return time;
+    }
     const ampm = hour >= 12 ? "PM" : "AM";
     const displayHour = hour % 12 || 12;
     return `${displayHour}:${minutes} ${ampm}`;

@@ -1,5 +1,5 @@
+import { readFileSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
-import { readFileSync } from "fs";
 
 // Load .env manually
 const envFile = readFileSync(".env", "utf-8");
@@ -105,7 +105,7 @@ async function setupUsers() {
   const authUsers = authUsersData?.users || [];
 
   // Update existing users
-  for (const [userId, userData] of Object.entries(USER_PASSWORDS)) {
+  for (const [_userId, userData] of Object.entries(USER_PASSWORDS)) {
     try {
       const authUser = authUsers.find((u) => u.email === userData.email);
 
@@ -224,7 +224,7 @@ async function setupUsers() {
       }
     } else {
       // Get gym ID from first owner
-      const pascalUser = Object.values(USER_PASSWORDS).find(
+      const _pascalUser = Object.values(USER_PASSWORDS).find(
         (u) => u.role === "owner"
       );
 
@@ -269,9 +269,9 @@ async function setupUsers() {
 
 setupUsers()
   .then((results) => {
-    console.log("\n" + "=".repeat(70));
+    console.log(`\n${"=".repeat(70)}`);
     console.log("USER CREDENTIALS SUMMARY");
-    console.log("=".repeat(70) + "\n");
+    console.log(`${"=".repeat(70)}\n`);
 
     results.forEach((result) => {
       console.log(`${result.success ? "✅" : "❌"} ${result.email}`);
@@ -301,7 +301,7 @@ setupUsers()
     const aliResult = results.find(
       (r) => r.email === "ali@softxinnovations.ca" && r.success
     );
-    if (aliResult && aliResult.userId) {
+    if (aliResult?.userId) {
       console.log(`  "${aliResult.userId}": "${aliResult.password}", // Ali`);
     }
     console.log("};");

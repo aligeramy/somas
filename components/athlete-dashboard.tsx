@@ -84,9 +84,11 @@ export function AthleteDashboard({
     tomorrow.setDate(tomorrow.getDate() + 1);
 
     let relative = "";
-    if (date.toDateString() === today.toDateString()) relative = "Today";
-    else if (date.toDateString() === tomorrow.toDateString())
+    if (date.toDateString() === today.toDateString()) {
+      relative = "Today";
+    } else if (date.toDateString() === tomorrow.toDateString()) {
       relative = "Tomorrow";
+    }
 
     return {
       day: date.getDate().toString(),

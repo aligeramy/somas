@@ -128,11 +128,14 @@ export default function AthleteAttendancePage() {
   }, [athleteId, loadAthleteData]);
 
   function formatDate(dateValue: string | Date | undefined | null) {
-    if (!dateValue) return { day: "", month: "", weekday: "", relative: "" };
+    if (!dateValue) {
+      return { day: "", month: "", weekday: "", relative: "" };
+    }
     const date =
       typeof dateValue === "string" ? new Date(dateValue) : dateValue;
-    if (Number.isNaN(date.getTime()))
+    if (Number.isNaN(date.getTime())) {
       return { day: "", month: "", weekday: "", relative: "" };
+    }
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -140,9 +143,11 @@ export default function AthleteAttendancePage() {
     tomorrow.setDate(tomorrow.getDate() + 1);
 
     let relative = "";
-    if (date.toDateString() === today.toDateString()) relative = "Today";
-    else if (date.toDateString() === tomorrow.toDateString())
+    if (date.toDateString() === today.toDateString()) {
+      relative = "Today";
+    } else if (date.toDateString() === tomorrow.toDateString()) {
       relative = "Tomorrow";
+    }
 
     return {
       day: date.getDate().toString(),
@@ -153,23 +158,28 @@ export default function AthleteAttendancePage() {
   }
 
   function formatTime(time: string | undefined | null) {
-    if (!time) return "";
+    if (!time) {
+      return "";
+    }
     const [hours, minutes] = time.split(":");
     const hour = Number.parseInt(hours, 10);
-    if (Number.isNaN(hour)) return time;
+    if (Number.isNaN(hour)) {
+      return time;
+    }
     const ampm = hour >= 12 ? "PM" : "AM";
     const displayHour = hour % 12 || 12;
     return `${displayHour}:${minutes} ${ampm}`;
   }
 
   function getInitials(name: string | null, email: string) {
-    if (name)
+    if (name) {
       return name
         .split(" ")
         .map((n) => n[0])
         .join("")
         .toUpperCase()
         .slice(0, 2);
+    }
     return email[0].toUpperCase();
   }
 
@@ -201,7 +211,9 @@ export default function AthleteAttendancePage() {
         const monthStart = startOfMonth(month);
         const monthEnd = endOfMonth(month);
         const monthRsvps = historicalRsvps.filter((r) => {
-          if (!r.occurrence?.date) return false;
+          if (!r.occurrence?.date) {
+            return false;
+          }
           const occDate = new Date(r.occurrence.date);
           return occDate >= monthStart && occDate <= monthEnd;
         });
@@ -231,7 +243,9 @@ export default function AthleteAttendancePage() {
       .sort()
       .map((year) => {
         const yearRsvps = historicalRsvps.filter((r) => {
-          if (!r.occurrence?.date) return false;
+          if (!r.occurrence?.date) {
+            return false;
+          }
           return new Date(r.occurrence.date).getFullYear() === year;
         });
 
@@ -312,7 +326,9 @@ export default function AthleteAttendancePage() {
 
   // Sort RSVPs by date (most recent first)
   const sortedRsvps = [...historicalRsvps].sort((a, b) => {
-    if (!(a.occurrence?.date && b.occurrence?.date)) return 0;
+    if (!(a.occurrence?.date && b.occurrence?.date)) {
+      return 0;
+    }
     return (
       new Date(b.occurrence.date).getTime() -
       new Date(a.occurrence.date).getTime()
@@ -449,7 +465,9 @@ export default function AthleteAttendancePage() {
               ) : (
                 <div className="space-y-2">
                   {sortedRsvps.map((rsvp) => {
-                    if (!rsvp.occurrence) return null;
+                    if (!rsvp.occurrence) {
+                      return null;
+                    }
                     const occ = rsvp.occurrence;
                     const dateInfo = formatDate(occ.date);
                     const isGoing = rsvp.status === "going";

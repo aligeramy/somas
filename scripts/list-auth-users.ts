@@ -1,5 +1,5 @@
+import { readFileSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
-import { readFileSync } from "fs";
 
 const envFile = readFileSync(".env", "utf-8");
 const envVars: Record<string, string> = {};

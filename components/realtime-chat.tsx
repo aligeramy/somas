@@ -60,7 +60,9 @@ export function RealtimeChat({
   const handleMessage = useCallback(
     (msgs: ChatMessage[]) => {
       setLoading(false);
-      if (onMessage) onMessage(msgs);
+      if (onMessage) {
+        onMessage(msgs);
+      }
     },
     [onMessage]
   );
@@ -132,7 +134,9 @@ export function RealtimeChat({
   });
 
   const handleSend = async () => {
-    if (!(input.trim() || imageFile)) return;
+    if (!(input.trim() || imageFile)) {
+      return;
+    }
 
     try {
       let attachmentUrl: string | undefined;
@@ -144,7 +148,9 @@ export function RealtimeChat({
         const {
           data: { user },
         } = await supabase.auth.getUser();
-        if (!user) throw new Error("Not authenticated");
+        if (!user) {
+          throw new Error("Not authenticated");
+        }
 
         const fileExt = imageFile.name.split(".").pop();
         const fileName = `${user.id}-${Date.now()}.${fileExt}`;

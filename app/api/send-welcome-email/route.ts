@@ -8,18 +8,18 @@ import { db } from "@/lib/db";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function POST(request: Request) {
   try {
     const { email } = await request.json();
 
-    if (!(email && email.trim())) {
+    if (!email?.trim()) {
       return NextResponse.json({ error: "Email is required" }, { status: 400 });
     }
 
     // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email.trim())) {
+    if (!EMAIL_REGEX.test(email.trim())) {
       return NextResponse.json(
         { error: "Invalid email format" },
         { status: 400 }

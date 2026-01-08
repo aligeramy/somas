@@ -1,7 +1,7 @@
+import { readFileSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
-import { readFileSync } from "fs";
 import postgres from "postgres";
 import * as schema from "@/drizzle/schema";
 import { users } from "@/drizzle/schema";

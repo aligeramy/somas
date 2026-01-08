@@ -122,7 +122,9 @@ export default function EditEventPage() {
       try {
         setLoadingEvent(true);
         const response = await fetch(`/api/events/${eventId}`);
-        if (!response.ok) throw new Error("Failed to load event");
+        if (!response.ok) {
+          throw new Error("Failed to load event");
+        }
         const data = await response.json();
         const event: Event = data.event;
         const occurrences = data.occurrences || [];
@@ -300,8 +302,9 @@ export default function EditEventPage() {
       });
 
       const result = await response.json();
-      if (!response.ok)
+      if (!response.ok) {
         throw new Error(result.error || "Failed to update event");
+      }
 
       router.push("/events");
     } catch (err) {

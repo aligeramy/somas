@@ -78,7 +78,9 @@ interface User {
 
 export default function RosterPage() {
   const formatRoleDisplay = (role: string) => {
-    if (role === "owner") return "Head Coach";
+    if (role === "owner") {
+      return "Head Coach";
+    }
     return role.charAt(0).toUpperCase() + role.slice(1);
   };
 
@@ -314,7 +316,9 @@ export default function RosterPage() {
   }
 
   async function handleSaveEdit() {
-    if (!editingMember) return;
+    if (!editingMember) {
+      return;
+    }
     setSaving(true);
     setError(null);
 
@@ -359,7 +363,9 @@ export default function RosterPage() {
   }
 
   async function handleDeleteMember() {
-    if (!deletingMember) return;
+    if (!deletingMember) {
+      return;
+    }
     setDeleting(true);
 
     try {

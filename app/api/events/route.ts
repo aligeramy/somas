@@ -21,7 +21,7 @@ export async function POST(request: Request) {
       .where(eq(users.id, user.id))
       .limit(1);
 
-    if (!(dbUser && dbUser.gymId)) {
+    if (!dbUser?.gymId) {
       return NextResponse.json(
         { error: "User must belong to a gym" },
         { status: 400 }
@@ -279,7 +279,7 @@ export async function GET(_request: Request) {
       .where(eq(users.id, user.id))
       .limit(1);
 
-    if (!(dbUser && dbUser.gymId)) {
+    if (!dbUser?.gymId) {
       return NextResponse.json(
         { error: "User must belong to a gym" },
         { status: 400 }

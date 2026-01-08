@@ -72,7 +72,9 @@ export async function GET(request: Request) {
 
     // Process each event
     for (const [, { event, occurrences }] of eventsMap) {
-      if (!event.reminderDays || event.reminderDays.length === 0) continue;
+      if (!event.reminderDays || event.reminderDays.length === 0) {
+        continue;
+      }
 
       // Get gym info
       const [gym] = await db
@@ -81,7 +83,9 @@ export async function GET(request: Request) {
         .where(eq(gyms.id, event.gymId))
         .limit(1);
 
-      if (!gym) continue;
+      if (!gym) {
+        continue;
+      }
 
       // Get all athletes in the gym (including altEmail)
       const athletes = await db
@@ -119,10 +123,15 @@ export async function GET(request: Request) {
             reminderDateTime.setHours(0, 0, 0, 0);
 
             // Determine reminder type
-            if (reminderValue === 7) reminderType = "7_day";
-            else if (reminderValue === 3) reminderType = "3_day";
-            else if (reminderValue === 1) reminderType = "1_day";
-            else reminderType = `${reminderValue}_day`;
+            if (reminderValue === 7) {
+              reminderType = "7_day";
+            } else if (reminderValue === 3) {
+              reminderType = "3_day";
+            } else if (reminderValue === 1) {
+              reminderType = "1_day";
+            } else {
+              reminderType = `${reminderValue}_day`;
+            }
           }
 
           // Check if we should send this reminder now
@@ -147,7 +156,9 @@ export async function GET(request: Request) {
               reminderDay.getTime() === today.getTime() && timeDiff > 0;
           }
 
-          if (!shouldSend) continue;
+          if (!shouldSend) {
+            continue;
+          }
 
           // Get existing RSVPs for this occurrence
           const existingRsvps = await db
@@ -184,7 +195,9 @@ export async function GET(request: Request) {
 
           // Send emails
           for (const athlete of targetAthletes) {
-            if (!athlete.email) continue;
+            if (!athlete.email) {
+              continue;
+            }
 
             try {
               // Check if we already sent this reminder

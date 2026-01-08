@@ -42,7 +42,9 @@ export function MobileEventActions({
   const [rsvping, setRsvping] = useState(false);
 
   async function handleCancel() {
-    if (canceling) return;
+    if (canceling) {
+      return;
+    }
     setCanceling(true);
     try {
       const response = await fetch(`/api/events/${eventId}/cancel`, {
@@ -53,7 +55,9 @@ export function MobileEventActions({
           restore: isCanceled,
         }),
       });
-      if (!response.ok) throw new Error("Failed to cancel");
+      if (!response.ok) {
+        throw new Error("Failed to cancel");
+      }
       router.refresh();
       onOpenChange(false);
     } catch (err) {
@@ -65,7 +69,9 @@ export function MobileEventActions({
   }
 
   async function handleRsvp(status: "going" | "not_going") {
-    if (rsvping || isCanceled) return;
+    if (rsvping || isCanceled) {
+      return;
+    }
     setRsvping(true);
     // Optimistically update parent state immediately
     if (onRsvpUpdate) {
@@ -80,7 +86,9 @@ export function MobileEventActions({
           status,
         }),
       });
-      if (!response.ok) throw new Error("Failed to RSVP");
+      if (!response.ok) {
+        throw new Error("Failed to RSVP");
+      }
       router.refresh();
       onOpenChange(false);
     } catch (err) {

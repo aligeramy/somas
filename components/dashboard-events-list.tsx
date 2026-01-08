@@ -74,11 +74,14 @@ export function DashboardEventsList({
   }
 
   function formatDate(dateValue: Date | string | null) {
-    if (!dateValue) return { day: "", month: "", weekday: "" };
+    if (!dateValue) {
+      return { day: "", month: "", weekday: "" };
+    }
     const date =
       typeof dateValue === "string" ? new Date(dateValue) : dateValue;
-    if (Number.isNaN(date.getTime()))
+    if (Number.isNaN(date.getTime())) {
       return { day: "", month: "", weekday: "" };
+    }
     return {
       day: date.getDate().toString(),
       month: date.toLocaleDateString("en-US", { month: "short" }).toUpperCase(),
@@ -87,10 +90,14 @@ export function DashboardEventsList({
   }
 
   function formatTime(time: string | null) {
-    if (!time) return "";
+    if (!time) {
+      return "";
+    }
     const [hours, minutes] = time.split(":");
     const hour = Number.parseInt(hours, 10);
-    if (Number.isNaN(hour)) return time;
+    if (Number.isNaN(hour)) {
+      return time;
+    }
     const ampm = hour >= 12 ? "PM" : "AM";
     const displayHour = hour % 12 || 12;
     return `${displayHour}:${minutes} ${ampm}`;

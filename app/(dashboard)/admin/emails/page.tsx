@@ -67,12 +67,14 @@ export default function AdminEmailsPage() {
   useEffect(() => {
     fetchUsers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [fetchUsers]);
 
   async function fetchUsers() {
     try {
       const response = await fetch("/api/admin/users");
-      if (!response.ok) throw new Error("Failed to fetch users");
+      if (!response.ok) {
+        throw new Error("Failed to fetch users");
+      }
       const data = await response.json();
       setUsers(data.users);
     } catch (error) {
@@ -113,7 +115,9 @@ export default function AdminEmailsPage() {
   }
 
   async function sendEmails(type: "welcome" | "reset") {
-    if (selectedUsers.size === 0) return;
+    if (selectedUsers.size === 0) {
+      return;
+    }
 
     setSending(true);
     setResults(null);

@@ -33,7 +33,7 @@ export default async function BlogPostPage({
     .where(eq(users.id, authUser.id))
     .limit(1);
 
-  if (!(dbUser && dbUser.gymId)) {
+  if (!dbUser?.gymId) {
     return notFound();
   }
 
@@ -62,7 +62,9 @@ export default async function BlogPostPage({
   }
 
   function getInitials(name: string | null) {
-    if (!name) return "?";
+    if (!name) {
+      return "?";
+    }
     return name
       .split(" ")
       .map((n) => n[0])

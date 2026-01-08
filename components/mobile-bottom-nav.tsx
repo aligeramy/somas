@@ -182,7 +182,7 @@ export function MobileBottomNav({
           >
             <SheetTitle className="sr-only">Settings</SheetTitle>
             <div className="pt-2">
-              {moreItems.map((item, index) => {
+              {moreItems.map((item, _index) => {
                 const Icon = item.icon;
                 const isActive =
                   pathname === item.url || pathname.startsWith(`${item.url}/`);

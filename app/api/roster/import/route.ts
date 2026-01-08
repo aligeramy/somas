@@ -28,7 +28,7 @@ export async function POST(request: Request) {
       .where(eq(users.id, user.id))
       .limit(1);
 
-    if (!(dbUser && dbUser.gymId)) {
+    if (!dbUser?.gymId) {
       return NextResponse.json(
         { error: "User must belong to a gym" },
         { status: 400 }
@@ -59,7 +59,7 @@ export async function POST(request: Request) {
     }
 
     const text = await file.text();
-    let data: Array<Record<string, string>> = [];
+    let data: Record<string, string>[] = [];
 
     // Parse file based on extension
     if (file.name.endsWith(".json")) {
@@ -69,7 +69,7 @@ export async function POST(request: Request) {
         header: true,
         skipEmptyLines: true,
       });
-      data = result.data as Array<Record<string, string>>;
+      data = result.data as Record<string, string>[];
     } else {
       return NextResponse.json(
         { error: "Unsupported file format. Use CSV or JSON." },

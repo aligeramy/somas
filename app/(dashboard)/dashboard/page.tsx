@@ -47,7 +47,7 @@ export default async function DashboardPage() {
     .where(eq(users.id, authUser.id))
     .limit(1);
 
-  if (!(dbUser && dbUser.gymId)) {
+  if (!dbUser?.gymId) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center p-8">
         <p className="text-muted-foreground">

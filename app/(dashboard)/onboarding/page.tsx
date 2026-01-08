@@ -36,7 +36,7 @@ export default function OnboardingPage() {
   useEffect(() => {
     loadUserProfile();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [loadUserProfile]);
 
   async function loadUserProfile() {
     try {
@@ -45,10 +45,18 @@ export default function OnboardingPage() {
       if (response.ok) {
         const data = await response.json();
         // Pre-populate fields if user already has data (from import)
-        if (data.user.name) setName(data.user.name);
-        if (data.user.phone) setPhone(data.user.phone);
-        if (data.user.address) setAddress(data.user.address);
-        if (data.user.avatarUrl) setAvatarPreview(data.user.avatarUrl);
+        if (data.user.name) {
+          setName(data.user.name);
+        }
+        if (data.user.phone) {
+          setPhone(data.user.phone);
+        }
+        if (data.user.address) {
+          setAddress(data.user.address);
+        }
+        if (data.user.avatarUrl) {
+          setAvatarPreview(data.user.avatarUrl);
+        }
       }
     } catch (_err) {
       // Ignore errors, user might not exist yet

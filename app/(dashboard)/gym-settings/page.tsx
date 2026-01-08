@@ -106,7 +106,9 @@ export default function GymSettingsPage() {
     setLoadingCoaches(true);
     try {
       const response = await fetch("/api/roster");
-      if (!response.ok) throw new Error("Failed to load coaches");
+      if (!response.ok) {
+        throw new Error("Failed to load coaches");
+      }
       const data = await response.json();
       const coachesList = data.roster.filter(
         (user: Coach) => user.role === "coach"
@@ -123,7 +125,9 @@ export default function GymSettingsPage() {
     try {
       setLoading(true);
       const response = await fetch("/api/gym");
-      if (!response.ok) throw new Error("Failed to load gym");
+      if (!response.ok) {
+        throw new Error("Failed to load gym");
+      }
       const data = await response.json();
       setGym(data.gym);
       setGymName(data.gym.name || "");
@@ -157,7 +161,9 @@ export default function GymSettingsPage() {
         const {
           data: { user: authUser },
         } = await supabase.auth.getUser();
-        if (!authUser) throw new Error("Not authenticated");
+        if (!authUser) {
+          throw new Error("Not authenticated");
+        }
 
         const fileExt = gymLogoFile.name.split(".").pop();
         const fileName = `${authUser.id}-${Date.now()}.${fileExt}`;
@@ -190,7 +196,9 @@ export default function GymSettingsPage() {
         }),
       });
 
-      if (!gymResponse.ok) throw new Error("Failed to save gym");
+      if (!gymResponse.ok) {
+        throw new Error("Failed to save gym");
+      }
 
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
@@ -352,6 +360,7 @@ export default function GymSettingsPage() {
                   <button
                     {...getLogoRootProps()}
                     className="absolute right-0 bottom-0 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-colors hover:bg-primary/90"
+                    type="button"
                   >
                     <input {...getLogoInputProps()} />
                     <IconCamera className="h-4 w-4" />

@@ -67,25 +67,33 @@ export function EventCalendar({
   }
 
   function handleDayClick(date: Date) {
-    if (readOnly) return;
+    if (readOnly) {
+      return;
+    }
     setSelectedDate(date);
   }
 
   function handleToggle() {
-    if (!(selectedDate && onToggleDate)) return;
+    if (!(selectedDate && onToggleDate)) {
+      return;
+    }
     const occ = getOccurrenceForDate(selectedDate);
     onToggleDate(selectedDate, occ?.status || null);
     setSelectedDate(null);
   }
 
   function handleAddCustom() {
-    if (!(selectedDate && onAddCustomDate)) return;
+    if (!(selectedDate && onAddCustomDate)) {
+      return;
+    }
     onAddCustomDate(selectedDate);
     setSelectedDate(null);
   }
 
   function handleRemove() {
-    if (!(selectedDate && onRemoveDate)) return;
+    if (!(selectedDate && onRemoveDate)) {
+      return;
+    }
     const occ = getOccurrenceForDate(selectedDate);
     if (occ) {
       onRemoveDate(occ.id);

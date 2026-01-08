@@ -54,7 +54,9 @@ export function SiteHeader() {
   };
 
   const loadGymMembers = async () => {
-    if (gymMembers.length > 0) return;
+    if (gymMembers.length > 0) {
+      return;
+    }
     setLoadingMembers(true);
     try {
       const {
@@ -84,8 +86,12 @@ export function SiteHeader() {
   };
 
   const handleCreateChat = async () => {
-    if (chatType === "dm" && !selectedUserId) return;
-    if (chatType === "group" && !newChannelName.trim()) return;
+    if (chatType === "dm" && !selectedUserId) {
+      return;
+    }
+    if (chatType === "group" && !newChannelName.trim()) {
+      return;
+    }
 
     setCreating(true);
     try {
@@ -178,7 +184,9 @@ export function SiteHeader() {
         : pathname === "/gym-settings"
           ? "gym-settings-form"
           : null;
-    if (!formId) return;
+    if (!formId) {
+      return;
+    }
 
     const form = document.getElementById(formId) as HTMLFormElement;
     if (form) {

@@ -96,25 +96,33 @@ export function CustomEventCalendar({
   }
 
   function handleDayClick(date: Date) {
-    if (readOnly) return;
+    if (readOnly) {
+      return;
+    }
     setSelectedDate(date);
   }
 
   function handleToggle() {
-    if (!(selectedDate && onToggleDate)) return;
+    if (!(selectedDate && onToggleDate)) {
+      return;
+    }
     const occ = getOccurrenceForDate(selectedDate);
     onToggleDate(selectedDate, occ?.status || null);
     setSelectedDate(null);
   }
 
   function handleAddCustom() {
-    if (!(selectedDate && onAddCustomDate)) return;
+    if (!(selectedDate && onAddCustomDate)) {
+      return;
+    }
     onAddCustomDate(selectedDate);
     setSelectedDate(null);
   }
 
   function handleRemove() {
-    if (!(selectedDate && onRemoveDate)) return;
+    if (!(selectedDate && onRemoveDate)) {
+      return;
+    }
     const occ = getOccurrenceForDate(selectedDate);
     if (occ) {
       onRemoveDate(occ.id);
@@ -128,7 +136,9 @@ export function CustomEventCalendar({
     e: React.MouseEvent
   ) {
     e.stopPropagation();
-    if (!onRsvp || rsvping) return;
+    if (!onRsvp || rsvping) {
+      return;
+    }
     setRsvping(occurrenceId);
     try {
       await onRsvp(occurrenceId, status);
@@ -143,7 +153,9 @@ export function CustomEventCalendar({
 
   async function handleCancel(occurrenceId: string, e: React.MouseEvent) {
     e.stopPropagation();
-    if (!onCancel || canceling) return;
+    if (!onCancel || canceling) {
+      return;
+    }
     setCanceling(occurrenceId);
     try {
       await onCancel(occurrenceId);

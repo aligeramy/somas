@@ -32,7 +32,7 @@ export async function GET(request: Request) {
       .from(users)
       .where(eq(users.id, user.id))
       .limit(1);
-    if (!(dbUser && dbUser.gymId)) {
+    if (!dbUser?.gymId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -146,7 +146,7 @@ export async function POST(request: Request) {
       .where(eq(users.id, user.id))
       .limit(1);
 
-    if (!(dbUser && dbUser.gymId)) {
+    if (!dbUser?.gymId) {
       console.log("[POST /api/chat/messages] User has no gym:", {
         dbUser: !!dbUser,
         gymId: dbUser?.gymId,

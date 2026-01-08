@@ -133,7 +133,9 @@ export function AppSidebar({
   ].filter((item) => item.roles.includes(user.role));
 
   const getGymInitials = (name: string | null) => {
-    if (!name) return "SOMAS";
+    if (!name) {
+      return "SOMAS";
+    }
     const initials = name
       .split(" ")
       .map((n) => n[0])

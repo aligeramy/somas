@@ -29,7 +29,7 @@ export async function PUT(
       .where(eq(users.id, user.id))
       .limit(1);
 
-    if (!(dbUser && dbUser.gymId)) {
+    if (!dbUser?.gymId) {
       return NextResponse.json(
         { error: "User must belong to a gym" },
         { status: 400 }
@@ -93,7 +93,9 @@ export async function PUT(
         const emailPromises = gymMembers
           .filter((member) => member.email)
           .map((member) => {
-            if (!member.email) return Promise.resolve({ error: "No email" });
+            if (!member.email) {
+              return Promise.resolve({ error: "No email" });
+            }
             // Build recipient list including altEmail
             const recipients = [member.email];
             if (member.altEmail) {
@@ -161,7 +163,7 @@ export async function DELETE(
       .where(eq(users.id, user.id))
       .limit(1);
 
-    if (!(dbUser && dbUser.gymId)) {
+    if (!dbUser?.gymId) {
       return NextResponse.json(
         { error: "User must belong to a gym" },
         { status: 400 }

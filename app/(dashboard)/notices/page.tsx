@@ -179,7 +179,9 @@ export default function NoticesPage() {
         }),
       });
 
-      if (!response.ok) throw new Error("Failed to update notice");
+      if (!response.ok) {
+        throw new Error("Failed to update notice");
+      }
       await loadNotices();
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to update notice");
@@ -187,14 +189,18 @@ export default function NoticesPage() {
   }
 
   async function handleDelete(noticeId: string) {
-    if (!confirm("Are you sure you want to delete this notice?")) return;
+    if (!confirm("Are you sure you want to delete this notice?")) {
+      return;
+    }
 
     try {
       const response = await fetch(`/api/notices/${noticeId}`, {
         method: "DELETE",
       });
 
-      if (!response.ok) throw new Error("Failed to delete notice");
+      if (!response.ok) {
+        throw new Error("Failed to delete notice");
+      }
       await loadNotices();
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to delete notice");

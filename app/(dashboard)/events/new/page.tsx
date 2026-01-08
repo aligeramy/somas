@@ -231,8 +231,9 @@ export default function NewEventPage() {
       });
 
       const result = await response.json();
-      if (!response.ok)
+      if (!response.ok) {
         throw new Error(result.error || "Failed to create event");
+      }
 
       router.push("/events");
     } catch (err) {

@@ -1,16 +1,19 @@
+import { readFileSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
-import { readFileSync } from "fs";
+
+const ENV_LINE_REGEX = /^([^#=]+)=(.*)$/;
+const QUOTE_REGEX = /^["']|["']$/g;
 
 const envFile = readFileSync(".env", "utf-8");
 const envVars: Record<string, string> = {};
-envFile.split("\n").forEach((line) => {
-  const match = line.match(/^([^#=]+)=(.*)$/);
+for (const line of envFile.split("\n")) {
+  const match = line.match(ENV_LINE_REGEX);
   if (match) {
     const key = match[1].trim();
-    const value = match[2].trim().replace(/^["']|["']$/g, "");
+    const value = match[2].trim().replace(QUOTE_REGEX, "");
     envVars[key] = value;
   }
-});
+}
 
 const supabaseUrl = envVars.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = envVars.SUPABASE_SERVICE_ROLE_KEY;

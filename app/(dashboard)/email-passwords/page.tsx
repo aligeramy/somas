@@ -79,7 +79,9 @@ export default function EmailPasswordsPage() {
   const fetchUsers = useCallback(async () => {
     try {
       const response = await fetch("/api/admin/users");
-      if (!response.ok) throw new Error("Failed to fetch users");
+      if (!response.ok) {
+        throw new Error("Failed to fetch users");
+      }
       const data = await response.json();
       // Filter to only non-onboarded users
       const nonOnboardedUsers = data.users.filter((u: User) => !u.onboarded);
@@ -122,7 +124,9 @@ export default function EmailPasswordsPage() {
   }
 
   async function sendCredentials() {
-    if (selectedUsers.size === 0) return;
+    if (selectedUsers.size === 0) {
+      return;
+    }
 
     setSending(true);
     setResults(null);
@@ -153,7 +157,9 @@ export default function EmailPasswordsPage() {
   }
 
   async function sendTestEmail() {
-    if (!(testUserId && testEmail)) return;
+    if (!(testUserId && testEmail)) {
+      return;
+    }
 
     setTesting(true);
     setTestResult(null);

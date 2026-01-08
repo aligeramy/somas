@@ -25,7 +25,7 @@ export async function GET(
       .where(eq(users.id, user.id))
       .limit(1);
 
-    if (!(dbUser && dbUser.gymId)) {
+    if (!dbUser?.gymId) {
       return NextResponse.json(
         { error: "User must belong to a gym" },
         { status: 400 }
@@ -106,7 +106,7 @@ export async function PUT(
       }
     }
 
-    if (!(dbUser && dbUser.gymId)) {
+    if (!dbUser?.gymId) {
       return NextResponse.json(
         { error: "User must belong to a gym" },
         { status: 400 }
@@ -229,7 +229,7 @@ export async function DELETE(
       }
     }
 
-    if (!(dbUser && dbUser.gymId)) {
+    if (!dbUser?.gymId) {
       return NextResponse.json(
         { error: "User must belong to a gym" },
         { status: 400 }

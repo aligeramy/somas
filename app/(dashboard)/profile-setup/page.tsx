@@ -174,32 +174,58 @@ export default function ProfileSetupPage() {
         );
 
         // Pre-populate fields if user already has data (from invitation)
-        if (data.user.name) setName(data.user.name);
-        if (data.user.phone) setPhone(data.user.phone);
-        if (data.user.address) setAddress(data.user.address);
-        if (data.user.altEmail) setAltEmail(data.user.altEmail);
-        if (data.user.homePhone) setHomePhone(data.user.homePhone);
-        if (data.user.workPhone) setWorkPhone(data.user.workPhone);
-        if (data.user.cellPhone) setCellPhone(data.user.cellPhone);
-        if (data.user.emergencyContactName)
+        if (data.user.name) {
+          setName(data.user.name);
+        }
+        if (data.user.phone) {
+          setPhone(data.user.phone);
+        }
+        if (data.user.address) {
+          setAddress(data.user.address);
+        }
+        if (data.user.altEmail) {
+          setAltEmail(data.user.altEmail);
+        }
+        if (data.user.homePhone) {
+          setHomePhone(data.user.homePhone);
+        }
+        if (data.user.workPhone) {
+          setWorkPhone(data.user.workPhone);
+        }
+        if (data.user.cellPhone) {
+          setCellPhone(data.user.cellPhone);
+        }
+        if (data.user.emergencyContactName) {
           setEmergencyContactName(data.user.emergencyContactName);
-        if (data.user.emergencyContactPhone)
+        }
+        if (data.user.emergencyContactPhone) {
           setEmergencyContactPhone(data.user.emergencyContactPhone);
-        if (data.user.emergencyContactRelationship)
+        }
+        if (data.user.emergencyContactRelationship) {
           setEmergencyContactRelationship(
             data.user.emergencyContactRelationship
           );
-        if (data.user.emergencyContactEmail)
+        }
+        if (data.user.emergencyContactEmail) {
           setEmergencyContactEmail(data.user.emergencyContactEmail);
-        if (data.user.medicalConditions)
+        }
+        if (data.user.medicalConditions) {
           setMedicalConditions(data.user.medicalConditions);
-        if (data.user.medications) setMedications(data.user.medications);
-        if (data.user.allergies) setAllergies(data.user.allergies);
-        if (data.user.dateOfBirth)
+        }
+        if (data.user.medications) {
+          setMedications(data.user.medications);
+        }
+        if (data.user.allergies) {
+          setAllergies(data.user.allergies);
+        }
+        if (data.user.dateOfBirth) {
           setDateOfBirth(
             new Date(data.user.dateOfBirth).toISOString().split("T")[0]
           );
-        if (data.user.avatarUrl) setAvatarPreview(data.user.avatarUrl);
+        }
+        if (data.user.avatarUrl) {
+          setAvatarPreview(data.user.avatarUrl);
+        }
         retryCountRef.current = 0; // Reset on success
       } else if (response.status === 404) {
         // User not found in database - this is okay, they can still fill out the form
@@ -313,7 +339,9 @@ export default function ProfileSetupPage() {
 
       // Helper to convert empty strings to null
       const toNull = (value: string | null | undefined) => {
-        if (!value || value.trim() === "") return null;
+        if (!value || value.trim() === "") {
+          return null;
+        }
         return value.trim();
       };
 

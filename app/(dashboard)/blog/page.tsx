@@ -98,7 +98,9 @@ export default function BlogPage() {
     try {
       setLoading(true);
       const response = await fetch("/api/blog");
-      if (!response.ok) throw new Error("Failed to load posts");
+      if (!response.ok) {
+        throw new Error("Failed to load posts");
+      }
       const data = await response.json();
       setPosts(data.posts || []);
     } catch (err) {
@@ -182,7 +184,9 @@ export default function BlogPage() {
         const {
           data: { user },
         } = await supabase.auth.getUser();
-        if (!user) throw new Error("Not authenticated");
+        if (!user) {
+          throw new Error("Not authenticated");
+        }
 
         const fileExt = imageFile.name.split(".").pop();
         const fileName = `${user.id}-${Date.now()}.${fileExt}`;
@@ -235,14 +239,18 @@ export default function BlogPage() {
   }
 
   async function handleDelete(postId: string) {
-    if (!confirm("Are you sure you want to delete this post?")) return;
+    if (!confirm("Are you sure you want to delete this post?")) {
+      return;
+    }
 
     try {
       const response = await fetch(`/api/blog/${postId}`, {
         method: "DELETE",
       });
 
-      if (!response.ok) throw new Error("Failed to delete post");
+      if (!response.ok) {
+        throw new Error("Failed to delete post");
+      }
       await loadPosts();
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to delete post");

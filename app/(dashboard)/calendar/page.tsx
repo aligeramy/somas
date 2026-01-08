@@ -126,8 +126,9 @@ export default function CalendarPage() {
         fetch("/api/user-info"),
       ]);
 
-      if (!(eventsRes.ok && rsvpsRes.ok))
+      if (!(eventsRes.ok && rsvpsRes.ok)) {
         throw new Error("Failed to load data");
+      }
 
       const eventsData = await eventsRes.json();
       const rsvpsData = await rsvpsRes.json();
@@ -209,7 +210,9 @@ export default function CalendarPage() {
   }
 
   async function loadCoachAttendeesForOccurrences(occurrenceIds: string[]) {
-    if (occurrenceIds.length === 0) return;
+    if (occurrenceIds.length === 0) {
+      return;
+    }
     setLoadingAttendees(true);
     try {
       const attendeesMap: Record<string, CoachAttendee[]> = {};
@@ -276,7 +279,9 @@ export default function CalendarPage() {
     occurrenceId: string,
     status: "going" | "not_going"
   ) {
-    if (userInfo?.role !== "athlete") return;
+    if (userInfo?.role !== "athlete") {
+      return;
+    }
 
     try {
       setUpdatingRsvp(occurrenceId);
@@ -285,7 +290,9 @@ export default function CalendarPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ occurrenceId, status }),
       });
-      if (!response.ok) throw new Error("Failed to RSVP");
+      if (!response.ok) {
+        throw new Error("Failed to RSVP");
+      }
 
       const data = await response.json();
 
@@ -324,7 +331,9 @@ export default function CalendarPage() {
   }
 
   async function handleCancelOccurrence(occurrenceId: string) {
-    if (userInfo?.role !== "coach" && userInfo?.role !== "owner") return;
+    if (userInfo?.role !== "coach" && userInfo?.role !== "owner") {
+      return;
+    }
 
     try {
       setCancelingOccurrence(occurrenceId);
@@ -360,10 +369,14 @@ export default function CalendarPage() {
   }
 
   function formatTime(time: string | undefined | null) {
-    if (!time) return "";
+    if (!time) {
+      return "";
+    }
     const [hours, minutes] = time.split(":");
     const hour = Number.parseInt(hours, 10);
-    if (Number.isNaN(hour)) return time;
+    if (Number.isNaN(hour)) {
+      return time;
+    }
     const ampm = hour >= 12 ? "PM" : "AM";
     const displayHour = hour % 12 || 12;
     return `${displayHour}:${minutes} ${ampm}`;
@@ -396,7 +409,7 @@ export default function CalendarPage() {
     for (let i = 0; i < str.length; i++) {
       const char = str.charCodeAt(i);
       hash = (hash << 5) - hash + char;
-      hash = hash & hash; // Convert to 32-bit integer
+      hash &= hash; // Convert to 32-bit integer
     }
     return Math.abs(hash);
   }
@@ -419,7 +432,7 @@ export default function CalendarPage() {
       }
     });
     return Array.from(eventMap.values());
-  }, [events]);
+  }, [events, hashString]);
 
   // Get color for an event
   function getEventColor(eventId: string): string {

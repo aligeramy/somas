@@ -21,7 +21,7 @@ export async function GET(request: Request) {
       .where(eq(users.id, user.id))
       .limit(1);
 
-    if (!(dbUser && dbUser.gymId)) {
+    if (!dbUser?.gymId) {
       return NextResponse.json(
         { error: "User must belong to a gym" },
         { status: 400 }
@@ -108,8 +108,12 @@ export async function GET(request: Request) {
 
     // Sort channels: global first, then others
     const sortedChannels = [...filteredChannels].sort((a, b) => {
-      if (a.type === "global") return -1;
-      if (b.type === "global") return 1;
+      if (a.type === "global") {
+        return -1;
+      }
+      if (b.type === "global") {
+        return 1;
+      }
       return 0;
     });
 
@@ -140,7 +144,7 @@ export async function POST(request: Request) {
       .where(eq(users.id, user.id))
       .limit(1);
 
-    if (!(dbUser && dbUser.gymId)) {
+    if (!dbUser?.gymId) {
       return NextResponse.json(
         { error: "User must belong to a gym" },
         { status: 400 }
@@ -233,7 +237,7 @@ export async function POST(request: Request) {
 
     // Handle group chat creation
     if (type === "group") {
-      if (!(name && name.trim())) {
+      if (!name?.trim()) {
         return NextResponse.json(
           { error: "Group name is required" },
           { status: 400 }

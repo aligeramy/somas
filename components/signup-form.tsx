@@ -30,8 +30,12 @@ export function SignupForm({
     setLoading(true);
 
     const formData = new FormData(e.currentTarget);
-    if (token) formData.append("token", token);
-    if (email) formData.set("email", email);
+    if (token) {
+      formData.append("token", token);
+    }
+    if (email) {
+      formData.set("email", email);
+    }
 
     const result = await registerAction(formData);
 

@@ -85,7 +85,9 @@ export default function ChatPage() {
   const loadUnreadCounts = useCallback(async () => {
     try {
       const response = await fetch("/api/chat/notifications/counts");
-      if (!response.ok) return;
+      if (!response.ok) {
+        return;
+      }
 
       const result = await response.json();
       const countsMap = new Map<string, number>();
@@ -141,7 +143,9 @@ export default function ChatPage() {
         const {
           data: { user },
         } = await supabase.auth.getUser();
-        if (!user) return;
+        if (!user) {
+          return;
+        }
 
         const { data: userData } = await supabase
           .from("User")
@@ -149,7 +153,9 @@ export default function ChatPage() {
           .eq("id", user.id)
           .single();
 
-        if (!userData?.gymId) return;
+        if (!userData?.gymId) {
+          return;
+        }
 
         const response = await fetch(
           `/api/chat/channels?gymId=${userData.gymId}`
@@ -164,8 +170,12 @@ export default function ChatPage() {
           // Sort channels: global first, then others
           const sortedChannels = filteredChannels.sort(
             (a: Channel, b: Channel) => {
-              if (a.type === "global") return -1;
-              if (b.type === "global") return 1;
+              if (a.type === "global") {
+                return -1;
+              }
+              if (b.type === "global") {
+                return 1;
+              }
               return 0;
             }
           );
@@ -430,8 +440,12 @@ export default function ChatPage() {
 
   async function handleCreateChannel() {
     const targetUserId = selectedUserId;
-    if (chatType === "dm" && !targetUserId) return;
-    if (chatType === "group" && !newChannelName.trim()) return;
+    if (chatType === "dm" && !targetUserId) {
+      return;
+    }
+    if (chatType === "group" && !newChannelName.trim()) {
+      return;
+    }
 
     try {
       setCreating(true);

@@ -16,6 +16,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/client";
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 function SetupPasswordForm() {
   const searchParams = useSearchParams();
   const email = searchParams.get("email") || "";
@@ -84,14 +86,13 @@ function SetupPasswordForm() {
   }, [token, tokenType, email, supabase.auth]);
 
   async function handleRequestNewLink() {
-    if (!(email && email.trim())) {
+    if (!email?.trim()) {
       setError("Email address is required to request a new link");
       return;
     }
 
     // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email.trim())) {
+    if (!EMAIL_REGEX.test(email.trim())) {
       setError("Please enter a valid email address");
       return;
     }

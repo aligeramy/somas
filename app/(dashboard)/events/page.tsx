@@ -427,7 +427,9 @@ export default function EventsPage() {
           setInitialLoading(true);
         }
         const response = await fetch("/api/events");
-        if (!response.ok) throw new Error("Failed to load events");
+        if (!response.ok) {
+          throw new Error("Failed to load events");
+        }
         const data = await response.json();
         const newEvents = data.events || [];
         setEvents(newEvents);
@@ -871,7 +873,9 @@ export default function EventsPage() {
   ]);
 
   async function handleCancelWithNotify() {
-    if (!(selectedOccurrence && selectedEvent)) return;
+    if (!(selectedOccurrence && selectedEvent)) {
+      return;
+    }
     const occurrenceIdToCancel = selectedOccurrence.id;
     const eventIdToKeep = selectedEvent.id;
     setCanceling(true);
@@ -887,14 +891,18 @@ export default function EventsPage() {
           }),
         }
       );
-      if (!response.ok) throw new Error("Failed to cancel");
+      if (!response.ok) {
+        throw new Error("Failed to cancel");
+      }
       const data = await response.json();
 
       setCancelDialogOpen(false);
 
       // Reload events to get updated occurrence status
       const eventsResponse = await fetch("/api/events");
-      if (!eventsResponse.ok) throw new Error("Failed to reload events");
+      if (!eventsResponse.ok) {
+        throw new Error("Failed to reload events");
+      }
       const eventsData = await eventsResponse.json();
       const newEvents = eventsData.events || [];
       setEvents(newEvents);
@@ -941,13 +949,17 @@ export default function EventsPage() {
   }
 
   async function handleDeleteEvent() {
-    if (!selectedEvent) return;
+    if (!selectedEvent) {
+      return;
+    }
     setDeleting(true);
     try {
       const response = await fetch(`/api/events/${selectedEvent.id}`, {
         method: "DELETE",
       });
-      if (!response.ok) throw new Error("Failed to delete");
+      if (!response.ok) {
+        throw new Error("Failed to delete");
+      }
 
       setDeleteDialogOpen(false);
       setSelectedEvent(null);
@@ -965,14 +977,18 @@ export default function EventsPage() {
     date: Date,
     currentStatus: string | null
   ) {
-    if (!selectedEvent) return;
+    if (!selectedEvent) {
+      return;
+    }
 
     const occurrence = selectedEvent.occurrences.find((occ) => {
       const occDate = new Date(occ.date);
       return occDate.toDateString() === date.toDateString();
     });
 
-    if (!occurrence) return;
+    if (!occurrence) {
+      return;
+    }
 
     if (currentStatus === "scheduled") {
       setSelectedOccurrence(occurrence);
@@ -1031,7 +1047,9 @@ export default function EventsPage() {
   }
 
   async function confirmAddCustomDate() {
-    if (!(selectedEvent && customDate)) return;
+    if (!(selectedEvent && customDate)) {
+      return;
+    }
     setAddingDate(true);
     try {
       const response = await fetch(
@@ -1057,7 +1075,9 @@ export default function EventsPage() {
   }
 
   async function handleRemoveCustomDate(occurrenceId: string) {
-    if (!selectedEvent) return;
+    if (!selectedEvent) {
+      return;
+    }
     try {
       const response = await fetch(
         `/api/events/${selectedEvent.id}/occurrences`,
@@ -1067,7 +1087,9 @@ export default function EventsPage() {
           body: JSON.stringify({ occurrenceId }),
         }
       );
-      if (!response.ok) throw new Error("Failed to remove");
+      if (!response.ok) {
+        throw new Error("Failed to remove");
+      }
       await loadEvents();
     } catch (err) {
       console.error(err);
@@ -1076,7 +1098,9 @@ export default function EventsPage() {
   }
 
   async function handleEditRsvp(userId: string, status: "going" | "not_going") {
-    if (!selectedOccurrence) return;
+    if (!selectedOccurrence) {
+      return;
+    }
     try {
       const response = await fetch("/api/rsvp/edit", {
         method: "POST",
@@ -1087,7 +1111,9 @@ export default function EventsPage() {
           status,
         }),
       });
-      if (!response.ok) throw new Error("Failed to edit RSVP");
+      if (!response.ok) {
+        throw new Error("Failed to edit RSVP");
+      }
       await loadOccurrenceRsvps(selectedOccurrence.id);
       // Reload summaries for owner/coach view
       if (currentUserRole === "owner" || currentUserRole === "coach") {
@@ -1141,7 +1167,9 @@ export default function EventsPage() {
   }
 
   async function handleCancelFromCalendar(occurrenceId: string) {
-    if (!selectedEvent) return;
+    if (!selectedEvent) {
+      return;
+    }
     const eventIdToKeep = selectedEvent.id;
     try {
       const response = await fetch(`/api/events/${selectedEvent.id}/cancel`, {
@@ -1159,7 +1187,9 @@ export default function EventsPage() {
 
       // Reload events to get updated occurrence status
       const eventsResponse = await fetch("/api/events");
-      if (!eventsResponse.ok) throw new Error("Failed to reload events");
+      if (!eventsResponse.ok) {
+        throw new Error("Failed to reload events");
+      }
       const eventsData = await eventsResponse.json();
       const newEvents = eventsData.events || [];
       setEvents(newEvents);
@@ -1206,7 +1236,9 @@ export default function EventsPage() {
   }
 
   async function handleSendReminders() {
-    if (!selectedOccurrence) return;
+    if (!selectedOccurrence) {
+      return;
+    }
     setSendingReminder(true);
     try {
       const response = await fetch("/api/reminders/send", {
@@ -1215,7 +1247,9 @@ export default function EventsPage() {
         body: JSON.stringify({ occurrenceId: selectedOccurrence.id }),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error);
+      if (!response.ok) {
+        throw new Error(data.error);
+      }
       alert(`Sent ${data.sent} reminder(s)`);
     } catch (err) {
       console.error(err);
@@ -1317,11 +1351,14 @@ export default function EventsPage() {
   }, [isEventsMobile, mobileView]);
 
   function formatDate(dateValue: string | Date | undefined | null) {
-    if (!dateValue) return { day: "", month: "", weekday: "" };
+    if (!dateValue) {
+      return { day: "", month: "", weekday: "" };
+    }
     const date =
       typeof dateValue === "string" ? new Date(dateValue) : dateValue;
-    if (Number.isNaN(date.getTime()))
+    if (Number.isNaN(date.getTime())) {
       return { day: "", month: "", weekday: "" };
+    }
     return {
       day: date.getDate().toString(),
       month: date.toLocaleDateString("en-US", { month: "short" }).toUpperCase(),
@@ -1330,31 +1367,44 @@ export default function EventsPage() {
   }
 
   function formatTime(time: string | undefined | null) {
-    if (!time) return "";
+    if (!time) {
+      return "";
+    }
     const [hours, minutes] = time.split(":");
     const hour = Number.parseInt(hours, 10);
-    if (Number.isNaN(hour)) return time;
+    if (Number.isNaN(hour)) {
+      return time;
+    }
     const ampm = hour >= 12 ? "PM" : "AM";
     const displayHour = hour % 12 || 12;
     return `${displayHour}:${minutes} ${ampm}`;
   }
 
   function getRecurrenceLabel(rule: string | null) {
-    if (!rule) return "One-time";
-    if (rule.includes("DAILY")) return "Daily";
-    if (rule.includes("WEEKLY")) return "Weekly";
-    if (rule.includes("MONTHLY")) return "Monthly";
+    if (!rule) {
+      return "One-time";
+    }
+    if (rule.includes("DAILY")) {
+      return "Daily";
+    }
+    if (rule.includes("WEEKLY")) {
+      return "Weekly";
+    }
+    if (rule.includes("MONTHLY")) {
+      return "Monthly";
+    }
     return "Recurring";
   }
 
   function getInitials(name: string | null, email: string) {
-    if (name)
+    if (name) {
       return name
         .split(" ")
         .map((n) => n[0])
         .join("")
         .toUpperCase()
         .slice(0, 2);
+    }
     return email[0].toUpperCase();
   }
 
@@ -1516,8 +1566,9 @@ export default function EventsPage() {
 
   // Ensure mobile view shows details when clicking from dashboard with eventId and occurrenceId
   useEffect(() => {
-    if (!isEventsMobile || currentUserRole === "athlete" || initialLoading)
+    if (!isEventsMobile || currentUserRole === "athlete" || initialLoading) {
       return;
+    }
 
     const eventIdParam = searchParams.get("eventId");
     const occurrenceIdParam = searchParams.get("occurrenceId");
@@ -1582,7 +1633,9 @@ export default function EventsPage() {
 
     // Get page title based on current view
     const getPageTitle = () => {
-      if (mobileView === "events") return "Events";
+      if (mobileView === "events") {
+        return "Events";
+      }
       if (mobileView === "occurrences") {
         if (currentUserRole === "athlete") {
           return selectedEventForAthlete?.title || "Sessions";
@@ -1699,8 +1752,9 @@ export default function EventsPage() {
                     userId: string,
                     userRole?: string
                   ): boolean => {
-                    if (userRole === "coach" || userRole === "owner")
+                    if (userRole === "coach" || userRole === "owner") {
                       return true;
+                    }
                     const member = gymMembers.find((m) => m.id === userId);
                     return member?.role === "coach" || member?.role === "owner";
                   };
@@ -1708,9 +1762,12 @@ export default function EventsPage() {
                     userId: string,
                     userRole?: string
                   ): boolean => {
-                    if (userRole === "athlete") return true;
-                    if (userRole === "coach" || userRole === "owner")
+                    if (userRole === "athlete") {
+                      return true;
+                    }
+                    if (userRole === "coach" || userRole === "owner") {
                       return false;
+                    }
                     const member = gymMembers.find((m) => m.id === userId);
                     return member?.role === "athlete" || !member?.role;
                   };
@@ -2383,8 +2440,9 @@ export default function EventsPage() {
                         userId: string,
                         userRole?: string
                       ): boolean => {
-                        if (userRole === "coach" || userRole === "owner")
+                        if (userRole === "coach" || userRole === "owner") {
                           return true;
+                        }
                         const member = gymMembers.find((m) => m.id === userId);
                         return (
                           member?.role === "coach" || member?.role === "owner"
@@ -2395,9 +2453,12 @@ export default function EventsPage() {
                         userId: string,
                         userRole?: string
                       ): boolean => {
-                        if (userRole === "athlete") return true;
-                        if (userRole === "coach" || userRole === "owner")
+                        if (userRole === "athlete") {
+                          return true;
+                        }
+                        if (userRole === "coach" || userRole === "owner") {
                           return false;
+                        }
                         const member = gymMembers.find((m) => m.id === userId);
                         return member?.role === "athlete" || !member?.role;
                       };
@@ -2956,7 +3017,9 @@ export default function EventsPage() {
                       currentUserRole === "athlete"
                         ? selectedOccurrenceForAthleteDetail?.id
                         : selectedOccurrence?.id;
-                    if (!occurrenceId) return;
+                    if (!occurrenceId) {
+                      return;
+                    }
                     const response = await fetch("/api/rsvp", {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
@@ -2971,7 +3034,9 @@ export default function EventsPage() {
                         newMap.set(occurrenceId, "going");
                         return newMap;
                       });
-                      if (occurrenceId) loadOccurrenceRsvps(occurrenceId);
+                      if (occurrenceId) {
+                        loadOccurrenceRsvps(occurrenceId);
+                      }
                     }
                   }}
                   size="sm"
@@ -3003,7 +3068,9 @@ export default function EventsPage() {
                       currentUserRole === "athlete"
                         ? selectedOccurrenceForAthleteDetail?.id
                         : selectedOccurrence?.id;
-                    if (!occurrenceId) return;
+                    if (!occurrenceId) {
+                      return;
+                    }
                     const response = await fetch("/api/rsvp", {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
@@ -3018,7 +3085,9 @@ export default function EventsPage() {
                         newMap.set(occurrenceId, "not_going");
                         return newMap;
                       });
-                      if (occurrenceId) loadOccurrenceRsvps(occurrenceId);
+                      if (occurrenceId) {
+                        loadOccurrenceRsvps(occurrenceId);
+                      }
                     }
                   }}
                   size="sm"
@@ -3101,15 +3170,21 @@ export default function EventsPage() {
 
     // Helper function to determine if user is coach/owner (use role from RSVP first, then gymMembers)
     const isCoachOrOwner = (userId: string, userRole?: string): boolean => {
-      if (userRole === "coach" || userRole === "owner") return true;
+      if (userRole === "coach" || userRole === "owner") {
+        return true;
+      }
       const member = gymMembers.find((m) => m.id === userId);
       return member?.role === "coach" || member?.role === "owner";
     };
 
     // Helper function to determine if user is athlete (use role from RSVP first, then gymMembers)
     const isAthlete = (userId: string, userRole?: string): boolean => {
-      if (userRole === "athlete") return true;
-      if (userRole === "coach" || userRole === "owner") return false;
+      if (userRole === "athlete") {
+        return true;
+      }
+      if (userRole === "coach" || userRole === "owner") {
+        return false;
+      }
       const member = gymMembers.find((m) => m.id === userId);
       return member?.role === "athlete" || !member?.role;
     };
@@ -3321,7 +3396,9 @@ export default function EventsPage() {
                       today.setHours(0, 0, 0, 0);
                       return occDate >= today && occ.status === "scheduled";
                     });
-                    if (upcomingOccs.length === 0) return null;
+                    if (upcomingOccs.length === 0) {
+                      return null;
+                    }
 
                     return (
                       <div className="group relative mb-1" key={event.id}>
@@ -4791,91 +4868,78 @@ export default function EventsPage() {
                         {(currentUserRole === "coach" ||
                           currentUserRole === "owner") &&
                           selectedOccurrence.status !== "canceled" &&
-                          eventDetailTab === "details" && (
-                            <>
-                              {(() => {
-                                const currentUserRsvp = occurrenceRsvps.find(
-                                  (r) => r.id === currentUserId
-                                );
-                                const currentUserRsvpStatus =
-                                  currentUserRsvp?.status;
-                                return (
-                                  <>
-                                    <Button
-                                      className={`h-9 flex-1 gap-1.5 rounded-xl px-3 ${
-                                        currentUserRsvpStatus === "going"
-                                          ? "!bg-emerald-600 hover:!bg-emerald-700 !text-white border-emerald-600"
-                                          : "border-emerald-400 text-emerald-400 hover:bg-emerald-50 hover:text-emerald-500 dark:hover:bg-emerald-950"
-                                      }`}
-                                      onClick={async () => {
-                                        const response = await fetch(
-                                          "/api/rsvp",
-                                          {
-                                            method: "POST",
-                                            headers: {
-                                              "Content-Type":
-                                                "application/json",
-                                            },
-                                            body: JSON.stringify({
-                                              occurrenceId:
-                                                selectedOccurrence.id,
-                                              status: "going",
-                                            }),
-                                          }
-                                        );
-                                        if (response.ok) {
-                                          loadOccurrenceRsvps(
-                                            selectedOccurrence.id
-                                          );
-                                        }
-                                      }}
-                                      size="sm"
-                                      variant="outline"
-                                    >
-                                      <IconCheck className="h-4 w-4" />
-                                      {currentUserRsvpStatus === "going"
-                                        ? "Going!"
-                                        : "Going"}
-                                    </Button>
-                                    <Button
-                                      className={`h-9 flex-1 gap-1.5 rounded-xl px-3 ${
-                                        currentUserRsvpStatus === "not_going"
-                                          ? "!bg-red-600 hover:!bg-red-700 !text-white border-red-600"
-                                          : "border-red-400 text-red-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950"
-                                      }`}
-                                      onClick={async () => {
-                                        const response = await fetch(
-                                          "/api/rsvp",
-                                          {
-                                            method: "POST",
-                                            headers: {
-                                              "Content-Type":
-                                                "application/json",
-                                            },
-                                            body: JSON.stringify({
-                                              occurrenceId:
-                                                selectedOccurrence.id,
-                                              status: "not_going",
-                                            }),
-                                          }
-                                        );
-                                        if (response.ok) {
-                                          loadOccurrenceRsvps(
-                                            selectedOccurrence.id
-                                          );
-                                        }
-                                      }}
-                                      size="sm"
-                                      variant="outline"
-                                    >
-                                      <IconX className="h-4 w-4" />
-                                      Can't
-                                    </Button>
-                                  </>
-                                );
-                              })()}
-                            </>
-                          )}
+                          eventDetailTab === "details" &&
+                          (() => {
+                            const currentUserRsvp = occurrenceRsvps.find(
+                              (r) => r.id === currentUserId
+                            );
+                            const currentUserRsvpStatus =
+                              currentUserRsvp?.status;
+                            return (
+                              <>
+                                <Button
+                                  className={`h-9 flex-1 gap-1.5 rounded-xl px-3 ${
+                                    currentUserRsvpStatus === "going"
+                                      ? "!bg-emerald-600 hover:!bg-emerald-700 !text-white border-emerald-600"
+                                      : "border-emerald-400 text-emerald-400 hover:bg-emerald-50 hover:text-emerald-500 dark:hover:bg-emerald-950"
+                                  }`}
+                                  onClick={async () => {
+                                    const response = await fetch("/api/rsvp", {
+                                      method: "POST",
+                                      headers: {
+                                        "Content-Type": "application/json",
+                                      },
+                                      body: JSON.stringify({
+                                        occurrenceId: selectedOccurrence.id,
+                                        status: "going",
+                                      }),
+                                    });
+                                    if (response.ok) {
+                                      loadOccurrenceRsvps(
+                                        selectedOccurrence.id
+                                      );
+                                    }
+                                  }}
+                                  size="sm"
+                                  variant="outline"
+                                >
+                                  <IconCheck className="h-4 w-4" />
+                                  {currentUserRsvpStatus === "going"
+                                    ? "Going!"
+                                    : "Going"}
+                                </Button>
+                                <Button
+                                  className={`h-9 flex-1 gap-1.5 rounded-xl px-3 ${
+                                    currentUserRsvpStatus === "not_going"
+                                      ? "!bg-red-600 hover:!bg-red-700 !text-white border-red-600"
+                                      : "border-red-400 text-red-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950"
+                                  }`}
+                                  onClick={async () => {
+                                    const response = await fetch("/api/rsvp", {
+                                      method: "POST",
+                                      headers: {
+                                        "Content-Type": "application/json",
+                                      },
+                                      body: JSON.stringify({
+                                        occurrenceId: selectedOccurrence.id,
+                                        status: "not_going",
+                                      }),
+                                    });
+                                    if (response.ok) {
+                                      loadOccurrenceRsvps(
+                                        selectedOccurrence.id
+                                      );
+                                    }
+                                  }}
+                                  size="sm"
+                                  variant="outline"
+                                >
+                                  <IconX className="h-4 w-4" />
+                                  Can't
+                                </Button>
+                              </>
+                            );
+                          })()}
                       </div>
 
                       {/* Right side: Action buttons */}

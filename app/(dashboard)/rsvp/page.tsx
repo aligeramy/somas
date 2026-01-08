@@ -122,8 +122,9 @@ export default function RSVPPage() {
         fetch("/api/user-info"),
       ]);
 
-      if (!(eventsRes.ok && rsvpsRes.ok))
+      if (!(eventsRes.ok && rsvpsRes.ok)) {
         throw new Error("Failed to load data");
+      }
 
       const eventsData = await eventsRes.json();
       const rsvpsData = await rsvpsRes.json();
@@ -207,7 +208,9 @@ export default function RSVPPage() {
 
   const loadOccurrenceSummaries = useCallback(
     async (occurrenceIds: string[]) => {
-      if (occurrenceIds.length === 0) return;
+      if (occurrenceIds.length === 0) {
+        return;
+      }
       try {
         const response = await fetch(
           `/api/rsvp?summaryOccurrences=${occurrenceIds.join(",")}`
@@ -258,7 +261,9 @@ export default function RSVPPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ occurrenceId, status }),
       });
-      if (!response.ok) throw new Error("Failed to RSVP");
+      if (!response.ok) {
+        throw new Error("Failed to RSVP");
+      }
       await loadData();
       await loadHistoricalData();
     } catch (err) {
@@ -274,11 +279,14 @@ export default function RSVPPage() {
   }
 
   function formatDate(dateValue: string | Date | undefined | null) {
-    if (!dateValue) return { day: "", month: "", weekday: "", relative: "" };
+    if (!dateValue) {
+      return { day: "", month: "", weekday: "", relative: "" };
+    }
     const date =
       typeof dateValue === "string" ? new Date(dateValue) : dateValue;
-    if (Number.isNaN(date.getTime()))
+    if (Number.isNaN(date.getTime())) {
       return { day: "", month: "", weekday: "", relative: "" };
+    }
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -286,9 +294,11 @@ export default function RSVPPage() {
     tomorrow.setDate(tomorrow.getDate() + 1);
 
     let relative = "";
-    if (date.toDateString() === today.toDateString()) relative = "Today";
-    else if (date.toDateString() === tomorrow.toDateString())
+    if (date.toDateString() === today.toDateString()) {
+      relative = "Today";
+    } else if (date.toDateString() === tomorrow.toDateString()) {
       relative = "Tomorrow";
+    }
 
     return {
       day: date.getDate().toString(),
@@ -299,23 +309,28 @@ export default function RSVPPage() {
   }
 
   function formatTime(time: string | undefined | null) {
-    if (!time) return "";
+    if (!time) {
+      return "";
+    }
     const [hours, minutes] = time.split(":");
     const hour = Number.parseInt(hours, 10);
-    if (Number.isNaN(hour)) return time;
+    if (Number.isNaN(hour)) {
+      return time;
+    }
     const ampm = hour >= 12 ? "PM" : "AM";
     const displayHour = hour % 12 || 12;
     return `${displayHour}:${minutes} ${ampm}`;
   }
 
   function getInitials(name: string | null, email: string) {
-    if (name)
+    if (name) {
       return name
         .split(" ")
         .map((n) => n[0])
         .join("")
         .toUpperCase()
         .slice(0, 2);
+    }
     return email[0].toUpperCase();
   }
 
@@ -355,7 +370,9 @@ export default function RSVPPage() {
         const monthStart = startOfMonth(month);
         const monthEnd = endOfMonth(month);
         const monthRsvps = relevantRsvps.filter((r) => {
-          if (!r.occurrence?.date) return false;
+          if (!r.occurrence?.date) {
+            return false;
+          }
           const occDate = new Date(r.occurrence.date);
           return occDate >= monthStart && occDate <= monthEnd;
         });
@@ -385,7 +402,9 @@ export default function RSVPPage() {
       .sort()
       .map((year) => {
         const yearRsvps = relevantRsvps.filter((r) => {
-          if (!r.occurrence?.date) return false;
+          if (!r.occurrence?.date) {
+            return false;
+          }
           return new Date(r.occurrence.date).getFullYear() === year;
         });
 
@@ -417,7 +436,9 @@ export default function RSVPPage() {
     > = {};
 
     historicalRsvps.forEach((rsvp) => {
-      if (!rsvp.user) return;
+      if (!rsvp.user) {
+        return;
+      }
       const userId = rsvp.user.id;
       if (!grouped[userId]) {
         grouped[userId] = {
@@ -501,11 +522,16 @@ export default function RSVPPage() {
   if (isOwnerOrCoach) {
     const rsvpsByOccurrence = rsvps.reduce(
       (acc, rsvp) => {
-        if (!rsvp.occurrence) return acc;
+        if (!rsvp.occurrence) {
+          return acc;
+        }
         const occId = rsvp.occurrence.id;
-        if (!acc[occId])
+        if (!acc[occId]) {
           acc[occId] = { occurrence: rsvp.occurrence, rsvps: [] };
-        if (rsvp.user) acc[occId].rsvps.push(rsvp);
+        }
+        if (rsvp.user) {
+          acc[occId].rsvps.push(rsvp);
+        }
         return acc;
       },
       {} as Record<string, { occurrence: EventOccurrence; rsvps: RSVP[] }>
@@ -1187,11 +1213,15 @@ export default function RSVPPage() {
               ) : (
                 historicalRsvps
                   .filter((r) => {
-                    if (!r.occurrence?.date) return false;
+                    if (!r.occurrence?.date) {
+                      return false;
+                    }
                     return new Date(r.occurrence.date) < new Date();
                   })
                   .map((rsvp) => {
-                    if (!rsvp.occurrence) return null;
+                    if (!rsvp.occurrence) {
+                      return null;
+                    }
                     const occ = rsvp.occurrence;
                     const dateInfo = formatDate(occ.date);
                     const isGoing = rsvp.status === "going";

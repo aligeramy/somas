@@ -146,13 +146,15 @@ export default function ProfilePage() {
     loadProfile();
     loadGym();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [loadGym, loadProfile]);
 
   async function loadProfile() {
     try {
       setLoading(true);
       const response = await fetch("/api/profile");
-      if (!response.ok) throw new Error("Failed to load profile");
+      if (!response.ok) {
+        throw new Error("Failed to load profile");
+      }
       const data = await response.json();
       setProfile(data.user);
       setName(data.user.name || "");
@@ -212,7 +214,9 @@ export default function ProfilePage() {
         const {
           data: { user: authUser },
         } = await supabase.auth.getUser();
-        if (!authUser) throw new Error("Not authenticated");
+        if (!authUser) {
+          throw new Error("Not authenticated");
+        }
 
         const fileExt = avatarFile.name.split(".").pop();
         const fileName = `${authUser.id}-${Date.now()}.${fileExt}`;
@@ -263,7 +267,9 @@ export default function ProfilePage() {
         }),
       });
 
-      if (!response.ok) throw new Error("Failed to save profile");
+      if (!response.ok) {
+        throw new Error("Failed to save profile");
+      }
 
       // Update gym settings if user is head coach
       if (profile?.role === "owner" && gym) {
@@ -274,7 +280,9 @@ export default function ProfilePage() {
           const {
             data: { user: authUser },
           } = await supabase.auth.getUser();
-          if (!authUser) throw new Error("Not authenticated");
+          if (!authUser) {
+            throw new Error("Not authenticated");
+          }
 
           const fileExt = gymLogoFile.name.split(".").pop();
           const fileName = `${authUser.id}-${Date.now()}.${fileExt}`;
@@ -306,7 +314,9 @@ export default function ProfilePage() {
           }),
         });
 
-        if (!gymResponse.ok) throw new Error("Failed to save gym settings");
+        if (!gymResponse.ok) {
+          throw new Error("Failed to save gym settings");
+        }
         await loadGym();
       }
 
@@ -420,6 +430,7 @@ export default function ProfilePage() {
                   <button
                     {...getAvatarRootProps()}
                     className="absolute right-0 bottom-0 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md transition-colors hover:bg-primary/90"
+                    type="button"
                   >
                     <input {...getAvatarInputProps()} />
                     <IconCamera className="h-3.5 w-3.5" />
@@ -454,6 +465,7 @@ export default function ProfilePage() {
                     <button
                       {...getAvatarRootProps()}
                       className="absolute right-0 bottom-0 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-colors hover:bg-primary/90"
+                      type="button"
                     >
                       <input {...getAvatarInputProps()} />
                       <IconCamera className="h-4 w-4" />
@@ -506,6 +518,7 @@ export default function ProfilePage() {
                         <button
                           {...getLogoRootProps()}
                           className="absolute right-0 bottom-0 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md transition-colors hover:bg-primary/90"
+                          type="button"
                         >
                           <input {...getLogoInputProps()} />
                           <IconCamera className="h-3 w-3" />
@@ -561,6 +574,7 @@ export default function ProfilePage() {
                         <button
                           {...getLogoRootProps()}
                           className="absolute right-0 bottom-0 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-colors hover:bg-primary/90"
+                          type="button"
                         >
                           <input {...getLogoInputProps()} />
                           <IconCamera className="h-4 w-4" />
