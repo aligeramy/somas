@@ -89,12 +89,15 @@ async function getAthleteDashboardData(
       : [];
 
   // Group RSVPs by occurrence
-  const rsvpsByOccurrence = new Map();
+  const rsvpsByOccurrence = new Map<
+    string,
+    (typeof occurrenceRsvps)[number][]
+  >();
   for (const rsvp of occurrenceRsvps) {
     if (!rsvpsByOccurrence.has(rsvp.occurrenceId)) {
       rsvpsByOccurrence.set(rsvp.occurrenceId, []);
     }
-    rsvpsByOccurrence.get(rsvp.occurrenceId).push(rsvp);
+    rsvpsByOccurrence.get(rsvp.occurrenceId)?.push(rsvp);
   }
 
   // Combine occurrence data with RSVPs
@@ -105,22 +108,23 @@ async function getAthleteDashboardData(
 
       // Separate by status
       const goingAthletes = rsvps.filter(
-        (r) => r.status === "going" && r.user.role === "athlete"
+        (r: (typeof occurrenceRsvps)[number]) =>
+          r.status === "going" && r.user.role === "athlete"
       );
       const notGoingAthletes = rsvps.filter(
-        (r) => r.status === "not_going" && r.user.role === "athlete"
+        (r: (typeof occurrenceRsvps)[number]) =>
+          r.status === "not_going" && r.user.role === "athlete"
       );
 
       return {
         id: occurrence.id,
         date: occurrence.date,
-        endTime: occurrence.endTime,
-        startTime: occurrence.startTime,
+        endTime: event.endTime,
+        startTime: event.startTime,
         status: occurrence.status,
         title: event.title,
         description: event.description,
         location: event.location,
-        maxAttendees: event.maxAttendees,
         userRsvp: userRsvp || null,
         goingAthletes,
         notGoingAthletes,
