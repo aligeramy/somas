@@ -125,6 +125,24 @@ export default function BlogPage() {
     loadEvents();
   }, [loadPosts, loadEvents]);
 
+  useEffect(() => {
+    const handleOpenCreatePost = () => {
+      setEditingPost(null);
+      setTitle("");
+      setContent("");
+      setType("general");
+      setEventId("");
+      setImageFile(null);
+      setImagePreview(null);
+      setIsCreateDialogOpen(true);
+    };
+
+    window.addEventListener('blog-open-create-post', handleOpenCreatePost);
+    return () => {
+      window.removeEventListener('blog-open-create-post', handleOpenCreatePost);
+    };
+  }, []);
+
   function openCreateDialog() {
     setEditingPost(null);
     setTitle("");
@@ -237,7 +255,7 @@ export default function BlogPage() {
         title="Blog Posts"
         description="Share information with your team"
       >
-        <Button onClick={openCreateDialog} className="rounded-xl">
+        <Button onClick={openCreateDialog} className="rounded-sm" data-show-text-mobile>
           <IconPlus className="mr-2 h-4 w-4" />
           New Post
         </Button>

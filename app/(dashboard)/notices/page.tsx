@@ -90,6 +90,23 @@ export default function NoticesPage() {
     loadNotices();
   }, [loadNotices]);
 
+  useEffect(() => {
+    const handleOpenCreateNotice = () => {
+      if (userRole === "owner" || userRole === "coach") {
+        setEditingNotice(null);
+        setTitle("");
+        setContent("");
+        setSendEmail(false);
+        setIsCreateDialogOpen(true);
+      }
+    };
+
+    window.addEventListener('notices-open-create-notice', handleOpenCreateNotice);
+    return () => {
+      window.removeEventListener('notices-open-create-notice', handleOpenCreateNotice);
+    };
+  }, [userRole]);
+
   function openCreateDialog() {
     setEditingNotice(null);
     setTitle("");
@@ -189,7 +206,7 @@ export default function NoticesPage() {
         }
       >
         {canManage && (
-          <Button onClick={openCreateDialog} className="rounded-xl">
+          <Button onClick={openCreateDialog} className="rounded-sm" data-show-text-mobile>
             <IconPlus className="mr-2 h-4 w-4" />
             New Notice
           </Button>

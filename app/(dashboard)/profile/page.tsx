@@ -195,6 +195,9 @@ export default function ProfilePage() {
     setError(null);
     setSuccess(false);
     setSaving(true);
+    
+    // Dispatch event for SiteHeader
+    window.dispatchEvent(new CustomEvent('profile-save-start'));
 
     try {
       let avatarUrl = profile?.avatarUrl || null;
@@ -305,10 +308,15 @@ export default function ProfilePage() {
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
       await loadProfile(); // Reload to get updated data
+      
+      // Dispatch event for SiteHeader
+      window.dispatchEvent(new CustomEvent('profile-save-success'));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save");
+      window.dispatchEvent(new CustomEvent('profile-save-error'));
     } finally {
       setSaving(false);
+      window.dispatchEvent(new CustomEvent('profile-save-end'));
     }
   }
 
@@ -349,7 +357,7 @@ export default function ProfilePage() {
   return (
     <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
       <PageHeader title="Profile" description={isMobile ? undefined : "Manage your account settings"}>
-        <Button onClick={handleSave} disabled={saving} className="gap-2 rounded-sm">
+        <Button onClick={handleSave} disabled={saving} className="gap-2 rounded-sm" data-show-text-mobile>
           {success ? (
             <>
               <IconCheck className="h-4 w-4" />
@@ -370,7 +378,7 @@ export default function ProfilePage() {
       </PageHeader>
 
       <div className="flex-1 overflow-auto min-h-0">
-        <form onSubmit={handleSave} className={`${isMobile ? "px-0 pb-4" : "max-w-2xl mx-auto space-y-6 p-4"}`}>
+        <form id="profile-form" onSubmit={handleSave} className={`${isMobile ? "px-0 pb-4" : "max-w-2xl mx-auto space-y-6 p-4"}`}>
           {error && (
             <div className={`bg-destructive/10 text-destructive ${isMobile ? "mx-4 mt-4 rounded-lg" : "rounded-xl"} p-4 text-sm`}>
               {error}
@@ -1082,6 +1090,30 @@ export default function ProfilePage() {
                 </div>
               </CardContent>
             </Card>
+          )}
+
+          {/* Save Button for PC View */}
+          {!isMobile && (
+            <div className="flex justify-end pt-4">
+              <Button onClick={handleSave} disabled={saving} className="gap-2 rounded-xl">
+                {success ? (
+                  <>
+                    <IconCheck className="h-4 w-4" />
+                    Saved
+                  </>
+                ) : saving ? (
+                  <>
+                    <IconDeviceFloppy className="h-4 w-4" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <IconDeviceFloppy className="h-4 w-4" />
+                    Save Changes
+                  </>
+                )}
+              </Button>
+            </div>
           )}
         </form>
       </div>

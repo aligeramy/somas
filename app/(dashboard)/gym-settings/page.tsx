@@ -4,6 +4,7 @@ import {
   IconBuilding,
   IconCamera,
   IconCheck,
+  IconDeviceFloppy,
   IconMail,
   IconPhone,
   IconPlus,
@@ -35,6 +36,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { createClient } from "@/lib/supabase/client";
 
 interface GymProfile {
@@ -61,6 +63,7 @@ interface Coach {
 
 export default function GymSettingsPage() {
   const supabase = createClient();
+  const isMobile = useIsMobile();
   const [gym, setGym] = useState<GymProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -142,6 +145,9 @@ export default function GymSettingsPage() {
     setError(null);
     setSuccess(false);
     setSaving(true);
+    
+    // Dispatch event for SiteHeader
+    window.dispatchEvent(new CustomEvent('gym-settings-save-start'));
 
     try {
       let logoUrl = gym?.logoUrl || null;
@@ -191,8 +197,10 @@ export default function GymSettingsPage() {
       await loadGym(); // Reload to get updated data
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save");
+      window.dispatchEvent(new CustomEvent('gym-settings-save-error'));
     } finally {
       setSaving(false);
+      window.dispatchEvent(new CustomEvent('gym-settings-save-end'));
     }
   }
 
@@ -281,6 +289,7 @@ export default function GymSettingsPage() {
           onClick={handleSave}
           disabled={saving}
           className="gap-2 rounded-xl"
+          data-show-text-mobile
         >
           {success ? (
             <>
@@ -288,15 +297,21 @@ export default function GymSettingsPage() {
               Saved
             </>
           ) : saving ? (
-            "Saving..."
+            <>
+              <IconDeviceFloppy className="h-4 w-4" />
+              Saving...
+            </>
           ) : (
-            "Save Changes"
+            <>
+              <IconDeviceFloppy className="h-4 w-4" />
+              Save Changes
+            </>
           )}
         </Button>
       </PageHeader>
 
       <div className="flex-1 overflow-auto min-h-0">
-        <div className="max-w-2xl mx-auto space-y-6 p-4">
+        <form id="gym-settings-form" onSubmit={handleSave} className="max-w-2xl mx-auto space-y-6 p-4">
           {error && (
             <div className="bg-destructive/10 text-destructive rounded-xl p-4 text-sm">
               {error}
@@ -506,7 +521,31 @@ export default function GymSettingsPage() {
               )}
             </CardContent>
           </Card>
-        </div>
+
+          {/* Save Button for PC View */}
+          {!isMobile && (
+            <div className="flex justify-end pt-4">
+              <Button onClick={handleSave} disabled={saving} className="gap-2 rounded-xl">
+                {success ? (
+                  <>
+                    <IconCheck className="h-4 w-4" />
+                    Saved
+                  </>
+                ) : saving ? (
+                  <>
+                    <IconDeviceFloppy className="h-4 w-4" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <IconDeviceFloppy className="h-4 w-4" />
+                    Save Changes
+                  </>
+                )}
+              </Button>
+            </div>
+          )}
+        </form>
       </div>
     </div>
   );

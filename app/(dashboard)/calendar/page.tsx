@@ -421,7 +421,7 @@ export default function CalendarPage() {
   // Get color for an event
   function getEventColor(eventId: string): string {
     const event = uniqueEvents.find((e) => e.id === eventId);
-    return event?.color || "bg-primary";
+    return event?.color || "bg-slate-600 dark:bg-slate-700";
   }
 
   if (loading) {
@@ -556,7 +556,7 @@ export default function CalendarPage() {
                         // For athletes, use event-specific colors; for others, use RSVP-based colors
                         const eventColor = isAthlete
                           ? getEventColor(occ.event.id)
-                          : "bg-primary dark:bg-primary/50";
+                          : "bg-slate-600 dark:bg-slate-700";
                         const bgColor =
                           occ.status === "canceled"
                             ? "bg-destructive dark:bg-destructive/80"
@@ -566,7 +566,7 @@ export default function CalendarPage() {
                                 ? "bg-emerald-600 dark:bg-emerald-700"
                                 : rsvpStatus === "not_going"
                                   ? "bg-red-600 dark:bg-red-700"
-                                  : "bg-primary dark:bg-primary/80";
+                                  : "bg-slate-600 dark:bg-slate-700";
                         return (
                           <div
                             key={occ.id}

@@ -186,6 +186,17 @@ export default function RosterPage() {
     fetchCurrentUser();
   }, [fetchRoster, fetchCurrentUser]);
 
+  useEffect(() => {
+    const handleOpenAddMember = () => {
+      setIsAddMemberDialogOpen(true);
+    };
+
+    window.addEventListener('roster-open-add-member', handleOpenAddMember);
+    return () => {
+      window.removeEventListener('roster-open-add-member', handleOpenAddMember);
+    };
+  }, []);
+
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: {
       "text/csv": [".csv"],
@@ -390,11 +401,11 @@ export default function RosterPage() {
           <DialogTrigger asChild>
             <Button
               variant="outline"
-              size="icon"
-              className="rounded-xl sm:rounded-xl sm:size-auto sm:px-4 sm:gap-2"
+              className="rounded-sm gap-2"
+              data-show-text-mobile
             >
-              <IconUpload className="h-4 w-4 sm:mr-2" />
-              <span className="hidden sm:inline">Import</span>
+              <IconUpload className="h-4 w-4" />
+              Import
             </Button>
           </DialogTrigger>
           <DialogContent className="rounded-xl">
@@ -464,11 +475,11 @@ export default function RosterPage() {
         >
           <DialogTrigger asChild>
             <Button
-              size="icon"
-              className="rounded-xl sm:rounded-xl sm:size-auto sm:px-4 sm:gap-2"
+              className="rounded-sm gap-2"
+              data-show-text-mobile
             >
-              <IconPlus className="h-4 w-4 sm:mr-2" />
-              <span className="hidden sm:inline">Add Member</span>
+              <IconPlus className="h-4 w-4" />
+              Add Member
             </Button>
           </DialogTrigger>
           <DialogContent className="rounded-none! max-w-none! w-screen! h-screen! max-h-screen! m-0! p-0! inset-0! translate-x-0! translate-y-0! top-0! left-0! flex flex-col">

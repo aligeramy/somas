@@ -1,6 +1,6 @@
 "use client";
 
-import { IconMessageCircle, IconPlus, IconUsers } from "@tabler/icons-react";
+import { IconCheck, IconDeviceFloppy, IconMessageCircle, IconPlus, IconUsers } from "@tabler/icons-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -15,12 +15,14 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 export function SiteHeader() {
   const pathname = usePathname();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [success, setSuccess] = useState(false);
   const [chatType, setChatType] = useState<"dm" | "group" | null>(null);
   const [newChannelName, setNewChannelName] = useState("");
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
@@ -107,10 +109,129 @@ export function SiteHeader() {
     }
   };
 
+  useEffect(() => {
+    const handleSaveStart = () => {
+      setSaving(true);
+      setSuccess(false);
+    };
+    
+    const handleSaveSuccess = () => {
+      setSaving(false);
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 3000);
+    };
+    
+    const handleSaveEnd = () => {
+      setSaving(false);
+    };
+    
+    const handleSaveError = () => {
+      setSaving(false);
+      setSuccess(false);
+    };
+
+    if (pathname === "/profile") {
+      window.addEventListener('profile-save-start', handleSaveStart);
+      window.addEventListener('profile-save-success', handleSaveSuccess);
+      window.addEventListener('profile-save-end', handleSaveEnd);
+      window.addEventListener('profile-save-error', handleSaveError);
+    } else if (pathname === "/gym-settings") {
+      window.addEventListener('gym-settings-save-start', handleSaveStart);
+      window.addEventListener('gym-settings-save-success', handleSaveSuccess);
+      window.addEventListener('gym-settings-save-end', handleSaveEnd);
+      window.addEventListener('gym-settings-save-error', handleSaveError);
+    }
+
+    return () => {
+      if (pathname === "/profile") {
+        window.removeEventListener('profile-save-start', handleSaveStart);
+        window.removeEventListener('profile-save-success', handleSaveSuccess);
+        window.removeEventListener('profile-save-end', handleSaveEnd);
+        window.removeEventListener('profile-save-error', handleSaveError);
+      } else if (pathname === "/gym-settings") {
+        window.removeEventListener('gym-settings-save-start', handleSaveStart);
+        window.removeEventListener('gym-settings-save-success', handleSaveSuccess);
+        window.removeEventListener('gym-settings-save-end', handleSaveEnd);
+        window.removeEventListener('gym-settings-save-error', handleSaveError);
+      }
+    };
+  }, [pathname]);
+
+  const handleSave = () => {
+    const formId = pathname === "/profile" ? "profile-form" : pathname === "/gym-settings" ? "gym-settings-form" : null;
+    if (!formId) return;
+
+    const form = document.getElementById(formId) as HTMLFormElement;
+    if (form) {
+      form.requestSubmit();
+    }
+  };
+
   return (
     <header className="hidden lg:flex h-14 shrink-0 items-center gap-2 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60 transition-[width,height] ease-linear pt-0 !px-0 -mt-3">
       <div className="flex w-full items-center justify-end gap-3">
         <div className="flex items-center gap-2">
+          {(pathname === "/profile" || pathname === "/gym-settings") && (
+            <Button
+              size="sm"
+              className="gap-2 rounded-sm"
+              onClick={handleSave}
+              disabled={saving}
+            >
+              {success ? (
+                <>
+                  <IconCheck className="h-4 w-4" />
+                  Saved
+                </>
+              ) : saving ? (
+                <>
+                  <IconDeviceFloppy className="h-4 w-4" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <IconDeviceFloppy className="h-4 w-4" />
+                  Save Changes
+                </>
+              )}
+            </Button>
+          )}
+          {pathname === "/roster" && (
+            <Button
+              size="sm"
+              className="gap-2 rounded-sm"
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent('roster-open-add-member'));
+              }}
+            >
+              <IconPlus className="h-4 w-4" />
+              Add Member
+            </Button>
+          )}
+          {pathname === "/blog" && (
+            <Button
+              size="sm"
+              className="gap-2 rounded-sm"
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent('blog-open-create-post'));
+              }}
+            >
+              <IconPlus className="h-4 w-4" />
+              New Post
+            </Button>
+          )}
+          {pathname === "/notices" && (
+            <Button
+              size="sm"
+              className="gap-2 rounded-sm"
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent('notices-open-create-notice'));
+              }}
+            >
+              <IconPlus className="h-4 w-4" />
+              New Notice
+            </Button>
+          )}
           {pathname?.startsWith("/events") && (
             <Button size="sm" className="gap-2 rounded-sm" asChild>
               <Link href="/events/new">
