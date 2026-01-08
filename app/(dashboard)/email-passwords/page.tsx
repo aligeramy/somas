@@ -469,13 +469,11 @@ export default function EmailPasswordsPage() {
                         <TableCell>{user.email}</TableCell>
                         <TableCell>
                           <Badge
-                            variant={
-                              user.role === "owner"
-                                ? "default"
-                                : user.role === "coach"
-                                  ? "secondary"
-                                  : "outline"
-                            }
+                            variant={(() => {
+                              if (user.role === "owner") return "default";
+                              if (user.role === "coach") return "secondary";
+                              return "outline";
+                            })()}
                           >
                             {user.role}
                           </Badge>

@@ -236,21 +236,20 @@ function SetupPasswordForm() {
                 <IconAlertCircle className="h-5 w-5 text-destructive" />
               )}
               <CardTitle>
-                {linkSent && !error
-                  ? "Email Sent"
-                  : isLinkExpired || error
-                    ? "Link Expired"
-                    : "Password Setup Required"}
+                {(() => {
+                  if (linkSent && !error) return "Email Sent";
+                  if (isLinkExpired || error) return "Link Expired";
+                  return "Password Setup Required";
+                })()}
               </CardTitle>
             </div>
             <CardDescription
-              className={
-                linkSent && !error
-                  ? "text-green-600 dark:text-green-400"
-                  : error
-                    ? "text-destructive"
-                    : ""
-              }
+              className={(() => {
+                if (linkSent && !error)
+                  return "text-green-600 dark:text-green-400";
+                if (error) return "text-destructive";
+                return "";
+              })()}
             >
               {linkSent && !error
                 ? "Email sent! Please check your email for the password setup link."
@@ -258,29 +257,35 @@ function SetupPasswordForm() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {linkSent && !error ? null : email ? (
-              <Button
-                className="w-full"
-                disabled={requestingLink}
-                id="request-new-link-button"
-                onClick={handleRequestNewLink}
-                type="button"
-                variant="default"
-              >
-                {requestingLink ? (
-                  "Sending..."
-                ) : (
-                  <>
-                    <IconMail className="mr-2 h-4 w-4" />
-                    Request New Link
-                  </>
-                )}
-              </Button>
-            ) : (
-              <p className="text-center text-muted-foreground text-sm">
-                Please contact your coach to request a new welcome email.
-              </p>
-            )}
+            {(() => {
+              if (linkSent && !error) return null;
+              if (email) {
+                return (
+                  <Button
+                    className="w-full"
+                    disabled={requestingLink}
+                    id="request-new-link-button"
+                    onClick={handleRequestNewLink}
+                    type="button"
+                    variant="default"
+                  >
+                    {requestingLink ? (
+                      "Sending..."
+                    ) : (
+                      <>
+                        <IconMail className="mr-2 h-4 w-4" />
+                        Request New Link
+                      </>
+                    )}
+                  </Button>
+                );
+              }
+              return (
+                <p className="text-center text-muted-foreground text-sm">
+                  Please contact your coach to request a new welcome email.
+                </p>
+              );
+            })()}
 
             <Button asChild className="w-full" variant="outline">
               <Link href="/">
@@ -301,11 +306,12 @@ function SetupPasswordForm() {
         <CardHeader>
           <CardTitle>Set Up Your Password</CardTitle>
           <CardDescription>
-            {isAuthenticated
-              ? `Create a secure password for ${email || "your account"}`
-              : email
-                ? `Create a secure password for ${email}`
-                : "Create a secure password for your account"}
+            {(() => {
+              if (isAuthenticated)
+                return `Create a secure password for ${email || "your account"}`;
+              if (email) return `Create a secure password for ${email}`;
+              return "Create a secure password for your account";
+            })()}
           </CardDescription>
           {isAuthenticated && (
             <p className="mt-2 text-green-600 text-sm">

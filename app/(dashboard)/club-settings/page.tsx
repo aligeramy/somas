@@ -346,16 +346,18 @@ export default function ClubSettingsPage() {
           disabled={saving}
           onClick={handleSave}
         >
-          {success ? (
-            <>
-              <IconCheck className="h-4 w-4" />
-              Saved
-            </>
-          ) : saving ? (
-            "Saving..."
-          ) : (
-            "Save Changes"
-          )}
+          {(() => {
+            if (success) {
+              return (
+                <>
+                  <IconCheck className="h-4 w-4" />
+                  Saved
+                </>
+              );
+            }
+            if (saving) return "Saving...";
+            return "Save Changes";
+          })()}
         </Button>
       </PageHeader>
 
@@ -519,103 +521,113 @@ export default function ClubSettingsPage() {
               </div>
             </CardHeader>
             <CardContent>
-              {loadingCoaches ? (
-                <div className="space-y-2">
-                  {[1, 2, 3].map((i) => (
-                    <Skeleton className="h-16 w-full rounded-xl" key={i} />
-                  ))}
-                </div>
-              ) : coaches.length === 0 ? (
-                <div className="py-8 text-center text-muted-foreground">
-                  <p>No coaches yet</p>
-                  <p className="mt-1 text-sm">
-                    Add coaches to help manage your club
-                  </p>
-                </div>
-              ) : (
-                <ScrollArea className="h-[400px]">
-                  <div className="space-y-2">
-                    {coaches.map((coach) => (
-                      <div
-                        className="flex items-center gap-3 rounded-xl border bg-card p-3 transition-colors hover:bg-muted/50"
-                        key={coach.id}
-                      >
-                        <Avatar className="h-10 w-10">
-                          <AvatarImage src={coach.avatarUrl || undefined} />
-                          <AvatarFallback className="text-sm">
-                            {getInitials(coach.name, coach.email)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate font-medium text-sm">
-                            {coach.name || "No name"}
-                          </p>
-                          <div className="flex items-center gap-2 text-muted-foreground text-xs">
-                            <IconMail className="h-3 w-3" />
-                            <span className="truncate">{coach.email}</span>
-                          </div>
-                          {coach.phone && (
-                            <div className="mt-1 flex items-center gap-2 text-muted-foreground text-xs">
-                              <IconPhone className="h-3 w-3" />
-                              <span>{coach.phone}</span>
+              {(() => {
+                if (loadingCoaches) {
+                  return (
+                    <div className="space-y-2">
+                      {[1, 2, 3].map((i) => (
+                        <Skeleton className="h-16 w-full rounded-xl" key={i} />
+                      ))}
+                    </div>
+                  );
+                }
+
+                if (coaches.length === 0) {
+                  return (
+                    <div className="py-8 text-center text-muted-foreground">
+                      <p>No coaches yet</p>
+                      <p className="mt-1 text-sm">
+                        Add coaches to help manage your club
+                      </p>
+                    </div>
+                  );
+                }
+
+                return (
+                  <ScrollArea className="h-[400px]">
+                    <div className="space-y-2">
+                      {coaches.map((coach) => (
+                        <div
+                          className="flex items-center gap-3 rounded-xl border bg-card p-3 transition-colors hover:bg-muted/50"
+                          key={coach.id}
+                        >
+                          <Avatar className="h-10 w-10">
+                            <AvatarImage src={coach.avatarUrl || undefined} />
+                            <AvatarFallback className="text-sm">
+                              {getInitials(coach.name, coach.email)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate font-medium text-sm">
+                              {coach.name || "No name"}
+                            </p>
+                            <div className="flex items-center gap-2 text-muted-foreground text-xs">
+                              <IconMail className="h-3 w-3" />
+                              <span className="truncate">{coach.email}</span>
                             </div>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Badge
-                            className="rounded-lg"
-                            variant={
-                              coach.role === "owner" ? "default" : "secondary"
-                            }
-                          >
-                            {formatRole(coach.role)}
-                          </Badge>
-                          {currentUserRole === "owner" && (
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button
-                                  className="h-8 w-8 p-0"
-                                  disabled={changingRole === coach.id}
-                                  size="sm"
-                                  variant="ghost"
+                            {coach.phone && (
+                              <div className="mt-1 flex items-center gap-2 text-muted-foreground text-xs">
+                                <IconPhone className="h-3 w-3" />
+                                <span>{coach.phone}</span>
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge
+                              className="rounded-lg"
+                              variant={
+                                coach.role === "owner" ? "default" : "secondary"
+                              }
+                            >
+                              {formatRole(coach.role)}
+                            </Badge>
+                            {currentUserRole === "owner" && (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    className="h-8 w-8 p-0"
+                                    disabled={changingRole === coach.id}
+                                    size="sm"
+                                    variant="ghost"
+                                  >
+                                    <IconDotsVertical className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent
+                                  align="end"
+                                  className="rounded-xl"
                                 >
-                                  <IconDotsVertical className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent
-                                align="end"
-                                className="rounded-xl"
-                              >
-                                {coach.role === "coach" ? (
-                                  <DropdownMenuItem
-                                    className="rounded-lg"
-                                    disabled={changingRole === coach.id}
-                                    onClick={() =>
-                                      handleRoleChange(coach.id, "owner")
-                                    }
-                                  >
-                                    Promote to Head Coach
-                                  </DropdownMenuItem>
-                                ) : (
-                                  <DropdownMenuItem
-                                    className="rounded-lg"
-                                    disabled={changingRole === coach.id}
-                                    onClick={() =>
-                                      handleRoleChange(coach.id, "coach")
-                                    }
-                                  >
-                                    Demote to Coach
-                                  </DropdownMenuItem>
-                                )}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          )}
+                                  {coach.role === "coach" ? (
+                                    <DropdownMenuItem
+                                      className="rounded-lg"
+                                      disabled={changingRole === coach.id}
+                                      onClick={() =>
+                                        handleRoleChange(coach.id, "owner")
+                                      }
+                                    >
+                                      Promote to Head Coach
+                                    </DropdownMenuItem>
+                                  ) : (
+                                    <DropdownMenuItem
+                                      className="rounded-lg"
+                                      disabled={changingRole === coach.id}
+                                      onClick={() =>
+                                        handleRoleChange(coach.id, "coach")
+                                      }
+                                    >
+                                      Demote to Coach
+                                    </DropdownMenuItem>
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                </ScrollArea>
-              )}
+                      ))}
+                    </div>
+                  </ScrollArea>
+                );
+              })()}
             </CardContent>
           </Card>
         </div>

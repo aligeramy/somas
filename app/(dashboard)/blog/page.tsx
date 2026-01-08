@@ -2,6 +2,7 @@
 
 import { IconEdit, IconPhoto, IconPlus, IconTrash } from "@tabler/icons-react";
 import { format } from "date-fns";
+import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useDropzone } from "react-dropzone";
@@ -290,104 +291,114 @@ export default function BlogPage() {
             </div>
           )}
 
-          {loading ? (
-            <div className="space-y-4">
-              {[1, 2, 3].map((i) => (
-                <Card className="rounded-xl" key={i}>
-                  <CardContent className="p-6">
-                    <div className="animate-pulse space-y-3">
-                      <div className="h-6 w-3/4 rounded bg-muted" />
-                      <div className="h-4 w-full rounded bg-muted" />
-                      <div className="h-4 w-2/3 rounded bg-muted" />
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : posts.length === 0 ? (
-            <Card className="rounded-xl">
-              <CardContent className="pt-6 text-center text-muted-foreground">
-                <p>No posts yet</p>
-                <p className="mt-1 text-sm">
-                  Create your first post to share information with your team
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-4">
-              {posts.map((post) => (
-                <Card className="rounded-xl" key={post.id}>
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="mb-2 flex items-center gap-2">
-                          <Badge className="rounded-lg" variant="outline">
-                            {post.type}
-                          </Badge>
-                          {post.eventId && (
-                            <Badge className="rounded-lg" variant="secondary">
-                              Event Post
-                            </Badge>
-                          )}
+          {(() => {
+            if (loading) {
+              return (
+                <div className="space-y-4">
+                  {[1, 2, 3].map((i) => (
+                    <Card className="rounded-xl" key={i}>
+                      <CardContent className="p-6">
+                        <div className="animate-pulse space-y-3">
+                          <div className="h-6 w-3/4 rounded bg-muted" />
+                          <div className="h-4 w-full rounded bg-muted" />
+                          <div className="h-4 w-2/3 rounded bg-muted" />
                         </div>
-                        <CardTitle className="text-xl">
-                          <Link
-                            className="hover:underline"
-                            href={`/blog/${post.id}`}
-                          >
-                            {post.title}
-                          </Link>
-                        </CardTitle>
-                        <CardDescription className="mt-1">
-                          by {post.author.name || "Unknown"} •{" "}
-                          {format(new Date(post.createdAt), "MMM d, yyyy")}
-                        </CardDescription>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          className="h-8 w-8"
-                          onClick={() => openEditDialog(post)}
-                          size="icon"
-                          variant="ghost"
-                        >
-                          <IconEdit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          className="h-8 w-8 text-destructive"
-                          onClick={() => handleDelete(post.id)}
-                          size="icon"
-                          variant="ghost"
-                        >
-                          <IconTrash className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    {post.imageUrl && (
-                      <Image
-                        alt={post.title}
-                        className="mb-4 max-h-64 w-full rounded-xl object-cover"
-                        height={250}
-                        src={post.imageUrl}
-                        width={400}
-                      />
-                    )}
-                    <div
-                      className="prose prose-sm dark:prose-invert line-clamp-3 max-w-none"
-                      dangerouslySetInnerHTML={{ __html: post.content }}
-                    />
-                    <Link
-                      className="mt-2 inline-block text-primary text-sm hover:underline"
-                      href={`/blog/${post.id}`}
-                    >
-                      Read more →
-                    </Link>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              );
+            }
+
+            if (posts.length === 0) {
+              return (
+                <Card className="rounded-xl">
+                  <CardContent className="pt-6 text-center text-muted-foreground">
+                    <p>No posts yet</p>
+                    <p className="mt-1 text-sm">
+                      Create your first post to share information with your team
+                    </p>
                   </CardContent>
                 </Card>
-              ))}
-            </div>
-          )}
+              );
+            }
+
+            return (
+              <div className="space-y-4">
+                {posts.map((post) => (
+                  <Card className="rounded-xl" key={post.id}>
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="mb-2 flex items-center gap-2">
+                            <Badge className="rounded-lg" variant="outline">
+                              {post.type}
+                            </Badge>
+                            {post.eventId && (
+                              <Badge className="rounded-lg" variant="secondary">
+                                Event Post
+                              </Badge>
+                            )}
+                          </div>
+                          <CardTitle className="text-xl">
+                            <Link
+                              className="hover:underline"
+                              href={`/blog/${post.id}`}
+                            >
+                              {post.title}
+                            </Link>
+                          </CardTitle>
+                          <CardDescription className="mt-1">
+                            by {post.author.name || "Unknown"} •{" "}
+                            {format(new Date(post.createdAt), "MMM d, yyyy")}
+                          </CardDescription>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            className="h-8 w-8"
+                            onClick={() => openEditDialog(post)}
+                            size="icon"
+                            variant="ghost"
+                          >
+                            <IconEdit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            className="h-8 w-8 text-destructive"
+                            onClick={() => handleDelete(post.id)}
+                            size="icon"
+                            variant="ghost"
+                          >
+                            <IconTrash className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      {post.imageUrl && (
+                        <Image
+                          alt={post.title}
+                          className="mb-4 max-h-64 w-full rounded-xl object-cover"
+                          height={250}
+                          src={post.imageUrl}
+                          width={400}
+                        />
+                      )}
+                      <div
+                        className="prose prose-sm dark:prose-invert line-clamp-3 max-w-none"
+                        dangerouslySetInnerHTML={{ __html: post.content }}
+                      />
+                      <Link
+                        className="mt-2 inline-block text-primary text-sm hover:underline"
+                        href={`/blog/${post.id}`}
+                      >
+                        Read more →
+                      </Link>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            );
+          })()}
         </div>
       </div>
 
@@ -513,11 +524,11 @@ export default function BlogPage() {
               disabled={saving}
               onClick={handleSave}
             >
-              {saving
-                ? "Saving..."
-                : editingPost
-                  ? "Update Post"
-                  : "Create Post"}
+              {(() => {
+                if (saving) return "Saving...";
+                if (editingPost) return "Update Post";
+                return "Create Post";
+              })()}
             </Button>
           </DialogFooter>
         </DialogContent>

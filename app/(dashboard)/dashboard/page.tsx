@@ -31,6 +31,131 @@ import {
 import { db } from "@/lib/db";
 import { createClient } from "@/lib/supabase/server";
 
+async function getAthleteDashboardData(
+  dbUser: any,
+  gymLogo: string | null,
+  gymName: string | null
+) {
+  // Get upcoming events for athlete
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const upcomingOccurrences = await db
+    .select({
+      occurrence: eventOccurrences,
+      event: events,
+    })
+    .from(eventOccurrences)
+    .innerJoin(events, eq(eventOccurrences.eventId, events.id))
+    .where(
+      and(
+        eq(events.gymId, dbUser.gymId),
+        gte(eventOccurrences.date, today),
+        eq(eventOccurrences.status, "scheduled")
+      )
+    )
+    .orderBy(asc(eventOccurrences.date))
+    .limit(10);
+
+  // Get user's RSVPs
+  const userRsvps = await db
+    .select()
+    .from(rsvps)
+    .where(eq(rsvps.userId, dbUser.id));
+
+  const rsvpMap = new Map(userRsvps.map((r) => [r.occurrenceId, r.status]));
+
+  // Get RSVPs for each upcoming occurrence with user data including roles
+  const occurrenceIds = upcomingOccurrences.map(
+    ({ occurrence }) => occurrence.id
+  );
+  const occurrenceRsvps =
+    occurrenceIds.length > 0
+      ? await db
+          .select({
+            occurrenceId: rsvps.occurrenceId,
+            status: rsvps.status,
+            user: {
+              id: users.id,
+              name: users.name,
+              email: users.email,
+              avatarUrl: users.avatarUrl,
+              role: users.role,
+            },
+          })
+          .from(rsvps)
+          .innerJoin(users, eq(rsvps.userId, users.id))
+          .where(inArray(rsvps.occurrenceId, occurrenceIds))
+      : [];
+
+  // Group RSVPs by occurrence
+  const rsvpsByOccurrence = new Map();
+  for (const rsvp of occurrenceRsvps) {
+    if (!rsvpsByOccurrence.has(rsvp.occurrenceId)) {
+      rsvpsByOccurrence.set(rsvp.occurrenceId, []);
+    }
+    rsvpsByOccurrence.get(rsvp.occurrenceId).push(rsvp);
+  }
+
+  // Combine occurrence data with RSVPs
+  const occurrencesWithRsvp = upcomingOccurrences.map(
+    ({ occurrence, event }) => {
+      const rsvps = rsvpsByOccurrence.get(occurrence.id) || [];
+      const userRsvp = rsvpMap.get(occurrence.id);
+
+      // Separate by status
+      const goingAthletes = rsvps.filter(
+        (r) => r.status === "going" && r.user.role === "athlete"
+      );
+      const notGoingAthletes = rsvps.filter(
+        (r) => r.status === "not_going" && r.user.role === "athlete"
+      );
+
+      return {
+        id: occurrence.id,
+        date: occurrence.date,
+        endTime: occurrence.endTime,
+        startTime: occurrence.startTime,
+        status: occurrence.status,
+        title: event.title,
+        description: event.description,
+        location: event.location,
+        maxAttendees: event.maxAttendees,
+        userRsvp: userRsvp || null,
+        goingAthletes,
+        notGoingAthletes,
+        goingAthletesCount: goingAthletes.length,
+        notGoingAthletesCount: notGoingAthletes.length,
+      };
+    }
+  );
+
+  // Get active notice
+  const [activeNotice] = await db
+    .select({
+      id: notices.id,
+      title: notices.title,
+      content: notices.content,
+      author: {
+        name: users.name,
+        avatarUrl: users.avatarUrl,
+      },
+    })
+    .from(notices)
+    .innerJoin(users, eq(notices.authorId, users.id))
+    .where(and(eq(notices.gymId, dbUser.gymId), eq(notices.active, true)))
+    .limit(1);
+
+  return {
+    activeNotice: activeNotice || null,
+    gymLogo,
+    gymName,
+    isOnboarded: dbUser.onboarded,
+    occurrences: occurrencesWithRsvp,
+    userName: dbUser.name,
+  };
+}
+
 export default async function DashboardPage() {
   const supabase = await createClient();
   const {

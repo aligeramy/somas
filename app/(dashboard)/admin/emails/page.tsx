@@ -66,8 +66,8 @@ export default function AdminEmailsPage() {
 
   useEffect(() => {
     fetchUsers();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fetchUsers]);
+    // fetchUsers is intentionally not in dependencies - it should only run on mount
+  }, []);
 
   async function fetchUsers() {
     try {
@@ -338,13 +338,11 @@ export default function AdminEmailsPage() {
                         <TableCell>{user.email}</TableCell>
                         <TableCell>
                           <Badge
-                            variant={
-                              user.role === "owner"
-                                ? "default"
-                                : user.role === "coach"
-                                  ? "secondary"
-                                  : "outline"
-                            }
+                            variant={(() => {
+                              if (user.role === "owner") return "default";
+                              if (user.role === "coach") return "secondary";
+                              return "outline";
+                            })()}
                           >
                             {user.role}
                           </Badge>
