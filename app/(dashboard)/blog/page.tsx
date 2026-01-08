@@ -68,7 +68,7 @@ export default function BlogPage() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [type, setType] = useState<"about" | "schedule" | "event" | "general">(
-    "general",
+    "general"
   );
   const [eventId, setEventId] = useState<string>("");
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -137,9 +137,9 @@ export default function BlogPage() {
       setIsCreateDialogOpen(true);
     };
 
-    window.addEventListener('blog-open-create-post', handleOpenCreatePost);
+    window.addEventListener("blog-open-create-post", handleOpenCreatePost);
     return () => {
-      window.removeEventListener('blog-open-create-post', handleOpenCreatePost);
+      window.removeEventListener("blog-open-create-post", handleOpenCreatePost);
     };
   }, []);
 
@@ -166,7 +166,7 @@ export default function BlogPage() {
   }
 
   async function handleSave() {
-    if (!title.trim() || !content.trim()) {
+    if (!(title.trim() && content.trim())) {
       setError("Title and content are required");
       return;
     }
@@ -250,21 +250,25 @@ export default function BlogPage() {
   }
 
   return (
-    <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
+    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
       <PageHeader
-        title="Blog Posts"
         description="Share information with your team"
+        title="Blog Posts"
       >
-        <Button onClick={openCreateDialog} className="rounded-sm" data-show-text-mobile>
+        <Button
+          className="rounded-sm"
+          data-show-text-mobile
+          onClick={openCreateDialog}
+        >
           <IconPlus className="mr-2 h-4 w-4" />
           New Post
         </Button>
       </PageHeader>
 
-      <div className="flex-1 overflow-auto min-h-0">
-        <div className="max-w-4xl mx-auto space-y-6 p-4">
+      <div className="min-h-0 flex-1 overflow-auto">
+        <div className="mx-auto max-w-4xl space-y-6 p-4">
           {error && (
-            <div className="bg-destructive/10 text-destructive rounded-xl p-4 text-sm">
+            <div className="rounded-xl bg-destructive/10 p-4 text-destructive text-sm">
               {error}
             </div>
           )}
@@ -272,12 +276,12 @@ export default function BlogPage() {
           {loading ? (
             <div className="space-y-4">
               {[1, 2, 3].map((i) => (
-                <Card key={i} className="rounded-xl">
+                <Card className="rounded-xl" key={i}>
                   <CardContent className="p-6">
                     <div className="animate-pulse space-y-3">
-                      <div className="h-6 w-3/4 bg-muted rounded" />
-                      <div className="h-4 w-full bg-muted rounded" />
-                      <div className="h-4 w-2/3 bg-muted rounded" />
+                      <div className="h-6 w-3/4 rounded bg-muted" />
+                      <div className="h-4 w-full rounded bg-muted" />
+                      <div className="h-4 w-2/3 rounded bg-muted" />
                     </div>
                   </CardContent>
                 </Card>
@@ -287,7 +291,7 @@ export default function BlogPage() {
             <Card className="rounded-xl">
               <CardContent className="pt-6 text-center text-muted-foreground">
                 <p>No posts yet</p>
-                <p className="text-sm mt-1">
+                <p className="mt-1 text-sm">
                   Create your first post to share information with your team
                 </p>
               </CardContent>
@@ -295,24 +299,24 @@ export default function BlogPage() {
           ) : (
             <div className="space-y-4">
               {posts.map((post) => (
-                <Card key={post.id} className="rounded-xl">
+                <Card className="rounded-xl" key={post.id}>
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Badge variant="outline" className="rounded-lg">
+                        <div className="mb-2 flex items-center gap-2">
+                          <Badge className="rounded-lg" variant="outline">
                             {post.type}
                           </Badge>
                           {post.eventId && (
-                            <Badge variant="secondary" className="rounded-lg">
+                            <Badge className="rounded-lg" variant="secondary">
                               Event Post
                             </Badge>
                           )}
                         </div>
                         <CardTitle className="text-xl">
                           <Link
-                            href={`/blog/${post.id}`}
                             className="hover:underline"
+                            href={`/blog/${post.id}`}
                           >
                             {post.title}
                           </Link>
@@ -324,18 +328,18 @@ export default function BlogPage() {
                       </div>
                       <div className="flex gap-2">
                         <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => openEditDialog(post)}
                           className="h-8 w-8"
+                          onClick={() => openEditDialog(post)}
+                          size="icon"
+                          variant="ghost"
                         >
                           <IconEdit className="h-4 w-4" />
                         </Button>
                         <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDelete(post.id)}
                           className="h-8 w-8 text-destructive"
+                          onClick={() => handleDelete(post.id)}
+                          size="icon"
+                          variant="ghost"
                         >
                           <IconTrash className="h-4 w-4" />
                         </Button>
@@ -346,18 +350,18 @@ export default function BlogPage() {
                     {post.imageUrl && (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
-                        src={post.imageUrl}
                         alt={post.title}
-                        className="w-full max-h-64 object-cover rounded-xl mb-4"
+                        className="mb-4 max-h-64 w-full rounded-xl object-cover"
+                        src={post.imageUrl}
                       />
                     )}
                     <div
-                      className="prose prose-sm dark:prose-invert max-w-none line-clamp-3"
+                      className="prose prose-sm dark:prose-invert line-clamp-3 max-w-none"
                       dangerouslySetInnerHTML={{ __html: post.content }}
                     />
                     <Link
+                      className="mt-2 inline-block text-primary text-sm hover:underline"
                       href={`/blog/${post.id}`}
-                      className="text-sm text-primary hover:underline mt-2 inline-block"
                     >
                       Read more →
                     </Link>
@@ -370,8 +374,8 @@ export default function BlogPage() {
       </div>
 
       {/* Create/Edit Dialog */}
-      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent className="rounded-xl max-w-2xl max-h-[90vh] overflow-y-auto">
+      <Dialog onOpenChange={setIsCreateDialogOpen} open={isCreateDialogOpen}>
+        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto rounded-xl">
           <DialogHeader>
             <DialogTitle>
               {editingPost ? "Edit Post" : "Create New Post"}
@@ -382,27 +386,27 @@ export default function BlogPage() {
           </DialogHeader>
           <div className="space-y-4 py-4">
             {error && (
-              <div className="bg-destructive/10 text-destructive rounded-xl p-3 text-sm">
+              <div className="rounded-xl bg-destructive/10 p-3 text-destructive text-sm">
                 {error}
               </div>
             )}
             <div className="space-y-2">
               <Label htmlFor="title">Title *</Label>
               <Input
+                className="rounded-xl"
                 id="title"
-                value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Post title"
-                className="rounded-xl"
+                value={title}
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="type">Type *</Label>
               <Select
-                value={type}
                 onValueChange={(v) =>
                   setType(v as "about" | "schedule" | "event" | "general")
                 }
+                value={type}
               >
                 <SelectTrigger className="rounded-xl">
                   <SelectValue />
@@ -418,7 +422,7 @@ export default function BlogPage() {
             {type === "event" && (
               <div className="space-y-2">
                 <Label htmlFor="eventId">Link to Event (Optional)</Label>
-                <Select value={eventId} onValueChange={setEventId}>
+                <Select onValueChange={setEventId} value={eventId}>
                   <SelectTrigger className="rounded-xl">
                     <SelectValue placeholder="Select an event" />
                   </SelectTrigger>
@@ -436,16 +440,16 @@ export default function BlogPage() {
             <div className="space-y-2">
               <Label htmlFor="content">Content *</Label>
               <RichTextEditor
-                value={content}
                 onChange={setContent}
                 placeholder="Write your post content here..."
+                value={content}
               />
             </div>
             <div className="space-y-2">
               <Label>Image (Optional)</Label>
               <div
                 {...getRootProps()}
-                className={`border border-dashed rounded-xl p-6 text-center cursor-pointer transition-colors ${
+                className={`cursor-pointer rounded-xl border border-dashed p-6 text-center transition-colors ${
                   isDragActive
                     ? "border-primary bg-primary/5"
                     : "border-muted-foreground/25 hover:border-muted-foreground/50"
@@ -456,18 +460,18 @@ export default function BlogPage() {
                   <div className="space-y-2">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={imagePreview}
                       alt="Preview"
                       className="mx-auto max-h-48 rounded-lg"
+                      src={imagePreview}
                     />
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-muted-foreground text-sm">
                       Click or drag to replace
                     </p>
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    <IconPhoto className="h-8 w-8 mx-auto text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground">
+                    <IconPhoto className="mx-auto h-8 w-8 text-muted-foreground" />
+                    <p className="text-muted-foreground text-sm">
                       {isDragActive
                         ? "Drop the image here"
                         : "Drag & drop an image here, or click to select"}
@@ -479,16 +483,16 @@ export default function BlogPage() {
           </div>
           <DialogFooter>
             <Button
-              variant="outline"
-              onClick={() => setIsCreateDialogOpen(false)}
               className="rounded-xl"
+              onClick={() => setIsCreateDialogOpen(false)}
+              variant="outline"
             >
               Cancel
             </Button>
             <Button
-              onClick={handleSave}
-              disabled={saving}
               className="rounded-xl"
+              disabled={saving}
+              onClick={handleSave}
             >
               {saving
                 ? "Saving..."

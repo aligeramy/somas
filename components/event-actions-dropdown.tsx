@@ -85,7 +85,7 @@ export function EventActionsDropdown({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-        <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+        <Button className="h-8 w-8 shrink-0" size="icon" variant="ghost">
           <IconDotsVertical className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
@@ -104,22 +104,22 @@ export function EventActionsDropdown({
             <DropdownMenuSeparator />
             <DropdownMenuItem
               className={`gap-2 text-emerald-600 focus:text-emerald-600 dark:text-emerald-400 dark:focus:text-emerald-400 ${currentRsvpStatus === "going" ? "bg-muted" : ""}`}
+              disabled={rsvping || currentRsvpStatus === "going"}
               onClick={(e) => {
                 e.stopPropagation();
                 handleRsvp("going");
               }}
-              disabled={rsvping || currentRsvpStatus === "going"}
             >
               <IconCheck className="h-4 w-4" />
               Going
             </DropdownMenuItem>
             <DropdownMenuItem
               className={`gap-2 text-red-600 focus:text-red-600 dark:text-red-400 dark:focus:text-red-400 ${currentRsvpStatus === "not_going" ? "bg-muted" : ""}`}
+              disabled={rsvping || currentRsvpStatus === "not_going"}
               onClick={(e) => {
                 e.stopPropagation();
                 handleRsvp("not_going");
               }}
-              disabled={rsvping || currentRsvpStatus === "not_going"}
             >
               <IconX className="h-4 w-4" />
               Can't Go
@@ -128,12 +128,12 @@ export function EventActionsDropdown({
         )}
         <DropdownMenuSeparator />
         <DropdownMenuItem
-          className={`gap-2 ${isCanceled ? "" : "text-destructive focus:text-destructive bg-red-50 dark:bg-red-950/20 focus:bg-red-100 dark:focus:bg-red-950/30"}`}
+          className={`gap-2 ${isCanceled ? "" : "bg-red-50 text-destructive focus:bg-red-100 focus:text-destructive dark:bg-red-950/20 dark:focus:bg-red-950/30"}`}
+          disabled={canceling}
           onClick={(e) => {
             e.stopPropagation();
             handleCancel();
           }}
-          disabled={canceling}
         >
           {isCanceled ? (
             <>

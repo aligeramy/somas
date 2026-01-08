@@ -11,5 +11,5 @@ export function MobileBottomNavWrapper({
   userRole,
   gymWebsite,
 }: MobileBottomNavWrapperProps) {
-  return <MobileBottomNav userRole={userRole} gymWebsite={gymWebsite} />;
+  return <MobileBottomNav gymWebsite={gymWebsite} userRole={userRole} />;
 }

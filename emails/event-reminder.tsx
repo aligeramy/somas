@@ -28,57 +28,57 @@ export function EventReminderEmail({
 
   return (
     <BaseLayout
-      preview={`${eventTitle} - ${reminderText}`}
-      gymName={gymName}
       gymLogoUrl={gymLogoUrl}
+      gymName={gymName}
+      preview={`${eventTitle} - ${reminderText}`}
     >
-      <Heading className="text-2xl font-bold text-zinc-900 mb-6 text-center">
+      <Heading className="mb-6 text-center font-bold text-2xl text-zinc-900">
         {reminderText}
       </Heading>
 
-      <Text className="text-base text-zinc-900 mb-4">
+      <Text className="mb-4 text-base text-zinc-900">
         Hey {athleteName.split(" ")[0] || "there"},
       </Text>
 
-      <Text className="text-[15px] text-gray-600 leading-6 mb-6">
+      <Text className="mb-6 text-[15px] text-gray-600 leading-6">
         Just a friendly reminder about your upcoming session.
       </Text>
 
       {/* Event Card */}
-      <Section className="bg-gray-50 rounded-xl p-4 mb-6 flex items-center gap-4">
-        <div className="bg-zinc-900 rounded-lg py-3 px-4 text-center min-w-[60px]">
-          <Text className="text-white text-2xl font-bold m-0 leading-none">
+      <Section className="mb-6 flex items-center gap-4 rounded-xl bg-gray-50 p-4">
+        <div className="min-w-[60px] rounded-lg bg-zinc-900 px-4 py-3 text-center">
+          <Text className="m-0 font-bold text-2xl text-white leading-none">
             {eventDate.split(" ")[0]}
           </Text>
-          <Text className="text-zinc-400 text-xs font-medium mt-1 mb-0 uppercase">
+          <Text className="mt-1 mb-0 font-medium text-xs text-zinc-400 uppercase">
             {eventDate.split(" ")[1]}
           </Text>
         </div>
         <div className="flex-1">
-          <Text className="text-base font-semibold text-zinc-900 mb-1 mt-0">
+          <Text className="mt-0 mb-1 font-semibold text-base text-zinc-900">
             {eventTitle}
           </Text>
-          <Text className="text-sm text-gray-500 m-0">{eventTime}</Text>
+          <Text className="m-0 text-gray-500 text-sm">{eventTime}</Text>
           {eventLocation && (
-            <Text className="text-sm text-gray-500 m-0">{eventLocation}</Text>
+            <Text className="m-0 text-gray-500 text-sm">{eventLocation}</Text>
           )}
         </div>
       </Section>
 
-      <Text className="text-[15px] text-gray-600 leading-6 mb-6">
+      <Text className="mb-6 text-[15px] text-gray-600 leading-6">
         Let us know if you're coming!
       </Text>
 
-      <Section className="text-center mb-6">
+      <Section className="mb-6 text-center">
         <Button
-          className="bg-zinc-900 rounded-lg text-white text-[15px] font-semibold no-underline text-center py-3.5 px-7"
+          className="rounded-lg bg-zinc-900 px-7 py-3.5 text-center font-semibold text-[15px] text-white no-underline"
           href={rsvpUrl}
         >
           Confirm Attendance
         </Button>
       </Section>
 
-      <Text className="text-[13px] text-gray-400 text-center m-0">
+      <Text className="m-0 text-center text-[13px] text-gray-400">
         Can't make it? Update your RSVP to let the coach know.
       </Text>
     </BaseLayout>

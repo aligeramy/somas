@@ -43,7 +43,7 @@ function SetupPasswordForm() {
         if (email) {
           setIsLinkExpired(true);
           setError(
-            "No valid link found. Please request a new password setup link.",
+            "No valid link found. Please request a new password setup link."
           );
         }
         return;
@@ -84,7 +84,7 @@ function SetupPasswordForm() {
   }, [token, tokenType, email, supabase.auth]);
 
   async function handleRequestNewLink() {
-    if (!email || !email.trim()) {
+    if (!(email && email.trim())) {
       setError("Email address is required to request a new link");
       return;
     }
@@ -157,7 +157,7 @@ function SetupPasswordForm() {
       if (isAuthenticated) {
         // User is already authenticated via token, just update password
         const { error: updateError } = await supabase.auth.updateUser({
-          password: password,
+          password,
         });
 
         if (updateError) {
@@ -175,7 +175,7 @@ function SetupPasswordForm() {
       } else {
         // If not authenticated and no token, user needs to use the "Request New Link" button
         setError(
-          "Please use the 'Request New Link' button to receive a password setup link.",
+          "Please use the 'Request New Link' button to receive a password setup link."
         );
         setLoading(false);
         return;
@@ -184,7 +184,7 @@ function SetupPasswordForm() {
       setError(
         err instanceof Error
           ? err.message
-          : "Failed to set password. Please try again.",
+          : "Failed to set password. Please try again."
       );
       setLoading(false);
     }
@@ -228,7 +228,7 @@ function SetupPasswordForm() {
       <div className="flex min-h-screen items-center justify-center p-4 md:p-6">
         <Card className="w-full max-w-md">
           <CardHeader>
-            <div className="flex items-center gap-2 mb-2">
+            <div className="mb-2 flex items-center gap-2">
               {linkSent && !error ? (
                 <IconMail className="h-5 w-5 text-green-600 dark:text-green-400" />
               ) : (
@@ -259,31 +259,31 @@ function SetupPasswordForm() {
           <CardContent className="space-y-4">
             {linkSent && !error ? null : email ? (
               <Button
-                id="request-new-link-button"
-                type="button"
-                onClick={handleRequestNewLink}
-                disabled={requestingLink}
                 className="w-full"
+                disabled={requestingLink}
+                id="request-new-link-button"
+                onClick={handleRequestNewLink}
+                type="button"
                 variant="default"
               >
                 {requestingLink ? (
                   "Sending..."
                 ) : (
                   <>
-                    <IconMail className="h-4 w-4 mr-2" />
+                    <IconMail className="mr-2 h-4 w-4" />
                     Request New Link
                   </>
                 )}
               </Button>
             ) : (
-              <p className="text-sm text-muted-foreground text-center">
+              <p className="text-center text-muted-foreground text-sm">
                 Please contact your coach to request a new welcome email.
               </p>
             )}
 
             <Button asChild className="w-full" variant="outline">
               <Link href="/">
-                <IconArrowLeft className="h-4 w-4 mr-2" />
+                <IconArrowLeft className="mr-2 h-4 w-4" />
                 Back to Home
               </Link>
             </Button>
@@ -307,15 +307,15 @@ function SetupPasswordForm() {
                 : "Create a secure password for your account"}
           </CardDescription>
           {isAuthenticated && (
-            <p className="text-sm text-green-600 mt-2">
+            <p className="mt-2 text-green-600 text-sm">
               ✓ Link verified successfully
             </p>
           )}
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form className="space-y-4" onSubmit={handleSubmit}>
             {error && !isLinkExpired && (
-              <div className="bg-destructive/10 text-destructive rounded-md p-3 text-sm">
+              <div className="rounded-md bg-destructive/10 p-3 text-destructive text-sm">
                 {error}
               </div>
             )}
@@ -324,13 +324,13 @@ function SetupPasswordForm() {
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  readOnly
-                  disabled
                   autoComplete="email"
                   className="bg-muted"
+                  disabled
+                  id="email"
+                  readOnly
+                  type="email"
+                  value={email}
                 />
               </div>
             )}
@@ -338,16 +338,16 @@ function SetupPasswordForm() {
             <div className="space-y-2">
               <Label htmlFor="password">Password *</Label>
               <Input
+                autoComplete="new-password"
                 id="password"
-                type="password"
-                value={password}
+                minLength={8}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter your password (min. 8 characters)"
                 required
-                minLength={8}
-                autoComplete="new-password"
+                type="password"
+                value={password}
               />
-              <p className="text-xs text-muted-foreground">
+              <p className="text-muted-foreground text-xs">
                 Must be at least 8 characters long
               </p>
             </div>
@@ -355,22 +355,22 @@ function SetupPasswordForm() {
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">Confirm Password *</Label>
               <Input
+                autoComplete="new-password"
                 id="confirmPassword"
-                type="password"
-                value={confirmPassword}
+                minLength={8}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Confirm your password"
                 required
-                minLength={8}
-                autoComplete="new-password"
+                type="password"
+                value={confirmPassword}
               />
             </div>
 
             <Button
+              className="w-full"
+              disabled={loading || !password || !confirmPassword}
               id="set-password-button"
               type="submit"
-              disabled={loading || !password || !confirmPassword}
-              className="w-full"
             >
               {loading ? "Setting up..." : "Set Password"}
             </Button>

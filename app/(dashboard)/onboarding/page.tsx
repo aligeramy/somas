@@ -146,7 +146,7 @@ export default function OnboardingPage() {
       <div className="flex min-h-screen items-center justify-center p-4 md:p-6">
         <Card className="w-full max-w-2xl">
           <CardContent className="pt-6">
-            <div className="animate-pulse text-muted-foreground text-center">
+            <div className="animate-pulse text-center text-muted-foreground">
               Loading...
             </div>
           </CardContent>
@@ -166,9 +166,9 @@ export default function OnboardingPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form className="space-y-6" onSubmit={handleSubmit}>
             {error && (
-              <div className="bg-destructive/10 text-destructive rounded-md p-3 text-sm">
+              <div className="rounded-md bg-destructive/10 p-3 text-destructive text-sm">
                 {error}
               </div>
             )}
@@ -177,10 +177,10 @@ export default function OnboardingPage() {
               <Label htmlFor="name">Name *</Label>
               <Input
                 id="name"
-                value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Enter your name"
                 required
+                value={name}
               />
             </div>
 
@@ -188,22 +188,22 @@ export default function OnboardingPage() {
               <Label htmlFor="phone">Phone</Label>
               <Input
                 id="phone"
-                value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="Enter your phone number"
                 type="tel"
+                value={phone}
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="address">Address</Label>
               <Input
-                ref={addressInputRef}
+                autoComplete="off"
                 id="address"
-                value={address}
                 onChange={(e) => setAddress(e.target.value)}
                 placeholder="Enter your address"
-                autoComplete="off"
+                ref={addressInputRef}
+                value={address}
               />
             </div>
 
@@ -211,7 +211,7 @@ export default function OnboardingPage() {
               <Label>Profile Photo (Optional)</Label>
               <div
                 {...getRootProps()}
-                className={`border border-dashed rounded-lg p-6 md:p-8 text-center cursor-pointer transition-colors ${
+                className={`cursor-pointer rounded-lg border border-dashed p-6 text-center transition-colors md:p-8 ${
                   isDragActive
                     ? "border-primary bg-primary/5"
                     : "border-muted-foreground/25 hover:border-muted-foreground/50"
@@ -221,22 +221,22 @@ export default function OnboardingPage() {
                 {avatarPreview ? (
                   <div className="space-y-2">
                     <img
-                      src={avatarPreview}
                       alt="Avatar preview"
                       className="mx-auto max-h-32 rounded-full"
+                      src={avatarPreview}
                     />
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-muted-foreground text-sm">
                       Click or drag to replace
                     </p>
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-muted-foreground text-sm">
                       {isDragActive
                         ? "Drop the photo here"
                         : "Drag & drop a photo here, or click to select"}
                     </p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-muted-foreground text-xs">
                       PNG, JPG, GIF up to 5MB
                     </p>
                   </div>
@@ -245,9 +245,9 @@ export default function OnboardingPage() {
             </div>
 
             <Button
-              type="submit"
-              disabled={loading || !name}
               className="w-full"
+              disabled={loading || !name}
+              type="submit"
             >
               {loading ? "Saving..." : "Complete Profile"}
             </Button>

@@ -78,128 +78,128 @@ export function RichTextEditor({
   }
 
   return (
-    <div className="rich-text-editor border rounded-xl overflow-hidden">
-      <div className="border-b p-2 flex flex-wrap gap-1 bg-muted/50">
+    <div className="rich-text-editor overflow-hidden rounded-xl border">
+      <div className="flex flex-wrap gap-1 border-b bg-muted/50 p-2">
         <Button
+          className={`h-8 w-8 p-0 ${editor.isActive("bold") ? "bg-muted" : ""}`}
+          onClick={() => editor.chain().focus().toggleBold().run()}
+          size="sm"
           type="button"
           variant="ghost"
-          size="sm"
-          onClick={() => editor.chain().focus().toggleBold().run()}
-          className={`h-8 w-8 p-0 ${editor.isActive("bold") ? "bg-muted" : ""}`}
         >
           <IconBold className="h-4 w-4" />
         </Button>
         <Button
+          className={`h-8 w-8 p-0 ${editor.isActive("italic") ? "bg-muted" : ""}`}
+          onClick={() => editor.chain().focus().toggleItalic().run()}
+          size="sm"
           type="button"
           variant="ghost"
-          size="sm"
-          onClick={() => editor.chain().focus().toggleItalic().run()}
-          className={`h-8 w-8 p-0 ${editor.isActive("italic") ? "bg-muted" : ""}`}
         >
           <IconItalic className="h-4 w-4" />
         </Button>
         <Button
+          className={`h-8 w-8 p-0 ${editor.isActive("strike") ? "bg-muted" : ""}`}
+          onClick={() => editor.chain().focus().toggleStrike().run()}
+          size="sm"
           type="button"
           variant="ghost"
-          size="sm"
-          onClick={() => editor.chain().focus().toggleStrike().run()}
-          className={`h-8 w-8 p-0 ${editor.isActive("strike") ? "bg-muted" : ""}`}
         >
           <IconStrikethrough className="h-4 w-4" />
         </Button>
-        <div className="w-px h-6 bg-border mx-1" />
+        <div className="mx-1 h-6 w-px bg-border" />
         <Button
-          type="button"
-          variant="ghost"
-          size="sm"
+          className={`h-8 w-8 p-0 ${editor.isActive("heading", { level: 1 }) ? "bg-muted" : ""}`}
           onClick={() =>
             editor.chain().focus().toggleHeading({ level: 1 }).run()
           }
-          className={`h-8 w-8 p-0 ${editor.isActive("heading", { level: 1 }) ? "bg-muted" : ""}`}
+          size="sm"
+          type="button"
+          variant="ghost"
         >
           <IconH1 className="h-4 w-4" />
         </Button>
         <Button
-          type="button"
-          variant="ghost"
-          size="sm"
+          className={`h-8 w-8 p-0 ${editor.isActive("heading", { level: 2 }) ? "bg-muted" : ""}`}
           onClick={() =>
             editor.chain().focus().toggleHeading({ level: 2 }).run()
           }
-          className={`h-8 w-8 p-0 ${editor.isActive("heading", { level: 2 }) ? "bg-muted" : ""}`}
+          size="sm"
+          type="button"
+          variant="ghost"
         >
           <IconH2 className="h-4 w-4" />
         </Button>
         <Button
-          type="button"
-          variant="ghost"
-          size="sm"
+          className={`h-8 w-8 p-0 ${editor.isActive("heading", { level: 3 }) ? "bg-muted" : ""}`}
           onClick={() =>
             editor.chain().focus().toggleHeading({ level: 3 }).run()
           }
-          className={`h-8 w-8 p-0 ${editor.isActive("heading", { level: 3 }) ? "bg-muted" : ""}`}
+          size="sm"
+          type="button"
+          variant="ghost"
         >
           <IconH3 className="h-4 w-4" />
         </Button>
-        <div className="w-px h-6 bg-border mx-1" />
+        <div className="mx-1 h-6 w-px bg-border" />
         <Button
+          className={`h-8 w-8 p-0 ${editor.isActive("bulletList") ? "bg-muted" : ""}`}
+          onClick={() => editor.chain().focus().toggleBulletList().run()}
+          size="sm"
           type="button"
           variant="ghost"
-          size="sm"
-          onClick={() => editor.chain().focus().toggleBulletList().run()}
-          className={`h-8 w-8 p-0 ${editor.isActive("bulletList") ? "bg-muted" : ""}`}
         >
           <IconList className="h-4 w-4" />
         </Button>
         <Button
+          className={`h-8 w-8 p-0 ${editor.isActive("orderedList") ? "bg-muted" : ""}`}
+          onClick={() => editor.chain().focus().toggleOrderedList().run()}
+          size="sm"
           type="button"
           variant="ghost"
-          size="sm"
-          onClick={() => editor.chain().focus().toggleOrderedList().run()}
-          className={`h-8 w-8 p-0 ${editor.isActive("orderedList") ? "bg-muted" : ""}`}
         >
           <IconListNumbers className="h-4 w-4" />
         </Button>
-        <div className="w-px h-6 bg-border mx-1" />
+        <div className="mx-1 h-6 w-px bg-border" />
         <Button
+          className={`h-8 w-8 p-0 ${editor.isActive({ textAlign: "left" }) ? "bg-muted" : ""}`}
+          onClick={() => editor.chain().focus().setTextAlign("left").run()}
+          size="sm"
           type="button"
           variant="ghost"
-          size="sm"
-          onClick={() => editor.chain().focus().setTextAlign("left").run()}
-          className={`h-8 w-8 p-0 ${editor.isActive({ textAlign: "left" }) ? "bg-muted" : ""}`}
         >
           <IconAlignLeft className="h-4 w-4" />
         </Button>
         <Button
+          className={`h-8 w-8 p-0 ${editor.isActive({ textAlign: "center" }) ? "bg-muted" : ""}`}
+          onClick={() => editor.chain().focus().setTextAlign("center").run()}
+          size="sm"
           type="button"
           variant="ghost"
-          size="sm"
-          onClick={() => editor.chain().focus().setTextAlign("center").run()}
-          className={`h-8 w-8 p-0 ${editor.isActive({ textAlign: "center" }) ? "bg-muted" : ""}`}
         >
           <IconAlignCenter className="h-4 w-4" />
         </Button>
         <Button
+          className={`h-8 w-8 p-0 ${editor.isActive({ textAlign: "right" }) ? "bg-muted" : ""}`}
+          onClick={() => editor.chain().focus().setTextAlign("right").run()}
+          size="sm"
           type="button"
           variant="ghost"
-          size="sm"
-          onClick={() => editor.chain().focus().setTextAlign("right").run()}
-          className={`h-8 w-8 p-0 ${editor.isActive({ textAlign: "right" }) ? "bg-muted" : ""}`}
         >
           <IconAlignRight className="h-4 w-4" />
         </Button>
-        <div className="w-px h-6 bg-border mx-1" />
+        <div className="mx-1 h-6 w-px bg-border" />
         <Button
-          type="button"
-          variant="ghost"
-          size="sm"
+          className={`h-8 w-8 p-0 ${editor.isActive("link") ? "bg-muted" : ""}`}
           onClick={() => {
             const url = window.prompt("Enter URL:");
             if (url) {
               editor.chain().focus().setLink({ href: url }).run();
             }
           }}
-          className={`h-8 w-8 p-0 ${editor.isActive("link") ? "bg-muted" : ""}`}
+          size="sm"
+          type="button"
+          variant="ghost"
         >
           <IconLink className="h-4 w-4" />
         </Button>

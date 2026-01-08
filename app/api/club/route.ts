@@ -21,10 +21,10 @@ export async function GET() {
       .where(eq(users.id, user.id))
       .limit(1);
 
-    if (!dbUser || !dbUser.gymId) {
+    if (!(dbUser && dbUser.gymId)) {
       return NextResponse.json(
         { error: "User must belong to a club" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -48,7 +48,7 @@ export async function GET() {
     console.error("Club fetch error:", error);
     return NextResponse.json(
       { error: "Failed to fetch club" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -70,10 +70,10 @@ export async function PUT(request: Request) {
       .where(eq(users.id, user.id))
       .limit(1);
 
-    if (!dbUser || !dbUser.gymId) {
+    if (!(dbUser && dbUser.gymId)) {
       return NextResponse.json(
         { error: "User must belong to a club" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -119,7 +119,7 @@ export async function PUT(request: Request) {
     console.error("Club update error:", error);
     return NextResponse.json(
       { error: "Failed to update club" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

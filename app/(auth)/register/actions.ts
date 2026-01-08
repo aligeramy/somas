@@ -97,7 +97,7 @@ export async function registerAction(formData: FormData) {
     // User doesn't exist, create new record
     await db.insert(users).values({
       id: data.user.id,
-      email: email,
+      email,
       role: userRole as "owner" | "coach" | "athlete",
       gymId,
       onboarded: false,

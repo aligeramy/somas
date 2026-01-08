@@ -69,7 +69,7 @@ export default function ChatPage() {
     name: string;
   } | null>(null);
   const [unreadCounts, setUnreadCounts] = useState<Map<string, number>>(
-    new Map(),
+    new Map()
   );
   const [totalUnreadChats, setTotalUnreadChats] = useState(0);
   const [openingDm, setOpeningDm] = useState(false);
@@ -152,14 +152,14 @@ export default function ChatPage() {
         if (!userData?.gymId) return;
 
         const response = await fetch(
-          `/api/chat/channels?gymId=${userData.gymId}`,
+          `/api/chat/channels?gymId=${userData.gymId}`
         );
         const result = await response.json();
 
         if (response.ok) {
           // Filter out event-specific channels (only show global, dm, and group chats)
           const filteredChannels = (result.channels || []).filter(
-            (c: Channel) => !c.eventId,
+            (c: Channel) => !c.eventId
           );
           // Sort channels: global first, then others
           const sortedChannels = filteredChannels.sort(
@@ -167,7 +167,7 @@ export default function ChatPage() {
               if (a.type === "global") return -1;
               if (b.type === "global") return 1;
               return 0;
-            },
+            }
           );
           setChannels(sortedChannels);
           // Auto-select global channel if available, otherwise first channel
@@ -175,7 +175,7 @@ export default function ChatPage() {
           // Check isMobile at runtime to avoid dependency issues
           if (sortedChannels.length > 0 && window.innerWidth >= 768) {
             const globalChannel = sortedChannels.find(
-              (c: Channel) => c.type === "global",
+              (c: Channel) => c.type === "global"
             );
             setSelectedChannel(globalChannel?.id || sortedChannels[0].id);
           }
@@ -184,7 +184,7 @@ export default function ChatPage() {
           loadChannelAvatars(sortedChannels, user.id, userData.gymId).catch(
             (error) => {
               console.error("Error loading channel avatars:", error);
-            },
+            }
           );
         }
       } catch (error) {
@@ -197,7 +197,7 @@ export default function ChatPage() {
     async function loadChannelAvatars(
       channels: Channel[],
       currentUserId: string,
-      gymId: string,
+      gymId: string
     ) {
       try {
         const avatarsMap = new Map<string, ChannelAvatar[]>();
@@ -257,7 +257,7 @@ export default function ChatPage() {
               ...new Set(
                 messages
                   .map((m) => m.senderId)
-                  .filter((id) => id !== currentUserId),
+                  .filter((id) => id !== currentUserId)
               ),
             ].slice(0, 3);
 
@@ -335,7 +335,7 @@ export default function ChatPage() {
   useEffect(() => {
     const interval = setInterval(() => {
       loadUnreadCounts();
-    }, 10000); // Check every 10 seconds
+    }, 10_000); // Check every 10 seconds
 
     return () => clearInterval(interval);
   }, [loadUnreadCounts]);
@@ -351,12 +351,12 @@ export default function ChatPage() {
         return;
       }
 
-      const response = await fetch(`/api/roster`);
+      const response = await fetch("/api/roster");
       if (!response.ok) {
         console.error(
           "Failed to fetch roster:",
           response.status,
-          response.statusText,
+          response.statusText
         );
         setGymMembers([]);
         return;
@@ -367,7 +367,7 @@ export default function ChatPage() {
       if (result.roster && Array.isArray(result.roster)) {
         // Filter out current user - compare IDs as strings to ensure proper comparison
         const filtered = result.roster.filter(
-          (m: GymMember) => String(m.id) !== String(user.id),
+          (m: GymMember) => String(m.id) !== String(user.id)
         );
         setGymMembers(filtered);
       } else {
@@ -391,7 +391,7 @@ export default function ChatPage() {
           body: JSON.stringify({
             name: "",
             type: "dm",
-            userId: userId,
+            userId,
           }),
         });
 
@@ -405,7 +405,7 @@ export default function ChatPage() {
         // Check if channel already exists (for DM)
         setChannels((prevChannels) => {
           const existingChannel = prevChannels.find(
-            (c) => c.id === result.channel.id,
+            (c) => c.id === result.channel.id
           );
           if (!existingChannel) {
             return [...prevChannels, result.channel];
@@ -425,7 +425,7 @@ export default function ChatPage() {
         setOpeningDm(false);
       }
     },
-    [router, isMobile],
+    [router, isMobile]
   );
 
   async function handleCreateChannel() {
@@ -468,7 +468,7 @@ export default function ChatPage() {
       setIsCreateDialogOpen(false);
     } catch (error) {
       alert(
-        error instanceof Error ? error.message : "Failed to create channel",
+        error instanceof Error ? error.message : "Failed to create channel"
       );
     } finally {
       setCreating(false);
@@ -505,14 +505,14 @@ export default function ChatPage() {
 
   function handleDialogOpenChange(open: boolean) {
     setIsCreateDialogOpen(open);
-    if (!open) {
+    if (open) {
+      // Load gym members when dialog opens
+      loadGymMembers();
+    } else {
       // Reset form when dialog closes
       setChatType(null);
       setNewChannelName("");
       setSelectedUserId(null);
-    } else {
-      // Load gym members when dialog opens
-      loadGymMembers();
     }
   }
 
@@ -568,12 +568,12 @@ export default function ChatPage() {
         >
           {displayAvatars.map((user, index) => (
             <Avatar
-              key={user.id}
               className={`${avatarSize} absolute`}
+              key={user.id}
               style={{
                 left: `${index * offset}px`,
                 zIndex: displayAvatars.length - index,
-                borderWidth: borderWidth,
+                borderWidth,
                 borderStyle: "solid",
                 borderColor: "hsl(var(--background))",
               }}
@@ -586,11 +586,11 @@ export default function ChatPage() {
           ))}
           {remainingCount > 0 && (
             <div
-              className={`${avatarSize} absolute rounded-full bg-muted flex items-center justify-center text-xs font-medium`}
+              className={`${avatarSize} absolute flex items-center justify-center rounded-full bg-muted font-medium text-xs`}
               style={{
                 left: `${displayAvatars.length * offset}px`,
                 zIndex: 0,
-                borderWidth: borderWidth,
+                borderWidth,
                 borderStyle: "solid",
                 borderColor: "hsl(var(--background))",
               }}
@@ -607,17 +607,17 @@ export default function ChatPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
+      <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
         <PageHeader title="Chat" />
-        <div className="flex flex-1 overflow-hidden gap-4 min-h-0 h-0">
-          <div className="w-64 lg:flex flex-col bg-card border rounded-xl shadow-sm overflow-hidden min-h-0 h-full hidden">
+        <div className="flex h-0 min-h-0 flex-1 gap-4 overflow-hidden">
+          <div className="hidden h-full min-h-0 w-64 flex-col overflow-hidden rounded-xl border bg-card shadow-sm lg:flex">
             <div className="flex flex-1 items-center justify-center">
               <div className="animate-pulse text-muted-foreground">
                 Loading...
               </div>
             </div>
           </div>
-          <div className="flex-1 flex flex-col bg-card border lg:rounded-xl shadow-sm overflow-hidden min-h-0">
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden border bg-card shadow-sm lg:rounded-xl">
             <div className="flex flex-1 items-center justify-center">
               <div className="animate-pulse text-muted-foreground">
                 Loading...
@@ -633,21 +633,21 @@ export default function ChatPage() {
   if (isMobile) {
     if (showChatView && selectedChannel && currentUser && selectedChannelData) {
       return (
-        <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
-          <div className="flex items-center gap-2 p-4 border-b shrink-0">
+        <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
+          <div className="flex shrink-0 items-center gap-2 border-b p-4">
             <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowChatView(false)}
               className="rounded-xl"
+              onClick={() => setShowChatView(false)}
+              size="icon"
+              variant="ghost"
             >
               <IconArrowLeft className="h-5 w-5" />
             </Button>
-            <h1 className="font-semibold text-lg flex-1">
+            <h1 className="flex-1 font-semibold text-lg">
               {selectedChannelData.name}
             </h1>
           </div>
-          <div className="flex-1 min-h-0 overflow-hidden">
+          <div className="min-h-0 flex-1 overflow-hidden">
             <RealtimeChat
               channelId={selectedChannel}
               roomName={selectedChannelData.name}
@@ -660,13 +660,13 @@ export default function ChatPage() {
 
     // Mobile channel list view
     return (
-      <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
+      <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
         <PageHeader
           title={`Chat${totalUnreadChats > 0 ? ` (${totalUnreadChats})` : ""}`}
         >
           <Dialog
-            open={isCreateDialogOpen}
             onOpenChange={handleDialogOpenChange}
+            open={isCreateDialogOpen}
           >
             <DialogTrigger asChild>
               <Button className="rounded-sm capitalize" data-show-text-mobile>
@@ -682,35 +682,310 @@ export default function ChatPage() {
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
-                {!chatType ? (
+                {chatType ? (
+                  chatType === "dm" ? (
+                    <div className="space-y-2">
+                      <Label>Select a person</Label>
+                      <ScrollArea className="h-[300px] rounded-xl border">
+                        {loadingMembers ? (
+                          <div className="p-4 text-center text-muted-foreground">
+                            Loading...
+                          </div>
+                        ) : gymMembers.length === 0 ? (
+                          <div className="p-4 text-center text-muted-foreground">
+                            <p className="mb-2">No other members in your gym</p>
+                            <p className="text-xs">
+                              Add members from the Roster page to start chatting
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="p-2">
+                            {gymMembers.map((member) => (
+                              <button
+                                className={`mb-1 flex w-full items-center gap-3 rounded-xl p-3 transition-colors ${
+                                  selectedUserId === member.id
+                                    ? "bg-primary text-primary-foreground"
+                                    : "hover:bg-muted"
+                                }
+                            `}
+                                key={member.id}
+                                onClick={() => setSelectedUserId(member.id)}
+                                type="button"
+                              >
+                                <Avatar className="h-10 w-10">
+                                  <AvatarImage
+                                    src={member.avatarUrl || undefined}
+                                  />
+                                  <AvatarFallback>
+                                    {member.name?.[0]?.toUpperCase() ||
+                                      member.email[0].toUpperCase()}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div className="flex-1 text-left">
+                                  <div className="font-medium text-sm">
+                                    {member.name || member.email}
+                                  </div>
+                                  {member.name && (
+                                    <div className="text-xs opacity-70">
+                                      {member.email}
+                                    </div>
+                                  )}
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </ScrollArea>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <Label htmlFor="channelName">Group Name</Label>
+                      <Input
+                        className="rounded-xl"
+                        id="channelName"
+                        onChange={(e) => setNewChannelName(e.target.value)}
+                        onKeyPress={(e) => {
+                          if (e.key === "Enter") {
+                            handleCreateChannel();
+                          }
+                        }}
+                        placeholder="e.g., Team Discussion"
+                        value={newChannelName}
+                      />
+                    </div>
+                  )
+                ) : (
                   <div className="grid grid-cols-2 gap-4">
                     <button
-                      type="button"
+                      className="flex flex-col items-center gap-3 rounded-xl border p-6 transition-colors hover:bg-muted"
                       onClick={() => setChatType("dm")}
-                      className="flex flex-col items-center gap-3 p-6 border rounded-xl hover:bg-muted transition-colors"
+                      type="button"
                     >
                       <IconUser className="h-8 w-8 text-muted-foreground" />
                       <span className="font-medium">Direct Message</span>
-                      <span className="text-sm text-muted-foreground text-center">
+                      <span className="text-center text-muted-foreground text-sm">
                         Chat with one person
                       </span>
                     </button>
                     <button
-                      type="button"
+                      className="flex flex-col items-center gap-3 rounded-xl border p-6 transition-colors hover:bg-muted"
                       onClick={() => setChatType("group")}
-                      className="flex flex-col items-center gap-3 p-6 border rounded-xl hover:bg-muted transition-colors"
+                      type="button"
                     >
                       <IconUsers className="h-8 w-8 text-muted-foreground" />
                       <span className="font-medium">Group Chat</span>
-                      <span className="text-sm text-muted-foreground text-center">
+                      <span className="text-center text-muted-foreground text-sm">
                         Create a group conversation
                       </span>
                     </button>
                   </div>
-                ) : chatType === "dm" ? (
+                )}
+              </div>
+              <DialogFooter>
+                {chatType && (
+                  <Button
+                    className="rounded-xl"
+                    onClick={() => {
+                      setChatType(null);
+                      setSelectedUserId(null);
+                      setNewChannelName("");
+                    }}
+                    variant="outline"
+                  >
+                    Back
+                  </Button>
+                )}
+                <Button
+                  className="rounded-xl"
+                  onClick={() => handleDialogOpenChange(false)}
+                  variant="outline"
+                >
+                  Cancel
+                </Button>
+                {chatType && (
+                  <Button
+                    className="rounded-xl"
+                    disabled={
+                      creating ||
+                      (chatType === "dm" && !selectedUserId) ||
+                      (chatType === "group" && !newChannelName.trim())
+                    }
+                    onClick={() => handleCreateChannel()}
+                  >
+                    {creating
+                      ? "Creating..."
+                      : chatType === "dm"
+                        ? "Start Chat"
+                        : "Create"}
+                  </Button>
+                )}
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </PageHeader>
+
+        {/* Mobile Channel List */}
+        <div className="min-h-0 flex-1 overflow-hidden">
+          <ScrollArea className="h-full">
+            <div className="p-2">
+              {(() => {
+                const globalChannels = channels.filter(
+                  (c) => c.type === "global"
+                );
+                const dmChannels = channels.filter((c) => c.type === "dm");
+                const groupChannels = channels.filter(
+                  (c) => c.type === "group"
+                );
+
+                return (
+                  <>
+                    {globalChannels.length > 0 && (
+                      <>
+                        <div className="px-2 py-2 font-semibold text-muted-foreground text-xs uppercase tracking-wider">
+                          Public Channels
+                        </div>
+                        {globalChannels.map((channel) => {
+                          const unreadCount = unreadCounts.get(channel.id) || 0;
+                          return (
+                            <button
+                              className="mb-1 flex w-full items-center gap-3 p-3 transition-colors hover:bg-muted"
+                              key={channel.id}
+                              onClick={() => {
+                                setSelectedChannel(channel.id);
+                                setShowChatView(true);
+                              }}
+                              type="button"
+                            >
+                              <ChannelAvatarDisplay channel={channel} />
+                              <div className="min-w-0 flex-1 text-left">
+                                <div className="truncate font-medium text-sm">
+                                  {channel.name}
+                                </div>
+                              </div>
+                              {unreadCount > 0 && (
+                                <span className="shrink-0 rounded-full bg-primary px-2 py-0.5 font-semibold text-primary-foreground text-xs">
+                                  {unreadCount > 99 ? "99+" : unreadCount}
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </>
+                    )}
+
+                    {dmChannels.length > 0 && (
+                      <>
+                        <div className="mt-2 px-2 py-2 font-semibold text-muted-foreground text-xs uppercase tracking-wider">
+                          Direct Messages
+                        </div>
+                        {dmChannels.map((channel) => {
+                          const unreadCount = unreadCounts.get(channel.id) || 0;
+                          return (
+                            <button
+                              className="mb-1 flex w-full items-center gap-3 p-3 transition-colors hover:bg-muted"
+                              key={channel.id}
+                              onClick={() => {
+                                setSelectedChannel(channel.id);
+                                setShowChatView(true);
+                              }}
+                              type="button"
+                            >
+                              <ChannelAvatarDisplay channel={channel} />
+                              <div className="min-w-0 flex-1 text-left">
+                                <div className="truncate font-medium text-sm">
+                                  {channel.name}
+                                </div>
+                              </div>
+                              {unreadCount > 0 && (
+                                <span className="shrink-0 rounded-full bg-primary px-2 py-0.5 font-semibold text-primary-foreground text-xs">
+                                  {unreadCount > 99 ? "99+" : unreadCount}
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </>
+                    )}
+
+                    {groupChannels.length > 0 && (
+                      <>
+                        <div className="mt-2 px-2 py-2 font-semibold text-muted-foreground text-xs uppercase tracking-wider">
+                          Group Chats
+                        </div>
+                        {groupChannels.map((channel) => {
+                          const unreadCount = unreadCounts.get(channel.id) || 0;
+                          return (
+                            <button
+                              className="mb-1 flex w-full items-center gap-3 p-3 transition-colors hover:bg-muted"
+                              key={channel.id}
+                              onClick={() => {
+                                setSelectedChannel(channel.id);
+                                setShowChatView(true);
+                              }}
+                              type="button"
+                            >
+                              <ChannelAvatarDisplay channel={channel} />
+                              <div className="min-w-0 flex-1 text-left">
+                                <div className="truncate font-medium text-sm">
+                                  {channel.name}
+                                </div>
+                              </div>
+                              {unreadCount > 0 && (
+                                <span className="shrink-0 rounded-full bg-primary px-2 py-0.5 font-semibold text-primary-foreground text-xs">
+                                  {unreadCount > 99 ? "99+" : unreadCount}
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </>
+                    )}
+
+                    {channels.length === 0 && (
+                      <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
+                        <IconMessageCircle className="mb-4 h-12 w-12 opacity-50" />
+                        <p>No channels yet</p>
+                        <p className="mt-2 text-sm">
+                          Create a new chat to get started
+                        </p>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
+            </div>
+          </ScrollArea>
+        </div>
+      </div>
+    );
+  }
+
+  // Desktop view (existing code)
+  return (
+    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
+      <PageHeader
+        title={`Chat${totalUnreadChats > 0 ? ` (${totalUnreadChats})` : ""}`}
+      >
+        <Dialog onOpenChange={handleDialogOpenChange} open={isCreateDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="rounded-xl">
+              <IconPlus className="mr-2 h-4 w-4" />
+              New Chat
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="rounded-xl">
+            <DialogHeader>
+              <DialogTitle>New Chat</DialogTitle>
+              <DialogDescription>
+                Start a direct message or create a group chat
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              {chatType ? (
+                chatType === "dm" ? (
                   <div className="space-y-2">
                     <Label>Select a person</Label>
-                    <ScrollArea className="h-[300px] border rounded-xl">
+                    <ScrollArea className="h-[300px] rounded-xl border">
                       {loadingMembers ? (
                         <div className="p-4 text-center text-muted-foreground">
                           Loading...
@@ -726,17 +1001,15 @@ export default function ChatPage() {
                         <div className="p-2">
                           {gymMembers.map((member) => (
                             <button
-                              key={member.id}
-                              type="button"
-                              onClick={() => setSelectedUserId(member.id)}
-                              className={`
-                              w-full flex items-center gap-3 p-3 rounded-xl transition-colors mb-1
-                              ${
+                              className={`mb-1 flex w-full items-center gap-3 rounded-xl p-3 transition-colors ${
                                 selectedUserId === member.id
                                   ? "bg-primary text-primary-foreground"
                                   : "hover:bg-muted"
                               }
                             `}
+                              key={member.id}
+                              onClick={() => setSelectedUserId(member.id)}
+                              type="button"
                             >
                               <Avatar className="h-10 w-10">
                                 <AvatarImage
@@ -767,349 +1040,76 @@ export default function ChatPage() {
                   <div className="space-y-2">
                     <Label htmlFor="channelName">Group Name</Label>
                     <Input
-                      id="channelName"
-                      value={newChannelName}
-                      onChange={(e) => setNewChannelName(e.target.value)}
-                      placeholder="e.g., Team Discussion"
                       className="rounded-xl"
+                      id="channelName"
+                      onChange={(e) => setNewChannelName(e.target.value)}
                       onKeyPress={(e) => {
                         if (e.key === "Enter") {
                           handleCreateChannel();
                         }
                       }}
+                      placeholder="e.g., Team Discussion"
+                      value={newChannelName}
                     />
                   </div>
-                )}
-              </div>
-              <DialogFooter>
-                {chatType && (
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setChatType(null);
-                      setSelectedUserId(null);
-                      setNewChannelName("");
-                    }}
-                    className="rounded-xl"
-                  >
-                    Back
-                  </Button>
-                )}
-                <Button
-                  variant="outline"
-                  onClick={() => handleDialogOpenChange(false)}
-                  className="rounded-xl"
-                >
-                  Cancel
-                </Button>
-                {chatType && (
-                  <Button
-                    onClick={() => handleCreateChannel()}
-                    disabled={
-                      creating ||
-                      (chatType === "dm" && !selectedUserId) ||
-                      (chatType === "group" && !newChannelName.trim())
-                    }
-                    className="rounded-xl"
-                  >
-                    {creating
-                      ? "Creating..."
-                      : chatType === "dm"
-                        ? "Start Chat"
-                        : "Create"}
-                  </Button>
-                )}
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </PageHeader>
-
-        {/* Mobile Channel List */}
-        <div className="flex-1 overflow-hidden min-h-0">
-          <ScrollArea className="h-full">
-            <div className="p-2">
-              {(() => {
-                const globalChannels = channels.filter(
-                  (c) => c.type === "global",
-                );
-                const dmChannels = channels.filter((c) => c.type === "dm");
-                const groupChannels = channels.filter(
-                  (c) => c.type === "group",
-                );
-
-                return (
-                  <>
-                    {globalChannels.length > 0 && (
-                      <>
-                        <div className="px-2 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                          Public Channels
-                        </div>
-                        {globalChannels.map((channel) => {
-                          const unreadCount = unreadCounts.get(channel.id) || 0;
-                          return (
-                            <button
-                              key={channel.id}
-                              type="button"
-                              onClick={() => {
-                                setSelectedChannel(channel.id);
-                                setShowChatView(true);
-                              }}
-                              className="w-full flex items-center gap-3 p-3 hover:bg-muted transition-colors mb-1"
-                            >
-                              <ChannelAvatarDisplay channel={channel} />
-                              <div className="flex-1 text-left min-w-0">
-                                <div className="font-medium text-sm truncate">
-                                  {channel.name}
-                                </div>
-                              </div>
-                              {unreadCount > 0 && (
-                                <span className="shrink-0 px-2 py-0.5 rounded-full text-xs font-semibold bg-primary text-primary-foreground">
-                                  {unreadCount > 99 ? "99+" : unreadCount}
-                                </span>
-                              )}
-                            </button>
-                          );
-                        })}
-                      </>
-                    )}
-
-                    {dmChannels.length > 0 && (
-                      <>
-                        <div className="px-2 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider mt-2">
-                          Direct Messages
-                        </div>
-                        {dmChannels.map((channel) => {
-                          const unreadCount = unreadCounts.get(channel.id) || 0;
-                          return (
-                            <button
-                              key={channel.id}
-                              type="button"
-                              onClick={() => {
-                                setSelectedChannel(channel.id);
-                                setShowChatView(true);
-                              }}
-                              className="w-full flex items-center gap-3 p-3 hover:bg-muted transition-colors mb-1"
-                            >
-                              <ChannelAvatarDisplay channel={channel} />
-                              <div className="flex-1 text-left min-w-0">
-                                <div className="font-medium text-sm truncate">
-                                  {channel.name}
-                                </div>
-                              </div>
-                              {unreadCount > 0 && (
-                                <span className="shrink-0 px-2 py-0.5 rounded-full text-xs font-semibold bg-primary text-primary-foreground">
-                                  {unreadCount > 99 ? "99+" : unreadCount}
-                                </span>
-                              )}
-                            </button>
-                          );
-                        })}
-                      </>
-                    )}
-
-                    {groupChannels.length > 0 && (
-                      <>
-                        <div className="px-2 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider mt-2">
-                          Group Chats
-                        </div>
-                        {groupChannels.map((channel) => {
-                          const unreadCount = unreadCounts.get(channel.id) || 0;
-                          return (
-                            <button
-                              key={channel.id}
-                              type="button"
-                              onClick={() => {
-                                setSelectedChannel(channel.id);
-                                setShowChatView(true);
-                              }}
-                              className="w-full flex items-center gap-3 p-3 hover:bg-muted transition-colors mb-1"
-                            >
-                              <ChannelAvatarDisplay channel={channel} />
-                              <div className="flex-1 text-left min-w-0">
-                                <div className="font-medium text-sm truncate">
-                                  {channel.name}
-                                </div>
-                              </div>
-                              {unreadCount > 0 && (
-                                <span className="shrink-0 px-2 py-0.5 rounded-full text-xs font-semibold bg-primary text-primary-foreground">
-                                  {unreadCount > 99 ? "99+" : unreadCount}
-                                </span>
-                              )}
-                            </button>
-                          );
-                        })}
-                      </>
-                    )}
-
-                    {channels.length === 0 && (
-                      <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
-                        <IconMessageCircle className="h-12 w-12 mb-4 opacity-50" />
-                        <p>No channels yet</p>
-                        <p className="text-sm mt-2">
-                          Create a new chat to get started
-                        </p>
-                      </div>
-                    )}
-                  </>
-                );
-              })()}
-            </div>
-          </ScrollArea>
-        </div>
-      </div>
-    );
-  }
-
-  // Desktop view (existing code)
-  return (
-    <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
-      <PageHeader
-        title={`Chat${totalUnreadChats > 0 ? ` (${totalUnreadChats})` : ""}`}
-      >
-        <Dialog open={isCreateDialogOpen} onOpenChange={handleDialogOpenChange}>
-          <DialogTrigger asChild>
-            <Button className="rounded-xl">
-              <IconPlus className="mr-2 h-4 w-4" />
-              New Chat
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="rounded-xl">
-            <DialogHeader>
-              <DialogTitle>New Chat</DialogTitle>
-              <DialogDescription>
-                Start a direct message or create a group chat
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              {!chatType ? (
+                )
+              ) : (
                 <div className="grid grid-cols-2 gap-4">
                   <button
-                    type="button"
+                    className="flex flex-col items-center gap-3 rounded-xl border p-6 transition-colors hover:bg-muted"
                     onClick={() => setChatType("dm")}
-                    className="flex flex-col items-center gap-3 p-6 border rounded-xl hover:bg-muted transition-colors"
+                    type="button"
                   >
                     <IconUser className="h-8 w-8 text-muted-foreground" />
                     <span className="font-medium">Direct Message</span>
-                    <span className="text-sm text-muted-foreground text-center">
+                    <span className="text-center text-muted-foreground text-sm">
                       Chat with one person
                     </span>
                   </button>
                   <button
-                    type="button"
+                    className="flex flex-col items-center gap-3 rounded-xl border p-6 transition-colors hover:bg-muted"
                     onClick={() => setChatType("group")}
-                    className="flex flex-col items-center gap-3 p-6 border rounded-xl hover:bg-muted transition-colors"
+                    type="button"
                   >
                     <IconUsers className="h-8 w-8 text-muted-foreground" />
                     <span className="font-medium">Group Chat</span>
-                    <span className="text-sm text-muted-foreground text-center">
+                    <span className="text-center text-muted-foreground text-sm">
                       Create a group conversation
                     </span>
                   </button>
-                </div>
-              ) : chatType === "dm" ? (
-                <div className="space-y-2">
-                  <Label>Select a person</Label>
-                  <ScrollArea className="h-[300px] border rounded-xl">
-                    {loadingMembers ? (
-                      <div className="p-4 text-center text-muted-foreground">
-                        Loading...
-                      </div>
-                    ) : gymMembers.length === 0 ? (
-                      <div className="p-4 text-center text-muted-foreground">
-                        <p className="mb-2">No other members in your gym</p>
-                        <p className="text-xs">
-                          Add members from the Roster page to start chatting
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="p-2">
-                        {gymMembers.map((member) => (
-                          <button
-                            key={member.id}
-                            type="button"
-                            onClick={() => setSelectedUserId(member.id)}
-                            className={`
-                              w-full flex items-center gap-3 p-3 rounded-xl transition-colors mb-1
-                              ${
-                                selectedUserId === member.id
-                                  ? "bg-primary text-primary-foreground"
-                                  : "hover:bg-muted"
-                              }
-                            `}
-                          >
-                            <Avatar className="h-10 w-10">
-                              <AvatarImage
-                                src={member.avatarUrl || undefined}
-                              />
-                              <AvatarFallback>
-                                {member.name?.[0]?.toUpperCase() ||
-                                  member.email[0].toUpperCase()}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1 text-left">
-                              <div className="font-medium text-sm">
-                                {member.name || member.email}
-                              </div>
-                              {member.name && (
-                                <div className="text-xs opacity-70">
-                                  {member.email}
-                                </div>
-                              )}
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </ScrollArea>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <Label htmlFor="channelName">Group Name</Label>
-                  <Input
-                    id="channelName"
-                    value={newChannelName}
-                    onChange={(e) => setNewChannelName(e.target.value)}
-                    placeholder="e.g., Team Discussion"
-                    className="rounded-xl"
-                    onKeyPress={(e) => {
-                      if (e.key === "Enter") {
-                        handleCreateChannel();
-                      }
-                    }}
-                  />
                 </div>
               )}
             </div>
             <DialogFooter>
               {chatType && (
                 <Button
-                  variant="outline"
+                  className="rounded-xl"
                   onClick={() => {
                     setChatType(null);
                     setSelectedUserId(null);
                     setNewChannelName("");
                   }}
-                  className="rounded-xl"
+                  variant="outline"
                 >
                   Back
                 </Button>
               )}
               <Button
-                variant="outline"
-                onClick={() => handleDialogOpenChange(false)}
                 className="rounded-xl"
+                onClick={() => handleDialogOpenChange(false)}
+                variant="outline"
               >
                 Cancel
               </Button>
               {chatType && (
                 <Button
-                  onClick={() => handleCreateChannel()}
+                  className="rounded-xl"
                   disabled={
                     creating ||
                     (chatType === "dm" && !selectedUserId) ||
                     (chatType === "group" && !newChannelName.trim())
                   }
-                  className="rounded-xl"
+                  onClick={() => handleCreateChannel()}
                 >
                   {creating
                     ? "Creating..."
@@ -1123,19 +1123,19 @@ export default function ChatPage() {
         </Dialog>
       </PageHeader>
 
-      <div className="flex flex-1 overflow-hidden gap-4 min-h-0 h-0">
+      <div className="flex h-0 min-h-0 flex-1 gap-4 overflow-hidden">
         {/* Channels Sidebar */}
-        <div className="hidden lg:flex w-64 flex-col bg-card border rounded-xl shadow-sm overflow-hidden min-h-0 h-full">
+        <div className="hidden h-full min-h-0 w-64 flex-col overflow-hidden rounded-xl border bg-card shadow-sm lg:flex">
           <ScrollArea className="flex-1">
             <div className="overflow-x-hidden">
               {/* Separate channels by type */}
               {(() => {
                 const globalChannels = channels.filter(
-                  (c) => c.type === "global",
+                  (c) => c.type === "global"
                 );
                 const dmChannels = channels.filter((c) => c.type === "dm");
                 const groupChannels = channels.filter(
-                  (c) => c.type === "group",
+                  (c) => c.type === "group"
                 );
 
                 return (
@@ -1143,42 +1143,41 @@ export default function ChatPage() {
                     {/* Public Channels Section */}
                     {globalChannels.length > 0 && (
                       <>
-                        <div className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b border-border/50">
+                        <div className="border-border/50 border-b px-4 py-2 font-semibold text-muted-foreground text-xs uppercase tracking-wider">
                           Public Channels
                         </div>
                         {globalChannels.map((channel) => {
                           const unreadCount = unreadCounts.get(channel.id) || 0;
                           return (
                             <button
-                              key={channel.id}
-                              type="button"
-                              onClick={() => setSelectedChannel(channel.id)}
-                              className={`
-                                w-full max-w-full text-left px-4 py-2.5 rounded-none transition-colors border-b border-border/50
-                                ${
-                                  selectedChannel === channel.id
-                                    ? "bg-primary text-primary-foreground"
-                                    : "hover:bg-muted/50"
-                                }
+                              className={`w-full max-w-full rounded-none border-border/50 border-b px-4 py-2.5 text-left transition-colors ${
+                                selectedChannel === channel.id
+                                  ? "bg-primary text-primary-foreground"
+                                  : "hover:bg-muted/50"
+                              }
                               `}
+                              key={channel.id}
+                              onClick={() => setSelectedChannel(channel.id)}
                               style={{ boxSizing: "border-box" }}
+                              type="button"
                             >
-                              <div className="flex items-center gap-2 min-w-0">
-                                <ChannelAvatarDisplay channel={channel} size="sm" />
-                                <span className="font-medium text-sm truncate min-w-0 flex-1">
+                              <div className="flex min-w-0 items-center gap-2">
+                                <ChannelAvatarDisplay
+                                  channel={channel}
+                                  size="sm"
+                                />
+                                <span className="min-w-0 flex-1 truncate font-medium text-sm">
                                   {channel.name}
                                 </span>
                                 <Badge
+                                  className="shrink-0 border-blue-500/30 bg-blue-500/20 text-blue-600 dark:text-blue-400"
                                   variant="secondary"
-                                  className="bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30 shrink-0"
                                 >
                                   Public
                                 </Badge>
                                 {unreadCount > 0 && (
                                   <span
-                                    className={`
-                                    shrink-0 px-2 py-0.5 rounded-full text-xs font-semibold
-                                    ${
+                                    className={`shrink-0 rounded-full px-2 py-0.5 font-semibold text-xs ${
                                       selectedChannel === channel.id
                                         ? "bg-primary-foreground text-primary"
                                         : "bg-primary text-primary-foreground"
@@ -1198,36 +1197,35 @@ export default function ChatPage() {
                     {/* Direct Messages Section */}
                     {dmChannels.length > 0 && (
                       <>
-                        <div className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b border-border/50 mt-2">
+                        <div className="mt-2 border-border/50 border-b px-4 py-2 font-semibold text-muted-foreground text-xs uppercase tracking-wider">
                           Direct Messages
                         </div>
                         {dmChannels.map((channel) => {
                           const unreadCount = unreadCounts.get(channel.id) || 0;
                           return (
                             <button
-                              key={channel.id}
-                              type="button"
-                              onClick={() => setSelectedChannel(channel.id)}
-                              className={`
-                                w-full max-w-full text-left px-4 py-2.5 rounded-none transition-colors border-b border-border/50
-                                ${
-                                  selectedChannel === channel.id
-                                    ? "bg-primary text-primary-foreground"
-                                    : "hover:bg-muted/50"
-                                }
+                              className={`w-full max-w-full rounded-none border-border/50 border-b px-4 py-2.5 text-left transition-colors ${
+                                selectedChannel === channel.id
+                                  ? "bg-primary text-primary-foreground"
+                                  : "hover:bg-muted/50"
+                              }
                               `}
+                              key={channel.id}
+                              onClick={() => setSelectedChannel(channel.id)}
                               style={{ boxSizing: "border-box" }}
+                              type="button"
                             >
-                              <div className="flex items-center gap-2 min-w-0">
-                                <ChannelAvatarDisplay channel={channel} size="sm" />
-                                <span className="font-medium text-sm truncate min-w-0 flex-1">
+                              <div className="flex min-w-0 items-center gap-2">
+                                <ChannelAvatarDisplay
+                                  channel={channel}
+                                  size="sm"
+                                />
+                                <span className="min-w-0 flex-1 truncate font-medium text-sm">
                                   {channel.name}
                                 </span>
                                 {unreadCount > 0 && (
                                   <span
-                                    className={`
-                                    shrink-0 px-2 py-0.5 rounded-full text-xs font-semibold
-                                    ${
+                                    className={`shrink-0 rounded-full px-2 py-0.5 font-semibold text-xs ${
                                       selectedChannel === channel.id
                                         ? "bg-primary-foreground text-primary"
                                         : "bg-primary text-primary-foreground"
@@ -1247,36 +1245,35 @@ export default function ChatPage() {
                     {/* Group Chats Section */}
                     {groupChannels.length > 0 && (
                       <>
-                        <div className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b border-border/50 mt-2">
+                        <div className="mt-2 border-border/50 border-b px-4 py-2 font-semibold text-muted-foreground text-xs uppercase tracking-wider">
                           Group Chats
                         </div>
                         {groupChannels.map((channel) => {
                           const unreadCount = unreadCounts.get(channel.id) || 0;
                           return (
                             <button
-                              key={channel.id}
-                              type="button"
-                              onClick={() => setSelectedChannel(channel.id)}
-                              className={`
-                                w-full max-w-full text-left px-4 py-2.5 rounded-none transition-colors border-b border-border/50
-                                ${
-                                  selectedChannel === channel.id
-                                    ? "bg-primary text-primary-foreground"
-                                    : "hover:bg-muted/50"
-                                }
+                              className={`w-full max-w-full rounded-none border-border/50 border-b px-4 py-2.5 text-left transition-colors ${
+                                selectedChannel === channel.id
+                                  ? "bg-primary text-primary-foreground"
+                                  : "hover:bg-muted/50"
+                              }
                               `}
+                              key={channel.id}
+                              onClick={() => setSelectedChannel(channel.id)}
                               style={{ boxSizing: "border-box" }}
+                              type="button"
                             >
-                              <div className="flex items-center gap-2 min-w-0">
-                                <ChannelAvatarDisplay channel={channel} size="sm" />
-                                <span className="font-medium text-sm truncate min-w-0 flex-1">
+                              <div className="flex min-w-0 items-center gap-2">
+                                <ChannelAvatarDisplay
+                                  channel={channel}
+                                  size="sm"
+                                />
+                                <span className="min-w-0 flex-1 truncate font-medium text-sm">
                                   {channel.name}
                                 </span>
                                 {unreadCount > 0 && (
                                   <span
-                                    className={`
-                                    shrink-0 px-2 py-0.5 rounded-full text-xs font-semibold
-                                    ${
+                                    className={`shrink-0 rounded-full px-2 py-0.5 font-semibold text-xs ${
                                       selectedChannel === channel.id
                                         ? "bg-primary-foreground text-primary"
                                         : "bg-primary text-primary-foreground"
@@ -1300,7 +1297,7 @@ export default function ChatPage() {
         </div>
 
         {/* Chat Area */}
-        <div className="hidden lg:flex flex-1 flex-col bg-card border rounded-xl shadow-sm overflow-hidden min-h-0">
+        <div className="hidden min-h-0 flex-1 flex-col overflow-hidden rounded-xl border bg-card shadow-sm lg:flex">
           {selectedChannel && currentUser && selectedChannelData ? (
             <RealtimeChat
               channelId={selectedChannel}
@@ -1310,7 +1307,7 @@ export default function ChatPage() {
           ) : (
             <div className="flex flex-1 items-center justify-center text-muted-foreground">
               <div className="text-center">
-                <IconMessageCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <IconMessageCircle className="mx-auto mb-4 h-12 w-12 opacity-50" />
                 <p>Select a channel to start chatting</p>
               </div>
             </div>

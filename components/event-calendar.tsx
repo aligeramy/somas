@@ -72,20 +72,20 @@ export function EventCalendar({
   }
 
   function handleToggle() {
-    if (!selectedDate || !onToggleDate) return;
+    if (!(selectedDate && onToggleDate)) return;
     const occ = getOccurrenceForDate(selectedDate);
     onToggleDate(selectedDate, occ?.status || null);
     setSelectedDate(null);
   }
 
   function handleAddCustom() {
-    if (!selectedDate || !onAddCustomDate) return;
+    if (!(selectedDate && onAddCustomDate)) return;
     onAddCustomDate(selectedDate);
     setSelectedDate(null);
   }
 
   function handleRemove() {
-    if (!selectedDate || !onRemoveDate) return;
+    if (!(selectedDate && onRemoveDate)) return;
     const occ = getOccurrenceForDate(selectedDate);
     if (occ) {
       onRemoveDate(occ.id);
@@ -131,22 +131,15 @@ export function EventCalendar({
     : null;
 
   return (
-    <div className={`flex flex-col h-full ${className || ""}`}>
+    <div className={`flex h-full flex-col ${className || ""}`}>
       <Popover
-        open={!!selectedDate && !readOnly}
         onOpenChange={(open) => !open && setSelectedDate(null)}
+        open={!!selectedDate && !readOnly}
       >
         <PopoverTrigger asChild>
-          <div className="flex-1 flex items-center justify-center p-6">
+          <div className="flex flex-1 items-center justify-center p-6">
             <Calendar
-              mode="single"
-              month={month}
-              onMonthChange={setMonth}
-              selected={selectedDate || undefined}
-              onSelect={(date) => date && handleDayClick(date)}
-              modifiers={modifiers}
-              modifiersStyles={modifiersStyles}
-              className="rounded-xl border p-8 w-full max-w-5xl"
+              className="w-full max-w-5xl rounded-xl border p-8"
               classNames={{
                 root: "w-full",
                 months: "w-full",
@@ -156,10 +149,17 @@ export function EventCalendar({
                 day: "h-14 w-14 rounded-lg text-base hover:bg-muted transition-colors",
                 day_selected: "!bg-primary/20 !text-primary font-semibold",
               }}
+              mode="single"
+              modifiers={modifiers}
+              modifiersStyles={modifiersStyles}
+              month={month}
+              onMonthChange={setMonth}
+              onSelect={(date) => date && handleDayClick(date)}
+              selected={selectedDate || undefined}
             />
           </div>
         </PopoverTrigger>
-        <PopoverContent className="w-64 p-3 rounded-xl" align="start">
+        <PopoverContent align="start" className="w-64 rounded-xl p-3">
           <div className="space-y-3">
             <div className="text-sm">
               <p className="font-medium">
@@ -167,12 +167,12 @@ export function EventCalendar({
               </p>
               {selectedOccurrence ? (
                 <Badge
+                  className="mt-1"
                   variant={
                     selectedOccurrence.status === "scheduled"
                       ? "default"
                       : "destructive"
                   }
-                  className="mt-1"
                 >
                   {selectedOccurrence.status === "scheduled"
                     ? "Scheduled"
@@ -180,7 +180,7 @@ export function EventCalendar({
                   {selectedOccurrence.isCustom && " (Custom)"}
                 </Badge>
               ) : (
-                <p className="text-muted-foreground text-xs mt-1">
+                <p className="mt-1 text-muted-foreground text-xs">
                   No event scheduled
                 </p>
               )}
@@ -192,10 +192,10 @@ export function EventCalendar({
                   {selectedOccurrence.status === "scheduled" &&
                     onToggleDate && (
                       <Button
-                        size="sm"
-                        variant="outline"
                         className="w-full justify-start gap-2 rounded-lg text-destructive hover:text-destructive"
                         onClick={handleToggle}
+                        size="sm"
+                        variant="outline"
                       >
                         <IconX className="h-4 w-4" />
                         Cancel this session
@@ -203,10 +203,10 @@ export function EventCalendar({
                     )}
                   {selectedOccurrence.status === "canceled" && onToggleDate && (
                     <Button
-                      size="sm"
-                      variant="outline"
                       className="w-full justify-start gap-2 rounded-lg"
                       onClick={handleToggle}
+                      size="sm"
+                      variant="outline"
                     >
                       <IconCheck className="h-4 w-4" />
                       Restore session
@@ -214,10 +214,10 @@ export function EventCalendar({
                   )}
                   {selectedOccurrence.isCustom && onRemoveDate && (
                     <Button
-                      size="sm"
-                      variant="destructive"
                       className="w-full justify-start gap-2 rounded-lg"
                       onClick={handleRemove}
+                      size="sm"
+                      variant="destructive"
                     >
                       <IconX className="h-4 w-4" />
                       Remove custom date
@@ -227,10 +227,10 @@ export function EventCalendar({
               ) : (
                 onAddCustomDate && (
                   <Button
-                    size="sm"
-                    variant="outline"
                     className="w-full justify-start gap-2 rounded-lg"
                     onClick={handleAddCustom}
+                    size="sm"
+                    variant="outline"
                   >
                     <IconPlus className="h-4 w-4" />
                     Add session on this date
@@ -243,7 +243,7 @@ export function EventCalendar({
       </Popover>
 
       {/* Legend */}
-      <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground shrink-0 justify-center">
+      <div className="mt-3 flex shrink-0 items-center justify-center gap-4 text-muted-foreground text-xs">
         <div className="flex items-center gap-1.5">
           <div className="h-3 w-3 rounded bg-primary" />
           <span>Scheduled</span>
@@ -253,7 +253,7 @@ export function EventCalendar({
           <span>Canceled</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="h-3 w-3 rounded border border-dashed border-primary" />
+          <div className="h-3 w-3 rounded border border-primary border-dashed" />
           <span>Custom</span>
         </div>
       </div>

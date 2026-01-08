@@ -10,7 +10,7 @@ import {
   IconTestPipe,
   IconX,
 } from "@tabler/icons-react";
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -153,7 +153,7 @@ export default function EmailPasswordsPage() {
   }
 
   async function sendTestEmail() {
-    if (!testUserId || !testEmail) return;
+    if (!(testUserId && testEmail)) return;
 
     setTesting(true);
     setTestResult(null);
@@ -164,7 +164,7 @@ export default function EmailPasswordsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           userIds: [testUserId],
-          testEmail: testEmail,
+          testEmail,
         }),
       });
 
@@ -194,7 +194,7 @@ export default function EmailPasswordsPage() {
   const failCount = results?.filter((r) => !r.success).length || 0;
 
   return (
-    <div className="flex flex-col gap-6 p-4 md:p-6 pb-24 lg:pb-6">
+    <div className="flex flex-col gap-6 p-4 pb-24 md:p-6 lg:pb-6">
       <PageHeader title="Send Login Credentials" />
 
       {/* Action Bar */}
@@ -211,34 +211,34 @@ export default function EmailPasswordsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row">
             <Button
-              onClick={sendCredentials}
-              disabled={sending || selectedCount === 0}
               className="flex-1 sm:flex-none"
+              disabled={sending || selectedCount === 0}
+              onClick={sendCredentials}
             >
               {sending ? (
-                <IconLoader2 className="h-4 w-4 mr-2 animate-spin" />
+                <IconLoader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
-                <IconMailForward className="h-4 w-4 mr-2" />
+                <IconMailForward className="mr-2 h-4 w-4" />
               )}
               Send Credentials ({selectedCount})
             </Button>
             <Button
-              onClick={() => setTestDialogOpen(true)}
-              disabled={sending || users.length === 0}
-              variant="outline"
               className="flex-1 sm:flex-none"
+              disabled={sending || users.length === 0}
+              onClick={() => setTestDialogOpen(true)}
+              variant="outline"
             >
-              <IconTestPipe className="h-4 w-4 mr-2" />
+              <IconTestPipe className="mr-2 h-4 w-4" />
               Test Email
             </Button>
           </div>
 
           {/* Results */}
           {results && (
-            <div className="mt-4 p-4 rounded-lg bg-muted/50">
-              <div className="flex items-center gap-4 mb-2">
+            <div className="mt-4 rounded-lg bg-muted/50 p-4">
+              <div className="mb-2 flex items-center gap-4">
                 {successCount > 0 && (
                   <span className="flex items-center gap-1 text-green-600">
                     <IconCheck className="h-4 w-4" />
@@ -253,8 +253,8 @@ export default function EmailPasswordsPage() {
                 )}
               </div>
               {failCount > 0 && (
-                <div className="text-sm text-muted-foreground">
-                  <p className="font-medium text-red-600 mb-1">
+                <div className="text-muted-foreground text-sm">
+                  <p className="mb-1 font-medium text-red-600">
                     Failed emails:
                   </p>
                   {results
@@ -272,7 +272,7 @@ export default function EmailPasswordsPage() {
       </Card>
 
       {/* Test Email Dialog */}
-      <Dialog open={testDialogOpen} onOpenChange={setTestDialogOpen}>
+      <Dialog onOpenChange={setTestDialogOpen} open={testDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Send Test Email</DialogTitle>
@@ -284,7 +284,7 @@ export default function EmailPasswordsPage() {
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="test-user">Select User</Label>
-              <Select value={testUserId} onValueChange={setTestUserId}>
+              <Select onValueChange={setTestUserId} value={testUserId}>
                 <SelectTrigger id="test-user">
                   <SelectValue placeholder="Choose a user..." />
                 </SelectTrigger>
@@ -301,39 +301,39 @@ export default function EmailPasswordsPage() {
               <Label htmlFor="test-email">Test Email Address</Label>
               <Input
                 id="test-email"
-                type="email"
-                placeholder="test@example.com"
-                value={testEmail}
                 onChange={(e) => setTestEmail(e.target.value)}
+                placeholder="test@example.com"
+                type="email"
+                value={testEmail}
               />
             </div>
             {testResult && (
               <div
-                className={`p-4 rounded-lg ${
+                className={`rounded-lg p-4 ${
                   testResult.success
-                    ? "bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800"
-                    : "bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800"
+                    ? "border border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950/20"
+                    : "border border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950/20"
                 }`}
               >
                 <div className="flex items-center gap-2">
                   {testResult.success ? (
                     <>
                       <IconCheck className="h-4 w-4 text-green-600" />
-                      <span className="text-green-600 font-medium">
+                      <span className="font-medium text-green-600">
                         Test email sent successfully!
                       </span>
                     </>
                   ) : (
                     <>
                       <IconX className="h-4 w-4 text-red-600" />
-                      <span className="text-red-600 font-medium">
+                      <span className="font-medium text-red-600">
                         Failed to send test email
                       </span>
                     </>
                   )}
                 </div>
                 {testResult.error && (
-                  <p className="text-sm text-red-600 mt-2">
+                  <p className="mt-2 text-red-600 text-sm">
                     {testResult.error}
                   </p>
                 )}
@@ -341,24 +341,24 @@ export default function EmailPasswordsPage() {
             )}
             <div className="flex justify-end gap-2">
               <Button
-                variant="outline"
                 onClick={() => {
                   setTestDialogOpen(false);
                   setTestResult(null);
                   setTestEmail("");
                   setTestUserId("");
                 }}
+                variant="outline"
               >
                 Close
               </Button>
               <Button
-                onClick={sendTestEmail}
                 disabled={testing || !testUserId || !testEmail}
+                onClick={sendTestEmail}
               >
                 {testing ? (
-                  <IconLoader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <IconLoader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
-                  <IconMailForward className="h-4 w-4 mr-2" />
+                  <IconMailForward className="mr-2 h-4 w-4" />
                 )}
                 Send Test Email
               </Button>
@@ -370,19 +370,19 @@ export default function EmailPasswordsPage() {
       {/* Filters */}
       <Card>
         <CardContent className="pt-6">
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row">
             <div className="relative flex-1">
-              <IconSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <IconSearch className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
+                className="pl-9"
+                onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search by name or email..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
               />
             </div>
-            <Select value={roleFilter} onValueChange={setRoleFilter}>
+            <Select onValueChange={setRoleFilter} value={roleFilter}>
               <SelectTrigger className="w-full sm:w-[140px]">
-                <IconFilter className="h-4 w-4 mr-2" />
+                <IconFilter className="mr-2 h-4 w-4" />
                 <SelectValue placeholder="Role" />
               </SelectTrigger>
               <SelectContent>
@@ -417,12 +417,12 @@ export default function EmailPasswordsPage() {
                   <TableRow>
                     <TableHead className="w-12">
                       <Checkbox
+                        aria-label="Select all"
                         checked={
                           filteredUsers.length > 0 &&
                           selectedUsers.size === filteredUsers.length
                         }
                         onCheckedChange={toggleSelectAll}
-                        aria-label="Select all"
                       />
                     </TableHead>
                     <TableHead>Name</TableHead>
@@ -434,7 +434,7 @@ export default function EmailPasswordsPage() {
                 <TableBody>
                   {filteredUsers.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8">
+                      <TableCell className="py-8 text-center" colSpan={5}>
                         <p className="text-muted-foreground">
                           {users.length === 0
                             ? "No non-onboarded users found"
@@ -445,14 +445,14 @@ export default function EmailPasswordsPage() {
                   ) : (
                     filteredUsers.map((user) => (
                       <TableRow
-                        key={user.id}
                         className="bg-amber-50/50 dark:bg-amber-950/20"
+                        key={user.id}
                       >
                         <TableCell>
                           <Checkbox
+                            aria-label={`Select ${user.name || user.email}`}
                             checked={selectedUsers.has(user.id)}
                             onCheckedChange={() => toggleUser(user.id)}
-                            aria-label={`Select ${user.name || user.email}`}
                           />
                         </TableCell>
                         <TableCell className="font-medium">

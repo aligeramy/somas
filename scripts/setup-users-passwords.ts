@@ -1,5 +1,5 @@
-import { readFileSync } from "fs";
 import { createClient } from "@supabase/supabase-js";
+import { readFileSync } from "fs";
 
 // Load .env manually
 const envFile = readFileSync(".env", "utf-8");
@@ -16,7 +16,7 @@ envFile.split("\n").forEach((line) => {
 const supabaseUrl = envVars.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = envVars.SUPABASE_SERVICE_ROLE_KEY;
 
-if (!supabaseUrl || !supabaseServiceKey) {
+if (!(supabaseUrl && supabaseServiceKey)) {
   throw new Error("Missing Supabase environment variables");
 }
 
@@ -28,7 +28,16 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
 });
 
 // User passwords mapping - simple phrases
-const USER_PASSWORDS: Record<string, { email: string; name: string; password: string; role: string; userId: string }> = {
+const USER_PASSWORDS: Record<
+  string,
+  {
+    email: string;
+    name: string;
+    password: string;
+    role: string;
+    userId: string;
+  }
+> = {
   "b866a793-d050-4440-ab01-fa76a5502249": {
     email: "pascal.tyrrell@gmail.com",
     name: "Pascal Tyrrell",
@@ -81,7 +90,13 @@ const USER_PASSWORDS: Record<string, { email: string; name: string; password: st
 };
 
 async function setupUsers() {
-  const results: Array<{ email: string; success: boolean; error?: string; password: string; userId?: string }> = [];
+  const results: Array<{
+    email: string;
+    success: boolean;
+    error?: string;
+    password: string;
+    userId?: string;
+  }> = [];
 
   console.log("Setting up users and passwords...\n");
 
@@ -94,7 +109,37 @@ async function setupUsers() {
     try {
       const authUser = authUsers.find((u) => u.email === userData.email);
 
-      if (!authUser) {
+      if (authUser) {
+        // Update password
+        const { error: updateError } =
+          await supabaseAdmin.auth.admin.updateUserById(authUser.id, {
+            password: userData.password,
+            email_confirm: true,
+          });
+
+        if (updateError) {
+          console.error(
+            `❌ Failed to update ${userData.email}:`,
+            updateError.message
+          );
+          results.push({
+            email: userData.email,
+            success: false,
+            error: updateError.message,
+            password: userData.password,
+          });
+        } else {
+          console.log(
+            `✅ Updated: ${userData.name} (${userData.email}) - Password: ${userData.password}`
+          );
+          results.push({
+            email: userData.email,
+            success: true,
+            password: userData.password,
+            userId: authUser.id,
+          });
+        }
+      } else {
         // Create user in auth
         const { data: newAuthUser, error: createError } =
           await supabaseAdmin.auth.admin.createUser({
@@ -105,7 +150,10 @@ async function setupUsers() {
           });
 
         if (createError || !newAuthUser.user) {
-          console.error(`❌ Failed to create ${userData.email}:`, createError?.message);
+          console.error(
+            `❌ Failed to create ${userData.email}:`,
+            createError?.message
+          );
           results.push({
             email: userData.email,
             success: false,
@@ -115,40 +163,15 @@ async function setupUsers() {
           continue;
         }
 
-        console.log(`✅ Created: ${userData.name} (${userData.email}) - Password: ${userData.password}`);
+        console.log(
+          `✅ Created: ${userData.name} (${userData.email}) - Password: ${userData.password}`
+        );
         results.push({
           email: userData.email,
           success: true,
           password: userData.password,
           userId: newAuthUser.user.id,
         });
-      } else {
-        // Update password
-        const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
-          authUser.id,
-          {
-            password: userData.password,
-            email_confirm: true,
-          }
-        );
-
-        if (updateError) {
-          console.error(`❌ Failed to update ${userData.email}:`, updateError.message);
-          results.push({
-            email: userData.email,
-            success: false,
-            error: updateError.message,
-            password: userData.password,
-          });
-        } else {
-          console.log(`✅ Updated: ${userData.name} (${userData.email}) - Password: ${userData.password}`);
-          results.push({
-            email: userData.email,
-            success: true,
-            password: userData.password,
-            userId: authUser.id,
-          });
-        }
       }
     } catch (error) {
       console.error(`❌ Error with ${userData.email}:`, error);
@@ -169,10 +192,42 @@ async function setupUsers() {
   try {
     const existingAli = authUsers.find((u) => u.email === aliEmail);
 
-    if (!existingAli) {
+    if (existingAli) {
+      // Update existing
+      const { error: aliUpdateError } =
+        await supabaseAdmin.auth.admin.updateUserById(existingAli.id, {
+          password: aliPassword,
+          email_confirm: true,
+        });
+
+      if (aliUpdateError) {
+        console.error(
+          `❌ Failed to update ${aliEmail}:`,
+          aliUpdateError.message
+        );
+        results.push({
+          email: aliEmail,
+          success: false,
+          error: aliUpdateError.message,
+          password: aliPassword,
+        });
+      } else {
+        console.log(
+          `✅ Updated: ${aliName} (${aliEmail}) - Password: ${aliPassword}`
+        );
+        results.push({
+          email: aliEmail,
+          success: true,
+          password: aliPassword,
+          userId: existingAli.id,
+        });
+      }
+    } else {
       // Get gym ID from first owner
-      const pascalUser = Object.values(USER_PASSWORDS).find((u) => u.role === "owner");
-      
+      const pascalUser = Object.values(USER_PASSWORDS).find(
+        (u) => u.role === "owner"
+      );
+
       const { data: aliAuthUser, error: aliCreateError } =
         await supabaseAdmin.auth.admin.createUser({
           email: aliEmail,
@@ -182,42 +237,20 @@ async function setupUsers() {
         });
 
       if (aliCreateError || !aliAuthUser.user) {
-        console.error(`❌ Failed to create ${aliEmail}:`, aliCreateError?.message);
+        console.error(
+          `❌ Failed to create ${aliEmail}:`,
+          aliCreateError?.message
+        );
       } else {
-        console.log(`✅ Created: ${aliName} (${aliEmail}) - Password: ${aliPassword}`);
+        console.log(
+          `✅ Created: ${aliName} (${aliEmail}) - Password: ${aliPassword}`
+        );
         console.log(`   User ID: ${aliAuthUser.user.id}`);
         results.push({
           email: aliEmail,
           success: true,
           password: aliPassword,
           userId: aliAuthUser.user.id,
-        });
-      }
-    } else {
-      // Update existing
-      const { error: aliUpdateError } = await supabaseAdmin.auth.admin.updateUserById(
-        existingAli.id,
-        {
-          password: aliPassword,
-          email_confirm: true,
-        }
-      );
-
-      if (aliUpdateError) {
-        console.error(`❌ Failed to update ${aliEmail}:`, aliUpdateError.message);
-        results.push({
-          email: aliEmail,
-          success: false,
-          error: aliUpdateError.message,
-          password: aliPassword,
-        });
-      } else {
-        console.log(`✅ Updated: ${aliName} (${aliEmail}) - Password: ${aliPassword}`);
-        results.push({
-          email: aliEmail,
-          success: true,
-          password: aliPassword,
-          userId: existingAli.id,
         });
       }
     }
@@ -257,13 +290,17 @@ setupUsers()
     console.log("const USER_PASSWORDS: Record<string, string> = {");
     results.forEach((result) => {
       if (result.success && result.userId) {
-        const userData = Object.values(USER_PASSWORDS).find((u) => u.email === result.email);
+        const userData = Object.values(USER_PASSWORDS).find(
+          (u) => u.email === result.email
+        );
         const name = userData?.name || result.email.split("@")[0];
         console.log(`  "${result.userId}": "${result.password}", // ${name}`);
       }
     });
     // Add ali if created
-    const aliResult = results.find((r) => r.email === "ali@softxinnovations.ca" && r.success);
+    const aliResult = results.find(
+      (r) => r.email === "ali@softxinnovations.ca" && r.success
+    );
     if (aliResult && aliResult.userId) {
       console.log(`  "${aliResult.userId}": "${aliResult.password}", // Ali`);
     }

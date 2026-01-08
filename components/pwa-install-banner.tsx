@@ -64,30 +64,30 @@ export function PWAInstallBanner() {
   }
 
   return (
-    <div className="fixed bottom-20 left-4 right-4 z-50 md:bottom-6 md:left-auto md:right-6 md:max-w-sm animate-in slide-in-from-bottom-4 fade-in duration-300">
+    <div className="slide-in-from-bottom-4 fade-in fixed right-4 bottom-20 left-4 z-50 animate-in duration-300 md:right-6 md:bottom-6 md:left-auto md:max-w-sm">
       <div className="flex items-center gap-3 rounded-2xl border bg-card p-4 shadow-lg">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
           <IconDownload className="h-5 w-5 text-primary" />
         </div>
-        <div className="flex-1 min-w-0">
+        <div className="min-w-0 flex-1">
           <p className="font-medium text-sm">Install SOMAS App</p>
-          <p className="text-xs text-muted-foreground truncate">
+          <p className="truncate text-muted-foreground text-xs">
             Quick access from your home screen
           </p>
         </div>
         <div className="flex items-center gap-1">
           <Button
-            size="sm"
-            className="rounded-xl h-8 px-3 text-xs"
+            className="h-8 rounded-xl px-3 text-xs"
             onClick={handleInstall}
+            size="sm"
           >
             Install
           </Button>
           <Button
-            variant="ghost"
-            size="icon"
             className="h-8 w-8 shrink-0"
             onClick={handleDismiss}
+            size="icon"
+            variant="ghost"
           >
             <IconX className="h-4 w-4" />
             <span className="sr-only">Dismiss</span>

@@ -122,7 +122,8 @@ export default function RSVPPage() {
         fetch("/api/user-info"),
       ]);
 
-      if (!eventsRes.ok || !rsvpsRes.ok) throw new Error("Failed to load data");
+      if (!(eventsRes.ok && rsvpsRes.ok))
+        throw new Error("Failed to load data");
 
       const eventsData = await eventsRes.json();
       const rsvpsData = await rsvpsRes.json();
@@ -157,13 +158,13 @@ export default function RSVPPage() {
                   },
                 });
               }
-            },
+            }
           );
-        },
+        }
       );
 
       allOccurrences.sort(
-        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
       );
       setEvents(allOccurrences);
       setRsvps(rsvpsData.rsvps || []);
@@ -195,7 +196,7 @@ export default function RSVPPage() {
         const data = await response.json();
         // Filter to only athletes
         const athletes = (data.roster || []).filter(
-          (member: RosterMember) => member.role === "athlete",
+          (member: RosterMember) => member.role === "athlete"
         );
         setRoster(athletes);
       }
@@ -209,7 +210,7 @@ export default function RSVPPage() {
       if (occurrenceIds.length === 0) return;
       try {
         const response = await fetch(
-          `/api/rsvp?summaryOccurrences=${occurrenceIds.join(",")}`,
+          `/api/rsvp?summaryOccurrences=${occurrenceIds.join(",")}`
         );
         if (response.ok) {
           const data = await response.json();
@@ -219,7 +220,7 @@ export default function RSVPPage() {
         console.error("Failed to load occurrence summaries:", err);
       }
     },
-    [],
+    []
   );
 
   useEffect(() => {
@@ -248,7 +249,7 @@ export default function RSVPPage() {
 
   async function handleRSVP(
     occurrenceId: string,
-    status: "going" | "not_going",
+    status: "going" | "not_going"
   ) {
     try {
       setUpdatingId(occurrenceId);
@@ -300,7 +301,7 @@ export default function RSVPPage() {
   function formatTime(time: string | undefined | null) {
     if (!time) return "";
     const [hours, minutes] = time.split(":");
-    const hour = parseInt(hours, 10);
+    const hour = Number.parseInt(hours, 10);
     if (Number.isNaN(hour)) return time;
     const ampm = hour >= 12 ? "PM" : "AM";
     const displayHour = hour % 12 || 12;
@@ -361,7 +362,7 @@ export default function RSVPPage() {
 
         const going = monthRsvps.filter((r) => r.status === "going").length;
         const notGoing = monthRsvps.filter(
-          (r) => r.status === "not_going",
+          (r) => r.status === "not_going"
         ).length;
 
         return {
@@ -371,36 +372,35 @@ export default function RSVPPage() {
           total: going + notGoing,
         };
       });
-    } else {
-      // Group by year
-      const years = new Set<number>();
-      relevantRsvps.forEach((r) => {
-        if (r.occurrence?.date) {
-          years.add(new Date(r.occurrence.date).getFullYear());
-        }
-      });
-
-      return Array.from(years)
-        .sort()
-        .map((year) => {
-          const yearRsvps = relevantRsvps.filter((r) => {
-            if (!r.occurrence?.date) return false;
-            return new Date(r.occurrence.date).getFullYear() === year;
-          });
-
-          const going = yearRsvps.filter((r) => r.status === "going").length;
-          const notGoing = yearRsvps.filter(
-            (r) => r.status === "not_going",
-          ).length;
-
-          return {
-            month: year.toString(),
-            going,
-            notGoing,
-            total: going + notGoing,
-          };
-        });
     }
+    // Group by year
+    const years = new Set<number>();
+    relevantRsvps.forEach((r) => {
+      if (r.occurrence?.date) {
+        years.add(new Date(r.occurrence.date).getFullYear());
+      }
+    });
+
+    return Array.from(years)
+      .sort()
+      .map((year) => {
+        const yearRsvps = relevantRsvps.filter((r) => {
+          if (!r.occurrence?.date) return false;
+          return new Date(r.occurrence.date).getFullYear() === year;
+        });
+
+        const going = yearRsvps.filter((r) => r.status === "going").length;
+        const notGoing = yearRsvps.filter(
+          (r) => r.status === "not_going"
+        ).length;
+
+        return {
+          month: year.toString(),
+          going,
+          notGoing,
+          total: going + notGoing,
+        };
+      });
   }, [historicalRsvps, selectedUserId, timeRange]);
 
   // Group attendance by person for per-person view (always compute, but only use if coach)
@@ -435,7 +435,7 @@ export default function RSVPPage() {
       }
       grouped[userId].total++;
       grouped[userId].rate = Math.round(
-        (grouped[userId].going / grouped[userId].total) * 100,
+        (grouped[userId].going / grouped[userId].total) * 100
       );
     });
 
@@ -459,12 +459,12 @@ export default function RSVPPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
+      <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
         <PageHeader title={isOwnerOrCoach ? "Attendance" : "My Schedule"} />
-        <ScrollArea className="flex-1 h-0">
+        <ScrollArea className="h-0 flex-1">
           <div className="space-y-2 p-4">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="p-4 rounded-xl border bg-card space-y-3">
+              <div className="space-y-3 rounded-xl border bg-card p-4" key={i}>
                 <div className="flex items-center gap-3">
                   <Skeleton className="h-16 w-16 rounded-xl" />
                   <div className="flex-1 space-y-2">
@@ -489,7 +489,7 @@ export default function RSVPPage() {
       <div className="flex flex-1 flex-col">
         <PageHeader title="Attendance" />
         <div>
-          <div className="bg-destructive/10 text-destructive rounded-xl p-4">
+          <div className="rounded-xl bg-destructive/10 p-4 text-destructive">
             {error}
           </div>
         </div>
@@ -508,41 +508,41 @@ export default function RSVPPage() {
         if (rsvp.user) acc[occId].rsvps.push(rsvp);
         return acc;
       },
-      {} as Record<string, { occurrence: EventOccurrence; rsvps: RSVP[] }>,
+      {} as Record<string, { occurrence: EventOccurrence; rsvps: RSVP[] }>
     );
 
     return (
-      <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
+      <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
         <PageHeader
-          title="Attendance"
           description="Track attendance across your gym"
+          title="Attendance"
         />
-        <Tabs defaultValue="upcoming" className="flex-1 flex flex-col min-h-0">
-          <div className="px-4 py-3 shrink-0 border-b">
-            <TabsList className="w-full grid grid-cols-3 h-10 rounded-xl">
-              <TabsTrigger value="upcoming" className="text-xs rounded-lg">
-                <IconCalendar className="h-4 w-4 mr-1.5" />
+        <Tabs className="flex min-h-0 flex-1 flex-col" defaultValue="upcoming">
+          <div className="shrink-0 border-b px-4 py-3">
+            <TabsList className="grid h-10 w-full grid-cols-3 rounded-xl">
+              <TabsTrigger className="rounded-lg text-xs" value="upcoming">
+                <IconCalendar className="mr-1.5 h-4 w-4" />
                 Upcoming
               </TabsTrigger>
-              <TabsTrigger value="per-person" className="text-xs rounded-lg">
-                <IconUser className="h-4 w-4 mr-1.5" />
+              <TabsTrigger className="rounded-lg text-xs" value="per-person">
+                <IconUser className="mr-1.5 h-4 w-4" />
                 Per Person
               </TabsTrigger>
-              <TabsTrigger value="overview" className="text-xs rounded-lg">
-                <IconChartBar className="h-4 w-4 mr-1.5" />
+              <TabsTrigger className="rounded-lg text-xs" value="overview">
+                <IconChartBar className="mr-1.5 h-4 w-4" />
                 Overview
               </TabsTrigger>
             </TabsList>
           </div>
 
           <TabsContent
+            className="mt-0 min-h-0 flex-1 overflow-auto"
             value="upcoming"
-            className="flex-1 overflow-auto mt-0 min-h-0"
           >
             <ScrollArea className="h-full">
               <div className="space-y-2 p-4">
                 {events.length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground">
+                  <div className="py-12 text-center text-muted-foreground">
                     <p>No upcoming events</p>
                   </div>
                 ) : (
@@ -550,65 +550,65 @@ export default function RSVPPage() {
                     const occRsvps = rsvpsByOccurrence[occ.id]?.rsvps || [];
                     const going = occRsvps.filter((r) => r.status === "going");
                     const notGoing = occRsvps.filter(
-                      (r) => r.status === "not_going",
+                      (r) => r.status === "not_going"
                     );
                     // Filter coaches from going RSVPs
                     const goingCoaches = going.filter(
                       (r) =>
-                        r.user?.role === "coach" || r.user?.role === "owner",
+                        r.user?.role === "coach" || r.user?.role === "owner"
                     );
                     // Count athletes going
                     const goingAthletes = going.filter(
-                      (r) => r.user?.role === "athlete",
+                      (r) => r.user?.role === "athlete"
                     );
                     const isCanceled = occ.status === "canceled";
                     const dateInfo = formatDate(occ.date);
 
                     return (
                       <Link
-                        key={occ.id}
+                        className={`flex items-center gap-3 rounded-xl border p-3 transition-colors md:p-4 ${
+                          isCanceled
+                            ? "cursor-default opacity-50"
+                            : "cursor-pointer hover:bg-muted/30"
+                        }`}
                         href={
                           isCanceled
                             ? "#"
                             : `/events?eventId=${occ.event.id}&occurrenceId=${occ.id}`
                         }
-                        className={`flex items-center gap-3 p-3 md:p-4 rounded-xl border transition-colors ${
-                          isCanceled
-                            ? "opacity-50 cursor-default"
-                            : "hover:bg-muted/30 cursor-pointer"
-                        }`}
+                        key={occ.id}
                       >
-                        <div className="h-12 w-12 md:h-16 md:w-16 rounded-lg md:rounded-xl bg-muted flex flex-col items-center justify-center shrink-0">
-                          <span className="text-lg md:text-2xl font-bold leading-none">
+                        <div className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-lg bg-muted md:h-16 md:w-16 md:rounded-xl">
+                          <span className="font-bold text-lg leading-none md:text-2xl">
                             {dateInfo.day}
                           </span>
-                          <span className="text-[9px] md:text-[10px] font-medium text-muted-foreground mt-0.5">
+                          <span className="mt-0.5 font-medium text-[9px] text-muted-foreground md:text-[10px]">
                             {dateInfo.month}
                           </span>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <p className="font-medium text-sm md:text-base truncate">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="truncate font-medium text-sm md:text-base">
                               {occ.event.title}
                             </p>
                             {dateInfo.relative && (
                               <Badge
+                                className="shrink-0 rounded-md text-[9px] md:text-[10px]"
                                 variant="secondary"
-                                className="text-[9px] md:text-[10px] rounded-md shrink-0"
                               >
                                 {dateInfo.relative}
                               </Badge>
                             )}
                             {isCanceled && (
                               <Badge
+                                className="shrink-0 rounded-md text-[9px] md:text-[10px]"
                                 variant="destructive"
-                                className="text-[9px] md:text-[10px] rounded-md shrink-0"
                               >
                                 Canceled
                               </Badge>
                             )}
                           </div>
-                          <div className="flex items-center gap-2 md:gap-3 mt-1 text-xs md:text-sm text-muted-foreground flex-wrap">
+                          <div className="mt-1 flex flex-wrap items-center gap-2 text-muted-foreground text-xs md:gap-3 md:text-sm">
                             <span className="whitespace-nowrap">
                               {dateInfo.weekday}
                             </span>
@@ -620,12 +620,12 @@ export default function RSVPPage() {
                           {/* Coaches and athletes */}
                           {(goingCoaches.length > 0 ||
                             goingAthletes.length > 0) && (
-                            <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                            <div className="mt-2 flex flex-wrap items-center gap-1.5">
                               {goingCoaches.slice(0, 2).map((r) => (
                                 <Badge
+                                  className="flex shrink-0 items-center gap-1 rounded-md text-[9px] md:text-[10px]"
                                   key={r.id}
                                   variant="secondary"
-                                  className="text-[9px] md:text-[10px] rounded-md flex items-center gap-1 shrink-0"
                                 >
                                   <IconCheck className="h-3 w-3" />
                                   <span className="hidden sm:inline">
@@ -639,20 +639,20 @@ export default function RSVPPage() {
                               ))}
                               {goingCoaches.length > 2 && (
                                 <Badge
+                                  className="shrink-0 rounded-md text-[9px] md:text-[10px]"
                                   variant="secondary"
-                                  className="text-[9px] md:text-[10px] rounded-md shrink-0"
                                 >
                                   +{goingCoaches.length - 2}
                                 </Badge>
                               )}
                               {goingCoaches.length > 0 &&
                                 goingAthletes.length > 0 && (
-                                  <span className="text-muted-foreground hidden sm:inline">
+                                  <span className="hidden text-muted-foreground sm:inline">
                                     •
                                   </span>
                                 )}
                               {goingAthletes.length > 0 && (
-                                <span className="text-xs md:text-sm text-emerald-600 font-medium">
+                                <span className="font-medium text-emerald-600 text-xs md:text-sm">
                                   {goingAthletes.length} Going
                                 </span>
                               )}
@@ -660,7 +660,7 @@ export default function RSVPPage() {
                           )}
                         </div>
                         {notGoing.length > 0 && (
-                          <div className="flex items-center gap-1 text-xs md:text-sm text-muted-foreground shrink-0">
+                          <div className="flex shrink-0 items-center gap-1 text-muted-foreground text-xs md:text-sm">
                             <IconX className="h-3 w-3 md:h-4 md:w-4" />
                             <span className="hidden sm:inline">
                               {notGoing.length}
@@ -676,17 +676,17 @@ export default function RSVPPage() {
           </TabsContent>
 
           <TabsContent
+            className="mt-0 min-h-0 flex-1 overflow-auto"
             value="per-person"
-            className="flex-1 overflow-auto mt-0 min-h-0"
           >
             <ScrollArea className="h-full">
-              <div className="px-4 space-y-4">
+              <div className="space-y-4 px-4">
                 <div className="flex items-center gap-3 pt-4">
                   <Select
-                    value={selectedUserId || "all"}
                     onValueChange={(value) =>
                       setSelectedUserId(value === "all" ? null : value)
                     }
+                    value={selectedUserId || "all"}
                   >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select person" />
@@ -744,10 +744,10 @@ export default function RSVPPage() {
                           </CardDescription>
                         </div>
                         <Select
-                          value={timeRange}
                           onValueChange={(value: "month" | "year") =>
                             setTimeRange(value)
                           }
+                          value={timeRange}
                         >
                           <SelectTrigger className="w-full">
                             <SelectValue />
@@ -764,15 +764,15 @@ export default function RSVPPage() {
                         <BarChart data={chartData}>
                           <CartesianGrid vertical={false} />
                           <XAxis
+                            axisLine={false}
                             dataKey="month"
                             tickLine={false}
-                            axisLine={false}
                             tickMargin={8}
                           />
-                          <YAxis tickLine={false} axisLine={false} />
+                          <YAxis axisLine={false} tickLine={false} />
                           <ChartTooltip
-                            cursor={false}
                             content={<ChartTooltipContent />}
+                            cursor={false}
                           />
                           <Bar dataKey="going" fill="var(--color-going)" />
                           <Bar
@@ -787,15 +787,15 @@ export default function RSVPPage() {
                   <Card>
                     <CardContent className="p-0">
                       {attendanceByPerson.length === 0 ? (
-                        <div className="text-center py-12 text-muted-foreground">
+                        <div className="py-12 text-center text-muted-foreground">
                           <p>No attendance data available</p>
                         </div>
                       ) : (
                         <div className="divide-y">
                           {attendanceByPerson.map((item) => (
                             <div
+                              className="flex cursor-pointer items-center gap-4 p-3 transition-colors hover:bg-muted/30 md:p-4"
                               key={item.user.id}
-                              className="flex items-center gap-4 p-3 md:p-4 hover:bg-muted/30 transition-colors cursor-pointer"
                               onClick={() =>
                                 router.push(`/rsvp/${item.user.id}`)
                               }
@@ -808,20 +808,20 @@ export default function RSVPPage() {
                                   {getInitials(item.user.name, item.user.email)}
                                 </AvatarFallback>
                               </Avatar>
-                              <div className="flex-1 min-w-0">
-                                <p className="font-medium truncate text-sm md:text-base">
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate font-medium text-sm md:text-base">
                                   {item.user.name || item.user.email}
                                 </p>
                               </div>
-                              <div className="text-right shrink-0 text-xs md:text-sm text-muted-foreground">
-                                <span className="text-emerald-600 font-medium">
+                              <div className="shrink-0 text-right text-muted-foreground text-xs md:text-sm">
+                                <span className="font-medium text-emerald-600">
                                   {item.going}
                                 </span>
                                 <span className="mx-1">/</span>
                                 <span>{item.total}</span>
                               </div>
-                              <div className="text-right shrink-0 w-16 md:w-20">
-                                <p className="text-sm md:text-base font-semibold">
+                              <div className="w-16 shrink-0 text-right md:w-20">
+                                <p className="font-semibold text-sm md:text-base">
                                   {item.rate}%
                                 </p>
                               </div>
@@ -837,11 +837,11 @@ export default function RSVPPage() {
           </TabsContent>
 
           <TabsContent
+            className="mt-0 min-h-0 flex-1 overflow-auto"
             value="overview"
-            className="flex-1 overflow-auto mt-0 min-h-0"
           >
             <ScrollArea className="h-full">
-              <div className="p-4 space-y-4">
+              <div className="space-y-4 p-4">
                 <div className="grid gap-4 md:grid-cols-3">
                   <Card>
                     <CardHeader className="pb-2">
@@ -879,10 +879,10 @@ export default function RSVPPage() {
                         </CardDescription>
                       </div>
                       <Select
-                        value={timeRange}
                         onValueChange={(value: "month" | "year") =>
                           setTimeRange(value)
                         }
+                        value={timeRange}
                       >
                         <SelectTrigger className="w-[120px]">
                           <SelectValue />
@@ -896,16 +896,16 @@ export default function RSVPPage() {
                   </CardHeader>
                   <CardContent>
                     <ChartContainer
-                      config={chartConfig}
                       className="aspect-[4/1]"
+                      config={chartConfig}
                     >
                       <AreaChart data={chartData}>
                         <defs>
                           <linearGradient
                             id="fillGoing"
                             x1="0"
-                            y1="0"
                             x2="0"
+                            y1="0"
                             y2="1"
                           >
                             <stop
@@ -922,21 +922,21 @@ export default function RSVPPage() {
                         </defs>
                         <CartesianGrid vertical={false} />
                         <XAxis
+                          axisLine={false}
                           dataKey="month"
                           tickLine={false}
-                          axisLine={false}
                           tickMargin={8}
                         />
-                        <YAxis tickLine={false} axisLine={false} />
+                        <YAxis axisLine={false} tickLine={false} />
                         <ChartTooltip
-                          cursor={false}
                           content={<ChartTooltipContent />}
+                          cursor={false}
                         />
                         <Area
                           dataKey="going"
-                          type="natural"
                           fill="url(#fillGoing)"
                           stroke="var(--color-going)"
+                          type="natural"
                         />
                       </AreaChart>
                     </ChartContainer>
@@ -952,34 +952,34 @@ export default function RSVPPage() {
 
   // Athlete View
   return (
-    <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
-      <PageHeader title="My Schedule" description="RSVP to upcoming sessions" />
-      <Tabs defaultValue="upcoming" className="flex-1 flex flex-col min-h-0">
-        <div className="px-4 py-3 shrink-0 border-b">
-          <TabsList className="w-full grid grid-cols-3 h-10 rounded-xl">
-            <TabsTrigger value="upcoming" className="text-xs rounded-lg">
-              <IconCalendar className="h-4 w-4 mr-1.5" />
+    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
+      <PageHeader description="RSVP to upcoming sessions" title="My Schedule" />
+      <Tabs className="flex min-h-0 flex-1 flex-col" defaultValue="upcoming">
+        <div className="shrink-0 border-b px-4 py-3">
+          <TabsList className="grid h-10 w-full grid-cols-3 rounded-xl">
+            <TabsTrigger className="rounded-lg text-xs" value="upcoming">
+              <IconCalendar className="mr-1.5 h-4 w-4" />
               Upcoming
             </TabsTrigger>
-            <TabsTrigger value="history" className="text-xs rounded-lg">
-              <IconClock className="h-4 w-4 mr-1.5" />
+            <TabsTrigger className="rounded-lg text-xs" value="history">
+              <IconClock className="mr-1.5 h-4 w-4" />
               History
             </TabsTrigger>
-            <TabsTrigger value="summary" className="text-xs rounded-lg">
-              <IconChartBar className="h-4 w-4 mr-1.5" />
+            <TabsTrigger className="rounded-lg text-xs" value="summary">
+              <IconChartBar className="mr-1.5 h-4 w-4" />
               Summary
             </TabsTrigger>
           </TabsList>
         </div>
 
         <TabsContent
+          className="mt-0 min-h-0 flex-1 overflow-auto"
           value="upcoming"
-          className="flex-1 overflow-auto mt-0 min-h-0"
         >
           <ScrollArea className="h-full">
             <div className="space-y-2 p-4">
               {events.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground">
+                <div className="py-12 text-center text-muted-foreground">
                   <p>No upcoming events</p>
                 </div>
               ) : (
@@ -991,18 +991,18 @@ export default function RSVPPage() {
 
                   return (
                     <div
-                      key={occ.id}
-                      className={`flex items-center gap-3 p-3 md:p-4 rounded-xl border transition-colors ${
+                      className={`flex items-center gap-3 rounded-xl border p-3 transition-colors md:p-4 ${
                         isCanceled ? "opacity-50" : "hover:bg-muted/30"
                       }`}
+                      key={occ.id}
                     >
                       <Link
+                        className="flex min-w-0 flex-1 items-center gap-3"
                         href={
                           isCanceled
                             ? "#"
                             : `/events?eventId=${occ.event.id}&occurrenceId=${occ.id}`
                         }
-                        className="flex items-center gap-3 flex-1 min-w-0"
                         onClick={(e) => {
                           // Prevent navigation if clicking on buttons or badges
                           const target = e.target as HTMLElement;
@@ -1015,7 +1015,7 @@ export default function RSVPPage() {
                         }}
                       >
                         <div
-                          className={`h-12 w-12 md:h-16 md:w-16 rounded-lg md:rounded-xl flex flex-col items-center justify-center shrink-0 ${
+                          className={`flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-lg md:h-16 md:w-16 md:rounded-xl ${
                             rsvpStatus === "going"
                               ? "bg-emerald-100 dark:bg-emerald-950/50"
                               : rsvpStatus === "not_going"
@@ -1024,7 +1024,7 @@ export default function RSVPPage() {
                           }`}
                         >
                           <span
-                            className={`text-lg md:text-2xl font-bold leading-none ${
+                            className={`font-bold text-lg leading-none md:text-2xl ${
                               rsvpStatus === "going"
                                 ? "text-emerald-600 dark:text-emerald-400"
                                 : rsvpStatus === "not_going"
@@ -1034,33 +1034,33 @@ export default function RSVPPage() {
                           >
                             {dateInfo.day}
                           </span>
-                          <span className="text-[9px] md:text-[10px] font-medium text-muted-foreground mt-0.5">
+                          <span className="mt-0.5 font-medium text-[9px] text-muted-foreground md:text-[10px]">
                             {dateInfo.month}
                           </span>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <p className="font-medium text-sm md:text-base truncate">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="truncate font-medium text-sm md:text-base">
                               {occ.event.title}
                             </p>
                             {dateInfo.relative && (
                               <Badge
+                                className="shrink-0 rounded-md text-[9px] md:text-[10px]"
                                 variant="secondary"
-                                className="text-[9px] md:text-[10px] rounded-md shrink-0"
                               >
                                 {dateInfo.relative}
                               </Badge>
                             )}
                             {isCanceled && (
                               <Badge
+                                className="shrink-0 rounded-md text-[9px] md:text-[10px]"
                                 variant="destructive"
-                                className="text-[9px] md:text-[10px] rounded-md shrink-0"
                               >
                                 Canceled
                               </Badge>
                             )}
                           </div>
-                          <div className="flex items-center gap-2 md:gap-3 mt-1 text-xs md:text-sm text-muted-foreground flex-wrap">
+                          <div className="mt-1 flex flex-wrap items-center gap-2 text-muted-foreground text-xs md:gap-3 md:text-sm">
                             <span className="whitespace-nowrap">
                               {dateInfo.weekday}
                             </span>
@@ -1075,25 +1075,25 @@ export default function RSVPPage() {
                           </div>
                           {/* Attendance summary - count and coach badges */}
                           {occurrenceSummaries[occ.id] && (
-                            <div className="flex items-center gap-2 mt-2 flex-wrap">
-                              <span className="text-[10px] md:text-xs text-emerald-600 font-medium">
+                            <div className="mt-2 flex flex-wrap items-center gap-2">
+                              <span className="font-medium text-[10px] text-emerald-600 md:text-xs">
                                 {occurrenceSummaries[occ.id].goingCount} going
                               </span>
                               {occurrenceSummaries[occ.id].coaches.length >
                                 0 && (
                                 <>
-                                  <span className="text-[10px] md:text-xs text-muted-foreground hidden sm:inline">
+                                  <span className="hidden text-[10px] text-muted-foreground sm:inline md:text-xs">
                                     •
                                   </span>
-                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                  <div className="flex flex-wrap items-center gap-1.5">
                                     {occurrenceSummaries[occ.id].coaches
                                       .slice(0, 2)
                                       .map((coach) => (
                                         <Badge
+                                          className="flex shrink-0 items-center gap-1 rounded-md text-[9px] md:text-[10px]"
                                           key={coach.id}
-                                          variant="secondary"
-                                          className="text-[9px] md:text-[10px] rounded-md flex items-center gap-1 shrink-0"
                                           onClick={(e) => e.stopPropagation()}
+                                          variant="secondary"
                                         >
                                           <IconCheck className="h-3 w-3" />
                                           <span className="hidden sm:inline">
@@ -1107,8 +1107,8 @@ export default function RSVPPage() {
                                     {occurrenceSummaries[occ.id].coaches
                                       .length > 2 && (
                                       <Badge
+                                        className="shrink-0 rounded-md text-[9px] md:text-[10px]"
                                         variant="secondary"
-                                        className="text-[9px] md:text-[10px] rounded-md shrink-0"
                                       >
                                         +
                                         {occurrenceSummaries[occ.id].coaches
@@ -1123,45 +1123,45 @@ export default function RSVPPage() {
                         </div>
                       </Link>
                       {!isCanceled && (
-                        <div className="flex items-center gap-1.5 md:gap-2 shrink-0">
+                        <div className="flex shrink-0 items-center gap-1.5 md:gap-2">
                           <Button
-                            size="sm"
-                            variant={
-                              rsvpStatus === "going" ? "default" : "outline"
-                            }
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleRSVP(occ.id, "going");
-                            }}
-                            disabled={isUpdating}
-                            className={`h-8 md:h-9 rounded-xl text-xs md:text-sm px-2 md:px-3 ${
+                            className={`h-8 rounded-xl px-2 text-xs md:h-9 md:px-3 md:text-sm ${
                               rsvpStatus === "going"
                                 ? "bg-emerald-600 hover:bg-emerald-700"
                                 : ""
                             }`}
+                            disabled={isUpdating}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRSVP(occ.id, "going");
+                            }}
+                            size="sm"
+                            variant={
+                              rsvpStatus === "going" ? "default" : "outline"
+                            }
                           >
-                            <IconCheck className="h-3 w-3 md:h-4 md:w-4 md:mr-1" />
+                            <IconCheck className="h-3 w-3 md:mr-1 md:h-4 md:w-4" />
                             <span className="hidden sm:inline">Going</span>
                           </Button>
                           <Button
+                            className={`h-8 rounded-xl px-2 text-xs md:h-9 md:px-3 md:text-sm ${
+                              rsvpStatus === "not_going"
+                                ? "bg-red-600 text-white hover:bg-red-700"
+                                : ""
+                            }`}
+                            disabled={isUpdating}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRSVP(occ.id, "not_going");
+                            }}
                             size="sm"
                             variant={
                               rsvpStatus === "not_going"
                                 ? "secondary"
                                 : "outline"
                             }
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleRSVP(occ.id, "not_going");
-                            }}
-                            disabled={isUpdating}
-                            className={`h-8 md:h-9 rounded-xl text-xs md:text-sm px-2 md:px-3 ${
-                              rsvpStatus === "not_going"
-                                ? "bg-red-600 hover:bg-red-700 text-white"
-                                : ""
-                            }`}
                           >
-                            <IconX className="h-3 w-3 md:h-4 md:w-4 md:mr-1" />
+                            <IconX className="h-3 w-3 md:mr-1 md:h-4 md:w-4" />
                             <span className="hidden sm:inline">Can't Go</span>
                           </Button>
                         </div>
@@ -1175,13 +1175,13 @@ export default function RSVPPage() {
         </TabsContent>
 
         <TabsContent
+          className="mt-0 min-h-0 flex-1 overflow-auto"
           value="history"
-          className="flex-1 overflow-auto mt-0 min-h-0"
         >
           <ScrollArea className="h-full">
             <div className="space-y-2 p-4">
               {historicalRsvps.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground">
+                <div className="py-12 text-center text-muted-foreground">
                   <p>No past attendance records</p>
                 </div>
               ) : (
@@ -1198,18 +1198,18 @@ export default function RSVPPage() {
 
                     return (
                       <div
+                        className="flex items-center gap-3 rounded-xl border p-3 transition-colors hover:bg-muted/30 md:p-4"
                         key={rsvp.id}
-                        className="flex items-center gap-3 p-3 md:p-4 rounded-xl border hover:bg-muted/30 transition-colors"
                       >
                         <div
-                          className={`h-12 w-12 md:h-16 md:w-16 rounded-lg md:rounded-xl flex flex-col items-center justify-center shrink-0 ${
+                          className={`flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-lg md:h-16 md:w-16 md:rounded-xl ${
                             isGoing
                               ? "bg-emerald-100 dark:bg-emerald-950/50"
                               : "bg-red-100 dark:bg-red-950/50"
                           }`}
                         >
                           <span
-                            className={`text-lg md:text-2xl font-bold leading-none ${
+                            className={`font-bold text-lg leading-none md:text-2xl ${
                               isGoing
                                 ? "text-emerald-600 dark:text-emerald-400"
                                 : "text-red-600 dark:text-red-400"
@@ -1217,27 +1217,27 @@ export default function RSVPPage() {
                           >
                             {dateInfo.day}
                           </span>
-                          <span className="text-[9px] md:text-[10px] font-medium text-muted-foreground mt-0.5">
+                          <span className="mt-0.5 font-medium text-[9px] text-muted-foreground md:text-[10px]">
                             {dateInfo.month}
                           </span>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <p className="font-medium text-sm md:text-base truncate">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="truncate font-medium text-sm md:text-base">
                               {occ.event.title}
                             </p>
                             <Badge
-                              variant={isGoing ? "default" : "secondary"}
-                              className={`text-[9px] md:text-[10px] rounded-md shrink-0 ${
+                              className={`shrink-0 rounded-md text-[9px] md:text-[10px] ${
                                 isGoing
                                   ? "bg-emerald-600"
                                   : "bg-red-100 text-red-700 dark:bg-red-950/50 dark:text-red-300"
                               }`}
+                              variant={isGoing ? "default" : "secondary"}
                             >
                               {isGoing ? "Attended" : "Missed"}
                             </Badge>
                           </div>
-                          <div className="flex items-center gap-2 md:gap-3 mt-1 text-xs md:text-sm text-muted-foreground flex-wrap">
+                          <div className="mt-1 flex flex-wrap items-center gap-2 text-muted-foreground text-xs md:gap-3 md:text-sm">
                             <span className="whitespace-nowrap">
                               {dateInfo.weekday}
                             </span>
@@ -1261,11 +1261,11 @@ export default function RSVPPage() {
         </TabsContent>
 
         <TabsContent
+          className="mt-0 min-h-0 flex-1 overflow-auto"
           value="summary"
-          className="flex-1 overflow-auto mt-0 min-h-0"
         >
           <ScrollArea className="h-full">
-            <div className="p-4 space-y-4">
+            <div className="space-y-4 p-4">
               <div className="grid gap-4 md:grid-cols-3">
                 <Card>
                   <CardHeader className="pb-2">
@@ -1303,10 +1303,10 @@ export default function RSVPPage() {
                       </CardDescription>
                     </div>
                     <Select
-                      value={timeRange}
                       onValueChange={(value: "month" | "year") =>
                         setTimeRange(value)
                       }
+                      value={timeRange}
                     >
                       <SelectTrigger className="w-[120px]">
                         <SelectValue />
@@ -1323,15 +1323,15 @@ export default function RSVPPage() {
                     <BarChart data={chartData}>
                       <CartesianGrid vertical={false} />
                       <XAxis
+                        axisLine={false}
                         dataKey="month"
                         tickLine={false}
-                        axisLine={false}
                         tickMargin={8}
                       />
-                      <YAxis tickLine={false} axisLine={false} />
+                      <YAxis axisLine={false} tickLine={false} />
                       <ChartTooltip
-                        cursor={false}
                         content={<ChartTooltipContent />}
+                        cursor={false}
                       />
                       <Bar dataKey="going" fill="var(--color-going)" />
                       <Bar dataKey="notGoing" fill="var(--color-notGoing)" />

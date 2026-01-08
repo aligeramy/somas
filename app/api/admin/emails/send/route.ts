@@ -38,14 +38,14 @@ export async function POST(request: Request) {
     if (!dbUser || dbUser.role !== "owner") {
       return NextResponse.json(
         { error: "Forbidden - Admin only" },
-        { status: 403 },
+        { status: 403 }
       );
     }
 
     if (!dbUser.gymId) {
       return NextResponse.json(
         { error: "User must belong to a gym" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -62,14 +62,14 @@ export async function POST(request: Request) {
 
     const { userIds, type } = await request.json();
 
-    if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
+    if (!(userIds && Array.isArray(userIds)) || userIds.length === 0) {
       return NextResponse.json({ error: "No users selected" }, { status: 400 });
     }
 
-    if (!type || !["welcome", "reset"].includes(type)) {
+    if (!(type && ["welcome", "reset"].includes(type))) {
       return NextResponse.json(
         { error: "Invalid email type" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -97,7 +97,7 @@ export async function POST(request: Request) {
               ? error.message
               : "Invalid app URL configuration",
         },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -113,11 +113,24 @@ export async function POST(request: Request) {
         // Check if user exists in Supabase Auth
         const { data: authUsers } = await supabaseAdmin.auth.admin.listUsers();
         const authUser = authUsers?.users?.find(
-          (u) => u.email === targetUser.email,
+          (u) => u.email === targetUser.email
         );
 
         if (type === "welcome") {
-          if (!authUser) {
+          if (authUser) {
+            // User exists - generate recovery link
+            const { data: linkData, error: linkError } =
+              await supabaseAdmin.auth.admin.generateLink({
+                type: "recovery",
+                email: targetUser.email,
+              });
+
+            if (linkError) {
+              console.error("Recovery link error:", linkError);
+            } else if (linkData?.properties?.hashed_token) {
+              setupUrl = `${appUrl}/setup-password?token=${linkData.properties.hashed_token}&type=recovery&email=${encodeURIComponent(targetUser.email)}`;
+            }
+          } else {
             // Create user in Supabase Auth if doesn't exist
             const randomPassword = randomBytes(16).toString("hex");
             const { data: newAuthUser, error: createError } =
@@ -148,19 +161,6 @@ export async function POST(request: Request) {
               console.error("Magic link error:", linkError);
             } else if (linkData?.properties?.hashed_token) {
               setupUrl = `${appUrl}/setup-password?token=${linkData.properties.hashed_token}&type=magiclink&email=${encodeURIComponent(targetUser.email)}`;
-            }
-          } else {
-            // User exists - generate recovery link
-            const { data: linkData, error: linkError } =
-              await supabaseAdmin.auth.admin.generateLink({
-                type: "recovery",
-                email: targetUser.email,
-              });
-
-            if (linkError) {
-              console.error("Recovery link error:", linkError);
-            } else if (linkData?.properties?.hashed_token) {
-              setupUrl = `${appUrl}/setup-password?token=${linkData.properties.hashed_token}&type=recovery&email=${encodeURIComponent(targetUser.email)}`;
             }
           }
         } else if (type === "reset") {
@@ -262,7 +262,7 @@ export async function POST(request: Request) {
     console.error("Error sending emails:", error);
     return NextResponse.json(
       { error: "Failed to send emails" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

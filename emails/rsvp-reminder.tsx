@@ -22,57 +22,57 @@ export function RsvpReminderEmail({
 }: RsvpReminderEmailProps) {
   return (
     <BaseLayout
-      preview={`RSVP needed for ${eventTitle}`}
-      gymName={gymName}
       gymLogoUrl={gymLogoUrl}
+      gymName={gymName}
+      preview={`RSVP needed for ${eventTitle}`}
     >
-      <Heading className="text-2xl font-bold text-zinc-900 mb-6 text-center">
+      <Heading className="mb-6 text-center font-bold text-2xl text-zinc-900">
         We need your RSVP! 🙋
       </Heading>
 
-      <Text className="text-base text-zinc-900 mb-4">
+      <Text className="mb-4 text-base text-zinc-900">
         Hey {athleteName.split(" ")[0] || "there"},
       </Text>
 
-      <Text className="text-[15px] text-gray-600 leading-6 mb-6">
+      <Text className="mb-6 text-[15px] text-gray-600 leading-6">
         You haven't responded to an upcoming event yet. Your coach would love to
         know if you're coming!
       </Text>
 
       {/* Event Card */}
-      <Section className="bg-amber-100 rounded-xl p-4 mb-6 flex items-center gap-4">
-        <div className="bg-amber-500 rounded-lg py-3 px-4 text-center min-w-[60px]">
-          <Text className="text-white text-2xl font-bold m-0 leading-none">
+      <Section className="mb-6 flex items-center gap-4 rounded-xl bg-amber-100 p-4">
+        <div className="min-w-[60px] rounded-lg bg-amber-500 px-4 py-3 text-center">
+          <Text className="m-0 font-bold text-2xl text-white leading-none">
             {eventDate.split(" ")[0]}
           </Text>
-          <Text className="text-white/80 text-xs font-medium mt-1 mb-0 uppercase">
+          <Text className="mt-1 mb-0 font-medium text-white/80 text-xs uppercase">
             {eventDate.split(" ")[1]}
           </Text>
         </div>
         <div className="flex-1">
-          <Text className="text-base font-semibold text-zinc-900 mb-1 mt-0">
+          <Text className="mt-0 mb-1 font-semibold text-base text-zinc-900">
             {eventTitle}
           </Text>
-          <Text className="text-sm text-gray-500 m-0">{eventTime}</Text>
+          <Text className="m-0 text-gray-500 text-sm">{eventTime}</Text>
         </div>
       </Section>
 
-      <Section className="text-center mb-6">
+      <Section className="mb-6 text-center">
         <Button
-          className="bg-emerald-500 rounded-lg text-white text-sm font-semibold no-underline text-center py-3 px-5 mr-2"
+          className="mr-2 rounded-lg bg-emerald-500 px-5 py-3 text-center font-semibold text-sm text-white no-underline"
           href={`${rsvpUrl}?status=going`}
         >
           ✓ I'm Going
         </Button>
         <Button
-          className="bg-gray-100 rounded-lg text-gray-600 text-sm font-semibold no-underline text-center py-3 px-5"
+          className="rounded-lg bg-gray-100 px-5 py-3 text-center font-semibold text-gray-600 text-sm no-underline"
           href={`${rsvpUrl}?status=not_going`}
         >
           ✗ Can't Make It
         </Button>
       </Section>
 
-      <Text className="text-[13px] text-gray-400 text-center m-0">
+      <Text className="m-0 text-center text-[13px] text-gray-400">
         It only takes a second to let us know!
       </Text>
     </BaseLayout>

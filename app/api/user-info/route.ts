@@ -71,7 +71,7 @@ export async function GET(request: Request) {
     console.error("User info fetch error:", error);
     return NextResponse.json(
       { error: "Failed to fetch user info" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

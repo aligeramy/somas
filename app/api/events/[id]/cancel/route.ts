@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export async function POST(
   request: Request,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient();
@@ -24,10 +24,10 @@ export async function POST(
       .where(eq(users.id, user.id))
       .limit(1);
 
-    if (!dbUser || !dbUser.gymId) {
+    if (!(dbUser && dbUser.gymId)) {
       return NextResponse.json(
         { error: "User must belong to a gym" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -43,7 +43,7 @@ export async function POST(
     if (!occurrenceId) {
       return NextResponse.json(
         { error: "Occurrence ID is required" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -64,7 +64,7 @@ export async function POST(
     if (!occurrence) {
       return NextResponse.json(
         { error: "Event occurrence not found" },
-        { status: 404 },
+        { status: 404 }
       );
     }
 
@@ -91,7 +91,7 @@ export async function POST(
     console.error("Event cancellation error:", error);
     return NextResponse.json(
       { error: "Failed to update event" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

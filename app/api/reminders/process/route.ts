@@ -43,8 +43,8 @@ export async function GET(request: Request) {
         and(
           eq(eventOccurrences.status, "scheduled"),
           sql`${events.reminderDays} IS NOT NULL`,
-          sql`array_length(${events.reminderDays}, 1) > 0`,
-        ),
+          sql`array_length(${events.reminderDays}, 1) > 0`
+        )
       );
 
     // Group occurrences by event
@@ -107,14 +107,14 @@ export async function GET(request: Request) {
             const minutes = Math.round(reminderValue * 24 * 60); // Convert to minutes
             reminderDateTime = new Date(occurrenceDateTime);
             reminderDateTime.setMinutes(
-              reminderDateTime.getMinutes() - minutes,
+              reminderDateTime.getMinutes() - minutes
             );
             reminderType = minutes === 30 ? "30_min" : `${minutes}_min`;
           } else {
             // For day-based reminders, send at start of day
             reminderDateTime = new Date(occurrenceDate);
             reminderDateTime.setDate(
-              reminderDateTime.getDate() - reminderValue,
+              reminderDateTime.getDate() - reminderValue
             );
             reminderDateTime.setHours(0, 0, 0, 0);
 
@@ -163,8 +163,8 @@ export async function GET(request: Request) {
             (a) =>
               !respondedUserIds.has(a.id) ||
               existingRsvps.find(
-                (r) => r.userId === a.id && r.status === "going",
-              ),
+                (r) => r.userId === a.id && r.status === "going"
+              )
           );
 
           // Format date and time
@@ -172,7 +172,7 @@ export async function GET(request: Request) {
 
           const formatTime = (time: string) => {
             const [hours, minutes] = time.split(":");
-            const hour = parseInt(hours, 10);
+            const hour = Number.parseInt(hours, 10);
             const ampm = hour >= 12 ? "PM" : "AM";
             const displayHour = hour % 12 || 12;
             return `${displayHour}:${minutes} ${ampm}`;
@@ -195,8 +195,8 @@ export async function GET(request: Request) {
                   and(
                     eq(reminderLogs.occurrenceId, occurrence.id),
                     eq(reminderLogs.userId, athlete.id),
-                    eq(reminderLogs.reminderType, reminderType),
-                  ),
+                    eq(reminderLogs.reminderType, reminderType)
+                  )
                 )
                 .limit(1);
 
@@ -238,7 +238,7 @@ export async function GET(request: Request) {
             } catch (err) {
               console.error(
                 `Failed to send reminder to ${athlete.email}:`,
-                err,
+                err
               );
               results.errors.push(athlete.email || "unknown");
             }
@@ -258,7 +258,7 @@ export async function GET(request: Request) {
     console.error("Process reminders error:", error);
     return NextResponse.json(
       { error: "Failed to process reminders", details: String(error) },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

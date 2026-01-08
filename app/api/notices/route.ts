@@ -25,10 +25,10 @@ export async function GET(_request: Request) {
       .where(eq(users.id, user.id))
       .limit(1);
 
-    if (!dbUser || !dbUser.gymId) {
+    if (!(dbUser && dbUser.gymId)) {
       return NextResponse.json(
         { error: "User must belong to a gym" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -54,7 +54,7 @@ export async function GET(_request: Request) {
     console.error("Notice fetch error:", error);
     return NextResponse.json(
       { error: "Failed to fetch notice" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -76,10 +76,10 @@ export async function POST(request: Request) {
       .where(eq(users.id, user.id))
       .limit(1);
 
-    if (!dbUser || !dbUser.gymId) {
+    if (!(dbUser && dbUser.gymId)) {
       return NextResponse.json(
         { error: "User must belong to a gym" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -90,10 +90,10 @@ export async function POST(request: Request) {
 
     const { title, content, sendEmail } = await request.json();
 
-    if (!title || !content) {
+    if (!(title && content)) {
       return NextResponse.json(
         { error: "Title and content are required" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -112,7 +112,7 @@ export async function POST(request: Request) {
         title,
         content,
         active: true,
-        sendEmail: sendEmail || false,
+        sendEmail,
       })
       .returning();
 
@@ -161,13 +161,13 @@ export async function POST(request: Request) {
                   userName: member.name || "Team Member",
                   noticeTitle: title,
                   noticeContent: content,
-                  authorName: authorName,
+                  authorName,
                 }),
               })
               .catch((error) => {
                 console.error(
                   `Failed to send notice email to ${member.email}:`,
-                  error,
+                  error
                 );
                 return { error: member.email };
               });
@@ -186,7 +186,7 @@ export async function POST(request: Request) {
     console.error("Notice creation error:", error);
     return NextResponse.json(
       { error: "Failed to create notice" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -208,10 +208,10 @@ export async function PUT(request: Request) {
       .where(eq(users.id, user.id))
       .limit(1);
 
-    if (!dbUser || !dbUser.gymId) {
+    if (!(dbUser && dbUser.gymId)) {
       return NextResponse.json(
         { error: "User must belong to a gym" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -225,7 +225,7 @@ export async function PUT(request: Request) {
     if (id === undefined || active === undefined) {
       return NextResponse.json(
         { error: "ID and active status are required" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -248,7 +248,7 @@ export async function PUT(request: Request) {
     console.error("Notice update error:", error);
     return NextResponse.json(
       { error: "Failed to update notice" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

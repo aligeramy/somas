@@ -39,7 +39,7 @@ export function UpcomingEvents({ occurrences }: UpcomingEventsProps) {
   const formatTime = (time: string | undefined | null) => {
     if (!time) return "";
     const [hours, minutes] = time.split(":");
-    const hour = parseInt(hours, 10);
+    const hour = Number.parseInt(hours, 10);
     if (Number.isNaN(hour)) return time;
     const ampm = hour >= 12 ? "PM" : "AM";
     const displayHour = hour % 12 || 12;
@@ -50,11 +50,11 @@ export function UpcomingEvents({ occurrences }: UpcomingEventsProps) {
     return (
       <Card className="border-dashed">
         <CardContent className="flex flex-col items-center justify-center py-12">
-          <IconCalendar className="h-10 w-10 text-muted-foreground/30 mb-3" />
-          <p className="text-sm text-muted-foreground mb-4">
+          <IconCalendar className="mb-3 h-10 w-10 text-muted-foreground/30" />
+          <p className="mb-4 text-muted-foreground text-sm">
             No upcoming events
           </p>
-          <Button variant="outline" size="sm" asChild>
+          <Button asChild size="sm" variant="outline">
             <Link href="/events">Create an event</Link>
           </Button>
         </CardContent>
@@ -66,18 +66,18 @@ export function UpcomingEvents({ occurrences }: UpcomingEventsProps) {
     <Card>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-lg font-semibold">
+          <CardTitle className="font-semibold text-lg">
             Upcoming Events
           </CardTitle>
           <Button
-            variant="ghost"
-            size="sm"
             asChild
             className="text-muted-foreground"
+            size="sm"
+            variant="ghost"
           >
             <Link href="/events">
               View all
-              <IconChevronRight className="h-4 w-4 ml-1" />
+              <IconChevronRight className="ml-1 h-4 w-4" />
             </Link>
           </Button>
         </div>
@@ -92,27 +92,27 @@ export function UpcomingEvents({ occurrences }: UpcomingEventsProps) {
 
             return (
               <Link
-                key={occurrence.id}
-                href={`/events?event=${occurrence.event.id}`}
-                className={`flex items-center gap-4 p-3 rounded-xl hover:bg-muted/50 transition-colors ${
+                className={`flex items-center gap-4 rounded-xl p-3 transition-colors hover:bg-muted/50 ${
                   isCanceled ? "opacity-50" : ""
                 }`}
+                href={`/events?event=${occurrence.event.id}`}
+                key={occurrence.id}
               >
-                <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-primary/10">
                   <IconCalendar className="h-5 w-5 text-primary" />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium truncate">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-medium">
                     {occurrence.event.title}
                   </p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-muted-foreground text-sm">
                     {formatDate(occurrence.date)}
                     {startTime && ` at ${formatTime(startTime)}`}
                     {endTime && ` - ${formatTime(endTime)}`}
                   </p>
                 </div>
                 {isCanceled && (
-                  <Badge variant="destructive" className="text-xs">
+                  <Badge className="text-xs" variant="destructive">
                     Canceled
                   </Badge>
                 )}

@@ -50,8 +50,8 @@ export function LoginForm({
           <form className="p-6 md:p-8" onSubmit={handleSubmit}>
             <FieldGroup>
               <div className="flex flex-col items-center gap-2 text-center">
-                <h1 className="text-2xl font-bold">Welcome back</h1>
-                <p className="text-muted-foreground text-balance">
+                <h1 className="font-bold text-2xl">Welcome back</h1>
+                <p className="text-balance text-muted-foreground">
                   Login to your SOMAS account
                 </p>
               </div>
@@ -61,25 +61,25 @@ export function LoginForm({
                 <Input
                   id="email"
                   name="email"
-                  type="email"
                   placeholder="m@example.com"
                   required
+                  type="email"
                 />
               </Field>
               <Field>
                 <div className="flex items-center">
                   <FieldLabel htmlFor="password">Password</FieldLabel>
                   <Link
-                    href="/forgot-password"
                     className="ml-auto text-sm underline-offset-2 hover:underline"
+                    href="/forgot-password"
                   >
                     Forgot your password?
                   </Link>
                 </div>
-                <Input id="password" name="password" type="password" required />
+                <Input id="password" name="password" required type="password" />
               </Field>
               <Field>
-                <Button type="submit" disabled={loading}>
+                <Button disabled={loading} type="submit">
                   {loading ? "Logging in..." : "Login"}
                 </Button>
               </Field>
@@ -87,11 +87,11 @@ export function LoginForm({
                 Or continue with
               </FieldSeparator>
               <Field className="grid grid-cols-3 gap-4">
-                <Button variant="outline" type="button">
+                <Button type="button" variant="outline">
                   <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
                     aria-label="Login with Apple"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
                   >
                     <title>Login with Apple</title>
                     <path
@@ -101,11 +101,11 @@ export function LoginForm({
                   </svg>
                   <span className="sr-only">Login with Apple</span>
                 </Button>
-                <Button variant="outline" type="button">
+                <Button type="button" variant="outline">
                   <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
                     aria-label="Login with Google"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
                   >
                     <title>Login with Google</title>
                     <path
@@ -115,11 +115,11 @@ export function LoginForm({
                   </svg>
                   <span className="sr-only">Login with Google</span>
                 </Button>
-                <Button variant="outline" type="button">
+                <Button type="button" variant="outline">
                   <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
                     aria-label="Login with Meta"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
                   >
                     <title>Login with Meta</title>
                     <path
@@ -135,14 +135,14 @@ export function LoginForm({
               </FieldDescription>
             </FieldGroup>
           </form>
-          <div className="bg-muted relative hidden md:block overflow-hidden aspect-[3/4]">
+          <div className="relative hidden aspect-[3/4] overflow-hidden bg-muted md:block">
             <Image
-              src="/login.png"
               alt="Athlete in action"
-              fill
               className="object-cover object-center"
-              sizes="(max-width: 768px) 0vw, 50vw"
+              fill
               priority
+              sizes="(max-width: 768px) 0vw, 50vw"
+              src="/login.png"
             />
             <div className="absolute inset-0" />
           </div>
@@ -150,11 +150,11 @@ export function LoginForm({
       </Card>
       <FieldDescription className="px-6 text-center">
         By clicking continue, you agree to our{" "}
-        <button type="button" className="underline">
+        <button className="underline" type="button">
           Terms of Service
         </button>{" "}
         and{" "}
-        <button type="button" className="underline">
+        <button className="underline" type="button">
           Privacy Policy
         </button>
         .

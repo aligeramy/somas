@@ -1,5 +1,5 @@
-import { readFileSync } from "fs";
 import { createClient } from "@supabase/supabase-js";
+import { readFileSync } from "fs";
 
 const envFile = readFileSync(".env", "utf-8");
 const envVars: Record<string, string> = {};
@@ -28,13 +28,18 @@ async function createJack() {
   });
 
   if (error) {
-    console.error(`❌ Failed:`, error.message);
+    console.error("❌ Failed:", error.message);
   } else if (data.user) {
-    console.log(`✅ Created Jack Ellery in auth`);
+    console.log("✅ Created Jack Ellery in auth");
     console.log(`   User ID: ${data.user.id}`);
-    console.log(`   Password: jack123`);
+    console.log("   Password: jack123");
     console.log(`\nUpdate database User table with ID: ${data.user.id}`);
   }
 }
 
-createJack().then(() => process.exit(0)).catch((e) => { console.error(e); process.exit(1); });
+createJack()
+  .then(() => process.exit(0))
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  });

@@ -30,16 +30,16 @@ export async function POST(request: Request) {
     if (dbUser.role !== "owner" && dbUser.role !== "coach") {
       return NextResponse.json(
         { error: "Only head coaches and coaches can edit RSVPs" },
-        { status: 403 },
+        { status: 403 }
       );
     }
 
     const { userId, occurrenceId, status } = await request.json();
 
-    if (!userId || !occurrenceId || !status) {
+    if (!(userId && occurrenceId && status)) {
       return NextResponse.json(
         { error: "userId, occurrenceId, and status are required" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -57,14 +57,14 @@ export async function POST(request: Request) {
     if (!occurrence) {
       return NextResponse.json(
         { error: "Event occurrence not found" },
-        { status: 404 },
+        { status: 404 }
       );
     }
 
     if (occurrence.event.gymId !== dbUser.gymId) {
       return NextResponse.json(
         { error: "Not authorized to edit RSVPs for this event" },
-        { status: 403 },
+        { status: 403 }
       );
     }
 
@@ -78,7 +78,7 @@ export async function POST(request: Request) {
     if (!targetUser || targetUser.gymId !== dbUser.gymId) {
       return NextResponse.json(
         { error: "User not found in your gym" },
-        { status: 404 },
+        { status: 404 }
       );
     }
 
@@ -87,7 +87,7 @@ export async function POST(request: Request) {
       .select()
       .from(rsvps)
       .where(
-        and(eq(rsvps.userId, userId), eq(rsvps.occurrenceId, occurrenceId)),
+        and(eq(rsvps.userId, userId), eq(rsvps.occurrenceId, occurrenceId))
       )
       .limit(1);
 

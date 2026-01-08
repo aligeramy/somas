@@ -38,16 +38,16 @@ export function DashboardStats({
     <div className="grid grid-cols-3 gap-4">
       {stats.map((stat) => (
         <div
-          key={stat.label}
           className="rounded-xl border bg-card p-5 transition-shadow hover:shadow-md"
+          key={stat.label}
         >
           <div
-            className={`inline-flex items-center justify-center h-10 w-10 rounded-xl ${stat.color} mb-3`}
+            className={`inline-flex h-10 w-10 items-center justify-center rounded-xl ${stat.color} mb-3`}
           >
             <stat.icon className="h-5 w-5" />
           </div>
-          <p className="text-3xl font-semibold tracking-tight">{stat.value}</p>
-          <p className="text-sm text-muted-foreground mt-1">{stat.label}</p>
+          <p className="font-semibold text-3xl tracking-tight">{stat.value}</p>
+          <p className="mt-1 text-muted-foreground text-sm">{stat.label}</p>
         </div>
       ))}
     </div>

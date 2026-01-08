@@ -25,14 +25,14 @@ export async function GET() {
     if (!dbUser || dbUser.role !== "owner") {
       return NextResponse.json(
         { error: "Forbidden - Admin only" },
-        { status: 403 },
+        { status: 403 }
       );
     }
 
     if (!dbUser.gymId) {
       return NextResponse.json(
         { error: "User must belong to a gym" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -55,7 +55,7 @@ export async function GET() {
     console.error("Error fetching users:", error);
     return NextResponse.json(
       { error: "Failed to fetch users" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

@@ -11,7 +11,7 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 // POST - Cancel occurrence and notify all going users
 export async function POST(
   request: Request,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id: eventId } = await params;
@@ -30,17 +30,17 @@ export async function POST(
       .where(eq(users.id, user.id))
       .limit(1);
 
-    if (!dbUser || !dbUser.gymId) {
+    if (!(dbUser && dbUser.gymId)) {
       return NextResponse.json(
         { error: "User must belong to a gym" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
     if (dbUser.role !== "owner" && dbUser.role !== "coach") {
       return NextResponse.json(
         { error: "Only head coaches and coaches can cancel events" },
-        { status: 403 },
+        { status: 403 }
       );
     }
 
@@ -49,7 +49,7 @@ export async function POST(
     if (!occurrenceId) {
       return NextResponse.json(
         { error: "Occurrence ID is required" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -64,15 +64,15 @@ export async function POST(
       .where(
         and(
           eq(eventOccurrences.id, occurrenceId),
-          eq(events.gymId, dbUser.gymId),
-        ),
+          eq(events.gymId, dbUser.gymId)
+        )
       )
       .limit(1);
 
     if (!occurrenceData) {
       return NextResponse.json(
         { error: "Occurrence not found" },
-        { status: 404 },
+        { status: 404 }
       );
     }
 
@@ -107,10 +107,7 @@ export async function POST(
           .from(rsvps)
           .innerJoin(users, eq(rsvps.userId, users.id))
           .where(
-            and(
-              eq(rsvps.occurrenceId, occurrenceId),
-              eq(rsvps.status, "going"),
-            ),
+            and(eq(rsvps.occurrenceId, occurrenceId), eq(rsvps.status, "going"))
           );
 
         // Format date for email
@@ -119,7 +116,7 @@ export async function POST(
 
         const formatTime = (time: string) => {
           const [hours, minutes] = time.split(":");
-          const hour = parseInt(hours, 10);
+          const hour = Number.parseInt(hours, 10);
           const ampm = hour >= 12 ? "PM" : "AM";
           const displayHour = hour % 12 || 12;
           return `${displayHour}:${minutes} ${ampm}`;
@@ -169,7 +166,7 @@ export async function POST(
     console.error("Cancel and notify error:", error);
     return NextResponse.json(
       { error: "Failed to cancel event" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

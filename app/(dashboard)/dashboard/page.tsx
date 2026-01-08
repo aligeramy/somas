@@ -47,7 +47,7 @@ export default async function DashboardPage() {
     .where(eq(users.id, authUser.id))
     .limit(1);
 
-  if (!dbUser || !dbUser.gymId) {
+  if (!(dbUser && dbUser.gymId)) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center p-8">
         <p className="text-muted-foreground">
@@ -84,8 +84,8 @@ export default async function DashboardPage() {
         and(
           eq(events.gymId, dbUser.gymId),
           gte(eventOccurrences.date, today),
-          eq(eventOccurrences.status, "scheduled"),
-        ),
+          eq(eventOccurrences.status, "scheduled")
+        )
       )
       .orderBy(asc(eventOccurrences.date))
       .limit(10);
@@ -100,7 +100,7 @@ export default async function DashboardPage() {
 
     // Get RSVPs for each upcoming occurrence with user data including roles
     const occurrenceIds = upcomingOccurrences.map(
-      ({ occurrence }) => occurrence.id,
+      ({ occurrence }) => occurrence.id
     );
     const occurrenceRsvps =
       occurrenceIds.length > 0
@@ -179,7 +179,7 @@ export default async function DashboardPage() {
           goingCoaches: rsvpData.goingCoaches,
           goingAthletesCount: rsvpData.goingAthletes.length,
         };
-      },
+      }
     );
 
     // Get active notice for athletes
@@ -201,12 +201,12 @@ export default async function DashboardPage() {
 
     return (
       <AthleteDashboard
-        userName={dbUser.name}
-        occurrences={occurrencesWithRsvp}
         activeNotice={activeNotice || null}
-        isOnboarded={dbUser.onboarded}
         gymLogo={gymLogo}
         gymName={gymName}
+        isOnboarded={dbUser.onboarded}
+        occurrences={occurrencesWithRsvp}
+        userName={dbUser.name}
       />
     );
   }
@@ -233,7 +233,7 @@ export default async function DashboardPage() {
     .from(eventOccurrences)
     .innerJoin(events, eq(eventOccurrences.eventId, events.id))
     .where(
-      and(eq(events.gymId, dbUser.gymId), gte(eventOccurrences.date, today)),
+      and(eq(events.gymId, dbUser.gymId), gte(eventOccurrences.date, today))
     )
     .orderBy(asc(eventOccurrences.date))
     .limit(10);
@@ -244,12 +244,12 @@ export default async function DashboardPage() {
     .innerJoin(eventOccurrences, eq(rsvps.occurrenceId, eventOccurrences.id))
     .innerJoin(events, eq(eventOccurrences.eventId, events.id))
     .where(
-      and(eq(events.gymId, dbUser.gymId), gte(eventOccurrences.date, today)),
+      and(eq(events.gymId, dbUser.gymId), gte(eventOccurrences.date, today))
     );
 
   // Get RSVPs for each upcoming occurrence with user data including roles
   const occurrenceIds = upcomingOccurrences.map(
-    ({ occurrence }) => occurrence.id,
+    ({ occurrence }) => occurrence.id
   );
   const occurrenceRsvps =
     occurrenceIds.length > 0
@@ -356,7 +356,7 @@ export default async function DashboardPage() {
     if (rsvp.user.id === dbUser.id) {
       currentUserRsvpMap.set(
         rsvp.occurrenceId,
-        rsvp.status as "going" | "not_going",
+        rsvp.status as "going" | "not_going"
       );
     }
   });
@@ -473,25 +473,26 @@ export default async function DashboardPage() {
           })),
           notGoingAthletesCount: rsvpData.notGoingAthletes.length,
         };
-      },
+      }
     );
 
     return (
       <CoachDashboard
-        userName={dbUser.name}
-        occurrences={occurrencesWithRsvp}
         activeNotice={activeNotice || null}
-        isOnboarded={dbUser.onboarded}
         gymLogo={gymLogo}
         gymName={gymName}
+        isOnboarded={dbUser.onboarded}
+        occurrences={occurrencesWithRsvp}
+        userName={dbUser.name}
         userRole={dbUser.role}
       />
     );
   }
 
   return (
-    <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden dark:bg-[#000000]">
+    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden dark:bg-[#000000]">
       <PageHeader
+        description="Here's what's happening with your team"
         title={
           <div className="flex items-center gap-3">
             <Avatar className="h-8 w-8">
@@ -505,10 +506,9 @@ export default async function DashboardPage() {
             </span>
           </div>
         }
-        description="Here's what's happening with your team"
       >
         <PWAInstallButton />
-        <Button size="sm" className="gap-2 rounded-sm" asChild>
+        <Button asChild className="gap-2 rounded-sm" size="sm">
           <Link href="/events/new">
             <IconPlus className="h-4 w-4" />
             New Event
@@ -518,17 +518,17 @@ export default async function DashboardPage() {
 
       <Suspense fallback={<DashboardSkeleton />}>
         <DashboardContent
-          dbUser={dbUser}
-          stats={stats}
-          upcomingOccurrences={upcomingOccurrences}
-          rsvpsByOccurrence={rsvpsByOccurrence}
           activeNotice={activeNotice || null}
-          latestPosts={latestPosts}
-          userRole={dbUser.role}
           currentUserRsvpMap={currentUserRsvpMap}
-          isOnboarded={dbUser.onboarded}
+          dbUser={dbUser}
           gymLogo={gymLogo}
           gymName={gymName}
+          isOnboarded={dbUser.onboarded}
+          latestPosts={latestPosts}
+          rsvpsByOccurrence={rsvpsByOccurrence}
+          stats={stats}
+          upcomingOccurrences={upcomingOccurrences}
+          userRole={dbUser.role}
         />
       </Suspense>
 
@@ -540,15 +540,15 @@ export default async function DashboardPage() {
 
 function DashboardSkeleton() {
   return (
-    <div className="flex-1 overflow-auto min-h-0">
+    <div className="min-h-0 flex-1 overflow-auto">
       <div className="space-y-6">
         {/* Stats */}
-        <div className="hidden lg:grid grid-cols-3 gap-2 sm:gap-4">
+        <div className="hidden grid-cols-3 gap-2 sm:gap-4 lg:grid">
           {[1, 2, 3].map((i) => (
-            <Card key={i} className="rounded-xl border-0 shadow-sm">
+            <Card className="rounded-xl border-0 shadow-sm" key={i}>
               <CardContent className="p-5">
-                <Skeleton className="h-10 w-10 rounded-xl mb-3" />
-                <Skeleton className="h-8 w-16 mb-2" />
+                <Skeleton className="mb-3 h-10 w-10 rounded-xl" />
+                <Skeleton className="mb-2 h-8 w-16" />
                 <Skeleton className="h-4 w-24" />
               </CardContent>
             </Card>
@@ -569,8 +569,8 @@ function DashboardSkeleton() {
               <div className="space-y-2">
                 {[1, 2, 3].map((i) => (
                   <div
+                    className="flex items-center gap-3 rounded-xl p-3"
                     key={i}
-                    className="flex items-center gap-3 p-3 rounded-xl"
                   >
                     <Skeleton className="h-12 w-12 rounded-xl" />
                     <div className="flex-1 space-y-2">
@@ -595,8 +595,8 @@ function DashboardSkeleton() {
               <div className="space-y-2">
                 {[1, 2, 3].map((i) => (
                   <div
+                    className="flex items-center gap-3 rounded-xl p-3"
                     key={i}
-                    className="flex items-center gap-3 p-3 rounded-xl"
                   >
                     <Skeleton className="h-16 w-16 rounded-lg" />
                     <div className="flex-1 space-y-2">
@@ -697,22 +697,22 @@ function DashboardContent({
   gymName: string | null;
 }) {
   return (
-    <div className="flex-1 overflow-auto min-h-0 dark:bg-[#000000]">
-      <div className="space-y-4 md:space-y-6 px-4 md:px-6 pb-4">
+    <div className="min-h-0 flex-1 overflow-auto dark:bg-[#000000]">
+      <div className="space-y-4 px-4 pb-4 md:space-y-6 md:px-6">
         {/* Active Notice */}
         {activeNotice && (
           <Card className="rounded-xl border border-primary/20 bg-primary/5">
             <CardContent className="px-4 py-3 md:py-2">
-              <div className="flex-1 min-w-0 space-y-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="font-semibold text-sm md:text-sm leading-tight">
+              <div className="min-w-0 flex-1 space-y-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="font-semibold text-sm leading-tight md:text-sm">
                     {activeNotice.title}
                   </h3>
-                  <Badge variant="default" className="rounded-lg text-xs">
+                  <Badge className="rounded-lg text-xs" variant="default">
                     Notice
                   </Badge>
                 </div>
-                <p className="text-sm text-muted-foreground line-clamp-2">
+                <p className="line-clamp-2 text-muted-foreground text-sm">
                   {activeNotice.content}
                 </p>
               </div>
@@ -721,19 +721,19 @@ function DashboardContent({
         )}
 
         {/* Stats */}
-        <div className="hidden lg:grid grid-cols-3 gap-2 sm:gap-4">
+        <div className="hidden grid-cols-3 gap-2 sm:gap-4 lg:grid">
           {stats.map((stat) => (
-            <Card key={stat.label} className="rounded-xl border shadow-sm">
+            <Card className="rounded-xl border shadow-sm" key={stat.label}>
               <CardContent className="p-3 sm:p-5">
                 <div
-                  className={`inline-flex items-center justify-center h-8 w-8 sm:h-10 sm:w-10 rounded-xl ${stat.color} mb-2 sm:mb-3`}
+                  className={`inline-flex h-8 w-8 items-center justify-center rounded-xl sm:h-10 sm:w-10 ${stat.color} mb-2 sm:mb-3`}
                 >
                   <stat.icon className="h-4 w-4 sm:h-5 sm:w-5" />
                 </div>
-                <p className="text-2xl sm:text-3xl font-semibold tracking-tight">
+                <p className="font-semibold text-2xl tracking-tight sm:text-3xl">
                   {stat.value}
                 </p>
-                <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                <p className="mt-1 text-muted-foreground text-xs sm:text-sm">
                   {stat.label}
                 </p>
               </CardContent>
@@ -743,35 +743,35 @@ function DashboardContent({
 
         {/* Gym Logo - Mobile Only */}
         {gymLogo && (
-          <div className="lg:hidden flex justify-center py-2">
+          <div className="flex justify-center py-2 lg:hidden">
             <Image
-              src={gymLogo}
               alt={gymName || "Club"}
-              width={150}
+              className="h-auto w-[150px]"
               height={150}
-              className="w-[150px] h-auto"
+              src={gymLogo}
+              width={150}
             />
           </div>
         )}
 
         {/* Content Grid */}
-        <div className="grid gap-2 md:gap-4 lg:gap-6 lg:grid-cols-2">
+        <div className="grid gap-2 md:gap-4 lg:grid-cols-2 lg:gap-6">
           {/* Upcoming Events */}
           <DashboardEventsList
-            upcomingOccurrences={upcomingOccurrences}
-            rsvpsByOccurrence={rsvpsByOccurrence}
-            userRole={userRole}
             currentUserRsvpMap={currentUserRsvpMap}
+            rsvpsByOccurrence={rsvpsByOccurrence}
+            upcomingOccurrences={upcomingOccurrences}
+            userRole={userRole}
           />
 
           {/* Show link to blog only when there are no posts */}
           {latestPosts.length === 0 && (
             <div className="flex justify-center">
               <Button
-                variant="outline"
-                size="sm"
                 asChild
                 className="rounded-lg md:rounded-xl"
+                size="sm"
+                variant="outline"
               >
                 <Link href="/blog">View blog in dashboard</Link>
               </Button>

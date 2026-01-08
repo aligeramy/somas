@@ -64,33 +64,53 @@ export default function ProfileSetupPage() {
   // Wait for Supabase session to be ready before doing anything
   useEffect(() => {
     const supabase = supabaseRef.current;
-    
-    console.log("[ProfileSetup] Component mounted, setting up auth listener...");
-    
+
+    console.log(
+      "[ProfileSetup] Component mounted, setting up auth listener..."
+    );
+
     // Check initial session state
     const checkSession = async () => {
       console.log("[ProfileSetup] Checking initial session...");
-      const { data: { session }, error } = await supabase.auth.getSession();
-      
+      const {
+        data: { session },
+        error,
+      } = await supabase.auth.getSession();
+
       if (error) {
         console.error("[ProfileSetup] Error getting session:", error);
       }
-      
+
       if (session) {
-        console.log("[ProfileSetup] Session found on mount:", session.user.email);
+        console.log(
+          "[ProfileSetup] Session found on mount:",
+          session.user.email
+        );
         setSessionReady(true);
       } else {
-        console.log("[ProfileSetup] No session on mount, waiting for auth state change...");
+        console.log(
+          "[ProfileSetup] No session on mount, waiting for auth state change..."
+        );
       }
     };
-    
+
     checkSession();
-    
+
     // Listen for auth state changes - this is crucial for post-login redirects
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("[ProfileSetup] Auth state changed:", event, session?.user?.email || "no user");
-      
-      if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED" || event === "INITIAL_SESSION") {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log(
+        "[ProfileSetup] Auth state changed:",
+        event,
+        session?.user?.email || "no user"
+      );
+
+      if (
+        event === "SIGNED_IN" ||
+        event === "TOKEN_REFRESHED" ||
+        event === "INITIAL_SESSION"
+      ) {
         if (session) {
           console.log("[ProfileSetup] Session ready via auth state change");
           setSessionReady(true);
@@ -100,7 +120,7 @@ export default function ProfileSetupPage() {
         router.push("/login");
       }
     });
-    
+
     return () => {
       console.log("[ProfileSetup] Cleaning up auth listener");
       subscription.unsubscribe();
@@ -109,20 +129,28 @@ export default function ProfileSetupPage() {
 
   const loadUserProfile = useCallback(async () => {
     if (!sessionReady) {
-      console.log("[ProfileSetup] Session not ready yet, skipping profile load");
+      console.log(
+        "[ProfileSetup] Session not ready yet, skipping profile load"
+      );
       return;
     }
-    
+
     console.log("[ProfileSetup] Loading user profile...");
-    
+
     try {
       setLoadingProfile(true);
       const response = await fetch("/api/profile");
-      
-      console.log("[ProfileSetup] Profile API response status:", response.status);
+
+      console.log(
+        "[ProfileSetup] Profile API response status:",
+        response.status
+      );
 
       if (response.status === 401) {
-        console.log("[ProfileSetup] Got 401, retry count:", retryCountRef.current);
+        console.log(
+          "[ProfileSetup] Got 401, retry count:",
+          retryCountRef.current
+        );
         if (retryCountRef.current < 3) {
           // Session not ready yet, retry after a short delay
           retryCountRef.current += 1;
@@ -131,18 +159,20 @@ export default function ProfileSetupPage() {
             loadUserProfile();
           }, 500);
           return;
-        } else {
-          // After retries exhausted, redirect to login
-          console.log("[ProfileSetup] Retries exhausted, redirecting to login");
-          router.push("/login");
-          return;
         }
+        // After retries exhausted, redirect to login
+        console.log("[ProfileSetup] Retries exhausted, redirecting to login");
+        router.push("/login");
+        return;
       }
 
       if (response.ok) {
         const data = await response.json();
-        console.log("[ProfileSetup] Profile loaded successfully:", data.user?.name || "no name");
-        
+        console.log(
+          "[ProfileSetup] Profile loaded successfully:",
+          data.user?.name || "no name"
+        );
+
         // Pre-populate fields if user already has data (from invitation)
         if (data.user.name) setName(data.user.name);
         if (data.user.phone) setPhone(data.user.phone);
@@ -157,7 +187,7 @@ export default function ProfileSetupPage() {
           setEmergencyContactPhone(data.user.emergencyContactPhone);
         if (data.user.emergencyContactRelationship)
           setEmergencyContactRelationship(
-            data.user.emergencyContactRelationship,
+            data.user.emergencyContactRelationship
           );
         if (data.user.emergencyContactEmail)
           setEmergencyContactEmail(data.user.emergencyContactEmail);
@@ -167,17 +197,22 @@ export default function ProfileSetupPage() {
         if (data.user.allergies) setAllergies(data.user.allergies);
         if (data.user.dateOfBirth)
           setDateOfBirth(
-            new Date(data.user.dateOfBirth).toISOString().split("T")[0],
+            new Date(data.user.dateOfBirth).toISOString().split("T")[0]
           );
         if (data.user.avatarUrl) setAvatarPreview(data.user.avatarUrl);
         retryCountRef.current = 0; // Reset on success
       } else if (response.status === 404) {
         // User not found in database - this is okay, they can still fill out the form
         // The API will create the user when they submit
-        console.log("[ProfileSetup] User not found in DB (404), form will be empty");
+        console.log(
+          "[ProfileSetup] User not found in DB (404), form will be empty"
+        );
         retryCountRef.current = 0;
       } else {
-        console.log("[ProfileSetup] Unexpected response status:", response.status);
+        console.log(
+          "[ProfileSetup] Unexpected response status:",
+          response.status
+        );
         if (retryCountRef.current < 3) {
           // If response is not ok, try retrying once after a delay
           retryCountRef.current += 1;
@@ -199,7 +234,9 @@ export default function ProfileSetupPage() {
         }, 1000);
         return;
       }
-      console.log("[ProfileSetup] Could not load existing profile - form will still be available");
+      console.log(
+        "[ProfileSetup] Could not load existing profile - form will still be available"
+      );
     } finally {
       setLoadingProfile(false);
     }
@@ -233,7 +270,7 @@ export default function ProfileSetupPage() {
     e.preventDefault();
     setError(null);
     setLoading(true);
-    
+
     console.log("[ProfileSetup] Submitting profile...");
 
     try {
@@ -254,7 +291,7 @@ export default function ProfileSetupPage() {
         const fileExt = avatarFile.name.split(".").pop();
         const fileName = `${user.id}-${Date.now()}.${fileExt}`;
         const filePath = `avatars/${fileName}`;
-        
+
         console.log("[ProfileSetup] Uploading avatar:", filePath);
 
         const { error: uploadError } = await supabase.storage
@@ -327,7 +364,7 @@ export default function ProfileSetupPage() {
   if (!sessionReady) {
     console.log("[ProfileSetup] Rendering: waiting for session");
     return (
-      <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden items-center justify-center">
+      <div className="flex h-full min-h-0 flex-1 flex-col items-center justify-center overflow-hidden">
         <div className="flex flex-col items-center gap-4">
           <IconLoader2 className="h-8 w-8 animate-spin text-primary" />
           <p className="text-muted-foreground">Loading your session...</p>
@@ -337,25 +374,25 @@ export default function ProfileSetupPage() {
   }
 
   return (
-    <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
+    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
       <PageHeader
-        title="Complete Your Profile"
         description={
           loadingProfile
             ? "Loading your existing profile..."
             : "Set up your profile to get started with SOMAS. You can edit any pre-filled information."
         }
+        title="Complete Your Profile"
       >
         <Button
+          className="gap-2 rounded-sm md:rounded-xl"
+          disabled={loading || !name}
           onClick={(e) => {
             e.preventDefault();
             const form = document.getElementById(
-              "profile-setup-form",
+              "profile-setup-form"
             ) as HTMLFormElement;
             form?.requestSubmit();
           }}
-          disabled={loading || !name}
-          className="gap-2 rounded-sm md:rounded-xl"
         >
           {loading ? (
             <>
@@ -376,134 +413,147 @@ export default function ProfileSetupPage() {
         </Button>
       </PageHeader>
 
-      <div className="flex-1 overflow-auto min-h-0">
-        <div className="max-w-4xl mx-auto space-y-4 md:space-y-6 px-4 py-3 md:px-6 md:py-4 pb-24 md:pb-8">
+      <div className="min-h-0 flex-1 overflow-auto">
+        <div className="mx-auto max-w-4xl space-y-4 px-4 py-3 pb-24 md:space-y-6 md:px-6 md:py-4 md:pb-8">
           <form
+            className="mb-4 space-y-4 md:mb-8 md:space-y-6"
             id="profile-setup-form"
             onSubmit={handleSubmit}
-            className="space-y-4 md:space-y-6 mb-4 md:mb-8"
           >
             {error && (
-              <div className="bg-destructive/10 text-destructive rounded-xl p-3 md:p-4 text-sm">
+              <div className="rounded-xl bg-destructive/10 p-3 text-destructive text-sm md:p-4">
                 {error}
               </div>
             )}
 
             {/* Profile Picture Section */}
-            <div className="flex flex-col items-center justify-center w-full py-4 md:py-6">
-              <div className="flex flex-col items-center justify-center gap-3 md:gap-4 w-full">
+            <div className="flex w-full flex-col items-center justify-center py-4 md:py-6">
+              <div className="flex w-full flex-col items-center justify-center gap-3 md:gap-4">
                 <button
-                  type="button"
+                  className="group relative mx-auto cursor-pointer rounded-full focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
                   onClick={handleAvatarClick}
-                  className="relative group cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-full mx-auto"
+                  type="button"
                 >
-                  <div className="relative h-24 w-24 md:h-28 md:w-28 rounded-full overflow-hidden border-2 border-border bg-muted flex items-center justify-center shadow-lg">
+                  <div className="relative flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border-2 border-border bg-muted shadow-lg md:h-28 md:w-28">
                     {avatarPreview ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
-                        src={avatarPreview}
                         alt="Profile"
                         className="h-full w-full object-cover"
+                        src={avatarPreview}
                       />
                     ) : (
-                      <IconUserCircle className="h-12 w-12 md:h-14 md:w-14 text-muted-foreground" />
+                      <IconUserCircle className="h-12 w-12 text-muted-foreground md:h-14 md:w-14" />
                     )}
-                    <div className="absolute inset-0 bg-black/60 rounded-full opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity flex items-center justify-center">
-                      <IconCamera className="h-6 w-6 md:h-7 md:w-7 text-white" />
+                    <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/60 opacity-0 transition-opacity group-hover:opacity-100 group-active:opacity-100">
+                      <IconCamera className="h-6 w-6 text-white md:h-7 md:w-7" />
                     </div>
                   </div>
                 </button>
-                <div className="text-center w-full">
-                  <p className="text-sm md:text-base font-medium">Upload Profile Picture</p>
-                  <p className="text-xs md:text-sm text-muted-foreground mt-1">Tap to change</p>
+                <div className="w-full text-center">
+                  <p className="font-medium text-sm md:text-base">
+                    Upload Profile Picture
+                  </p>
+                  <p className="mt-1 text-muted-foreground text-xs md:text-sm">
+                    Tap to change
+                  </p>
                 </div>
                 <input
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleAvatarChange}
                   ref={fileInputRef}
                   type="file"
-                  accept="image/*"
-                  onChange={handleAvatarChange}
-                  className="hidden"
                 />
               </div>
             </div>
 
             {/* Basic Information */}
-            <div className="space-y-3 md:space-y-4 py-4 md:py-6">
+            <div className="space-y-3 py-4 md:space-y-4 md:py-6">
               <div className="flex items-center gap-2 md:gap-3">
-                <hr className="w-6 md:w-8 border-border" />
-                <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                <hr className="w-6 border-border md:w-8" />
+                <h3 className="font-medium text-muted-foreground text-xs uppercase tracking-wider">
                   Basic Information
                 </h3>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4 lg:grid-cols-3">
                 <div className="space-y-1.5 md:space-y-2">
-                  <Label htmlFor="name" className="flex items-center gap-1.5 md:gap-2 text-sm md:text-base">
+                  <Label
+                    className="flex items-center gap-1.5 text-sm md:gap-2 md:text-base"
+                    htmlFor="name"
+                  >
                     <IconUser className="h-3.5 w-3.5 md:h-4 md:w-4" />
                     Name *
                   </Label>
                   <div className="relative">
-                    <IconUser className="absolute left-2.5 md:left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 md:h-4 md:w-4 text-muted-foreground" />
+                    <IconUser className="absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground md:left-3 md:h-4 md:w-4" />
                     <Input
+                      className="h-11 pl-8 text-sm md:h-11 md:pl-9 md:text-base"
                       id="name"
-                      value={name}
                       onChange={(e) => setName(e.target.value)}
                       placeholder="Enter your name"
-                      className="pl-8 md:pl-9 h-11 md:h-11 text-sm md:text-base"
                       required
+                      value={name}
                     />
                   </div>
                 </div>
 
                 <div className="space-y-1.5 md:space-y-2">
                   <Label
+                    className="flex items-center gap-1.5 text-sm md:gap-2 md:text-base"
                     htmlFor="dateOfBirth"
-                    className="flex items-center gap-1.5 md:gap-2 text-sm md:text-base"
                   >
                     <IconCalendar className="h-3.5 w-3.5 md:h-4 md:w-4" />
                     Date of Birth
                   </Label>
                   <DatePicker
+                    className="h-11 w-full text-sm md:h-11 md:text-base"
                     id="dateOfBirth"
-                    value={dateOfBirth}
                     onChange={setDateOfBirth}
                     placeholder="Select date of birth"
-                    className="w-full h-11 md:h-11 text-sm md:text-base"
+                    value={dateOfBirth}
                   />
                 </div>
 
                 <div className="space-y-1.5 md:space-y-2 lg:col-start-1">
-                  <Label htmlFor="altEmail" className="flex items-center gap-1.5 md:gap-2 text-sm md:text-base">
+                  <Label
+                    className="flex items-center gap-1.5 text-sm md:gap-2 md:text-base"
+                    htmlFor="altEmail"
+                  >
                     <IconMail className="h-3.5 w-3.5 md:h-4 md:w-4" />
                     Alternate Email
                   </Label>
                   <div className="relative">
-                    <IconMail className="absolute left-2.5 md:left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 md:h-4 md:w-4 text-muted-foreground" />
+                    <IconMail className="absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground md:left-3 md:h-4 md:w-4" />
                     <Input
+                      className="h-11 pl-8 text-sm md:h-11 md:pl-9 md:text-base"
                       id="altEmail"
-                      value={altEmail}
                       onChange={(e) => setAltEmail(e.target.value)}
                       placeholder="Enter alternate email (optional)"
                       type="email"
-                      className="pl-8 md:pl-9 h-11 md:h-11 text-sm md:text-base"
+                      value={altEmail}
                     />
                   </div>
                 </div>
 
-                <div className="space-y-1.5 md:space-y-2 md:col-span-2 lg:col-span-2">
-                  <Label htmlFor="address" className="flex items-center gap-1.5 md:gap-2 text-sm md:text-base">
+                <div className="space-y-1.5 md:col-span-2 md:space-y-2 lg:col-span-2">
+                  <Label
+                    className="flex items-center gap-1.5 text-sm md:gap-2 md:text-base"
+                    htmlFor="address"
+                  >
                     <IconMapPin className="h-3.5 w-3.5 md:h-4 md:w-4" />
                     Address
                   </Label>
                   <div className="relative">
-                    <IconMapPin className="absolute left-2.5 md:left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 md:h-4 md:w-4 text-muted-foreground z-10" />
+                    <IconMapPin className="absolute top-1/2 left-2.5 z-10 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground md:left-3 md:h-4 md:w-4" />
                     <Input
-                      ref={addressInputRef}
+                      autoComplete="off"
+                      className="h-11 pl-8 text-sm md:h-11 md:pl-9 md:text-base"
                       id="address"
-                      value={address}
                       onChange={(e) => setAddress(e.target.value)}
                       placeholder="Enter your address"
-                      className="pl-8 md:pl-9 h-11 md:h-11 text-sm md:text-base"
-                      autoComplete="off"
+                      ref={addressInputRef}
+                      value={address}
                     />
                   </div>
                 </div>
@@ -511,91 +561,94 @@ export default function ProfileSetupPage() {
             </div>
 
             {/* Contact Information */}
-            <div className="space-y-3 md:space-y-4 py-4 md:py-6">
+            <div className="space-y-3 py-4 md:space-y-4 md:py-6">
               <div className="flex items-center gap-2 md:gap-3">
-                <hr className="w-6 md:w-8 border-border" />
-                <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                <hr className="w-6 border-border md:w-8" />
+                <h3 className="font-medium text-muted-foreground text-xs uppercase tracking-wider">
                   Contact Information
                 </h3>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4 lg:grid-cols-4">
                 <div className="space-y-1.5 md:space-y-2">
-                  <Label htmlFor="phone" className="flex items-center gap-1.5 md:gap-2 text-sm md:text-base">
+                  <Label
+                    className="flex items-center gap-1.5 text-sm md:gap-2 md:text-base"
+                    htmlFor="phone"
+                  >
                     <IconPhone className="h-3.5 w-3.5 md:h-4 md:w-4" />
                     Phone
                   </Label>
                   <div className="relative">
-                    <IconPhone className="absolute left-2.5 md:left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 md:h-4 md:w-4 text-muted-foreground" />
+                    <IconPhone className="absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground md:left-3 md:h-4 md:w-4" />
                     <Input
+                      className="h-11 pl-8 text-sm md:h-11 md:pl-9 md:text-base"
                       id="phone"
-                      value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       placeholder="Enter your phone number"
                       type="tel"
-                      className="pl-8 md:pl-9 h-11 md:h-11 text-sm md:text-base"
+                      value={phone}
                     />
                   </div>
                 </div>
 
                 <div className="space-y-1.5 md:space-y-2">
                   <Label
+                    className="flex items-center gap-1.5 text-sm md:gap-2 md:text-base"
                     htmlFor="homePhone"
-                    className="flex items-center gap-1.5 md:gap-2 text-sm md:text-base"
                   >
                     <IconHome className="h-3.5 w-3.5 md:h-4 md:w-4" />
                     Home Phone
                   </Label>
                   <div className="relative">
-                    <IconHome className="absolute left-2.5 md:left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 md:h-4 md:w-4 text-muted-foreground" />
+                    <IconHome className="absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground md:left-3 md:h-4 md:w-4" />
                     <Input
+                      className="h-11 pl-8 text-sm md:h-11 md:pl-9 md:text-base"
                       id="homePhone"
-                      value={homePhone}
                       onChange={(e) => setHomePhone(e.target.value)}
                       placeholder="Enter your home phone"
                       type="tel"
-                      className="pl-8 md:pl-9 h-11 md:h-11 text-sm md:text-base"
+                      value={homePhone}
                     />
                   </div>
                 </div>
 
                 <div className="space-y-1.5 md:space-y-2">
                   <Label
+                    className="flex items-center gap-1.5 text-sm md:gap-2 md:text-base"
                     htmlFor="workPhone"
-                    className="flex items-center gap-1.5 md:gap-2 text-sm md:text-base"
                   >
                     <IconPhone className="h-3.5 w-3.5 md:h-4 md:w-4" />
                     Work Phone
                   </Label>
                   <div className="relative">
-                    <IconPhone className="absolute left-2.5 md:left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 md:h-4 md:w-4 text-muted-foreground" />
+                    <IconPhone className="absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground md:left-3 md:h-4 md:w-4" />
                     <Input
+                      className="h-11 pl-8 text-sm md:h-11 md:pl-9 md:text-base"
                       id="workPhone"
-                      value={workPhone}
                       onChange={(e) => setWorkPhone(e.target.value)}
                       placeholder="Enter your work phone"
                       type="tel"
-                      className="pl-8 md:pl-9 h-11 md:h-11 text-sm md:text-base"
+                      value={workPhone}
                     />
                   </div>
                 </div>
 
                 <div className="space-y-1.5 md:space-y-2">
                   <Label
+                    className="flex items-center gap-1.5 text-sm md:gap-2 md:text-base"
                     htmlFor="cellPhone"
-                    className="flex items-center gap-1.5 md:gap-2 text-sm md:text-base"
                   >
                     <IconDeviceMobile className="h-3.5 w-3.5 md:h-4 md:w-4" />
                     Cell Phone
                   </Label>
                   <div className="relative">
-                    <IconDeviceMobile className="absolute left-2.5 md:left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 md:h-4 md:w-4 text-muted-foreground" />
+                    <IconDeviceMobile className="absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground md:left-3 md:h-4 md:w-4" />
                     <Input
+                      className="h-11 pl-8 text-sm md:h-11 md:pl-9 md:text-base"
                       id="cellPhone"
-                      value={cellPhone}
                       onChange={(e) => setCellPhone(e.target.value)}
                       placeholder="Enter your cell phone"
                       type="tel"
-                      className="pl-8 md:pl-9 h-11 md:h-11 text-sm md:text-base"
+                      value={cellPhone}
                     />
                   </div>
                 </div>
@@ -603,95 +656,95 @@ export default function ProfileSetupPage() {
             </div>
 
             {/* Emergency Contact */}
-            <div className="space-y-3 md:space-y-4 py-4 md:py-6">
+            <div className="space-y-3 py-4 md:space-y-4 md:py-6">
               <div className="flex items-center gap-2 md:gap-3">
-                <hr className="w-6 md:w-8 border-border" />
-                <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                <hr className="w-6 border-border md:w-8" />
+                <h3 className="flex items-center gap-2 font-medium text-muted-foreground text-xs uppercase tracking-wider">
                   <IconAlertCircle className="h-3 w-3 text-destructive" />
                   Emergency Contact
                 </h3>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4">
                 <div className="space-y-1.5 md:space-y-2">
                   <Label
+                    className="flex items-center gap-1.5 text-sm md:gap-2 md:text-base"
                     htmlFor="emergencyContactName"
-                    className="flex items-center gap-1.5 md:gap-2 text-sm md:text-base"
                   >
                     <IconUser className="h-3.5 w-3.5 md:h-4 md:w-4" />
                     Contact Name
                   </Label>
                   <div className="relative">
-                    <IconUser className="absolute left-2.5 md:left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 md:h-4 md:w-4 text-muted-foreground" />
+                    <IconUser className="absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground md:left-3 md:h-4 md:w-4" />
                     <Input
+                      className="h-11 pl-8 text-sm md:h-11 md:pl-9 md:text-base"
                       id="emergencyContactName"
-                      value={emergencyContactName}
                       onChange={(e) => setEmergencyContactName(e.target.value)}
                       placeholder="Enter emergency contact name"
-                      className="pl-8 md:pl-9 h-11 md:h-11 text-sm md:text-base"
+                      value={emergencyContactName}
                     />
                   </div>
                 </div>
 
                 <div className="space-y-1.5 md:space-y-2">
                   <Label
+                    className="flex items-center gap-1.5 text-sm md:gap-2 md:text-base"
                     htmlFor="emergencyContactRelationship"
-                    className="flex items-center gap-1.5 md:gap-2 text-sm md:text-base"
                   >
                     <IconUser className="h-3.5 w-3.5 md:h-4 md:w-4" />
                     Relationship
                   </Label>
                   <div className="relative">
-                    <IconUser className="absolute left-2.5 md:left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 md:h-4 md:w-4 text-muted-foreground" />
+                    <IconUser className="absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground md:left-3 md:h-4 md:w-4" />
                     <Input
+                      className="h-11 pl-8 text-sm md:h-11 md:pl-9 md:text-base"
                       id="emergencyContactRelationship"
-                      value={emergencyContactRelationship}
                       onChange={(e) =>
                         setEmergencyContactRelationship(e.target.value)
                       }
                       placeholder="e.g., Parent, Spouse, Friend"
-                      className="pl-8 md:pl-9 h-11 md:h-11 text-sm md:text-base"
+                      value={emergencyContactRelationship}
                     />
                   </div>
                 </div>
 
                 <div className="space-y-1.5 md:space-y-2">
                   <Label
+                    className="flex items-center gap-1.5 text-sm md:gap-2 md:text-base"
                     htmlFor="emergencyContactPhone"
-                    className="flex items-center gap-1.5 md:gap-2 text-sm md:text-base"
                   >
                     <IconPhone className="h-3.5 w-3.5 md:h-4 md:w-4" />
                     Phone
                   </Label>
                   <div className="relative">
-                    <IconPhone className="absolute left-2.5 md:left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 md:h-4 md:w-4 text-muted-foreground" />
+                    <IconPhone className="absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground md:left-3 md:h-4 md:w-4" />
                     <Input
+                      className="h-11 pl-8 text-sm md:h-11 md:pl-9 md:text-base"
                       id="emergencyContactPhone"
-                      value={emergencyContactPhone}
                       onChange={(e) => setEmergencyContactPhone(e.target.value)}
                       placeholder="Enter emergency contact phone"
                       type="tel"
-                      className="pl-8 md:pl-9 h-11 md:h-11 text-sm md:text-base"
+                      value={emergencyContactPhone}
                     />
                   </div>
                 </div>
 
                 <div className="space-y-1.5 md:space-y-2">
                   <Label
+                    className="flex items-center gap-1.5 text-sm md:gap-2 md:text-base"
                     htmlFor="emergencyContactEmail"
-                    className="flex items-center gap-1.5 md:gap-2 text-sm md:text-base"
                   >
                     <IconMail className="h-3.5 w-3.5 md:h-4 md:w-4" />
                     Email
                   </Label>
                   <div className="relative">
-                    <IconMail className="absolute left-2.5 md:left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 md:h-4 md:w-4 text-muted-foreground" />
+                    <IconMail className="absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground md:left-3 md:h-4 md:w-4" />
                     <Input
+                      className="h-11 pl-8 text-sm md:h-11 md:pl-9 md:text-base"
                       id="emergencyContactEmail"
-                      value={emergencyContactEmail}
                       onChange={(e) => setEmergencyContactEmail(e.target.value)}
                       placeholder="Enter emergency contact email"
                       type="email"
-                      className="pl-8 md:pl-9 h-11 md:h-11 text-sm md:text-base"
+                      value={emergencyContactEmail}
                     />
                   </div>
                 </div>
@@ -699,71 +752,71 @@ export default function ProfileSetupPage() {
             </div>
 
             {/* Medical Information */}
-            <div className="space-y-3 md:space-y-4 py-4 md:py-6">
+            <div className="space-y-3 py-4 md:space-y-4 md:py-6">
               <div className="flex items-center gap-2 md:gap-3">
-                <hr className="w-6 md:w-8 border-border" />
-                <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                <hr className="w-6 border-border md:w-8" />
+                <h3 className="flex items-center gap-2 font-medium text-muted-foreground text-xs uppercase tracking-wider">
                   <IconMedicalCross className="h-3 w-3 text-destructive" />
                   Medical Information
                 </h3>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4 lg:grid-cols-3">
                 <div className="space-y-1.5 md:space-y-2">
                   <Label
+                    className="flex items-center gap-1.5 text-sm md:gap-2 md:text-base"
                     htmlFor="medicalConditions"
-                    className="flex items-center gap-1.5 md:gap-2 text-sm md:text-base"
                   >
                     <IconMedicalCross className="h-3.5 w-3.5 md:h-4 md:w-4" />
                     Medical Conditions
                   </Label>
                   <div className="relative">
-                    <IconMedicalCross className="absolute left-2.5 md:left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 md:h-4 md:w-4 text-muted-foreground" />
+                    <IconMedicalCross className="absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground md:left-3 md:h-4 md:w-4" />
                     <Input
+                      className="h-11 pl-8 text-sm md:h-11 md:pl-9 md:text-base"
                       id="medicalConditions"
-                      value={medicalConditions}
                       onChange={(e) => setMedicalConditions(e.target.value)}
                       placeholder="List any medical conditions"
-                      className="pl-8 md:pl-9 h-11 md:h-11 text-sm md:text-base"
+                      value={medicalConditions}
                     />
                   </div>
                 </div>
 
                 <div className="space-y-1.5 md:space-y-2">
                   <Label
+                    className="flex items-center gap-1.5 text-sm md:gap-2 md:text-base"
                     htmlFor="medications"
-                    className="flex items-center gap-1.5 md:gap-2 text-sm md:text-base"
                   >
                     <IconPill className="h-3.5 w-3.5 md:h-4 md:w-4" />
                     Medications
                   </Label>
                   <div className="relative">
-                    <IconPill className="absolute left-2.5 md:left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 md:h-4 md:w-4 text-muted-foreground" />
+                    <IconPill className="absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground md:left-3 md:h-4 md:w-4" />
                     <Input
+                      className="h-11 pl-8 text-sm md:h-11 md:pl-9 md:text-base"
                       id="medications"
-                      value={medications}
                       onChange={(e) => setMedications(e.target.value)}
                       placeholder="List any medications you are taking"
-                      className="pl-8 md:pl-9 h-11 md:h-11 text-sm md:text-base"
+                      value={medications}
                     />
                   </div>
                 </div>
 
                 <div className="space-y-1.5 md:space-y-2">
                   <Label
+                    className="flex items-center gap-1.5 text-sm md:gap-2 md:text-base"
                     htmlFor="allergies"
-                    className="flex items-center gap-1.5 md:gap-2 text-sm md:text-base"
                   >
                     <IconAlertCircle className="h-3.5 w-3.5 md:h-4 md:w-4" />
                     Allergies
                   </Label>
                   <div className="relative">
-                    <IconAlertCircle className="absolute left-2.5 md:left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 md:h-4 md:w-4 text-muted-foreground" />
+                    <IconAlertCircle className="absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground md:left-3 md:h-4 md:w-4" />
                     <Input
+                      className="h-11 pl-8 text-sm md:h-11 md:pl-9 md:text-base"
                       id="allergies"
-                      value={allergies}
                       onChange={(e) => setAllergies(e.target.value)}
                       placeholder="List any allergies"
-                      className="pl-8 md:pl-9 h-11 md:h-11 text-sm md:text-base"
+                      value={allergies}
                     />
                   </div>
                 </div>
@@ -771,12 +824,17 @@ export default function ProfileSetupPage() {
             </div>
 
             {/* Mobile Save Button - Fixed at bottom */}
-            <div className="md:hidden fixed bottom-16 left-0 right-0 p-3 bg-background/95 backdrop-blur border-t shadow-lg z-50" style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom, 0))" }}>
+            <div
+              className="fixed right-0 bottom-16 left-0 z-50 border-t bg-background/95 p-3 shadow-lg backdrop-blur md:hidden"
+              style={{
+                paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom, 0))",
+              }}
+            >
               <Button
-                type="submit"
+                className="h-11 w-full gap-2 rounded-sm font-semibold text-base md:h-12 md:rounded-xl"
                 disabled={loading || !name}
-                className="w-full h-11 md:h-12 gap-2 rounded-sm md:rounded-xl text-base font-semibold"
                 size="lg"
+                type="submit"
               >
                 {loading ? (
                   <>

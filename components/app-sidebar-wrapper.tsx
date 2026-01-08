@@ -46,15 +46,15 @@ async function AppSidebarContent() {
 
   return (
     <AppSidebar
+      gymLogo={gymLogo}
+      gymName={gymName}
+      gymWebsite={gymWebsite}
       user={{
         name: dbUser.name,
         email: dbUser.email,
         avatar: dbUser.avatarUrl,
         role: dbUser.role,
       }}
-      gymName={gymName}
-      gymLogo={gymLogo}
-      gymWebsite={gymWebsite}
     />
   );
 }

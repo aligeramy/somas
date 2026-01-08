@@ -59,7 +59,7 @@ export const users = pgTable(
   (table) => ({
     gymIdIdx: index("User_gymId_idx").on(table.gymId),
     emailIdx: index("User_email_idx").on(table.email),
-  }),
+  })
 );
 
 // Gym table
@@ -81,7 +81,7 @@ export const gyms = pgTable(
   },
   (table) => ({
     createdByIdIdx: index("Gym_createdById_idx").on(table.createdById),
-  }),
+  })
 );
 
 // Event table
@@ -104,7 +104,7 @@ export const events = pgTable(
   },
   (table) => ({
     gymIdIdx: index("Event_gymId_idx").on(table.gymId),
-  }),
+  })
 );
 
 // EventOccurrence table
@@ -125,9 +125,9 @@ export const eventOccurrences = pgTable(
     dateIdx: index("EventOccurrence_date_idx").on(table.date),
     uniqueEventDate: unique("EventOccurrence_eventId_date_key").on(
       table.eventId,
-      table.date,
+      table.date
     ),
-  }),
+  })
 );
 
 // RSVP table
@@ -147,9 +147,9 @@ export const rsvps = pgTable(
     occurrenceIdIdx: index("RSVP_occurrenceId_idx").on(table.occurrenceId),
     uniqueUserOccurrence: unique("RSVP_userId_occurrenceId_key").on(
       table.userId,
-      table.occurrenceId,
+      table.occurrenceId
     ),
-  }),
+  })
 );
 
 // Invitation table
@@ -175,7 +175,7 @@ export const invitations = pgTable(
     tokenIdx: index("Invitation_token_idx").on(table.token),
     emailIdx: index("Invitation_email_idx").on(table.email),
     gymIdIdx: index("Invitation_gymId_idx").on(table.gymId),
-  }),
+  })
 );
 
 // Announcement table
@@ -192,7 +192,7 @@ export const announcements = pgTable(
   (table) => ({
     gymIdIdx: index("Announcement_gymId_idx").on(table.gymId),
     coachIdIdx: index("Announcement_coachId_idx").on(table.coachId),
-  }),
+  })
 );
 
 // Channel table
@@ -211,7 +211,7 @@ export const channels = pgTable(
     gymIdIdx: index("Channel_gymId_idx").on(table.gymId),
     typeIdx: index("Channel_type_idx").on(table.type),
     eventIdIdx: index("Channel_eventId_idx").on(table.eventId),
-  }),
+  })
 );
 
 // Message table
@@ -233,7 +233,7 @@ export const messages = pgTable(
     channelIdIdx: index("Message_channelId_idx").on(table.channelId),
     senderIdIdx: index("Message_senderId_idx").on(table.senderId),
     createdAtIdx: index("Message_createdAt_idx").on(table.createdAt),
-  }),
+  })
 );
 
 // ChatNotification table - tracks unread messages
@@ -250,14 +250,14 @@ export const chatNotifications = pgTable(
   (table) => ({
     userIdChannelIdIdx: index("ChatNotification_userId_channelId_idx").on(
       table.userId,
-      table.channelId,
+      table.channelId
     ),
     userIdReadAtIdx: index("ChatNotification_userId_readAt_idx").on(
       table.userId,
-      table.readAt,
+      table.readAt
     ),
     channelIdIdx: index("ChatNotification_channelId_idx").on(table.channelId),
-  }),
+  })
 );
 
 // Blog Post table
@@ -280,7 +280,7 @@ export const blogPosts = pgTable(
     authorIdIdx: index("BlogPost_authorId_idx").on(table.authorId),
     eventIdIdx: index("BlogPost_eventId_idx").on(table.eventId),
     createdAtIdx: index("BlogPost_createdAt_idx").on(table.createdAt),
-  }),
+  })
 );
 
 // Notice table (only one active notice per gym)
@@ -301,7 +301,7 @@ export const notices = pgTable(
     gymIdIdx: index("Notice_gymId_idx").on(table.gymId),
     authorIdIdx: index("Notice_authorId_idx").on(table.authorId),
     activeIdx: index("Notice_active_idx").on(table.active),
-  }),
+  })
 );
 
 // ReminderLog table
@@ -316,15 +316,15 @@ export const reminderLogs = pgTable(
   },
   (table) => ({
     occurrenceIdIdx: index("ReminderLog_occurrenceId_idx").on(
-      table.occurrenceId,
+      table.occurrenceId
     ),
     userIdIdx: index("ReminderLog_userId_idx").on(table.userId),
     uniqueReminderLog: unique("ReminderLog_unique").on(
       table.occurrenceId,
       table.userId,
-      table.reminderType,
+      table.reminderType
     ),
-  }),
+  })
 );
 
 // Relations
@@ -383,7 +383,7 @@ export const eventOccurrencesRelations = relations(
     }),
     rsvps: many(rsvps),
     reminderLogs: many(reminderLogs),
-  }),
+  })
 );
 
 export const rsvpsRelations = relations(rsvps, ({ one }) => ({
@@ -505,5 +505,5 @@ export const chatNotificationsRelations = relations(
       fields: [chatNotifications.messageId],
       references: [messages.id],
     }),
-  }),
+  })
 );

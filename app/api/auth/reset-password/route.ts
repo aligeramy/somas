@@ -12,7 +12,7 @@ export async function POST(request: Request) {
   try {
     const { email } = await request.json();
 
-    if (!email || !email.trim()) {
+    if (!(email && email.trim())) {
       return NextResponse.json({ error: "Email is required" }, { status: 400 });
     }
 
@@ -21,7 +21,7 @@ export async function POST(request: Request) {
     if (!emailRegex.test(email.trim())) {
       return NextResponse.json(
         { error: "Invalid email format" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
       .select()
       .from(users)
       .where(
-        or(eq(users.email, email.trim()), eq(users.altEmail, email.trim())),
+        or(eq(users.email, email.trim()), eq(users.altEmail, email.trim()))
       )
       .limit(1);
 
@@ -49,7 +49,7 @@ export async function POST(request: Request) {
     if (!dbUser.gymId) {
       return NextResponse.json(
         { error: "User is not associated with a gym" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -91,7 +91,7 @@ export async function POST(request: Request) {
       console.error("Recovery link error:", linkError);
       return NextResponse.json(
         { error: `Failed to generate reset link: ${linkError.message}` },
-        { status: 500 },
+        { status: 500 }
       );
     }
 
@@ -122,7 +122,7 @@ export async function POST(request: Request) {
     if (emailResult.error) {
       return NextResponse.json(
         { error: `Failed to send email: ${emailResult.error.message}` },
-        { status: 500 },
+        { status: 500 }
       );
     }
 
@@ -135,7 +135,7 @@ export async function POST(request: Request) {
     console.error("Password reset error:", error);
     return NextResponse.json(
       { error: "Failed to process password reset request" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

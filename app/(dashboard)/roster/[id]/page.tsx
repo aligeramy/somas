@@ -137,7 +137,7 @@ export default function AthleteDetailPage() {
         setLoading(false);
       }
     },
-    [athleteId],
+    [athleteId]
   );
 
   useEffect(() => {
@@ -248,13 +248,13 @@ export default function AthleteDetailPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
+      <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
         <PageHeader title="Athlete Details" />
-        <div className="flex-1 overflow-auto min-h-0">
-          <div className="max-w-4xl mx-auto space-y-6 p-4">
+        <div className="min-h-0 flex-1 overflow-auto">
+          <div className="mx-auto max-w-4xl space-y-6 p-4">
             <Card className="rounded-xl">
               <CardHeader>
-                <Skeleton className="h-6 w-48 mb-2" />
+                <Skeleton className="mb-2 h-6 w-48" />
                 <Skeleton className="h-4 w-64" />
               </CardHeader>
               <CardContent className="space-y-4">
@@ -271,10 +271,10 @@ export default function AthleteDetailPage() {
 
   if (error || !athlete) {
     return (
-      <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
+      <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
         <PageHeader title="Athlete Details" />
-        <div className="flex-1 overflow-auto min-h-0">
-          <div className="max-w-4xl mx-auto space-y-6 p-4">
+        <div className="min-h-0 flex-1 overflow-auto">
+          <div className="mx-auto max-w-4xl space-y-6 p-4">
             <Card className="rounded-xl">
               <CardContent className="pt-6 text-center text-muted-foreground">
                 {error || "Athlete not found"}
@@ -287,20 +287,20 @@ export default function AthleteDetailPage() {
   }
 
   return (
-    <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
+    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
       <PageHeader
-        title="Athlete Details"
         description={`View details for ${athlete.name || athlete.email}`}
+        title="Athlete Details"
       >
         <div className="flex gap-2">
           {canEdit && (
-            <Button onClick={openEditDialog} className="rounded-xl gap-2">
+            <Button className="gap-2 rounded-xl" onClick={openEditDialog}>
               <IconEdit className="h-4 w-4" />
               Edit
             </Button>
           )}
           <Link href="/roster">
-            <Button variant="outline" className="rounded-xl gap-2">
+            <Button className="gap-2 rounded-xl" variant="outline">
               <IconArrowLeft className="h-4 w-4" />
               Back to Roster
             </Button>
@@ -308,27 +308,28 @@ export default function AthleteDetailPage() {
         </div>
       </PageHeader>
 
-      <div className="flex-1 overflow-auto min-h-0">
-        <div className="max-w-4xl mx-auto space-y-6 p-4">
+      <div className="min-h-0 flex-1 overflow-auto">
+        <div className="mx-auto max-w-4xl space-y-6 p-4">
           {/* Profile Header */}
           <Card className="rounded-xl">
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
                 <Avatar className="h-20 w-20 border-4 border-background shadow-lg">
                   <AvatarImage
-                    src={athlete.avatarUrl || undefined}
                     alt={athlete.name || athlete.email}
+                    src={athlete.avatarUrl || undefined}
                   />
-                  <AvatarFallback className="text-xl bg-gradient-to-br from-primary/20 to-primary/5">
+                  <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/5 text-xl">
                     {getInitials(athlete.name, athlete.email)}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h2 className="text-2xl font-semibold">
+                  <div className="mb-2 flex items-center gap-3">
+                    <h2 className="font-semibold text-2xl">
                       {athlete.name || "Unnamed"}
                     </h2>
                     <Badge
+                      className="rounded-lg"
                       variant={
                         athlete.role === "owner"
                           ? "default"
@@ -336,17 +337,16 @@ export default function AthleteDetailPage() {
                             ? "secondary"
                             : "outline"
                       }
-                      className="rounded-lg"
                     >
                       {formatRoleDisplay(athlete.role)}
                     </Badge>
                     {!athlete.onboarded && (
-                      <Badge variant="outline" className="rounded-lg">
+                      <Badge className="rounded-lg" variant="outline">
                         Pending
                       </Badge>
                     )}
                   </div>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-muted-foreground text-sm">
                     {athlete.email}
                   </p>
                 </div>
@@ -363,10 +363,10 @@ export default function AthleteDetailPage() {
             <CardContent className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground">Primary Email</p>
+                  <p className="text-muted-foreground text-xs">Primary Email</p>
                   <a
+                    className="flex items-center gap-2 text-primary text-sm hover:underline"
                     href={`mailto:${athlete.email}`}
-                    className="flex items-center gap-2 text-sm text-primary hover:underline"
                   >
                     <IconMail className="h-4 w-4" />
                     {athlete.email}
@@ -374,12 +374,12 @@ export default function AthleteDetailPage() {
                 </div>
                 {athlete.altEmail && (
                   <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-muted-foreground text-xs">
                       Alternate Email
                     </p>
                     <a
+                      className="flex items-center gap-2 text-primary text-sm hover:underline"
                       href={`mailto:${athlete.altEmail}`}
-                      className="flex items-center gap-2 text-sm text-primary hover:underline"
                     >
                       <IconMail className="h-4 w-4" />
                       {athlete.altEmail}
@@ -388,7 +388,7 @@ export default function AthleteDetailPage() {
                 )}
                 {athlete.address && (
                   <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground">Address</p>
+                    <p className="text-muted-foreground text-xs">Address</p>
                     <div className="flex items-center gap-2">
                       <IconHome className="h-4 w-4 text-muted-foreground" />
                       <p className="text-sm">{athlete.address}</p>
@@ -397,13 +397,13 @@ export default function AthleteDetailPage() {
                 )}
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-3 pt-2 border-t">
+              <div className="grid gap-4 border-t pt-2 sm:grid-cols-3">
                 {athlete.homePhone && (
                   <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground">Home Phone</p>
+                    <p className="text-muted-foreground text-xs">Home Phone</p>
                     <a
+                      className="flex items-center gap-2 text-primary text-sm hover:underline"
                       href={`tel:${athlete.homePhone}`}
-                      className="flex items-center gap-2 text-sm text-primary hover:underline"
                     >
                       <IconPhone className="h-4 w-4" />
                       {athlete.homePhone}
@@ -412,10 +412,10 @@ export default function AthleteDetailPage() {
                 )}
                 {athlete.workPhone && (
                   <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground">Work Phone</p>
+                    <p className="text-muted-foreground text-xs">Work Phone</p>
                     <a
+                      className="flex items-center gap-2 text-primary text-sm hover:underline"
                       href={`tel:${athlete.workPhone}`}
-                      className="flex items-center gap-2 text-sm text-primary hover:underline"
                     >
                       <IconBriefcase className="h-4 w-4" />
                       {athlete.workPhone}
@@ -424,10 +424,10 @@ export default function AthleteDetailPage() {
                 )}
                 {athlete.cellPhone && (
                   <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground">Cell Number</p>
+                    <p className="text-muted-foreground text-xs">Cell Number</p>
                     <a
+                      className="flex items-center gap-2 text-primary text-sm hover:underline"
                       href={`tel:${athlete.cellPhone}`}
-                      className="flex items-center gap-2 text-sm text-primary hover:underline"
                     >
                       <IconDeviceMobile className="h-4 w-4" />
                       {athlete.cellPhone}
@@ -439,10 +439,10 @@ export default function AthleteDetailPage() {
                   !athlete.workPhone &&
                   !athlete.cellPhone && (
                     <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground">Phone</p>
+                      <p className="text-muted-foreground text-xs">Phone</p>
                       <a
+                        className="flex items-center gap-2 text-primary text-sm hover:underline"
                         href={`tel:${athlete.phone}`}
-                        className="flex items-center gap-2 text-sm text-primary hover:underline"
                       >
                         <IconPhone className="h-4 w-4" />
                         {athlete.phone}
@@ -468,7 +468,7 @@ export default function AthleteDetailPage() {
                 <div className="grid gap-4 sm:grid-cols-2">
                   {athlete.emergencyContactName && (
                     <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-muted-foreground text-xs">
                         Emergency Contact Name
                       </p>
                       <div className="flex items-center gap-2">
@@ -481,7 +481,7 @@ export default function AthleteDetailPage() {
                   )}
                   {athlete.emergencyContactRelationship && (
                     <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-muted-foreground text-xs">
                         Relationship to Athlete
                       </p>
                       <p className="text-sm">
@@ -490,15 +490,15 @@ export default function AthleteDetailPage() {
                     </div>
                   )}
                 </div>
-                <div className="grid gap-4 sm:grid-cols-2 pt-2 border-t">
+                <div className="grid gap-4 border-t pt-2 sm:grid-cols-2">
                   {athlete.emergencyContactPhone && (
                     <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-muted-foreground text-xs">
                         Emergency Contact Phone
                       </p>
                       <a
+                        className="flex items-center gap-2 text-primary text-sm hover:underline"
                         href={`tel:${athlete.emergencyContactPhone}`}
-                        className="flex items-center gap-2 text-sm text-primary hover:underline"
                       >
                         <IconPhone className="h-4 w-4" />
                         {athlete.emergencyContactPhone}
@@ -507,12 +507,12 @@ export default function AthleteDetailPage() {
                   )}
                   {athlete.emergencyContactEmail && (
                     <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-muted-foreground text-xs">
                         Emergency Contact Email
                       </p>
                       <a
+                        className="flex items-center gap-2 text-primary text-sm hover:underline"
                         href={`mailto:${athlete.emergencyContactEmail}`}
-                        className="flex items-center gap-2 text-sm text-primary hover:underline"
                       >
                         <IconMail className="h-4 w-4" />
                         {athlete.emergencyContactEmail}
@@ -525,23 +525,25 @@ export default function AthleteDetailPage() {
           )}
 
           {/* Empty state for emergency contact */}
-          {!athlete.emergencyContactName &&
-            !athlete.emergencyContactPhone &&
-            !athlete.emergencyContactEmail && (
-              <Card className="rounded-xl">
-                <CardHeader>
-                  <CardTitle className="text-base">Emergency Contact</CardTitle>
-                  <CardDescription>
-                    No emergency contact information available
-                  </CardDescription>
-                </CardHeader>
-              </Card>
-            )}
+          {!(
+            athlete.emergencyContactName ||
+            athlete.emergencyContactPhone ||
+            athlete.emergencyContactEmail
+          ) && (
+            <Card className="rounded-xl">
+              <CardHeader>
+                <CardTitle className="text-base">Emergency Contact</CardTitle>
+                <CardDescription>
+                  No emergency contact information available
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          )}
 
           {/* Medical Information */}
           <Card className="rounded-xl">
             <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-base">
                 <IconMedicalCross className="h-5 w-5" />
                 Medical Information
               </CardTitle>
@@ -552,57 +554,57 @@ export default function AthleteDetailPage() {
             <CardContent className="space-y-4">
               {athlete.medications ? (
                 <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground font-medium">
+                  <p className="font-medium text-muted-foreground text-xs">
                     Medications
                   </p>
-                  <p className="text-sm whitespace-pre-wrap bg-muted/50 rounded-lg p-3">
+                  <p className="whitespace-pre-wrap rounded-lg bg-muted/50 p-3 text-sm">
                     {athlete.medications}
                   </p>
                 </div>
               ) : (
                 <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground font-medium">
+                  <p className="font-medium text-muted-foreground text-xs">
                     Medications
                   </p>
-                  <p className="text-sm text-muted-foreground italic">
+                  <p className="text-muted-foreground text-sm italic">
                     No medications listed
                   </p>
                 </div>
               )}
               {athlete.medicalConditions ? (
-                <div className="space-y-1 pt-2 border-t">
-                  <p className="text-xs text-muted-foreground font-medium">
+                <div className="space-y-1 border-t pt-2">
+                  <p className="font-medium text-muted-foreground text-xs">
                     Medical Conditions
                   </p>
-                  <p className="text-sm whitespace-pre-wrap bg-muted/50 rounded-lg p-3">
+                  <p className="whitespace-pre-wrap rounded-lg bg-muted/50 p-3 text-sm">
                     {athlete.medicalConditions}
                   </p>
                 </div>
               ) : (
-                <div className="space-y-1 pt-2 border-t">
-                  <p className="text-xs text-muted-foreground font-medium">
+                <div className="space-y-1 border-t pt-2">
+                  <p className="font-medium text-muted-foreground text-xs">
                     Medical Conditions
                   </p>
-                  <p className="text-sm text-muted-foreground italic">
+                  <p className="text-muted-foreground text-sm italic">
                     No medical conditions listed
                   </p>
                 </div>
               )}
               {athlete.allergies ? (
-                <div className="space-y-1 pt-2 border-t">
-                  <p className="text-xs text-muted-foreground font-medium">
+                <div className="space-y-1 border-t pt-2">
+                  <p className="font-medium text-muted-foreground text-xs">
                     Allergies
                   </p>
-                  <p className="text-sm whitespace-pre-wrap bg-muted/50 rounded-lg p-3">
+                  <p className="whitespace-pre-wrap rounded-lg bg-muted/50 p-3 text-sm">
                     {athlete.allergies}
                   </p>
                 </div>
               ) : (
-                <div className="space-y-1 pt-2 border-t">
-                  <p className="text-xs text-muted-foreground font-medium">
+                <div className="space-y-1 border-t pt-2">
+                  <p className="font-medium text-muted-foreground text-xs">
                     Allergies
                   </p>
-                  <p className="text-sm text-muted-foreground italic">
+                  <p className="text-muted-foreground text-sm italic">
                     No allergies listed
                   </p>
                 </div>
@@ -613,7 +615,7 @@ export default function AthleteDetailPage() {
           {/* Additional Information */}
           <Card className="rounded-xl">
             <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-base">
                 <IconCalendar className="h-5 w-5" />
                 Additional Information
               </CardTitle>
@@ -625,7 +627,7 @@ export default function AthleteDetailPage() {
               <div className="grid gap-4 sm:grid-cols-2">
                 {athlete.dateOfBirth ? (
                   <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-muted-foreground text-xs">
                       Date of Birth
                     </p>
                     <p className="text-sm">
@@ -635,23 +637,23 @@ export default function AthleteDetailPage() {
                           year: "numeric",
                           month: "long",
                           day: "numeric",
-                        },
+                        }
                       )}
                     </p>
                   </div>
                 ) : (
                   <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-muted-foreground text-xs">
                       Date of Birth
                     </p>
-                    <p className="text-sm text-muted-foreground italic">
+                    <p className="text-muted-foreground text-sm italic">
                       Not provided
                     </p>
                   </div>
                 )}
                 {athlete.joinDate ? (
                   <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground">Join Date</p>
+                    <p className="text-muted-foreground text-xs">Join Date</p>
                     <p className="text-sm">
                       {new Date(athlete.joinDate).toLocaleDateString("en-US", {
                         year: "numeric",
@@ -662,16 +664,16 @@ export default function AthleteDetailPage() {
                   </div>
                 ) : (
                   <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground">Join Date</p>
-                    <p className="text-sm text-muted-foreground italic">
+                    <p className="text-muted-foreground text-xs">Join Date</p>
+                    <p className="text-muted-foreground text-sm italic">
                       Not provided
                     </p>
                   </div>
                 )}
               </div>
-              <div className="grid gap-4 sm:grid-cols-2 pt-2 border-t">
+              <div className="grid gap-4 border-t pt-2 sm:grid-cols-2">
                 <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-muted-foreground text-xs">
                     Account Created
                   </p>
                   <p className="text-sm">
@@ -683,7 +685,7 @@ export default function AthleteDetailPage() {
                   </p>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground">Last Updated</p>
+                  <p className="text-muted-foreground text-xs">Last Updated</p>
                   <p className="text-sm">
                     {new Date(athlete.updatedAt).toLocaleDateString("en-US", {
                       year: "numeric",
@@ -699,7 +701,7 @@ export default function AthleteDetailPage() {
       </div>
 
       {/* Edit Member Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+      <Dialog onOpenChange={setIsEditDialogOpen} open={isEditDialogOpen}>
         <DialogContent className="rounded-xl">
           <DialogHeader>
             <DialogTitle>Edit Member</DialogTitle>
@@ -710,97 +712,97 @@ export default function AthleteDetailPage() {
           <ScrollArea className="max-h-[70vh]">
             <div className="space-y-4 py-4 pr-4">
               {error && (
-                <div className="bg-destructive/10 text-destructive rounded-xl p-3 text-sm">
+                <div className="rounded-xl bg-destructive/10 p-3 text-destructive text-sm">
                   {error}
                 </div>
               )}
               <div className="space-y-2">
                 <Label>Name</Label>
                 <Input
-                  value={editForm.name}
+                  className="h-11 rounded-xl"
                   onChange={(e) =>
                     setEditForm({ ...editForm, name: e.target.value })
                   }
                   placeholder="Full name"
-                  className="h-11 rounded-xl"
+                  value={editForm.name}
                 />
               </div>
               <div className="space-y-2">
                 <Label>Primary Email</Label>
                 <Input
+                  className="h-11 rounded-xl bg-muted"
+                  disabled
                   type="email"
                   value={athlete?.email || ""}
-                  disabled
-                  className="h-11 rounded-xl bg-muted"
                 />
-                <p className="text-xs text-muted-foreground">
+                <p className="text-muted-foreground text-xs">
                   Primary email cannot be changed
                 </p>
               </div>
               <div className="space-y-2">
                 <Label>Alternate Email</Label>
                 <Input
-                  type="email"
-                  value={editForm.altEmail}
+                  className="h-11 rounded-xl"
                   onChange={(e) =>
                     setEditForm({ ...editForm, altEmail: e.target.value })
                   }
                   placeholder="Alternate email address"
-                  className="h-11 rounded-xl"
+                  type="email"
+                  value={editForm.altEmail}
                 />
               </div>
               <div className="space-y-2">
                 <Label>Address</Label>
                 <Input
-                  ref={editAddressInputRef}
-                  value={editForm.address}
+                  autoComplete="off"
+                  className="h-11 rounded-xl"
                   onChange={(e) =>
                     setEditForm({ ...editForm, address: e.target.value })
                   }
                   placeholder="Address"
-                  className="h-11 rounded-xl"
-                  autoComplete="off"
+                  ref={editAddressInputRef}
+                  value={editForm.address}
                 />
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Home Phone Number</Label>
                   <Input
-                    value={editForm.homePhone}
+                    className="h-11 rounded-xl"
                     onChange={(e) =>
                       setEditForm({ ...editForm, homePhone: e.target.value })
                     }
                     placeholder="Home phone"
-                    className="h-11 rounded-xl"
+                    value={editForm.homePhone}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label>Work Phone Number</Label>
                   <Input
-                    value={editForm.workPhone}
+                    className="h-11 rounded-xl"
                     onChange={(e) =>
                       setEditForm({ ...editForm, workPhone: e.target.value })
                     }
                     placeholder="Work phone"
-                    className="h-11 rounded-xl"
+                    value={editForm.workPhone}
                   />
                 </div>
               </div>
               <div className="space-y-2">
                 <Label>Cell Number</Label>
                 <Input
-                  value={editForm.cellPhone}
+                  className="h-11 rounded-xl"
                   onChange={(e) =>
                     setEditForm({ ...editForm, cellPhone: e.target.value })
                   }
                   placeholder="Cell phone"
-                  className="h-11 rounded-xl"
+                  value={editForm.cellPhone}
                 />
               </div>
               <div className="space-y-2">
                 <Label>Emergency Contact Name</Label>
                 <Input
-                  value={editForm.emergencyContactName}
+                  className="h-11 rounded-xl"
                   onChange={(e) =>
                     setEditForm({
                       ...editForm,
@@ -808,14 +810,14 @@ export default function AthleteDetailPage() {
                     })
                   }
                   placeholder="Emergency contact name"
-                  className="h-11 rounded-xl"
+                  value={editForm.emergencyContactName}
                 />
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Emergency Contact Phone</Label>
                   <Input
-                    value={editForm.emergencyContactPhone}
+                    className="h-11 rounded-xl"
                     onChange={(e) =>
                       setEditForm({
                         ...editForm,
@@ -823,13 +825,13 @@ export default function AthleteDetailPage() {
                       })
                     }
                     placeholder="Emergency contact phone"
-                    className="h-11 rounded-xl"
+                    value={editForm.emergencyContactPhone}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label>Relationship to Athlete</Label>
                   <Input
-                    value={editForm.emergencyContactRelationship}
+                    className="h-11 rounded-xl"
                     onChange={(e) =>
                       setEditForm({
                         ...editForm,
@@ -837,15 +839,14 @@ export default function AthleteDetailPage() {
                       })
                     }
                     placeholder="Parent, Guardian, etc."
-                    className="h-11 rounded-xl"
+                    value={editForm.emergencyContactRelationship}
                   />
                 </div>
               </div>
               <div className="space-y-2">
                 <Label>Emergency Contact Email Address</Label>
                 <Input
-                  type="email"
-                  value={editForm.emergencyContactEmail}
+                  className="h-11 rounded-xl"
                   onChange={(e) =>
                     setEditForm({
                       ...editForm,
@@ -853,13 +854,14 @@ export default function AthleteDetailPage() {
                     })
                   }
                   placeholder="Emergency contact email"
-                  className="h-11 rounded-xl"
+                  type="email"
+                  value={editForm.emergencyContactEmail}
                 />
               </div>
-              <div className="space-y-2 pt-2 border-t">
+              <div className="space-y-2 border-t pt-2">
                 <Label>Medications</Label>
                 <Textarea
-                  value={editForm.medications}
+                  className="min-h-[100px] rounded-xl"
                   onChange={(e) =>
                     setEditForm({
                       ...editForm,
@@ -867,13 +869,13 @@ export default function AthleteDetailPage() {
                     })
                   }
                   placeholder="List any medications the athlete is currently taking"
-                  className="rounded-xl min-h-[100px]"
+                  value={editForm.medications}
                 />
               </div>
               <div className="space-y-2">
                 <Label>Medical Conditions</Label>
                 <Textarea
-                  value={editForm.medicalConditions}
+                  className="min-h-[100px] rounded-xl"
                   onChange={(e) =>
                     setEditForm({
                       ...editForm,
@@ -881,13 +883,13 @@ export default function AthleteDetailPage() {
                     })
                   }
                   placeholder="List any medical conditions"
-                  className="rounded-xl min-h-[100px]"
+                  value={editForm.medicalConditions}
                 />
               </div>
               <div className="space-y-2">
                 <Label>Allergies</Label>
                 <Textarea
-                  value={editForm.allergies}
+                  className="min-h-[100px] rounded-xl"
                   onChange={(e) =>
                     setEditForm({
                       ...editForm,
@@ -895,36 +897,36 @@ export default function AthleteDetailPage() {
                     })
                   }
                   placeholder="List any allergies"
-                  className="rounded-xl min-h-[100px]"
+                  value={editForm.allergies}
                 />
               </div>
-              <div className="grid gap-4 sm:grid-cols-2 pt-2 border-t">
+              <div className="grid gap-4 border-t pt-2 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Date of Birth</Label>
                   <Input
-                    type="date"
-                    value={editForm.dateOfBirth}
+                    className="h-11 rounded-xl"
                     onChange={(e) =>
                       setEditForm({
                         ...editForm,
                         dateOfBirth: e.target.value,
                       })
                     }
-                    className="h-11 rounded-xl"
+                    type="date"
+                    value={editForm.dateOfBirth}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label>Join Date</Label>
                   <Input
-                    type="date"
-                    value={editForm.joinDate}
+                    className="h-11 rounded-xl"
                     onChange={(e) =>
                       setEditForm({
                         ...editForm,
                         joinDate: e.target.value,
                       })
                     }
-                    className="h-11 rounded-xl"
+                    type="date"
+                    value={editForm.joinDate}
                   />
                 </div>
               </div>
@@ -932,10 +934,10 @@ export default function AthleteDetailPage() {
                 <div className="space-y-2">
                   <Label>Role</Label>
                   <Select
-                    value={editForm.role}
                     onValueChange={(value) =>
                       setEditForm({ ...editForm, role: value })
                     }
+                    value={editForm.role}
                   >
                     <SelectTrigger className="h-11 rounded-xl">
                       <SelectValue />
@@ -951,11 +953,11 @@ export default function AthleteDetailPage() {
                 <div className="space-y-2">
                   <Label>Role</Label>
                   <Input
-                    value="Head Coach"
-                    disabled
                     className="h-11 rounded-xl bg-muted"
+                    disabled
+                    value="Head Coach"
                   />
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-muted-foreground text-xs">
                     Head Coach role cannot be changed
                   </p>
                 </div>
@@ -964,16 +966,16 @@ export default function AthleteDetailPage() {
           </ScrollArea>
           <DialogFooter>
             <Button
-              variant="outline"
-              onClick={() => setIsEditDialogOpen(false)}
               className="rounded-xl"
+              onClick={() => setIsEditDialogOpen(false)}
+              variant="outline"
             >
               Cancel
             </Button>
             <Button
-              onClick={handleSaveEdit}
-              disabled={saving}
               className="rounded-xl"
+              disabled={saving}
+              onClick={handleSaveEdit}
             >
               {saving ? "Saving..." : "Save Changes"}
             </Button>

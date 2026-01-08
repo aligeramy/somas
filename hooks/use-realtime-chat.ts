@@ -68,7 +68,7 @@ export function useRealtimeChat({
     async function loadMessages() {
       try {
         const response = await fetch(
-          `/api/chat/messages?channelId=${channelId}`,
+          `/api/chat/messages?channelId=${channelId}`
         );
         if (!response.ok) throw new Error("Failed to load messages");
 
@@ -98,11 +98,11 @@ export function useRealtimeChat({
               attachmentType: msg.attachmentType,
               createdAt: msg.createdAt,
               status: "delivered",
-            }),
+            })
           )
           .sort(
             (a: ChatMessage, b: ChatMessage) =>
-              new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+              new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
           );
 
         setMessages(formattedMessages);
@@ -146,7 +146,7 @@ export function useRealtimeChat({
           // Fetch the full message with sender info via API
           try {
             const response = await fetch(
-              `/api/chat/messages/${payload.new.id}`,
+              `/api/chat/messages/${payload.new.id}`
             );
             if (!response.ok) return;
 
@@ -167,7 +167,7 @@ export function useRealtimeChat({
             setMessages((prev) => {
               // First check if message with this ID already exists (avoid duplicates)
               const existingById = prev.findIndex(
-                (msg) => msg.id === newMessage.id && !msg.tempId,
+                (msg) => msg.id === newMessage.id && !msg.tempId
               );
               if (existingById >= 0) {
                 // Message already exists, don't add duplicate
@@ -183,8 +183,8 @@ export function useRealtimeChat({
                   newMessage.user.id === msg.user.id &&
                   Math.abs(
                     new Date(newMessage.createdAt).getTime() -
-                      new Date(msg.createdAt).getTime(),
-                  ) < 3000,
+                      new Date(msg.createdAt).getTime()
+                  ) < 3000
               );
 
               let updated: ChatMessage[];
@@ -204,7 +204,7 @@ export function useRealtimeChat({
               updated = updated.sort(
                 (a, b) =>
                   new Date(a.createdAt).getTime() -
-                  new Date(b.createdAt).getTime(),
+                  new Date(b.createdAt).getTime()
               );
 
               if (onMessage) {
@@ -215,7 +215,7 @@ export function useRealtimeChat({
           } catch (error) {
             console.error("Error loading new message:", error);
           }
-        },
+        }
       )
       .subscribe();
 
@@ -231,7 +231,7 @@ export function useRealtimeChat({
       content: string,
       attachmentUrl?: string,
       attachmentType?: string,
-      tempId?: string,
+      tempId?: string
     ) => {
       // Create optimistic message immediately
       const optimisticMessage: ChatMessage = {
@@ -271,7 +271,7 @@ export function useRealtimeChat({
         const error = await response.json();
         // Remove optimistic message on error
         setMessages((prev) =>
-          prev.filter((msg) => msg.tempId !== optimisticMessage.tempId),
+          prev.filter((msg) => msg.tempId !== optimisticMessage.tempId)
         );
         throw new Error(error.error || "Failed to send message");
       }
@@ -298,18 +298,18 @@ export function useRealtimeChat({
         setMessages((prev) => {
           // Check if message already exists (from realtime subscription)
           const alreadyExists = prev.some(
-            (msg) => msg.id === realMessage.id && !msg.tempId,
+            (msg) => msg.id === realMessage.id && !msg.tempId
           );
           if (alreadyExists) {
             // Already added by realtime, just remove optimistic one
             return prev.filter(
-              (msg) => msg.tempId !== optimisticMessage.tempId,
+              (msg) => msg.tempId !== optimisticMessage.tempId
             );
           }
 
           // Replace optimistic message with real one
           const optimisticIndex = prev.findIndex(
-            (msg) => msg.tempId === optimisticMessage.tempId,
+            (msg) => msg.tempId === optimisticMessage.tempId
           );
           if (optimisticIndex >= 0) {
             const updated = [...prev];
@@ -320,7 +320,7 @@ export function useRealtimeChat({
             const sorted = updated.sort(
               (a, b) =>
                 new Date(a.createdAt).getTime() -
-                new Date(b.createdAt).getTime(),
+                new Date(b.createdAt).getTime()
             );
             if (onMessage) {
               onMessage(sorted);
@@ -333,7 +333,7 @@ export function useRealtimeChat({
 
       return realMessage;
     },
-    [channelId, onMessage, currentUser],
+    [channelId, onMessage, currentUser]
   );
 
   return {

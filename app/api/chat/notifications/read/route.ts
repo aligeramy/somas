@@ -21,10 +21,10 @@ export async function POST(request: Request) {
       .where(eq(users.id, user.id))
       .limit(1);
 
-    if (!dbUser || !dbUser.gymId) {
+    if (!(dbUser && dbUser.gymId)) {
       return NextResponse.json(
         { error: "User must belong to a gym" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -33,7 +33,7 @@ export async function POST(request: Request) {
     if (!channelId) {
       return NextResponse.json(
         { error: "Channel ID is required" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -57,10 +57,7 @@ export async function POST(request: Request) {
         .select()
         .from(messages)
         .where(
-          and(
-            eq(messages.channelId, channelId),
-            eq(messages.senderId, user.id),
-          ),
+          and(eq(messages.channelId, channelId), eq(messages.senderId, user.id))
         )
         .limit(1);
 
@@ -76,10 +73,7 @@ export async function POST(request: Request) {
         .select()
         .from(messages)
         .where(
-          and(
-            eq(messages.channelId, channelId),
-            eq(messages.senderId, user.id),
-          ),
+          and(eq(messages.channelId, channelId), eq(messages.senderId, user.id))
         )
         .limit(1);
 
@@ -96,8 +90,8 @@ export async function POST(request: Request) {
         and(
           eq(chatNotifications.userId, user.id),
           eq(chatNotifications.channelId, channelId),
-          isNull(chatNotifications.readAt),
-        ),
+          isNull(chatNotifications.readAt)
+        )
       );
 
     return NextResponse.json({ success: true });
@@ -105,7 +99,7 @@ export async function POST(request: Request) {
     console.error("Mark as read error:", error);
     return NextResponse.json(
       { error: "Failed to mark messages as read" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

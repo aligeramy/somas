@@ -1,5 +1,5 @@
-import { readFileSync } from "fs";
 import { createClient } from "@supabase/supabase-js";
+import { readFileSync } from "fs";
 
 const envFile = readFileSync(".env", "utf-8");
 const envVars: Record<string, string> = {};
@@ -25,27 +25,35 @@ async function listUsers() {
     console.error("Error:", error);
     return;
   }
-  
+
   console.log("All auth users:\n");
   data.users.forEach((u) => {
     console.log(`${u.email} - ID: ${u.id}`);
   });
-  
-  const jack = data.users.find((u) => u.email.toLowerCase() === "Abellery@wightman.ca".toLowerCase());
+
+  const jack = data.users.find(
+    (u) => u.email.toLowerCase() === "Abellery@wightman.ca".toLowerCase()
+  );
   if (jack) {
     console.log(`\n✅ Found Jack: ${jack.id}`);
-    const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(jack.id, {
-      password: "jack123",
-      email_confirm: true,
-    });
+    const { error: updateError } =
+      await supabaseAdmin.auth.admin.updateUserById(jack.id, {
+        password: "jack123",
+        email_confirm: true,
+      });
     if (updateError) {
-      console.error(`❌ Failed to update:`, updateError.message);
+      console.error("❌ Failed to update:", updateError.message);
     } else {
       console.log(`✅ Updated Jack's password to: jack123`);
     }
   } else {
-    console.log(`\n❌ Jack not found`);
+    console.log("\n❌ Jack not found");
   }
 }
 
-listUsers().then(() => process.exit(0)).catch((e) => { console.error(e); process.exit(1); });
+listUsers()
+  .then(() => process.exit(0))
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  });

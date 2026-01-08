@@ -52,32 +52,30 @@ export function SignupForm({
               </div>
               <span className="sr-only">SOMAS</span>
             </div>
-            <h1 className="text-xl font-bold">
-              Welcome to SOMAS
-            </h1>
+            <h1 className="font-bold text-xl">Welcome to SOMAS</h1>
             <FieldDescription>
               Already have an account?{" "}
-              <a href="/login" className="underline">
+              <a className="underline" href="/login">
                 Sign in
               </a>
             </FieldDescription>
           </div>
           {error && <div className="text-destructive text-sm">{error}</div>}
           {token && (
-            <div className="bg-muted text-muted-foreground rounded-md p-3 text-sm">
+            <div className="rounded-md bg-muted p-3 text-muted-foreground text-sm">
               You&apos;ve been invited! Complete your registration below.
             </div>
           )}
           <Field>
             <FieldLabel htmlFor="email">Email</FieldLabel>
             <Input
+              defaultValue={email || ""}
+              disabled={!!email}
               id="email"
               name="email"
-              type="email"
               placeholder="m@example.com"
-              defaultValue={email || ""}
               required
-              disabled={!!email}
+              type="email"
             />
           </Field>
           <Field>
@@ -85,13 +83,13 @@ export function SignupForm({
             <Input
               id="password"
               name="password"
-              type="password"
               placeholder="Create a password"
               required
+              type="password"
             />
           </Field>
           <Field>
-            <Button type="submit" disabled={loading}>
+            <Button disabled={loading} type="submit">
               {loading ? "Creating account..." : "Create Account"}
             </Button>
           </Field>
@@ -99,11 +97,11 @@ export function SignupForm({
       </form>
       <FieldDescription className="px-6 text-center">
         By clicking continue, you agree to our{" "}
-        <button type="button" className="underline">
+        <button className="underline" type="button">
           Terms of Service
         </button>{" "}
         and{" "}
-        <button type="button" className="underline">
+        <button className="underline" type="button">
           Privacy Policy
         </button>
         .

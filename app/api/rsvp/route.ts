@@ -33,7 +33,7 @@ export async function POST(request: Request) {
     ) {
       return NextResponse.json(
         { error: "Only athletes, coaches, and owners can RSVP" },
-        { status: 403 },
+        { status: 403 }
       );
     }
 
@@ -42,7 +42,7 @@ export async function POST(request: Request) {
     if (!occurrenceId) {
       return NextResponse.json(
         { error: "Occurrence ID is required" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -56,7 +56,7 @@ export async function POST(request: Request) {
     if (!occurrence) {
       return NextResponse.json(
         { error: "Event occurrence not found" },
-        { status: 404 },
+        { status: 404 }
       );
     }
 
@@ -69,14 +69,14 @@ export async function POST(request: Request) {
     if (occurrenceDate < today) {
       return NextResponse.json(
         { error: "Cannot RSVP to past events" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
     if (occurrence.status === "canceled") {
       return NextResponse.json(
         { error: "Event has been canceled" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -85,7 +85,7 @@ export async function POST(request: Request) {
       .select()
       .from(rsvps)
       .where(
-        and(eq(rsvps.userId, user.id), eq(rsvps.occurrenceId, occurrenceId)),
+        and(eq(rsvps.userId, user.id), eq(rsvps.occurrenceId, occurrenceId))
       )
       .limit(1);
 
@@ -112,7 +112,7 @@ export async function POST(request: Request) {
     if (!rsvp) {
       return NextResponse.json(
         { error: "Failed to create RSVP" },
-        { status: 500 },
+        { status: 500 }
       );
     }
 
@@ -190,7 +190,7 @@ export async function GET(request: Request) {
         if (!dbUser.gymId) {
           return NextResponse.json(
             { error: "User must belong to a gym" },
-            { status: 400 },
+            { status: 400 }
           );
         }
         // Get all RSVPs for these occurrences, filtered by gymId
@@ -207,15 +207,15 @@ export async function GET(request: Request) {
           .innerJoin(users, eq(rsvps.userId, users.id))
           .innerJoin(
             eventOccurrences,
-            eq(rsvps.occurrenceId, eventOccurrences.id),
+            eq(rsvps.occurrenceId, eventOccurrences.id)
           )
           .innerJoin(events, eq(eventOccurrences.eventId, events.id))
           .where(
             and(
               inArray(rsvps.occurrenceId, occurrenceIds),
               eq(events.gymId, dbUser.gymId),
-              or(eq(rsvps.status, "going"), eq(rsvps.status, "not_going")),
-            ),
+              or(eq(rsvps.status, "going"), eq(rsvps.status, "not_going"))
+            )
           );
       } else {
         // For athletes, just filter by occurrenceIds
@@ -233,8 +233,8 @@ export async function GET(request: Request) {
           .where(
             and(
               inArray(rsvps.occurrenceId, occurrenceIds),
-              or(eq(rsvps.status, "going"), eq(rsvps.status, "not_going")),
-            ),
+              or(eq(rsvps.status, "going"), eq(rsvps.status, "not_going"))
+            )
           );
       }
 
@@ -290,7 +290,7 @@ export async function GET(request: Request) {
       if (!dbUser.gymId) {
         return NextResponse.json(
           { error: "User must belong to a gym" },
-          { status: 400 },
+          { status: 400 }
         );
       }
 
@@ -316,7 +316,7 @@ export async function GET(request: Request) {
       }
 
       // If not including past, only get future events
-      if (!includePast && !startDate && !endDate && !eventId) {
+      if (!(includePast || startDate || endDate || eventId)) {
         conditions.push(gte(eventOccurrences.date, new Date()));
       }
 
@@ -338,14 +338,12 @@ export async function GET(request: Request) {
         .innerJoin(users, eq(rsvps.userId, users.id))
         .innerJoin(
           eventOccurrences,
-          eq(rsvps.occurrenceId, eventOccurrences.id),
+          eq(rsvps.occurrenceId, eventOccurrences.id)
         )
         .innerJoin(events, eq(eventOccurrences.eventId, events.id))
         .where(and(...conditions))
         .orderBy(
-          includePast
-            ? desc(eventOccurrences.date)
-            : asc(eventOccurrences.date),
+          includePast ? desc(eventOccurrences.date) : asc(eventOccurrences.date)
         );
 
       const formattedRsvps = rsvpsList.map(
@@ -356,7 +354,7 @@ export async function GET(request: Request) {
             ...occurrence,
             event,
           },
-        }),
+        })
       );
 
       return NextResponse.json({ rsvps: formattedRsvps });
@@ -379,7 +377,7 @@ export async function GET(request: Request) {
     }
 
     // If not including past, only get future events
-    if (!includePast && !startDate && !endDate && !eventId) {
+    if (!(includePast || startDate || endDate || eventId)) {
       conditions.push(gte(eventOccurrences.date, new Date()));
     }
 
@@ -394,7 +392,7 @@ export async function GET(request: Request) {
       .innerJoin(events, eq(eventOccurrences.eventId, events.id))
       .where(and(...conditions))
       .orderBy(
-        includePast ? desc(eventOccurrences.date) : asc(eventOccurrences.date),
+        includePast ? desc(eventOccurrences.date) : asc(eventOccurrences.date)
       );
 
     const formattedRsvps = rsvpsList.map(({ rsvp, occurrence, event }) => ({
@@ -410,7 +408,7 @@ export async function GET(request: Request) {
     console.error("RSVP fetch error:", error);
     return NextResponse.json(
       { error: "Failed to fetch RSVPs" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

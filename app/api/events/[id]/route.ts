@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 // GET - Get single event with occurrences
 export async function GET(
   _request: Request,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
@@ -26,10 +26,10 @@ export async function GET(
       .where(eq(users.id, user.id))
       .limit(1);
 
-    if (!dbUser || !dbUser.gymId) {
+    if (!(dbUser && dbUser.gymId)) {
       return NextResponse.json(
         { error: "User must belong to a gym" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -63,7 +63,7 @@ async function generateEventOccurrences(
   startTime: string,
   startDate: Date,
   recurrenceEndDate?: Date | null,
-  recurrenceCount?: number | null,
+  recurrenceCount?: number | null
 ) {
   const occurrences = [];
   let endDate = new Date(startDate);
@@ -177,7 +177,7 @@ async function generateEventOccurrences(
 // PUT - Update event
 export async function PUT(
   request: Request,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
@@ -196,17 +196,17 @@ export async function PUT(
       .where(eq(users.id, user.id))
       .limit(1);
 
-    if (!dbUser || !dbUser.gymId) {
+    if (!(dbUser && dbUser.gymId)) {
       return NextResponse.json(
         { error: "User must belong to a gym" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
     if (dbUser.role !== "owner" && dbUser.role !== "coach") {
       return NextResponse.json(
         { error: "Only head coaches and coaches can edit events" },
-        { status: 403 },
+        { status: 403 }
       );
     }
 
@@ -242,7 +242,9 @@ export async function PUT(
           }
           if (Array.isArray(parsed)) {
             reminderDays = parsed
-              .map((n) => (typeof n === "number" ? n : parseFloat(String(n))))
+              .map((n) =>
+                typeof n === "number" ? n : Number.parseFloat(String(n))
+              )
               .filter((n) => !Number.isNaN(n));
           }
         } catch (_parseError) {
@@ -256,7 +258,7 @@ export async function PUT(
                 : [];
               reminderDays = values
                 .map((s) => {
-                  const num = parseFloat(s);
+                  const num = Number.parseFloat(s);
                   return Number.isNaN(num) ? null : num;
                 })
                 .filter((n) => n !== null) as number[];
@@ -264,14 +266,14 @@ export async function PUT(
               console.error(
                 "Failed to parse reminderDays string:",
                 reminderDaysRaw,
-                splitError,
+                splitError
               );
               reminderDays = null;
             }
           } else {
             console.warn(
               "reminderDays is a string but not in array format:",
-              reminderDaysRaw,
+              reminderDaysRaw
             );
             reminderDays = null;
           }
@@ -279,13 +281,15 @@ export async function PUT(
       } else if (Array.isArray(reminderDaysRaw)) {
         // Ensure all elements are numbers
         reminderDays = reminderDaysRaw
-          .map((n) => (typeof n === "number" ? n : parseFloat(String(n))))
+          .map((n) =>
+            typeof n === "number" ? n : Number.parseFloat(String(n))
+          )
           .filter((n) => !Number.isNaN(n));
       } else {
         console.warn(
           "reminderDays has unexpected type:",
           typeof reminderDaysRaw,
-          reminderDaysRaw,
+          reminderDaysRaw
         );
         reminderDays = null;
       }
@@ -302,7 +306,7 @@ export async function PUT(
       if (endDateTime <= startDateTime) {
         return NextResponse.json(
           { error: "The 'End on date' must be after the start date and time" },
-          { status: 400 },
+          { status: 400 }
         );
       }
     }
@@ -347,7 +351,9 @@ export async function PUT(
         // Ensure all values are integers (reminderDays should be whole numbers)
         const validIntegers = reminderDays
           .map((n) =>
-            typeof n === "number" ? Math.round(n) : parseInt(String(n), 10),
+            typeof n === "number"
+              ? Math.round(n)
+              : Number.parseInt(String(n), 10)
           )
           .filter((n) => !Number.isNaN(n));
         if (validIntegers.length > 0) {
@@ -365,7 +371,7 @@ export async function PUT(
       } else {
         console.warn(
           "reminderDays parsing failed, preserving existing value. Raw:",
-          reminderDaysRaw,
+          reminderDaysRaw
         );
       }
     }
@@ -393,8 +399,8 @@ export async function PUT(
         .where(
           and(
             eq(eventOccurrences.eventId, id),
-            gte(eventOccurrences.date, today),
-          ),
+            gte(eventOccurrences.date, today)
+          )
         );
 
       const futureOccurrenceIds = futureOccurrences.map((o) => o.id);
@@ -411,8 +417,8 @@ export async function PUT(
           .where(
             and(
               eq(eventOccurrences.eventId, id),
-              gte(eventOccurrences.date, today),
-            ),
+              gte(eventOccurrences.date, today)
+            )
           );
       }
 
@@ -424,7 +430,7 @@ export async function PUT(
         startTime,
         occurrenceStartDate,
         recurrenceEndDate ? new Date(recurrenceEndDate) : null,
-        recurrenceCount,
+        recurrenceCount
       );
     }
 
@@ -433,7 +439,7 @@ export async function PUT(
     console.error("Update event error:", error);
     return NextResponse.json(
       { error: "Failed to update event" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -441,7 +447,7 @@ export async function PUT(
 // DELETE - Delete event and all occurrences
 export async function DELETE(
   _request: Request,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
@@ -460,17 +466,17 @@ export async function DELETE(
       .where(eq(users.id, user.id))
       .limit(1);
 
-    if (!dbUser || !dbUser.gymId) {
+    if (!(dbUser && dbUser.gymId)) {
       return NextResponse.json(
         { error: "User must belong to a gym" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
     if (dbUser.role !== "owner" && dbUser.role !== "coach") {
       return NextResponse.json(
         { error: "Only head coaches and coaches can delete events" },
-        { status: 403 },
+        { status: 403 }
       );
     }
 
@@ -509,7 +515,7 @@ export async function DELETE(
     console.error("Delete event error:", error);
     return NextResponse.json(
       { error: "Failed to delete event" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

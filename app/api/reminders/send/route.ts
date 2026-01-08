@@ -41,7 +41,7 @@ export async function POST(request: Request) {
     if (dbUser.role !== "owner" && dbUser.role !== "coach") {
       return NextResponse.json(
         { error: "Only head coaches and coaches can send reminders" },
-        { status: 403 },
+        { status: 403 }
       );
     }
 
@@ -50,7 +50,7 @@ export async function POST(request: Request) {
     if (!occurrenceId) {
       return NextResponse.json(
         { error: "occurrenceId is required" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -68,14 +68,14 @@ export async function POST(request: Request) {
     if (!occurrenceData) {
       return NextResponse.json(
         { error: "Event occurrence not found" },
-        { status: 404 },
+        { status: 404 }
       );
     }
 
     if (occurrenceData.event.gymId !== dbUser.gymId) {
       return NextResponse.json(
         { error: "Not authorized to send reminders for this event" },
-        { status: 403 },
+        { status: 403 }
       );
     }
 
@@ -125,7 +125,7 @@ export async function POST(request: Request) {
 
     const formatTime = (time: string) => {
       const [hours, minutes] = time.split(":");
-      const hour = parseInt(hours, 10);
+      const hour = Number.parseInt(hours, 10);
       const ampm = hour >= 12 ? "PM" : "AM";
       const displayHour = hour % 12 || 12;
       return `${displayHour}:${minutes} ${ampm}`;
@@ -192,7 +192,7 @@ export async function POST(request: Request) {
     console.error("Send reminder error:", error);
     return NextResponse.json(
       { error: "Failed to send reminders" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

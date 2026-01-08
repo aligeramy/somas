@@ -6,7 +6,7 @@ export async function sendPushNotification(
   pushTokens: string[],
   title: string,
   body: string,
-  data?: Record<string, unknown>,
+  data?: Record<string, unknown>
 ) {
   if (pushTokens.length === 0) {
     return [];

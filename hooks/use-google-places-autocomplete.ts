@@ -10,12 +10,12 @@ export function useGooglePlacesAutocomplete(
   inputRef:
     | React.RefObject<HTMLInputElement | null>
     | React.MutableRefObject<HTMLInputElement | null>,
-  onPlaceSelect?: (address: string) => void,
+  onPlaceSelect?: (address: string) => void
 ) {
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
 
   const initializeAutocomplete = useCallback(() => {
-    if (!inputRef.current || !window.google?.maps?.places) {
+    if (!(inputRef.current && window.google?.maps?.places)) {
       return;
     }
 
@@ -27,7 +27,7 @@ export function useGooglePlacesAutocomplete(
     // Ontario bounds to bias results towards Ontario (99% of addresses will be in Ontario)
     const ontarioBounds = new window.google.maps.LatLngBounds(
       new window.google.maps.LatLng(41.5, -95.0), // Southwest corner (near Windsor)
-      new window.google.maps.LatLng(56.0, -74.0), // Northeast corner (near Ottawa/Quebec border)
+      new window.google.maps.LatLng(56.0, -74.0) // Northeast corner (near Ottawa/Quebec border)
     );
 
     const autocomplete = new window.google.maps.places.Autocomplete(
@@ -36,7 +36,7 @@ export function useGooglePlacesAutocomplete(
         types: ["address"],
         componentRestrictions: { country: ["ca"] }, // Restrict to Canada only
         bounds: ontarioBounds, // Bias results towards Ontario
-      },
+      }
     );
 
     autocompleteRef.current = autocomplete;
@@ -64,7 +64,7 @@ export function useGooglePlacesAutocomplete(
 
     // Check if script is already being loaded
     const existingScript = document.querySelector(
-      'script[src*="maps.googleapis.com"]',
+      'script[src*="maps.googleapis.com"]'
     );
     if (existingScript) {
       // Wait for script to load
@@ -88,7 +88,7 @@ export function useGooglePlacesAutocomplete(
       // Cleanup: remove autocomplete listeners
       if (autocompleteRef.current) {
         window.google?.maps?.event?.clearInstanceListeners(
-          autocompleteRef.current,
+          autocompleteRef.current
         );
       }
     };

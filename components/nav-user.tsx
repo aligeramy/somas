@@ -82,13 +82,13 @@ export function NavUser({
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <SidebarMenuButton
-                size="lg"
                 className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+                size="lg"
               >
                 <Avatar className="h-8 w-8 rounded-lg">
                   <AvatarImage
-                    src={user.avatar}
                     alt={user.name || user.email}
+                    src={user.avatar}
                   />
                   <AvatarFallback className="rounded-lg">
                     {getInitials(user.name, user.email)}
@@ -98,7 +98,7 @@ export function NavUser({
                   <span className="truncate font-medium">
                     {user.name || "User"}
                   </span>
-                  <span className="text-muted-foreground truncate text-xs">
+                  <span className="truncate text-muted-foreground text-xs">
                     {user.email}
                   </span>
                 </div>
@@ -106,17 +106,17 @@ export function NavUser({
               </SidebarMenuButton>
             </DropdownMenuTrigger>
             <DropdownMenuContent
+              align="end"
               className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-xl"
               side={isMobile ? "bottom" : "right"}
-              align="end"
               sideOffset={4}
             >
               <DropdownMenuLabel className="p-0 font-normal">
                 <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                   <Avatar className="h-8 w-8 rounded-lg">
                     <AvatarImage
-                      src={user.avatar}
                       alt={user.name || user.email}
+                      src={user.avatar}
                     />
                     <AvatarFallback className="rounded-lg">
                       {getInitials(user.name, user.email)}
@@ -126,7 +126,7 @@ export function NavUser({
                     <span className="truncate font-medium">
                       {user.name || "User"}
                     </span>
-                    <span className="text-muted-foreground truncate text-xs">
+                    <span className="truncate text-muted-foreground text-xs">
                       {user.email}
                     </span>
                   </div>
@@ -171,8 +171,8 @@ export function NavUser({
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
               <DropdownMenuItem
-                onClick={handleLogout}
                 className="text-destructive focus:text-destructive"
+                onClick={handleLogout}
               >
                 <IconLogout className="mr-2 h-4 w-4" />
                 Log out
@@ -181,12 +181,12 @@ export function NavUser({
           </DropdownMenu>
         ) : (
           <SidebarMenuButton
-            size="lg"
             className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             disabled
+            size="lg"
           >
             <Avatar className="h-8 w-8 rounded-lg">
-              <AvatarImage src={user.avatar} alt={user.name || user.email} />
+              <AvatarImage alt={user.name || user.email} src={user.avatar} />
               <AvatarFallback className="rounded-lg">
                 {getInitials(user.name, user.email)}
               </AvatarFallback>
@@ -195,7 +195,7 @@ export function NavUser({
               <span className="truncate font-medium">
                 {user.name || "User"}
               </span>
-              <span className="text-muted-foreground truncate text-xs">
+              <span className="truncate text-muted-foreground text-xs">
                 {user.email}
               </span>
             </div>

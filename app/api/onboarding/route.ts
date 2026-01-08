@@ -20,7 +20,7 @@ export async function POST(request: Request) {
     if (!gymName) {
       return NextResponse.json(
         { error: "Gym name is required" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -40,7 +40,7 @@ export async function POST(request: Request) {
       if (existingGym) {
         return NextResponse.json(
           { error: "User already has a gym" },
-          { status: 400 },
+          { status: 400 }
         );
       }
     }
@@ -78,7 +78,7 @@ export async function POST(request: Request) {
     console.error("Onboarding error:", error);
     return NextResponse.json(
       { error: "Failed to complete onboarding" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

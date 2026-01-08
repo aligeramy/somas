@@ -22,7 +22,7 @@ export async function GET(request: Request) {
     if (!channelId) {
       return NextResponse.json(
         { error: "Channel ID is required" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -32,7 +32,7 @@ export async function GET(request: Request) {
       .from(users)
       .where(eq(users.id, user.id))
       .limit(1);
-    if (!dbUser || !dbUser.gymId) {
+    if (!(dbUser && dbUser.gymId)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -62,8 +62,8 @@ export async function GET(request: Request) {
           .where(
             and(
               eq(messages.channelId, channelId),
-              eq(messages.senderId, user.id),
-            ),
+              eq(messages.senderId, user.id)
+            )
           )
           .limit(1);
 
@@ -84,8 +84,8 @@ export async function GET(request: Request) {
           .where(
             and(
               eq(messages.channelId, channelId),
-              eq(messages.senderId, user.id),
-            ),
+              eq(messages.senderId, user.id)
+            )
           )
           .limit(1);
 
@@ -119,7 +119,7 @@ export async function GET(request: Request) {
     console.error("Messages fetch error:", error);
     return NextResponse.json(
       { error: "Failed to fetch messages" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -146,14 +146,14 @@ export async function POST(request: Request) {
       .where(eq(users.id, user.id))
       .limit(1);
 
-    if (!dbUser || !dbUser.gymId) {
+    if (!(dbUser && dbUser.gymId)) {
       console.log("[POST /api/chat/messages] User has no gym:", {
         dbUser: !!dbUser,
         gymId: dbUser?.gymId,
       });
       return NextResponse.json(
         { error: "User must belong to a gym" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -167,14 +167,14 @@ export async function POST(request: Request) {
       hasAttachment: !!attachmentUrl,
     });
 
-    if (!channelId || !content) {
+    if (!(channelId && content)) {
       console.log("[POST /api/chat/messages] Missing required fields:", {
         channelId: !!channelId,
         content: !!content,
       });
       return NextResponse.json(
         { error: "Channel ID and content are required" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -193,7 +193,7 @@ export async function POST(request: Request) {
           channel: !!channel,
           channelGymId: channel?.gymId,
           userGymId: dbUser.gymId,
-        },
+        }
       );
       return NextResponse.json({ error: "Channel not found" }, { status: 404 });
     }
@@ -214,8 +214,8 @@ export async function POST(request: Request) {
           .where(
             and(
               eq(messages.channelId, channelId),
-              eq(messages.senderId, user.id),
-            ),
+              eq(messages.senderId, user.id)
+            )
           )
           .limit(1);
 
@@ -230,7 +230,7 @@ export async function POST(request: Request) {
               channelName: channel.name,
               userName: dbUser.name,
               userEmail: dbUser.email,
-            },
+            }
           );
           return NextResponse.json({ error: "Access denied" }, { status: 403 });
         }
@@ -291,23 +291,23 @@ export async function POST(request: Request) {
 
     if (!messageWithSender) {
       console.error(
-        "[POST /api/chat/messages] Failed to fetch created message",
+        "[POST /api/chat/messages] Failed to fetch created message"
       );
       return NextResponse.json(
         { error: "Failed to fetch created message" },
-        { status: 500 },
+        { status: 500 }
       );
     }
 
     console.log(
-      "[POST /api/chat/messages] Message with sender fetched successfully",
+      "[POST /api/chat/messages] Message with sender fetched successfully"
     );
 
     // Get all users who should receive notifications for this channel
     // For DM channels, get the other participant
     // For group/global channels, get all gym members except the sender
     console.log(
-      "[POST /api/chat/messages] Fetching target users for notifications",
+      "[POST /api/chat/messages] Fetching target users for notifications"
     );
     // Select users without notifPreferences to avoid Drizzle's Object.entries issue with null JSONB
     // Note: pushEnabled doesn't exist in schema, so we only check pushToken
@@ -322,13 +322,13 @@ export async function POST(request: Request) {
       .where(
         and(
           eq(users.gymId, dbUser.gymId),
-          ne(users.id, user.id), // Exclude sender
-        ),
+          ne(users.id, user.id) // Exclude sender
+        )
       );
 
     console.log(
       "[POST /api/chat/messages] Found target users (before filtering):",
-      targetUsers.length,
+      targetUsers.length
     );
 
     // For DM channels, filter to only the other participant
@@ -336,11 +336,11 @@ export async function POST(request: Request) {
     if (channel.type === "dm") {
       console.log(
         "[POST /api/chat/messages] Filtering for DM channel, channel name:",
-        channel.name,
+        channel.name
       );
       const beforeFilter = targetUsers.length;
       targetUsers = targetUsers.filter(
-        (u) => (u.name && u.name === channel.name) || u.email === channel.name,
+        (u) => (u.name && u.name === channel.name) || u.email === channel.name
       );
       console.log("[POST /api/chat/messages] Filtered DM users:", {
         before: beforeFilter,
@@ -352,7 +352,7 @@ export async function POST(request: Request) {
     console.log(
       "[POST /api/chat/messages] Creating notification records for",
       targetUsers.length,
-      "users",
+      "users"
     );
     const notificationRecords = targetUsers.map((targetUser) => ({
       userId: targetUser.id,
@@ -366,18 +366,18 @@ export async function POST(request: Request) {
         console.log("[POST /api/chat/messages] Inserting notification records");
         await db.insert(chatNotifications).values(notificationRecords);
         console.log(
-          "[POST /api/chat/messages] Notification records inserted successfully",
+          "[POST /api/chat/messages] Notification records inserted successfully"
         );
       } catch (notifError) {
         console.error(
           "[POST /api/chat/messages] Error inserting notification records:",
-          notifError,
+          notifError
         );
         // Don't fail the whole request if notifications fail
       }
     } else {
       console.log(
-        "[POST /api/chat/messages] No notification records to insert",
+        "[POST /api/chat/messages] No notification records to insert"
       );
     }
 
@@ -385,7 +385,7 @@ export async function POST(request: Request) {
     // Note: We're not checking notifPreferences here to avoid Drizzle's null JSONB issue
     // Default behavior is to allow push notifications unless explicitly disabled
     console.log(
-      "[POST /api/chat/messages] Filtering users for push notifications",
+      "[POST /api/chat/messages] Filtering users for push notifications"
     );
     const pushTokens = targetUsers
       .filter((u) => {
@@ -396,7 +396,7 @@ export async function POST(request: Request) {
 
     console.log(
       "[POST /api/chat/messages] Push tokens found:",
-      pushTokens.length,
+      pushTokens.length
     );
 
     if (pushTokens.length > 0 && channel.id && newMessage.id) {
@@ -424,11 +424,11 @@ export async function POST(request: Request) {
           type: "chat",
           channelId: String(channel.id),
           messageId: String(newMessage.id),
-        },
+        }
       ).catch((error) => {
         console.error(
           "[POST /api/chat/messages] Error sending push notifications:",
-          error,
+          error
         );
       });
     } else {
@@ -440,14 +440,14 @@ export async function POST(request: Request) {
     }
 
     console.log(
-      "[POST /api/chat/messages] Message created successfully, returning response",
+      "[POST /api/chat/messages] Message created successfully, returning response"
     );
     return NextResponse.json({ message: messageWithSender });
   } catch (error) {
     console.error("[POST /api/chat/messages] Message creation error:", error);
     console.error(
       "[POST /api/chat/messages] Error stack:",
-      error instanceof Error ? error.stack : "No stack trace",
+      error instanceof Error ? error.stack : "No stack trace"
     );
     console.error("[POST /api/chat/messages] Error details:", {
       name: error instanceof Error ? error.name : "Unknown",
@@ -455,7 +455,7 @@ export async function POST(request: Request) {
     });
     return NextResponse.json(
       { error: "Failed to send message" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

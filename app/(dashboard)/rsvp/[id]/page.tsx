@@ -94,7 +94,7 @@ export default function AthleteAttendancePage() {
       if (rosterRes.ok) {
         const rosterData = await rosterRes.json();
         const foundAthlete = (rosterData.roster || []).find(
-          (member: RosterMember) => member.id === athleteId,
+          (member: RosterMember) => member.id === athleteId
         );
         if (foundAthlete) {
           setAthlete(foundAthlete);
@@ -106,7 +106,7 @@ export default function AthleteAttendancePage() {
 
       // Load historical RSVPs for this athlete
       const rsvpsRes = await fetch(
-        `/api/rsvp?includePast=true&userId=${athleteId}`,
+        `/api/rsvp?includePast=true&userId=${athleteId}`
       );
       if (rsvpsRes.ok) {
         const rsvpsData = await rsvpsRes.json();
@@ -155,7 +155,7 @@ export default function AthleteAttendancePage() {
   function formatTime(time: string | undefined | null) {
     if (!time) return "";
     const [hours, minutes] = time.split(":");
-    const hour = parseInt(hours, 10);
+    const hour = Number.parseInt(hours, 10);
     if (Number.isNaN(hour)) return time;
     const ampm = hour >= 12 ? "PM" : "AM";
     const displayHour = hour % 12 || 12;
@@ -208,7 +208,7 @@ export default function AthleteAttendancePage() {
 
         const going = monthRsvps.filter((r) => r.status === "going").length;
         const notGoing = monthRsvps.filter(
-          (r) => r.status === "not_going",
+          (r) => r.status === "not_going"
         ).length;
 
         return {
@@ -218,36 +218,35 @@ export default function AthleteAttendancePage() {
           total: going + notGoing,
         };
       });
-    } else {
-      // Group by year
-      const years = new Set<number>();
-      historicalRsvps.forEach((r) => {
-        if (r.occurrence?.date) {
-          years.add(new Date(r.occurrence.date).getFullYear());
-        }
-      });
-
-      return Array.from(years)
-        .sort()
-        .map((year) => {
-          const yearRsvps = historicalRsvps.filter((r) => {
-            if (!r.occurrence?.date) return false;
-            return new Date(r.occurrence.date).getFullYear() === year;
-          });
-
-          const going = yearRsvps.filter((r) => r.status === "going").length;
-          const notGoing = yearRsvps.filter(
-            (r) => r.status === "not_going",
-          ).length;
-
-          return {
-            month: year.toString(),
-            going,
-            notGoing,
-            total: going + notGoing,
-          };
-        });
     }
+    // Group by year
+    const years = new Set<number>();
+    historicalRsvps.forEach((r) => {
+      if (r.occurrence?.date) {
+        years.add(new Date(r.occurrence.date).getFullYear());
+      }
+    });
+
+    return Array.from(years)
+      .sort()
+      .map((year) => {
+        const yearRsvps = historicalRsvps.filter((r) => {
+          if (!r.occurrence?.date) return false;
+          return new Date(r.occurrence.date).getFullYear() === year;
+        });
+
+        const going = yearRsvps.filter((r) => r.status === "going").length;
+        const notGoing = yearRsvps.filter(
+          (r) => r.status === "not_going"
+        ).length;
+
+        return {
+          month: year.toString(),
+          going,
+          notGoing,
+          total: going + notGoing,
+        };
+      });
   }, [historicalRsvps, timeRange]);
 
   const chartConfig = {
@@ -263,9 +262,9 @@ export default function AthleteAttendancePage() {
 
   if (loading) {
     return (
-      <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
+      <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
         <PageHeader title="Athlete Attendance" />
-        <ScrollArea className="flex-1 h-0">
+        <ScrollArea className="h-0 flex-1">
           <div className="space-y-4 p-4">
             <div className="flex items-center gap-4">
               <Skeleton className="h-16 w-16 rounded-xl" />
@@ -279,7 +278,7 @@ export default function AthleteAttendancePage() {
                 <Card key={i}>
                   <CardHeader>
                     <Skeleton className="h-4 w-24" />
-                    <Skeleton className="h-8 w-16 mt-2" />
+                    <Skeleton className="mt-2 h-8 w-16" />
                   </CardHeader>
                 </Card>
               ))}
@@ -303,7 +302,7 @@ export default function AthleteAttendancePage() {
       <div className="flex flex-1 flex-col">
         <PageHeader title="Athlete Attendance" />
         <div className="p-4">
-          <div className="bg-destructive/10 text-destructive rounded-xl p-4">
+          <div className="rounded-xl bg-destructive/10 p-4 text-destructive">
             {error || "Athlete not found"}
           </div>
         </div>
@@ -313,7 +312,7 @@ export default function AthleteAttendancePage() {
 
   // Sort RSVPs by date (most recent first)
   const sortedRsvps = [...historicalRsvps].sort((a, b) => {
-    if (!a.occurrence?.date || !b.occurrence?.date) return 0;
+    if (!(a.occurrence?.date && b.occurrence?.date)) return 0;
     return (
       new Date(b.occurrence.date).getTime() -
       new Date(a.occurrence.date).getTime()
@@ -321,21 +320,21 @@ export default function AthleteAttendancePage() {
   });
 
   return (
-    <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
+    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
       <PageHeader title="Athlete Attendance">
         <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => router.back()}
           className="rounded-xl"
+          onClick={() => router.back()}
+          size="sm"
+          variant="ghost"
         >
-          <IconArrowLeft className="h-4 w-4 mr-2" />
+          <IconArrowLeft className="mr-2 h-4 w-4" />
           Back
         </Button>
       </PageHeader>
 
-      <ScrollArea className="flex-1 h-0">
-        <div className="p-4 space-y-4">
+      <ScrollArea className="h-0 flex-1">
+        <div className="space-y-4 p-4">
           {/* Athlete Info Card */}
           <Card className="rounded-xl">
             <CardContent className="p-4">
@@ -347,10 +346,10 @@ export default function AthleteAttendancePage() {
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <h2 className="text-xl font-semibold">
+                  <h2 className="font-semibold text-xl">
                     {athlete.name || athlete.email}
                   </h2>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-muted-foreground text-sm">
                     {athlete.email}
                   </p>
                 </div>
@@ -397,10 +396,10 @@ export default function AthleteAttendancePage() {
                   </CardDescription>
                 </div>
                 <Select
-                  value={timeRange}
                   onValueChange={(value: "month" | "year") =>
                     setTimeRange(value)
                   }
+                  value={timeRange}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue />
@@ -417,15 +416,15 @@ export default function AthleteAttendancePage() {
                 <BarChart data={chartData}>
                   <CartesianGrid vertical={false} />
                   <XAxis
+                    axisLine={false}
                     dataKey="month"
                     tickLine={false}
-                    axisLine={false}
                     tickMargin={8}
                   />
-                  <YAxis tickLine={false} axisLine={false} />
+                  <YAxis axisLine={false} tickLine={false} />
                   <ChartTooltip
-                    cursor={false}
                     content={<ChartTooltipContent />}
+                    cursor={false}
                   />
                   <Bar dataKey="going" fill="var(--color-going)" />
                   <Bar dataKey="notGoing" fill="var(--color-notGoing)" />
@@ -444,7 +443,7 @@ export default function AthleteAttendancePage() {
             </CardHeader>
             <CardContent>
               {sortedRsvps.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground">
+                <div className="py-12 text-center text-muted-foreground">
                   <p>No attendance records</p>
                 </div>
               ) : (
@@ -457,18 +456,18 @@ export default function AthleteAttendancePage() {
 
                     return (
                       <div
+                        className="flex items-center gap-3 rounded-xl border p-3 transition-colors hover:bg-muted/30 md:p-4"
                         key={rsvp.id}
-                        className="flex items-center gap-3 p-3 md:p-4 rounded-xl border hover:bg-muted/30 transition-colors"
                       >
                         <div
-                          className={`h-12 w-12 md:h-16 md:w-16 rounded-lg md:rounded-xl flex flex-col items-center justify-center shrink-0 ${
+                          className={`flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-lg md:h-16 md:w-16 md:rounded-xl ${
                             isGoing
                               ? "bg-emerald-100 dark:bg-emerald-950/50"
                               : "bg-red-100 dark:bg-red-950/50"
                           }`}
                         >
                           <span
-                            className={`text-lg md:text-2xl font-bold leading-none ${
+                            className={`font-bold text-lg leading-none md:text-2xl ${
                               isGoing
                                 ? "text-emerald-600 dark:text-emerald-400"
                                 : "text-red-600 dark:text-red-400"
@@ -476,52 +475,52 @@ export default function AthleteAttendancePage() {
                           >
                             {dateInfo.day}
                           </span>
-                          <span className="text-[9px] md:text-[10px] font-medium text-muted-foreground mt-0.5">
+                          <span className="mt-0.5 font-medium text-[9px] text-muted-foreground md:text-[10px]">
                             {dateInfo.month}
                           </span>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <p className="font-medium text-sm md:text-base truncate">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="truncate font-medium text-sm md:text-base">
                               {occ.event.title}
                             </p>
                             <Badge
-                              variant={isGoing ? "default" : "secondary"}
-                              className={`text-[9px] md:text-[10px] rounded-md shrink-0 ${
+                              className={`shrink-0 rounded-md text-[9px] md:text-[10px] ${
                                 isGoing
                                   ? "bg-emerald-600"
                                   : "bg-red-100 text-red-700 dark:bg-red-950/50 dark:text-red-300"
                               }`}
+                              variant={isGoing ? "default" : "secondary"}
                             >
                               {isGoing ? (
                                 <>
-                                  <IconCheck className="h-3 w-3 mr-1" />
+                                  <IconCheck className="mr-1 h-3 w-3" />
                                   Attended
                                 </>
                               ) : (
                                 <>
-                                  <IconX className="h-3 w-3 mr-1" />
+                                  <IconX className="mr-1 h-3 w-3" />
                                   Missed
                                 </>
                               )}
                             </Badge>
                             {occ.status === "canceled" && (
                               <Badge
+                                className="shrink-0 rounded-md text-[9px] md:text-[10px]"
                                 variant="destructive"
-                                className="text-[9px] md:text-[10px] rounded-md shrink-0"
                               >
                                 Canceled
                               </Badge>
                             )}
                           </div>
-                          <div className="flex items-center gap-2 md:gap-3 mt-1 text-xs md:text-sm text-muted-foreground flex-wrap">
+                          <div className="mt-1 flex flex-wrap items-center gap-2 text-muted-foreground text-xs md:gap-3 md:text-sm">
                             <span className="whitespace-nowrap">
                               {dateInfo.weekday}
                             </span>
                             {dateInfo.relative && (
                               <Badge
+                                className="shrink-0 text-[9px] md:text-[10px]"
                                 variant="secondary"
-                                className="text-[9px] md:text-[10px] shrink-0"
                               >
                                 {dateInfo.relative}
                               </Badge>

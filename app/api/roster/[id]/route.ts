@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 // GET - Get single roster member
 export async function GET(
   _request: Request,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
@@ -26,10 +26,10 @@ export async function GET(
       .where(eq(users.id, user.id))
       .limit(1);
 
-    if (!dbUser || !dbUser.gymId) {
+    if (!(dbUser && dbUser.gymId)) {
       return NextResponse.json(
         { error: "User must belong to a gym" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -78,7 +78,7 @@ export async function GET(
     console.error("Get member error:", error);
     return NextResponse.json(
       { error: "Failed to get member" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -86,7 +86,7 @@ export async function GET(
 // PUT - Update roster member
 export async function PUT(
   request: Request,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
@@ -105,10 +105,10 @@ export async function PUT(
       .where(eq(users.id, user.id))
       .limit(1);
 
-    if (!dbUser || !dbUser.gymId) {
+    if (!(dbUser && dbUser.gymId)) {
       return NextResponse.json(
         { error: "User must belong to a gym" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -128,7 +128,7 @@ export async function PUT(
         ) {
           return NextResponse.json(
             { error: "Not authorized to edit this member" },
-            { status: 403 },
+            { status: 403 }
           );
         }
       }
@@ -161,7 +161,7 @@ export async function PUT(
       if (dbUser.role !== "owner") {
         return NextResponse.json(
           { error: "Only head coaches can change member roles" },
-          { status: 403 },
+          { status: 403 }
         );
       }
 
@@ -174,7 +174,7 @@ export async function PUT(
       if (!targetMember) {
         return NextResponse.json(
           { error: "Member not found" },
-          { status: 404 },
+          { status: 404 }
         );
       }
 
@@ -195,7 +195,7 @@ export async function PUT(
               error:
                 "Cannot demote the last head coach. At least one head coach must remain.",
             },
-            { status: 400 },
+            { status: 400 }
           );
         }
       }
@@ -235,7 +235,7 @@ export async function PUT(
     console.error("Update member error:", error);
     return NextResponse.json(
       { error: "Failed to update member" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -243,7 +243,7 @@ export async function PUT(
 // DELETE - Remove member from gym
 export async function DELETE(
   _request: Request,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
@@ -262,10 +262,10 @@ export async function DELETE(
       .where(eq(users.id, user.id))
       .limit(1);
 
-    if (!dbUser || !dbUser.gymId) {
+    if (!(dbUser && dbUser.gymId)) {
       return NextResponse.json(
         { error: "User must belong to a gym" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -273,7 +273,7 @@ export async function DELETE(
     if (dbUser.role !== "owner") {
       return NextResponse.json(
         { error: "Only head coaches can remove members" },
-        { status: 403 },
+        { status: 403 }
       );
     }
 
@@ -281,7 +281,7 @@ export async function DELETE(
     if (id === user.id) {
       return NextResponse.json(
         { error: "Cannot remove yourself" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -310,7 +310,7 @@ export async function DELETE(
     console.error("Remove member error:", error);
     return NextResponse.json(
       { error: "Failed to remove member" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

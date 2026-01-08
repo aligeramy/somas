@@ -21,10 +21,10 @@ export async function POST(request: Request) {
       .where(eq(users.id, user.id))
       .limit(1);
 
-    if (!dbUser || !dbUser.gymId) {
+    if (!(dbUser && dbUser.gymId)) {
       return NextResponse.json(
         { error: "User must belong to a gym" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -55,7 +55,9 @@ export async function POST(request: Request) {
           if (Array.isArray(parsed)) {
             reminderDays = parsed
               .map((n) =>
-                typeof n === "number" ? Math.round(n) : parseInt(String(n), 10),
+                typeof n === "number"
+                  ? Math.round(n)
+                  : Number.parseInt(String(n), 10)
               )
               .filter((n) => !Number.isNaN(n));
           }
@@ -65,16 +67,18 @@ export async function POST(request: Request) {
       } else if (Array.isArray(reminderDaysRaw)) {
         reminderDays = reminderDaysRaw
           .map((n) =>
-            typeof n === "number" ? Math.round(n) : parseInt(String(n), 10),
+            typeof n === "number"
+              ? Math.round(n)
+              : Number.parseInt(String(n), 10)
           )
           .filter((n) => !Number.isNaN(n));
       }
     }
 
-    if (!title || !startTime || !endTime) {
+    if (!(title && startTime && endTime)) {
       return NextResponse.json(
         { error: "Title, start time, and end time are required" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -89,7 +93,7 @@ export async function POST(request: Request) {
       if (endDateTime <= startDateTime) {
         return NextResponse.json(
           { error: "The 'End on date' must be after the start date and time" },
-          { status: 400 },
+          { status: 400 }
         );
       }
     }
@@ -127,7 +131,7 @@ export async function POST(request: Request) {
       startTime,
       occurrenceStartDate,
       recurrenceEndDate ? new Date(recurrenceEndDate) : null,
-      recurrenceCount,
+      recurrenceCount
     );
 
     return NextResponse.json({ success: true, event });
@@ -135,7 +139,7 @@ export async function POST(request: Request) {
     console.error("Event creation error:", error);
     return NextResponse.json(
       { error: "Failed to create event" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -146,7 +150,7 @@ async function generateEventOccurrences(
   startTime: string,
   startDate: Date,
   recurrenceEndDate?: Date | null,
-  recurrenceCount?: number | null,
+  recurrenceCount?: number | null
 ) {
   const occurrences = [];
   let endDate = new Date(startDate);
@@ -275,10 +279,10 @@ export async function GET(_request: Request) {
       .where(eq(users.id, user.id))
       .limit(1);
 
-    if (!dbUser || !dbUser.gymId) {
+    if (!(dbUser && dbUser.gymId)) {
       return NextResponse.json(
         { error: "User must belong to a gym" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -310,13 +314,13 @@ export async function GET(_request: Request) {
           .where(
             and(
               eq(eventOccurrences.eventId, event.id),
-              gte(eventOccurrences.date, today),
-            ),
+              gte(eventOccurrences.date, today)
+            )
           )
           .orderBy(asc(eventOccurrences.date))
           .limit(10);
         return { ...event, occurrences: occurrencesList };
-      }),
+      })
     );
 
     return NextResponse.json({ events: eventsWithOccurrences });
@@ -324,7 +328,7 @@ export async function GET(_request: Request) {
     console.error("Event fetch error:", error);
     return NextResponse.json(
       { error: "Failed to fetch events" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export async function GET(
   _request: Request,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
@@ -46,7 +46,7 @@ export async function GET(
     console.error("Message fetch error:", error);
     return NextResponse.json(
       { error: "Failed to fetch message" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

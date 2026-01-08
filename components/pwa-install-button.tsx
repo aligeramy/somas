@@ -40,17 +40,17 @@ export function PWAInstallButton() {
   return (
     <>
       <Button
-        size="sm"
-        className="gap-2 rounded-sm [&>span]:!inline [&>span]:!text-sm"
-        onClick={handleInstall}
-        variant="outline"
+        className="[&>span]:!inline [&>span]:!text-sm gap-2 rounded-sm"
         data-show-text-mobile
+        onClick={handleInstall}
+        size="sm"
+        variant="outline"
       >
         <IconDownload className="h-4 w-4" />
         <span>Install</span>
       </Button>
 
-      <Dialog open={showInstructions} onOpenChange={setShowInstructions}>
+      <Dialog onOpenChange={setShowInstructions} open={showInstructions}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="text-xl">Install SOMAS</DialogTitle>
@@ -64,12 +64,12 @@ export function PWAInstallButton() {
 
               <div className="space-y-4">
                 <div className="flex items-start gap-4">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-medium">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary font-medium text-primary-foreground text-sm">
                     1
                   </div>
                   <div className="space-y-1">
                     <p className="font-medium">Tap the Share button</p>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-2 text-muted-foreground text-sm">
                       <IconShare className="h-5 w-5" />
                       <span>at the bottom of Safari</span>
                     </div>
@@ -77,24 +77,24 @@ export function PWAInstallButton() {
                 </div>
 
                 <div className="flex items-start gap-4">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-medium">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary font-medium text-primary-foreground text-sm">
                     2
                   </div>
                   <div className="space-y-1">
                     <p className="font-medium">Scroll down and tap</p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-muted-foreground text-sm">
                       &quot;Add to Home Screen&quot;
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-4">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-medium">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary font-medium text-primary-foreground text-sm">
                     3
                   </div>
                   <div className="space-y-1">
                     <p className="font-medium">Tap &quot;Add&quot;</p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-muted-foreground text-sm">
                       in the top right corner
                     </p>
                   </div>
@@ -109,38 +109,38 @@ export function PWAInstallButton() {
 
               <div className="space-y-4">
                 <div className="flex items-start gap-4">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-medium">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary font-medium text-primary-foreground text-sm">
                     1
                   </div>
                   <div className="space-y-1">
                     <p className="font-medium">Tap the menu button</p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-muted-foreground text-sm">
                       Three dots (⋮) in your browser
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-4">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-medium">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary font-medium text-primary-foreground text-sm">
                     2
                   </div>
                   <div className="space-y-1">
                     <p className="font-medium">
                       Select &quot;Install app&quot;
                     </p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-muted-foreground text-sm">
                       or &quot;Add to Home screen&quot;
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-4">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-medium">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary font-medium text-primary-foreground text-sm">
                     3
                   </div>
                   <div className="space-y-1">
                     <p className="font-medium">Follow the prompts</p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-muted-foreground text-sm">
                       to complete installation
                     </p>
                   </div>
@@ -155,24 +155,24 @@ export function PWAInstallButton() {
 
               <div className="space-y-4">
                 <div className="flex items-start gap-4">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-medium">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary font-medium text-primary-foreground text-sm">
                     1
                   </div>
                   <div className="space-y-1">
                     <p className="font-medium">Look for the install icon</p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-muted-foreground text-sm">
                       in your browser&apos;s address bar
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-4">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-medium">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary font-medium text-primary-foreground text-sm">
                     2
                   </div>
                   <div className="space-y-1">
                     <p className="font-medium">Click it and follow prompts</p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-muted-foreground text-sm">
                       or use browser menu → &quot;Install&quot;
                     </p>
                   </div>
@@ -182,9 +182,9 @@ export function PWAInstallButton() {
           )}
 
           <Button
-            variant="outline"
-            className="w-full mt-2"
+            className="mt-2 w-full"
             onClick={() => setShowInstructions(false)}
+            variant="outline"
           >
             Got it
           </Button>

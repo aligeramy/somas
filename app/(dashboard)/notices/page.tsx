@@ -101,9 +101,15 @@ export default function NoticesPage() {
       }
     };
 
-    window.addEventListener('notices-open-create-notice', handleOpenCreateNotice);
+    window.addEventListener(
+      "notices-open-create-notice",
+      handleOpenCreateNotice
+    );
     return () => {
-      window.removeEventListener('notices-open-create-notice', handleOpenCreateNotice);
+      window.removeEventListener(
+        "notices-open-create-notice",
+        handleOpenCreateNotice
+      );
     };
   }, [userRole]);
 
@@ -124,7 +130,7 @@ export default function NoticesPage() {
   }
 
   async function handleSave() {
-    if (!title.trim() || !content.trim()) {
+    if (!(title.trim() && content.trim())) {
       setError("Title and content are required");
       return;
     }
@@ -196,27 +202,31 @@ export default function NoticesPage() {
   }
 
   return (
-    <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
+    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
       <PageHeader
-        title="Notices"
         description={
           canManage
             ? "Manage announcements for your team"
             : "View all team announcements"
         }
+        title="Notices"
       >
         {canManage && (
-          <Button onClick={openCreateDialog} className="rounded-sm" data-show-text-mobile>
+          <Button
+            className="rounded-sm"
+            data-show-text-mobile
+            onClick={openCreateDialog}
+          >
             <IconPlus className="mr-2 h-4 w-4" />
             New Notice
           </Button>
         )}
       </PageHeader>
 
-      <div className="flex-1 overflow-auto min-h-0">
-        <div className="max-w-4xl mx-auto space-y-6 p-4">
+      <div className="min-h-0 flex-1 overflow-auto">
+        <div className="mx-auto max-w-4xl space-y-6 p-4">
           {error && (
-            <div className="bg-destructive/10 text-destructive rounded-xl p-4 text-sm">
+            <div className="rounded-xl bg-destructive/10 p-4 text-destructive text-sm">
               {error}
             </div>
           )}
@@ -236,17 +246,17 @@ export default function NoticesPage() {
                 <div className="space-y-4">
                   {[1, 2, 3].map((i) => (
                     <div
+                      className="animate-pulse space-y-3 rounded-xl border p-4"
                       key={i}
-                      className="animate-pulse space-y-3 p-4 border rounded-xl"
                     >
-                      <div className="h-5 w-3/4 bg-muted rounded" />
-                      <div className="h-4 w-full bg-muted rounded" />
-                      <div className="h-3 w-1/2 bg-muted rounded" />
+                      <div className="h-5 w-3/4 rounded bg-muted" />
+                      <div className="h-4 w-full rounded bg-muted" />
+                      <div className="h-3 w-1/2 rounded bg-muted" />
                     </div>
                   ))}
                 </div>
               ) : notices.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">
+                <p className="py-8 text-center text-muted-foreground">
                   No notices yet.
                   {canManage && " Create one to get started."}
                 </p>
@@ -254,16 +264,16 @@ export default function NoticesPage() {
                 <div className="space-y-4">
                   {notices.map((notice) => (
                     <Card
-                      key={notice.id}
                       className={`rounded-xl ${
                         notice.active ? "border-primary/20 bg-primary/5" : ""
                       }`}
+                      key={notice.id}
                     >
                       <CardHeader>
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1 space-y-2">
                             {notice.active && (
-                              <Badge variant="default" className="rounded-lg">
+                              <Badge className="rounded-lg" variant="default">
                                 Active
                               </Badge>
                             )}
@@ -274,12 +284,12 @@ export default function NoticesPage() {
                               by {notice.author.name || "Admin"} •{" "}
                               {format(
                                 new Date(notice.createdAt),
-                                "MMM d, yyyy 'at' h:mm a",
+                                "MMM d, yyyy 'at' h:mm a"
                               )}
                               {notice.sendEmail && (
                                 <Badge
-                                  variant="secondary"
                                   className="ml-2 rounded-lg"
+                                  variant="secondary"
                                 >
                                   Email Sent
                                 </Badge>
@@ -295,18 +305,18 @@ export default function NoticesPage() {
                                 }
                               />
                               <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => openEditDialog(notice)}
                                 className="h-8 w-8"
+                                onClick={() => openEditDialog(notice)}
+                                size="icon"
+                                variant="ghost"
                               >
                                 <IconEdit className="h-4 w-4" />
                               </Button>
                               <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleDelete(notice.id)}
                                 className="h-8 w-8 text-destructive"
+                                onClick={() => handleDelete(notice.id)}
+                                size="icon"
+                                variant="ghost"
                               >
                                 <IconTrash className="h-4 w-4" />
                               </Button>
@@ -315,7 +325,7 @@ export default function NoticesPage() {
                         </div>
                       </CardHeader>
                       <CardContent>
-                        <p className="text-sm whitespace-pre-wrap leading-relaxed">
+                        <p className="whitespace-pre-wrap text-sm leading-relaxed">
                           {notice.content}
                         </p>
                       </CardContent>
@@ -330,8 +340,8 @@ export default function NoticesPage() {
 
       {/* Create/Edit Dialog - Only show for coaches/owners */}
       {canManage && (
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogContent className="rounded-xl max-w-2xl">
+        <Dialog onOpenChange={setIsCreateDialogOpen} open={isCreateDialogOpen}>
+          <DialogContent className="max-w-2xl rounded-xl">
             <DialogHeader>
               <DialogTitle>
                 {editingNotice ? "Edit Notice" : "Create New Notice"}
@@ -343,34 +353,34 @@ export default function NoticesPage() {
             </DialogHeader>
             <div className="space-y-4 py-4">
               {error && (
-                <div className="bg-destructive/10 text-destructive rounded-xl p-3 text-sm">
+                <div className="rounded-xl bg-destructive/10 p-3 text-destructive text-sm">
                   {error}
                 </div>
               )}
               <div className="space-y-2">
                 <Label htmlFor="title">Title *</Label>
                 <Input
+                  className="rounded-xl"
                   id="title"
-                  value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="Notice title"
-                  className="rounded-xl"
+                  value={title}
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="content">Content *</Label>
                 <Textarea
+                  className="min-h-[200px] rounded-xl"
                   id="content"
-                  value={content}
                   onChange={(e) => setContent(e.target.value)}
                   placeholder="Write your notice content here..."
-                  className="rounded-xl min-h-[200px]"
+                  value={content}
                 />
               </div>
-              <div className="flex items-center justify-between p-3 rounded-xl bg-muted/50">
+              <div className="flex items-center justify-between rounded-xl bg-muted/50 p-3">
                 <div>
                   <p className="font-medium text-sm">Send Email Notification</p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-muted-foreground text-xs">
                     Send this notice via email to all team members
                   </p>
                 </div>
@@ -379,16 +389,16 @@ export default function NoticesPage() {
             </div>
             <DialogFooter>
               <Button
-                variant="outline"
-                onClick={() => setIsCreateDialogOpen(false)}
                 className="rounded-xl"
+                onClick={() => setIsCreateDialogOpen(false)}
+                variant="outline"
               >
                 Cancel
               </Button>
               <Button
-                onClick={handleSave}
-                disabled={saving}
                 className="rounded-xl"
+                disabled={saving}
+                onClick={handleSave}
               >
                 {saving
                   ? "Saving..."

@@ -41,15 +41,15 @@ export function NavSecondary({
             return (
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton
-                  tooltip={item.title}
                   asChild
                   isActive={isActive}
+                  tooltip={item.title}
                 >
                   {isExternal ? (
                     <a
                       href={item.url}
-                      target="_blank"
                       rel="noopener noreferrer"
+                      target="_blank"
                     >
                       <item.icon />
                       <span>{item.title}</span>

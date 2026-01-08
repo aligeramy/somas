@@ -29,20 +29,20 @@ export function BaseLayout({
       <Head />
       <Preview>{preview}</Preview>
       <Tailwind>
-        <Body className="bg-[#f6f9fc] m-auto font-sans">
-          <Container className="bg-white my-10 mx-auto rounded-2xl overflow-hidden max-w-[480px]">
+        <Body className="m-auto bg-[#f6f9fc] font-sans">
+          <Container className="mx-auto my-10 max-w-[480px] overflow-hidden rounded-2xl bg-white">
             {/* Header */}
             <Section className="bg-zinc-900 p-6 text-center">
               {gymLogoUrl ? (
                 <Img
+                  alt={gymName || "SOMAS"}
+                  className="mx-auto my-0 rounded-xl"
+                  height="48"
                   src={gymLogoUrl}
                   width="48"
-                  height="48"
-                  alt={gymName || "SOMAS"}
-                  className="rounded-xl my-0 mx-auto"
                 />
               ) : (
-                <div className="w-12 h-12 rounded-xl bg-white text-zinc-900 text-lg font-semibold flex items-center justify-center my-0 mx-auto leading-[48px] text-center">
+                <div className="mx-auto my-0 flex h-12 w-12 items-center justify-center rounded-xl bg-white text-center font-semibold text-lg text-zinc-900 leading-[48px]">
                   {gymName?.trim()
                     ? gymName
                         .split(" ")
@@ -53,13 +53,13 @@ export function BaseLayout({
                     : "SOMAS"}
                 </div>
               )}
-              <Text className="text-white text-lg font-semibold mt-3 mb-0">
+              <Text className="mt-3 mb-0 font-semibold text-lg text-white">
                 {gymName || "SOMAS"}
               </Text>
             </Section>
 
             {/* Content */}
-            <Section className="py-8 px-6">{children}</Section>
+            <Section className="px-6 py-8">{children}</Section>
           </Container>
         </Body>
       </Tailwind>

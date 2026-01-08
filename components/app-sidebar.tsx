@@ -145,10 +145,10 @@ export function AppSidebar({
 
   return (
     <Sidebar
-      collapsible="offcanvas"
-      variant="floating"
       className="hidden lg:flex"
+      collapsible="offcanvas"
       suppressHydrationWarning
+      variant="floating"
       {...props}
     >
       <SidebarHeader>
@@ -158,16 +158,16 @@ export function AppSidebar({
               asChild
               className="data-[slot=sidebar-menu-button]:!p-2 h-auto"
             >
-              <Link href="/dashboard" className="flex items-center gap-3">
+              <Link className="flex items-center gap-3" href="/dashboard">
                 <Avatar className="h-9 w-9 rounded-xl">
                   {gymLogo ? (
-                    <AvatarImage src={gymLogo} alt={gymName || "Club"} />
+                    <AvatarImage alt={gymName || "Club"} src={gymLogo} />
                   ) : null}
-                  <AvatarFallback className="rounded-xl bg-primary text-primary-foreground font-semibold">
+                  <AvatarFallback className="rounded-xl bg-primary font-semibold text-primary-foreground">
                     {getGymInitials(gymName)}
                   </AvatarFallback>
                 </Avatar>
-                <span className="text-base font-semibold truncate">
+                <span className="truncate font-semibold text-base">
                   {gymName || "SOMAS"}
                 </span>
               </Link>
@@ -177,7 +177,7 @@ export function AppSidebar({
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={navMain} />
-        <NavSecondary items={navSecondary} className="mt-auto" />
+        <NavSecondary className="mt-auto" items={navSecondary} />
       </SidebarContent>
       <SidebarFooter>
         <NavUser

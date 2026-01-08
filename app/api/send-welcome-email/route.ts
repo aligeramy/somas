@@ -13,7 +13,7 @@ export async function POST(request: Request) {
   try {
     const { email } = await request.json();
 
-    if (!email || !email.trim()) {
+    if (!(email && email.trim())) {
       return NextResponse.json({ error: "Email is required" }, { status: 400 });
     }
 
@@ -22,7 +22,7 @@ export async function POST(request: Request) {
     if (!emailRegex.test(email.trim())) {
       return NextResponse.json(
         { error: "Invalid email format" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -31,7 +31,7 @@ export async function POST(request: Request) {
       .select()
       .from(users)
       .where(
-        or(eq(users.email, email.trim()), eq(users.altEmail, email.trim())),
+        or(eq(users.email, email.trim()), eq(users.altEmail, email.trim()))
       )
       .limit(1);
 
@@ -45,7 +45,7 @@ export async function POST(request: Request) {
     if (!dbUser.gymId) {
       return NextResponse.json(
         { error: "User is not associated with a gym" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -69,7 +69,20 @@ export async function POST(request: Request) {
 
     let setupUrl = `${appUrl}/setup-password?email=${encodeURIComponent(authEmail)}`;
 
-    if (!authUser) {
+    if (authUser) {
+      // User exists - generate recovery link
+      const { data: linkData, error: linkError } =
+        await supabaseAdmin.auth.admin.generateLink({
+          type: "recovery",
+          email: authEmail,
+        });
+
+      if (linkError) {
+        console.error("Recovery link error:", linkError);
+      } else if (linkData?.properties?.hashed_token) {
+        setupUrl = `${appUrl}/setup-password?token=${linkData.properties.hashed_token}&type=recovery&email=${encodeURIComponent(authEmail)}`;
+      }
+    } else {
       // Create user in Supabase Auth if doesn't exist
       const randomPassword = randomBytes(16).toString("hex");
       const { error: createError } = await supabaseAdmin.auth.admin.createUser({
@@ -82,7 +95,7 @@ export async function POST(request: Request) {
       if (createError) {
         return NextResponse.json(
           { error: `Failed to create auth user: ${createError.message}` },
-          { status: 500 },
+          { status: 500 }
         );
       }
 
@@ -97,19 +110,6 @@ export async function POST(request: Request) {
         console.error("Magic link error:", linkError);
       } else if (linkData?.properties?.hashed_token) {
         setupUrl = `${appUrl}/setup-password?token=${linkData.properties.hashed_token}&type=magiclink&email=${encodeURIComponent(authEmail)}`;
-      }
-    } else {
-      // User exists - generate recovery link
-      const { data: linkData, error: linkError } =
-        await supabaseAdmin.auth.admin.generateLink({
-          type: "recovery",
-          email: authEmail,
-        });
-
-      if (linkError) {
-        console.error("Recovery link error:", linkError);
-      } else if (linkData?.properties?.hashed_token) {
-        setupUrl = `${appUrl}/setup-password?token=${linkData.properties.hashed_token}&type=recovery&email=${encodeURIComponent(authEmail)}`;
       }
     }
 
@@ -136,7 +136,7 @@ export async function POST(request: Request) {
     if (emailResult.error) {
       return NextResponse.json(
         { error: `Failed to send email: ${emailResult.error.message}` },
-        { status: 500 },
+        { status: 500 }
       );
     }
 
@@ -149,7 +149,7 @@ export async function POST(request: Request) {
     console.error("Send welcome email error:", error);
     return NextResponse.json(
       { error: "Failed to send welcome email" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

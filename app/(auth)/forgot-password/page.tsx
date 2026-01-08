@@ -25,7 +25,7 @@ export default function ForgotPasswordPage() {
     setError(null);
     setSuccess(false);
 
-    if (!email || !email.trim()) {
+    if (!(email && email.trim())) {
       setError("Email address is required");
       return;
     }
@@ -81,28 +81,28 @@ export default function ForgotPasswordPage() {
             <div className="space-y-4">
               <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
                 <IconCheck className="h-5 w-5" />
-                <p className="text-sm font-medium">Email Sent!</p>
+                <p className="font-medium text-sm">Email Sent!</p>
               </div>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-muted-foreground text-sm">
                 If an account exists with this email, a password reset link has
                 been sent. Please check your inbox and follow the instructions
                 to reset your password.
               </p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-muted-foreground text-xs">
                 The link will expire in 24 hours. If you don't see the email,
                 check your spam folder.
               </p>
               <Button asChild className="w-full" variant="outline">
                 <Link href="/login">
-                  <IconArrowLeft className="h-4 w-4 mr-2" />
+                  <IconArrowLeft className="mr-2 h-4 w-4" />
                   Back to Login
                 </Link>
               </Button>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form className="space-y-4" onSubmit={handleSubmit}>
               {error && (
-                <div className="bg-destructive/10 text-destructive rounded-md p-3 text-sm">
+                <div className="rounded-md bg-destructive/10 p-3 text-destructive text-sm">
                   {error}
                 </div>
               )}
@@ -110,27 +110,27 @@ export default function ForgotPasswordPage() {
               <div className="space-y-2">
                 <Label htmlFor="email">Email Address</Label>
                 <Input
+                  autoComplete="email"
+                  autoFocus
                   id="email"
-                  type="email"
-                  value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter your email"
                   required
-                  autoComplete="email"
-                  autoFocus
+                  type="email"
+                  value={email}
                 />
               </div>
 
               <Button
-                type="submit"
-                disabled={loading || !email.trim()}
                 className="w-full"
+                disabled={loading || !email.trim()}
+                type="submit"
               >
                 {loading ? (
                   "Sending..."
                 ) : (
                   <>
-                    <IconMail className="h-4 w-4 mr-2" />
+                    <IconMail className="mr-2 h-4 w-4" />
                     Send Reset Link
                   </>
                 )}
@@ -138,7 +138,7 @@ export default function ForgotPasswordPage() {
 
               <Button asChild className="w-full" variant="outline">
                 <Link href="/login">
-                  <IconArrowLeft className="h-4 w-4 mr-2" />
+                  <IconArrowLeft className="mr-2 h-4 w-4" />
                   Back to Login
                 </Link>
               </Button>

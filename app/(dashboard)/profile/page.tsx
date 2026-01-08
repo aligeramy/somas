@@ -1,6 +1,11 @@
 "use client";
 
-import { IconBuilding, IconCamera, IconCheck, IconDeviceFloppy } from "@tabler/icons-react";
+import {
+  IconBuilding,
+  IconCamera,
+  IconCheck,
+  IconDeviceFloppy,
+} from "@tabler/icons-react";
 import { useEffect, useRef, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { PageHeader } from "@/components/page-header";
@@ -160,7 +165,7 @@ export default function ProfilePage() {
       setEmergencyContactName(data.user.emergencyContactName || "");
       setEmergencyContactPhone(data.user.emergencyContactPhone || "");
       setEmergencyContactRelationship(
-        data.user.emergencyContactRelationship || "",
+        data.user.emergencyContactRelationship || ""
       );
       setEmergencyContactEmail(data.user.emergencyContactEmail || "");
       setMedicalConditions(data.user.medicalConditions || "");
@@ -195,9 +200,9 @@ export default function ProfilePage() {
     setError(null);
     setSuccess(false);
     setSaving(true);
-    
+
     // Dispatch event for SiteHeader
-    window.dispatchEvent(new CustomEvent('profile-save-start'));
+    window.dispatchEvent(new CustomEvent("profile-save-start"));
 
     try {
       let avatarUrl = profile?.avatarUrl || null;
@@ -253,7 +258,7 @@ export default function ProfilePage() {
           notifPreferences: {
             email: emailNotif,
             push: pushNotif,
-            reminders: reminders,
+            reminders,
           },
         }),
       });
@@ -308,15 +313,15 @@ export default function ProfilePage() {
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
       await loadProfile(); // Reload to get updated data
-      
+
       // Dispatch event for SiteHeader
-      window.dispatchEvent(new CustomEvent('profile-save-success'));
+      window.dispatchEvent(new CustomEvent("profile-save-success"));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save");
-      window.dispatchEvent(new CustomEvent('profile-save-error'));
+      window.dispatchEvent(new CustomEvent("profile-save-error"));
     } finally {
       setSaving(false);
-      window.dispatchEvent(new CustomEvent('profile-save-end'));
+      window.dispatchEvent(new CustomEvent("profile-save-end"));
     }
   }
 
@@ -355,9 +360,17 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
-      <PageHeader title="Profile" description={isMobile ? undefined : "Manage your account settings"}>
-        <Button onClick={handleSave} disabled={saving} className="gap-2 rounded-sm" data-show-text-mobile>
+    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
+      <PageHeader
+        description={isMobile ? undefined : "Manage your account settings"}
+        title="Profile"
+      >
+        <Button
+          className="gap-2 rounded-sm"
+          data-show-text-mobile
+          disabled={saving}
+          onClick={handleSave}
+        >
           {success ? (
             <>
               <IconCheck className="h-4 w-4" />
@@ -377,43 +390,49 @@ export default function ProfilePage() {
         </Button>
       </PageHeader>
 
-      <div className="flex-1 overflow-auto min-h-0">
-        <form id="profile-form" onSubmit={handleSave} className={`${isMobile ? "px-0 pb-4" : "max-w-2xl mx-auto space-y-6 p-4"}`}>
+      <div className="min-h-0 flex-1 overflow-auto">
+        <form
+          className={`${isMobile ? "px-0 pb-4" : "mx-auto max-w-2xl space-y-6 p-4"}`}
+          id="profile-form"
+          onSubmit={handleSave}
+        >
           {error && (
-            <div className={`bg-destructive/10 text-destructive ${isMobile ? "mx-4 mt-4 rounded-lg" : "rounded-xl"} p-4 text-sm`}>
+            <div
+              className={`bg-destructive/10 text-destructive ${isMobile ? "mx-4 mt-4 rounded-lg" : "rounded-xl"} p-4 text-sm`}
+            >
               {error}
             </div>
           )}
 
           {/* Avatar Section */}
           {isMobile ? (
-            <div className="bg-background border-b border-border pb-6 pt-4 px-4">
+            <div className="border-border border-b bg-background px-4 pt-4 pb-6">
               <div className="flex items-center gap-4">
                 <div className="relative">
                   <Avatar className="h-16 w-16 border-2 border-background">
                     <AvatarImage
                       src={avatarPreview || profile.avatarUrl || undefined}
                     />
-                    <AvatarFallback className="text-lg bg-gradient-to-br from-primary/20 to-primary/5">
+                    <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/5 text-lg">
                       {getInitials(profile.name, profile.email)}
                     </AvatarFallback>
                   </Avatar>
                   <button
                     {...getAvatarRootProps()}
-                    className="absolute bottom-0 right-0 h-7 w-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md hover:bg-primary/90 transition-colors cursor-pointer"
+                    className="absolute right-0 bottom-0 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md transition-colors hover:bg-primary/90"
                   >
                     <input {...getAvatarInputProps()} />
                     <IconCamera className="h-3.5 w-3.5" />
                   </button>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-base truncate">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-semibold text-base">
                     {profile.name || "Unnamed"}
                   </p>
-                  <p className="text-sm text-muted-foreground truncate">
+                  <p className="truncate text-muted-foreground text-sm">
                     {profile.email}
                   </p>
-                  <p className="text-xs text-muted-foreground capitalize mt-0.5">
+                  <p className="mt-0.5 text-muted-foreground text-xs capitalize">
                     {profile.role === "owner" ? "Head Coach" : profile.role}
                   </p>
                 </div>
@@ -428,13 +447,13 @@ export default function ProfilePage() {
                       <AvatarImage
                         src={avatarPreview || profile.avatarUrl || undefined}
                       />
-                      <AvatarFallback className="text-xl bg-gradient-to-br from-primary/20 to-primary/5">
+                      <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/5 text-xl">
                         {getInitials(profile.name, profile.email)}
                       </AvatarFallback>
                     </Avatar>
                     <button
                       {...getAvatarRootProps()}
-                      className="absolute bottom-0 right-0 h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg hover:bg-primary/90 transition-colors cursor-pointer"
+                      className="absolute right-0 bottom-0 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-colors hover:bg-primary/90"
                     >
                       <input {...getAvatarInputProps()} />
                       <IconCamera className="h-4 w-4" />
@@ -444,10 +463,10 @@ export default function ProfilePage() {
                     <p className="font-semibold text-lg">
                       {profile.name || "Unnamed"}
                     </p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-muted-foreground text-sm">
                       {profile.email}
                     </p>
-                    <p className="text-xs text-muted-foreground capitalize mt-1">
+                    <p className="mt-1 text-muted-foreground text-xs capitalize">
                       {profile.role === "owner" ? "Head Coach" : profile.role}
                     </p>
                   </div>
@@ -462,7 +481,7 @@ export default function ProfilePage() {
               {isMobile ? (
                 <div className="mt-4">
                   <div className="px-4 py-2">
-                    <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                    <h3 className="flex items-center gap-2 font-semibold text-foreground text-sm">
                       <IconBuilding className="h-4 w-4" />
                       Club Settings
                     </h3>
@@ -473,36 +492,39 @@ export default function ProfilePage() {
                       <div className="relative">
                         {gymLogoPreview || gym.logoUrl ? (
                           <img
-                            src={gymLogoPreview || gym.logoUrl || ""}
                             alt="Club logo"
                             className="h-16 w-16 rounded-lg border-2 border-background object-cover"
+                            src={gymLogoPreview || gym.logoUrl || ""}
                           />
                         ) : (
-                          <div className="h-16 w-16 rounded-lg border-2 border-background bg-muted flex items-center justify-center">
-                            <span className="text-2xl font-bold">
+                          <div className="flex h-16 w-16 items-center justify-center rounded-lg border-2 border-background bg-muted">
+                            <span className="font-bold text-2xl">
                               {gymName[0]?.toUpperCase() || "G"}
                             </span>
                           </div>
                         )}
                         <button
                           {...getLogoRootProps()}
-                          className="absolute bottom-0 right-0 h-6 w-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md hover:bg-primary/90 transition-colors cursor-pointer"
+                          className="absolute right-0 bottom-0 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md transition-colors hover:bg-primary/90"
                         >
                           <input {...getLogoInputProps()} />
                           <IconCamera className="h-3 w-3" />
                         </button>
                       </div>
                       <div className="flex-1 space-y-2">
-                        <Label htmlFor="gymName" className="text-xs text-muted-foreground">
+                        <Label
+                          className="text-muted-foreground text-xs"
+                          htmlFor="gymName"
+                        >
                           Club Name
                         </Label>
                         <Input
+                          className="h-11 rounded-sm"
                           id="gymName"
-                          value={gymName}
                           onChange={(e) => setGymName(e.target.value)}
                           placeholder="Club Name"
-                          className="rounded-sm h-11"
                           required
+                          value={gymName}
                         />
                       </div>
                     </div>
@@ -511,7 +533,7 @@ export default function ProfilePage() {
               ) : (
                 <Card className="rounded-xl">
                   <CardHeader>
-                    <CardTitle className="text-base flex items-center gap-2">
+                    <CardTitle className="flex items-center gap-2 text-base">
                       <IconBuilding className="h-5 w-5" />
                       Club Settings
                     </CardTitle>
@@ -525,36 +547,36 @@ export default function ProfilePage() {
                       <div className="relative">
                         {gymLogoPreview || gym.logoUrl ? (
                           <img
-                            src={gymLogoPreview || gym.logoUrl || ""}
                             alt="Club logo"
-                            className="h-24 w-24 rounded-xl border-4 border-background shadow-lg object-cover"
+                            className="h-24 w-24 rounded-xl border-4 border-background object-cover shadow-lg"
+                            src={gymLogoPreview || gym.logoUrl || ""}
                           />
                         ) : (
-                          <div className="h-24 w-24 rounded-xl border-4 border-background shadow-lg bg-muted flex items-center justify-center">
-                            <span className="text-3xl font-bold">
+                          <div className="flex h-24 w-24 items-center justify-center rounded-xl border-4 border-background bg-muted shadow-lg">
+                            <span className="font-bold text-3xl">
                               {gymName[0]?.toUpperCase() || "G"}
                             </span>
                           </div>
                         )}
                         <button
                           {...getLogoRootProps()}
-                          className="absolute bottom-0 right-0 h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg hover:bg-primary/90 transition-colors cursor-pointer"
+                          className="absolute right-0 bottom-0 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-colors hover:bg-primary/90"
                         >
                           <input {...getLogoInputProps()} />
                           <IconCamera className="h-4 w-4" />
                         </button>
                       </div>
                       <div className="flex-1 space-y-2">
-                        <Label htmlFor="gymName" className="text-sm">
+                        <Label className="text-sm" htmlFor="gymName">
                           Club Name
                         </Label>
                         <Input
+                          className="h-11 rounded-xl"
                           id="gymName"
-                          value={gymName}
                           onChange={(e) => setGymName(e.target.value)}
                           placeholder="Club Name"
-                          className="rounded-xl h-11"
                           required
+                          value={gymName}
                         />
                       </div>
                     </div>
@@ -569,107 +591,132 @@ export default function ProfilePage() {
           {isMobile ? (
             <div className="mt-4">
               <div className="px-4 py-2">
-                <h3 className="text-sm font-semibold text-foreground">Personal Information</h3>
+                <h3 className="font-semibold text-foreground text-sm">
+                  Personal Information
+                </h3>
               </div>
               <Separator />
               <div className="space-y-4 px-4 py-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name" className="text-xs text-muted-foreground">
+                  <Label
+                    className="text-muted-foreground text-xs"
+                    htmlFor="name"
+                  >
                     Athlete Name
                   </Label>
                   <Input
+                    className="h-11 rounded-sm"
                     id="name"
-                    value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="John Doe"
-                    className="rounded-sm h-11"
+                    value={name}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="address" className="text-xs text-muted-foreground">
+                  <Label
+                    className="text-muted-foreground text-xs"
+                    htmlFor="address"
+                  >
                     Athlete Address
                   </Label>
                   <Input
-                    ref={addressInputRef}
+                    autoComplete="off"
+                    className="h-11 rounded-sm"
                     id="address"
-                    value={address}
                     onChange={(e) => setAddress(e.target.value)}
                     placeholder="123 Main St, City, Country"
-                    className="rounded-sm h-11"
-                    autoComplete="off"
+                    ref={addressInputRef}
+                    value={address}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="altEmail" className="text-xs text-muted-foreground">
+                  <Label
+                    className="text-muted-foreground text-xs"
+                    htmlFor="altEmail"
+                  >
                     Alternate Email
                   </Label>
                   <Input
+                    className="h-11 rounded-sm"
                     id="altEmail"
-                    type="email"
-                    value={altEmail}
                     onChange={(e) => setAltEmail(e.target.value)}
                     placeholder="Enter alternate email (optional)"
-                    className="rounded-sm h-11"
+                    type="email"
+                    value={altEmail}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="phone" className="text-xs text-muted-foreground">
+                  <Label
+                    className="text-muted-foreground text-xs"
+                    htmlFor="phone"
+                  >
                     Main Phone
                   </Label>
                   <Input
+                    className="h-11 rounded-sm"
                     id="phone"
-                    type="tel"
-                    value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     placeholder="+1 (555) 000-0000"
-                    className="rounded-sm h-11"
+                    type="tel"
+                    value={phone}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="homePhone" className="text-xs text-muted-foreground">
+                  <Label
+                    className="text-muted-foreground text-xs"
+                    htmlFor="homePhone"
+                  >
                     Home Phone Number
                   </Label>
                   <Input
+                    className="h-11 rounded-sm"
                     id="homePhone"
-                    type="tel"
-                    value={homePhone}
                     onChange={(e) => setHomePhone(e.target.value)}
                     placeholder="+1 (555) 000-0000"
-                    className="rounded-sm h-11"
+                    type="tel"
+                    value={homePhone}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="workPhone" className="text-xs text-muted-foreground">
+                  <Label
+                    className="text-muted-foreground text-xs"
+                    htmlFor="workPhone"
+                  >
                     Work Phone Number
                   </Label>
                   <Input
+                    className="h-11 rounded-sm"
                     id="workPhone"
-                    type="tel"
-                    value={workPhone}
                     onChange={(e) => setWorkPhone(e.target.value)}
                     placeholder="+1 (555) 000-0000"
-                    className="rounded-sm h-11"
+                    type="tel"
+                    value={workPhone}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="cellPhone" className="text-xs text-muted-foreground">
+                  <Label
+                    className="text-muted-foreground text-xs"
+                    htmlFor="cellPhone"
+                  >
                     Cell Number
                   </Label>
                   <Input
+                    className="h-11 rounded-sm"
                     id="cellPhone"
-                    type="tel"
-                    value={cellPhone}
                     onChange={(e) => setCellPhone(e.target.value)}
                     placeholder="+1 (555) 000-0000"
-                    className="rounded-sm h-11"
+                    type="tel"
+                    value={cellPhone}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">Email Address</Label>
+                  <Label className="text-muted-foreground text-xs">
+                    Email Address
+                  </Label>
                   <Input
-                    value={profile.email}
+                    className="h-11 rounded-sm bg-muted"
                     disabled
-                    className="rounded-sm h-11 bg-muted"
+                    value={profile.email}
                   />
                 </div>
               </div>
@@ -677,109 +724,111 @@ export default function ProfilePage() {
           ) : (
             <Card className="rounded-xl">
               <CardHeader>
-                <CardTitle className="text-base">Personal Information</CardTitle>
+                <CardTitle className="text-base">
+                  Personal Information
+                </CardTitle>
                 <CardDescription>Update your personal details</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name" className="text-sm">
+                  <Label className="text-sm" htmlFor="name">
                     Athlete Name
                   </Label>
                   <Input
+                    className="h-11 rounded-xl"
                     id="name"
-                    value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="John Doe"
-                    className="rounded-xl h-11"
+                    value={name}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="address" className="text-sm">
+                  <Label className="text-sm" htmlFor="address">
                     Athlete Address
                   </Label>
                   <Input
-                    ref={addressInputRef}
+                    autoComplete="off"
+                    className="h-11 rounded-xl"
                     id="address"
-                    value={address}
                     onChange={(e) => setAddress(e.target.value)}
                     placeholder="123 Main St, City, Country"
-                    className="rounded-xl h-11"
-                    autoComplete="off"
+                    ref={addressInputRef}
+                    value={address}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="altEmail" className="text-sm">
+                  <Label className="text-sm" htmlFor="altEmail">
                     Alternate Email
                   </Label>
                   <Input
+                    className="h-11 rounded-xl"
                     id="altEmail"
-                    type="email"
-                    value={altEmail}
                     onChange={(e) => setAltEmail(e.target.value)}
                     placeholder="Enter alternate email (optional)"
-                    className="rounded-xl h-11"
+                    type="email"
+                    value={altEmail}
                   />
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="phone" className="text-sm">
+                    <Label className="text-sm" htmlFor="phone">
                       Main Phone
                     </Label>
                     <Input
+                      className="h-11 rounded-xl"
                       id="phone"
-                      type="tel"
-                      value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       placeholder="+1 (555) 000-0000"
-                      className="rounded-xl h-11"
+                      type="tel"
+                      value={phone}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="homePhone" className="text-sm">
+                    <Label className="text-sm" htmlFor="homePhone">
                       Home Phone Number
                     </Label>
                     <Input
+                      className="h-11 rounded-xl"
                       id="homePhone"
-                      type="tel"
-                      value={homePhone}
                       onChange={(e) => setHomePhone(e.target.value)}
                       placeholder="+1 (555) 000-0000"
-                      className="rounded-xl h-11"
+                      type="tel"
+                      value={homePhone}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="workPhone" className="text-sm">
+                    <Label className="text-sm" htmlFor="workPhone">
                       Work Phone Number
                     </Label>
                     <Input
+                      className="h-11 rounded-xl"
                       id="workPhone"
-                      type="tel"
-                      value={workPhone}
                       onChange={(e) => setWorkPhone(e.target.value)}
                       placeholder="+1 (555) 000-0000"
-                      className="rounded-xl h-11"
+                      type="tel"
+                      value={workPhone}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="cellPhone" className="text-sm">
+                    <Label className="text-sm" htmlFor="cellPhone">
                       Cell Number
                     </Label>
                     <Input
+                      className="h-11 rounded-xl"
                       id="cellPhone"
-                      type="tel"
-                      value={cellPhone}
                       onChange={(e) => setCellPhone(e.target.value)}
                       placeholder="+1 (555) 000-0000"
-                      className="rounded-xl h-11"
+                      type="tel"
+                      value={cellPhone}
                     />
                   </div>
                 </div>
                 <div className="space-y-2">
                   <Label className="text-sm">Email Address</Label>
                   <Input
-                    value={profile.email}
+                    className="h-11 rounded-xl bg-muted"
                     disabled
-                    className="rounded-xl h-11 bg-muted"
+                    value={profile.email}
                   />
                 </div>
               </CardContent>
@@ -790,63 +839,74 @@ export default function ProfilePage() {
           {isMobile ? (
             <div className="mt-4">
               <div className="px-4 py-2">
-                <h3 className="text-sm font-semibold text-foreground">Emergency Contact</h3>
+                <h3 className="font-semibold text-foreground text-sm">
+                  Emergency Contact
+                </h3>
               </div>
               <Separator />
               <div className="space-y-4 px-4 py-4">
                 <div className="space-y-2">
-                  <Label htmlFor="emergencyContactName" className="text-xs text-muted-foreground">
+                  <Label
+                    className="text-muted-foreground text-xs"
+                    htmlFor="emergencyContactName"
+                  >
                     Emergency Contact Name
                   </Label>
                   <Input
+                    className="h-11 rounded-sm"
                     id="emergencyContactName"
-                    value={emergencyContactName}
                     onChange={(e) => setEmergencyContactName(e.target.value)}
                     placeholder="Jane Doe"
-                    className="rounded-sm h-11"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="emergencyContactPhone" className="text-xs text-muted-foreground">
-                    Emergency Contact Phone
-                  </Label>
-                  <Input
-                    id="emergencyContactPhone"
-                    type="tel"
-                    value={emergencyContactPhone}
-                    onChange={(e) => setEmergencyContactPhone(e.target.value)}
-                    placeholder="+1 (555) 000-0000"
-                    className="rounded-sm h-11"
+                    value={emergencyContactName}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label
+                    className="text-muted-foreground text-xs"
+                    htmlFor="emergencyContactPhone"
+                  >
+                    Emergency Contact Phone
+                  </Label>
+                  <Input
+                    className="h-11 rounded-sm"
+                    id="emergencyContactPhone"
+                    onChange={(e) => setEmergencyContactPhone(e.target.value)}
+                    placeholder="+1 (555) 000-0000"
+                    type="tel"
+                    value={emergencyContactPhone}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label
+                    className="text-muted-foreground text-xs"
                     htmlFor="emergencyContactRelationship"
-                    className="text-xs text-muted-foreground"
                   >
                     Relationship to Athlete
                   </Label>
                   <Input
+                    className="h-11 rounded-sm"
                     id="emergencyContactRelationship"
-                    value={emergencyContactRelationship}
                     onChange={(e) =>
                       setEmergencyContactRelationship(e.target.value)
                     }
                     placeholder="Parent, Guardian, etc."
-                    className="rounded-sm h-11"
+                    value={emergencyContactRelationship}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="emergencyContactEmail" className="text-xs text-muted-foreground">
+                  <Label
+                    className="text-muted-foreground text-xs"
+                    htmlFor="emergencyContactEmail"
+                  >
                     Emergency Contact Email Address
                   </Label>
                   <Input
+                    className="h-11 rounded-sm"
                     id="emergencyContactEmail"
-                    type="email"
-                    value={emergencyContactEmail}
                     onChange={(e) => setEmergencyContactEmail(e.target.value)}
                     placeholder="contact@example.com"
-                    className="rounded-sm h-11"
+                    type="email"
+                    value={emergencyContactEmail}
                   />
                 </div>
               </div>
@@ -859,60 +919,60 @@ export default function ProfilePage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="emergencyContactName" className="text-sm">
+                  <Label className="text-sm" htmlFor="emergencyContactName">
                     Emergency Contact Name
                   </Label>
                   <Input
+                    className="h-11 rounded-xl"
                     id="emergencyContactName"
-                    value={emergencyContactName}
                     onChange={(e) => setEmergencyContactName(e.target.value)}
                     placeholder="Jane Doe"
-                    className="rounded-xl h-11"
+                    value={emergencyContactName}
                   />
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="emergencyContactPhone" className="text-sm">
+                    <Label className="text-sm" htmlFor="emergencyContactPhone">
                       Emergency Contact Phone
                     </Label>
                     <Input
+                      className="h-11 rounded-xl"
                       id="emergencyContactPhone"
-                      type="tel"
-                      value={emergencyContactPhone}
                       onChange={(e) => setEmergencyContactPhone(e.target.value)}
                       placeholder="+1 (555) 000-0000"
-                      className="rounded-xl h-11"
+                      type="tel"
+                      value={emergencyContactPhone}
                     />
                   </div>
                   <div className="space-y-2">
                     <Label
-                      htmlFor="emergencyContactRelationship"
                       className="text-sm"
+                      htmlFor="emergencyContactRelationship"
                     >
                       Relationship to Athlete
                     </Label>
                     <Input
+                      className="h-11 rounded-xl"
                       id="emergencyContactRelationship"
-                      value={emergencyContactRelationship}
                       onChange={(e) =>
                         setEmergencyContactRelationship(e.target.value)
                       }
                       placeholder="Parent, Guardian, etc."
-                      className="rounded-xl h-11"
+                      value={emergencyContactRelationship}
                     />
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="emergencyContactEmail" className="text-sm">
+                  <Label className="text-sm" htmlFor="emergencyContactEmail">
                     Emergency Contact Email Address
                   </Label>
                   <Input
+                    className="h-11 rounded-xl"
                     id="emergencyContactEmail"
-                    type="email"
-                    value={emergencyContactEmail}
                     onChange={(e) => setEmergencyContactEmail(e.target.value)}
                     placeholder="contact@example.com"
-                    className="rounded-xl h-11"
+                    type="email"
+                    value={emergencyContactEmail}
                   />
                 </div>
               </CardContent>
@@ -923,44 +983,55 @@ export default function ProfilePage() {
           {isMobile ? (
             <div className="mt-4">
               <div className="px-4 py-2">
-                <h3 className="text-sm font-semibold text-foreground">Medical Information</h3>
+                <h3 className="font-semibold text-foreground text-sm">
+                  Medical Information
+                </h3>
               </div>
               <Separator />
               <div className="space-y-4 px-4 py-4">
                 <div className="space-y-2">
-                  <Label htmlFor="medicalConditions" className="text-xs text-muted-foreground">
+                  <Label
+                    className="text-muted-foreground text-xs"
+                    htmlFor="medicalConditions"
+                  >
                     Medical Conditions
                   </Label>
                   <Input
+                    className="h-11 rounded-sm"
                     id="medicalConditions"
-                    value={medicalConditions}
                     onChange={(e) => setMedicalConditions(e.target.value)}
                     placeholder="e.g., Diabetes, Asthma, etc. (or None)"
-                    className="rounded-sm h-11"
+                    value={medicalConditions}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="medications" className="text-xs text-muted-foreground">
+                  <Label
+                    className="text-muted-foreground text-xs"
+                    htmlFor="medications"
+                  >
                     Current Medications
                   </Label>
                   <Input
+                    className="h-11 rounded-sm"
                     id="medications"
-                    value={medications}
                     onChange={(e) => setMedications(e.target.value)}
                     placeholder="List any medications currently being taken (or None)"
-                    className="rounded-sm h-11"
+                    value={medications}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="allergies" className="text-xs text-muted-foreground">
+                  <Label
+                    className="text-muted-foreground text-xs"
+                    htmlFor="allergies"
+                  >
                     Allergies
                   </Label>
                   <Input
+                    className="h-11 rounded-sm"
                     id="allergies"
-                    value={allergies}
                     onChange={(e) => setAllergies(e.target.value)}
                     placeholder="e.g., Latex, Peanuts, etc. (or None)"
-                    className="rounded-sm h-11"
+                    value={allergies}
                   />
                 </div>
               </div>
@@ -976,39 +1047,39 @@ export default function ProfilePage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="medicalConditions" className="text-sm">
+                  <Label className="text-sm" htmlFor="medicalConditions">
                     Medical Conditions
                   </Label>
                   <Input
+                    className="h-11 rounded-xl"
                     id="medicalConditions"
-                    value={medicalConditions}
                     onChange={(e) => setMedicalConditions(e.target.value)}
                     placeholder="e.g., Diabetes, Asthma, etc. (or None)"
-                    className="rounded-xl h-11"
+                    value={medicalConditions}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="medications" className="text-sm">
+                  <Label className="text-sm" htmlFor="medications">
                     Current Medications
                   </Label>
                   <Input
+                    className="h-11 rounded-xl"
                     id="medications"
-                    value={medications}
                     onChange={(e) => setMedications(e.target.value)}
                     placeholder="List any medications currently being taken (or None)"
-                    className="rounded-xl h-11"
+                    value={medications}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="allergies" className="text-sm">
+                  <Label className="text-sm" htmlFor="allergies">
                     Allergies
                   </Label>
                   <Input
+                    className="h-11 rounded-xl"
                     id="allergies"
-                    value={allergies}
                     onChange={(e) => setAllergies(e.target.value)}
                     placeholder="e.g., Latex, Peanuts, etc. (or None)"
-                    className="rounded-xl h-11"
+                    value={allergies}
                   />
                 </div>
               </CardContent>
@@ -1019,32 +1090,37 @@ export default function ProfilePage() {
           {isMobile ? (
             <div className="mt-4">
               <div className="px-4 py-2">
-                <h3 className="text-sm font-semibold text-foreground">Notifications</h3>
+                <h3 className="font-semibold text-foreground text-sm">
+                  Notifications
+                </h3>
               </div>
               <Separator />
               <div className="space-y-0 divide-y divide-border">
-                <div className="px-4 py-3 flex items-center justify-between">
-                  <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between px-4 py-3">
+                  <div className="min-w-0 flex-1">
                     <p className="font-medium text-sm">Email Notifications</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
+                    <p className="mt-0.5 text-muted-foreground text-xs">
                       Receive updates via email
                     </p>
                   </div>
-                  <Switch checked={emailNotif} onCheckedChange={setEmailNotif} />
+                  <Switch
+                    checked={emailNotif}
+                    onCheckedChange={setEmailNotif}
+                  />
                 </div>
-                <div className="px-4 py-3 flex items-center justify-between">
-                  <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between px-4 py-3">
+                  <div className="min-w-0 flex-1">
                     <p className="font-medium text-sm">Push Notifications</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
+                    <p className="mt-0.5 text-muted-foreground text-xs">
                       Receive push notifications on your device
                     </p>
                   </div>
                   <Switch checked={pushNotif} onCheckedChange={setPushNotif} />
                 </div>
-                <div className="px-4 py-3 flex items-center justify-between">
-                  <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between px-4 py-3">
+                  <div className="min-w-0 flex-1">
                     <p className="font-medium text-sm">Event Reminders</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
+                    <p className="mt-0.5 text-muted-foreground text-xs">
                       Get reminded 2 hours before events
                     </p>
                   </div>
@@ -1061,28 +1137,31 @@ export default function ProfilePage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-center justify-between p-3 rounded-xl bg-muted/50">
+                <div className="flex items-center justify-between rounded-xl bg-muted/50 p-3">
                   <div>
                     <p className="font-medium text-sm">Email Notifications</p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-muted-foreground text-xs">
                       Receive updates via email
                     </p>
                   </div>
-                  <Switch checked={emailNotif} onCheckedChange={setEmailNotif} />
+                  <Switch
+                    checked={emailNotif}
+                    onCheckedChange={setEmailNotif}
+                  />
                 </div>
-                <div className="flex items-center justify-between p-3 rounded-xl bg-muted/50">
+                <div className="flex items-center justify-between rounded-xl bg-muted/50 p-3">
                   <div>
                     <p className="font-medium text-sm">Push Notifications</p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-muted-foreground text-xs">
                       Receive push notifications on your device
                     </p>
                   </div>
                   <Switch checked={pushNotif} onCheckedChange={setPushNotif} />
                 </div>
-                <div className="flex items-center justify-between p-3 rounded-xl bg-muted/50">
+                <div className="flex items-center justify-between rounded-xl bg-muted/50 p-3">
                   <div>
                     <p className="font-medium text-sm">Event Reminders</p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-muted-foreground text-xs">
                       Get reminded 2 hours before events
                     </p>
                   </div>
@@ -1095,7 +1174,11 @@ export default function ProfilePage() {
           {/* Save Button for PC View */}
           {!isMobile && (
             <div className="flex justify-end pt-4">
-              <Button onClick={handleSave} disabled={saving} className="gap-2 rounded-xl">
+              <Button
+                className="gap-2 rounded-xl"
+                disabled={saving}
+                onClick={handleSave}
+              >
                 {success ? (
                   <>
                     <IconCheck className="h-4 w-4" />

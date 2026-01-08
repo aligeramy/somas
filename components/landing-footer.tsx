@@ -6,28 +6,28 @@ export function LandingFooter() {
   return (
     <footer className="border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+        <div className="mb-8 grid grid-cols-1 gap-8 md:grid-cols-3">
           <div>
-            <h3 className="text-lg font-semibold mb-4">SOMAS</h3>
+            <h3 className="mb-4 font-semibold text-lg">SOMAS</h3>
             <p className="text-muted-foreground text-sm">
               The modern platform for club management and athlete coordination.
             </p>
           </div>
           <div>
-            <h4 className="text-sm font-semibold mb-4">Product</h4>
+            <h4 className="mb-4 font-semibold text-sm">Product</h4>
             <ul className="space-y-2 text-sm">
               <li>
                 <Link
+                  className="text-muted-foreground transition-colors hover:text-foreground"
                   href="#features"
-                  className="text-muted-foreground hover:text-foreground transition-colors"
                 >
                   Features
                 </Link>
               </li>
               <li>
                 <Link
+                  className="text-muted-foreground transition-colors hover:text-foreground"
                   href="#about"
-                  className="text-muted-foreground hover:text-foreground transition-colors"
                 >
                   About
                 </Link>
@@ -35,20 +35,20 @@ export function LandingFooter() {
             </ul>
           </div>
           <div>
-            <h4 className="text-sm font-semibold mb-4">Account</h4>
+            <h4 className="mb-4 font-semibold text-sm">Account</h4>
             <ul className="space-y-2 text-sm">
               <li>
                 <Link
+                  className="text-muted-foreground transition-colors hover:text-foreground"
                   href="/login"
-                  className="text-muted-foreground hover:text-foreground transition-colors"
                 >
                   Sign In
                 </Link>
               </li>
               <li>
                 <Link
+                  className="text-muted-foreground transition-colors hover:text-foreground"
                   href="/register"
-                  className="text-muted-foreground hover:text-foreground transition-colors"
                 >
                   Get Started
                 </Link>
@@ -56,7 +56,7 @@ export function LandingFooter() {
             </ul>
           </div>
         </div>
-        <div className="pt-8 border-t text-center text-sm text-muted-foreground">
+        <div className="border-t pt-8 text-center text-muted-foreground text-sm">
           <p>© {currentYear} SOMAS. All rights reserved.</p>
         </div>
       </div>

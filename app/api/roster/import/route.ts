@@ -28,10 +28,10 @@ export async function POST(request: Request) {
       .where(eq(users.id, user.id))
       .limit(1);
 
-    if (!dbUser || !dbUser.gymId) {
+    if (!(dbUser && dbUser.gymId)) {
       return NextResponse.json(
         { error: "User must belong to a gym" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -73,7 +73,7 @@ export async function POST(request: Request) {
     } else {
       return NextResponse.json(
         { error: "Unsupported file format. Use CSV or JSON." },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -240,7 +240,7 @@ export async function POST(request: Request) {
     console.error("Roster import error:", error);
     return NextResponse.json(
       { error: "Failed to import roster" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

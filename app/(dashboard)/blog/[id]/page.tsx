@@ -33,7 +33,7 @@ export default async function BlogPostPage({
     .where(eq(users.id, authUser.id))
     .limit(1);
 
-  if (!dbUser || !dbUser.gymId) {
+  if (!(dbUser && dbUser.gymId)) {
     return notFound();
   }
 
@@ -72,48 +72,48 @@ export default async function BlogPostPage({
   }
 
   return (
-    <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
-      <PageHeader title="Blog Post" description="">
-        <Button variant="ghost" size="sm" asChild className="rounded-xl">
+    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
+      <PageHeader description="" title="Blog Post">
+        <Button asChild className="rounded-xl" size="sm" variant="ghost">
           <Link href="/blog">
-            <IconArrowLeft className="h-4 w-4 mr-2" />
+            <IconArrowLeft className="mr-2 h-4 w-4" />
             Back to Blog
           </Link>
         </Button>
       </PageHeader>
 
-      <div className="flex-1 overflow-auto min-h-0">
-        <div className="max-w-4xl mx-auto space-y-6 p-4">
+      <div className="min-h-0 flex-1 overflow-auto">
+        <div className="mx-auto max-w-4xl space-y-6 p-4">
           <Card className="rounded-xl">
             <CardHeader>
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Badge variant="outline" className="rounded-lg">
+                  <div className="mb-2 flex items-center gap-2">
+                    <Badge className="rounded-lg" variant="outline">
                       {post.type}
                     </Badge>
                     {post.eventId && (
-                      <Badge variant="secondary" className="rounded-lg">
+                      <Badge className="rounded-lg" variant="secondary">
                         Event Post
                       </Badge>
                     )}
                   </div>
-                  <CardTitle className="text-2xl mb-2">{post.title}</CardTitle>
-                  <div className="flex items-center gap-3 mt-3">
+                  <CardTitle className="mb-2 text-2xl">{post.title}</CardTitle>
+                  <div className="mt-3 flex items-center gap-3">
                     <Avatar className="h-8 w-8 rounded-xl">
                       <AvatarImage src={post.author.avatarUrl || undefined} />
                       <AvatarFallback className="rounded-xl text-xs">
                         {getInitials(post.author.name)}
                       </AvatarFallback>
                     </Avatar>
-                    <div className="text-sm text-muted-foreground">
+                    <div className="text-muted-foreground text-sm">
                       <span className="font-medium">
                         {post.author.name || "Unknown"}
                       </span>
                       {" • "}
                       {format(
                         new Date(post.createdAt),
-                        "MMM d, yyyy 'at' h:mm a",
+                        "MMM d, yyyy 'at' h:mm a"
                       )}
                     </div>
                   </div>
@@ -124,9 +124,9 @@ export default async function BlogPostPage({
               {post.imageUrl && (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={post.imageUrl}
                   alt={post.title}
-                  className="w-full max-h-96 object-cover rounded-xl mb-6"
+                  className="mb-6 max-h-96 w-full rounded-xl object-cover"
+                  src={post.imageUrl}
                 />
               )}
               {/* biome-ignore lint/security/noDangerouslySetInnerHtml: Rich text content from editor */}

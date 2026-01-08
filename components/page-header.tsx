@@ -10,18 +10,18 @@ interface PageHeaderProps {
 
 export function PageHeader({ title, children }: PageHeaderProps) {
   return (
-    <div className="sticky z-10 -top-1 md:hidden">
-      <header className="flex h-14 shrink-0 items-center gap-2 bg-card border shadow-sm px-4 sm:px-6 md:px-6 lg:px-8 md:rounded-md sm:rounded-none">
+    <div className="sticky -top-1 z-10 md:hidden">
+      <header className="flex h-14 shrink-0 items-center gap-2 border bg-card px-4 shadow-sm sm:rounded-none sm:px-6 md:rounded-md md:px-6 lg:px-8">
         <SidebarTrigger className="-ml-1 md:hidden" />
         <div className="flex flex-1 items-center justify-between gap-2 sm:gap-4">
           <div className="flex items-center gap-3">
             <div>
-              <h1 className="text-lg font-semibold tracking-tight">{title}</h1>
+              <h1 className="font-semibold text-lg tracking-tight">{title}</h1>
             </div>
           </div>
           {children && (
             <>
-              <style jsx global>{`
+              <style global jsx>{`
                 @media (max-width: 767px) {
                   [data-page-header] button:not([data-show-text-mobile]) {
                     font-size: 0 !important;
@@ -49,8 +49,8 @@ export function PageHeader({ title, children }: PageHeaderProps) {
                 }
               `}</style>
               <div
+                className="flex items-center gap-2 md:gap-3 [&_button]:md:size-auto [&_button]:md:h-8 [&_button]:md:w-auto [&_button]:md:gap-2 [&_button]:md:px-3 [&_button_svg]:md:mr-2"
                 data-page-header
-                className="flex items-center gap-2 md:gap-3 [&_button]:md:px-3 [&_button]:md:gap-2 [&_button]:md:size-auto [&_button]:md:h-8 [&_button]:md:w-auto [&_button_svg]:md:mr-2"
               >
                 {children}
               </div>

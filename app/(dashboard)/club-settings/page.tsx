@@ -117,7 +117,7 @@ export default function ClubSettingsPage() {
       const data = await response.json();
       // Include both coaches and owners (head coaches)
       const coachesList = data.roster.filter(
-        (user: Coach) => user.role === "coach" || user.role === "owner",
+        (user: Coach) => user.role === "coach" || user.role === "owner"
       );
       setCoaches(coachesList);
     } catch (err) {
@@ -305,7 +305,7 @@ export default function ClubSettingsPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
+      <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
         <PageHeader title="Club Settings" />
         <div className="flex flex-1 items-center justify-center">
           <div className="animate-pulse text-muted-foreground">Loading...</div>
@@ -316,7 +316,7 @@ export default function ClubSettingsPage() {
 
   if (!club) {
     return (
-      <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
+      <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
         <PageHeader title="Club Settings" />
         <div className="flex flex-1 items-center justify-center">
           <p className="text-muted-foreground">Club not found</p>
@@ -326,15 +326,15 @@ export default function ClubSettingsPage() {
   }
 
   return (
-    <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
+    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
       <PageHeader
-        title="Club Settings"
         description="Manage your club information"
+        title="Club Settings"
       >
         <Button
-          onClick={handleSave}
-          disabled={saving}
           className="gap-2 rounded-xl"
+          disabled={saving}
+          onClick={handleSave}
         >
           {success ? (
             <>
@@ -349,10 +349,10 @@ export default function ClubSettingsPage() {
         </Button>
       </PageHeader>
 
-      <div className="flex-1 overflow-auto min-h-0">
-        <div className="max-w-2xl mx-auto space-y-6 p-4">
+      <div className="min-h-0 flex-1 overflow-auto">
+        <div className="mx-auto max-w-2xl space-y-6 p-4">
           {error && (
-            <div className="bg-destructive/10 text-destructive rounded-xl p-4 text-sm">
+            <div className="rounded-xl bg-destructive/10 p-4 text-destructive text-sm">
               {error}
             </div>
           )}
@@ -360,7 +360,7 @@ export default function ClubSettingsPage() {
           {/* Club Logo Section */}
           <Card className="rounded-xl">
             <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-base">
                 <IconBuilding className="h-5 w-5" />
                 Club Logo
               </CardTitle>
@@ -371,27 +371,27 @@ export default function ClubSettingsPage() {
                 <div className="relative">
                   {clubLogoPreview || club.logoUrl ? (
                     <img
-                      src={clubLogoPreview || club.logoUrl || ""}
                       alt="Club logo"
-                      className="h-24 w-24 rounded-xl border-4 border-background shadow-lg object-cover"
+                      className="h-24 w-24 rounded-xl border-4 border-background object-cover shadow-lg"
+                      src={clubLogoPreview || club.logoUrl || ""}
                     />
                   ) : (
-                    <div className="h-24 w-24 rounded-xl border-4 border-background shadow-lg bg-muted flex items-center justify-center">
-                      <span className="text-3xl font-bold">
+                    <div className="flex h-24 w-24 items-center justify-center rounded-xl border-4 border-background bg-muted shadow-lg">
+                      <span className="font-bold text-3xl">
                         {clubName[0]?.toUpperCase() || "C"}
                       </span>
                     </div>
                   )}
                   <button
                     {...getLogoRootProps()}
-                    className="absolute bottom-0 right-0 h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg hover:bg-primary/90 transition-colors cursor-pointer"
+                    className="absolute right-0 bottom-0 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-colors hover:bg-primary/90"
                   >
                     <input {...getLogoInputProps()} />
                     <IconCamera className="h-4 w-4" />
                   </button>
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-muted-foreground text-sm">
                     Click the camera icon to upload a new logo. Recommended
                     size: 512x512px
                   </p>
@@ -410,31 +410,31 @@ export default function ClubSettingsPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="clubName" className="text-sm">
+                <Label className="text-sm" htmlFor="clubName">
                   Club Name
                 </Label>
                 <Input
+                  className="h-11 rounded-xl"
                   id="clubName"
-                  value={clubName}
                   onChange={(e) => setClubName(e.target.value)}
                   placeholder="Club Name"
-                  className="rounded-xl h-11"
                   required
+                  value={clubName}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="clubWebsite" className="text-sm">
+                <Label className="text-sm" htmlFor="clubWebsite">
                   Website
                 </Label>
                 <Input
+                  className="h-11 rounded-xl"
                   id="clubWebsite"
-                  type="url"
-                  value={clubWebsite}
                   onChange={(e) => setClubWebsite(e.target.value)}
                   placeholder="https://example.com"
-                  className="rounded-xl h-11"
+                  type="url"
+                  value={clubWebsite}
                 />
-                <p className="text-xs text-muted-foreground">
+                <p className="text-muted-foreground text-xs">
                   Enter your club's website URL. This will be visible to all
                   members.
                 </p>
@@ -451,11 +451,11 @@ export default function ClubSettingsPage() {
                   <CardDescription>Manage your club's coaches</CardDescription>
                 </div>
                 <Dialog
-                  open={isAddCoachDialogOpen}
                   onOpenChange={setIsAddCoachDialogOpen}
+                  open={isAddCoachDialogOpen}
                 >
                   <DialogTrigger asChild>
-                    <Button size="sm" className="gap-2 rounded-xl">
+                    <Button className="gap-2 rounded-xl" size="sm">
                       <IconPlus className="h-4 w-4" />
                       Add Coach
                     </Button>
@@ -473,29 +473,29 @@ export default function ClubSettingsPage() {
                         <div className="space-y-2">
                           <Label htmlFor="coachEmail">Email Address</Label>
                           <Input
+                            className="h-11 rounded-xl"
                             id="coachEmail"
-                            type="email"
-                            value={coachEmail}
                             onChange={(e) => setCoachEmail(e.target.value)}
                             placeholder="coach@example.com"
-                            className="rounded-xl h-11"
                             required
+                            type="email"
+                            value={coachEmail}
                           />
                         </div>
                       </div>
                       <DialogFooter>
                         <Button
+                          className="rounded-xl"
+                          onClick={() => setIsAddCoachDialogOpen(false)}
                           type="button"
                           variant="outline"
-                          onClick={() => setIsAddCoachDialogOpen(false)}
-                          className="rounded-xl"
                         >
                           Cancel
                         </Button>
                         <Button
-                          type="submit"
-                          disabled={invitingCoach}
                           className="rounded-xl"
+                          disabled={invitingCoach}
+                          type="submit"
                         >
                           {invitingCoach ? "Sending..." : "Send Invitation"}
                         </Button>
@@ -509,13 +509,13 @@ export default function ClubSettingsPage() {
               {loadingCoaches ? (
                 <div className="space-y-2">
                   {[1, 2, 3].map((i) => (
-                    <Skeleton key={i} className="h-16 w-full rounded-xl" />
+                    <Skeleton className="h-16 w-full rounded-xl" key={i} />
                   ))}
                 </div>
               ) : coaches.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
+                <div className="py-8 text-center text-muted-foreground">
                   <p>No coaches yet</p>
-                  <p className="text-sm mt-1">
+                  <p className="mt-1 text-sm">
                     Add coaches to help manage your club
                   </p>
                 </div>
@@ -524,8 +524,8 @@ export default function ClubSettingsPage() {
                   <div className="space-y-2">
                     {coaches.map((coach) => (
                       <div
+                        className="flex items-center gap-3 rounded-xl border bg-card p-3 transition-colors hover:bg-muted/50"
                         key={coach.id}
-                        className="flex items-center gap-3 p-3 rounded-xl border bg-card hover:bg-muted/50 transition-colors"
                       >
                         <Avatar className="h-10 w-10">
                           <AvatarImage src={coach.avatarUrl || undefined} />
@@ -533,16 +533,16 @@ export default function ClubSettingsPage() {
                             {getInitials(coach.name, coach.email)}
                           </AvatarFallback>
                         </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm truncate">
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-medium text-sm">
                             {coach.name || "No name"}
                           </p>
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <div className="flex items-center gap-2 text-muted-foreground text-xs">
                             <IconMail className="h-3 w-3" />
                             <span className="truncate">{coach.email}</span>
                           </div>
                           {coach.phone && (
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                            <div className="mt-1 flex items-center gap-2 text-muted-foreground text-xs">
                               <IconPhone className="h-3 w-3" />
                               <span>{coach.phone}</span>
                             </div>
@@ -550,10 +550,10 @@ export default function ClubSettingsPage() {
                         </div>
                         <div className="flex items-center gap-2">
                           <Badge
+                            className="rounded-lg"
                             variant={
                               coach.role === "owner" ? "default" : "secondary"
                             }
-                            className="rounded-lg"
                           >
                             {formatRole(coach.role)}
                           </Badge>
@@ -561,10 +561,10 @@ export default function ClubSettingsPage() {
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button
-                                  variant="ghost"
-                                  size="sm"
                                   className="h-8 w-8 p-0"
                                   disabled={changingRole === coach.id}
+                                  size="sm"
+                                  variant="ghost"
                                 >
                                   <IconDotsVertical className="h-4 w-4" />
                                 </Button>
@@ -575,21 +575,21 @@ export default function ClubSettingsPage() {
                               >
                                 {coach.role === "coach" ? (
                                   <DropdownMenuItem
+                                    className="rounded-lg"
+                                    disabled={changingRole === coach.id}
                                     onClick={() =>
                                       handleRoleChange(coach.id, "owner")
                                     }
-                                    disabled={changingRole === coach.id}
-                                    className="rounded-lg"
                                   >
                                     Promote to Head Coach
                                   </DropdownMenuItem>
                                 ) : (
                                   <DropdownMenuItem
+                                    className="rounded-lg"
+                                    disabled={changingRole === coach.id}
                                     onClick={() =>
                                       handleRoleChange(coach.id, "coach")
                                     }
-                                    disabled={changingRole === coach.id}
-                                    className="rounded-lg"
                                   >
                                     Demote to Coach
                                   </DropdownMenuItem>

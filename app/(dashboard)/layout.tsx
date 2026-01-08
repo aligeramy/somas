@@ -27,7 +27,7 @@ export default async function DashboardLayout({
   const headersList = await headers();
   // Try x-pathname header first (set by middleware)
   let pathname = headersList.get("x-pathname") || "";
-  
+
   // If x-pathname is not set, try to extract from referer as fallback
   if (!pathname) {
     const referer = headersList.get("referer");
@@ -40,11 +40,11 @@ export default async function DashboardLayout({
       }
     }
   }
-  
+
   // Also check the host header to see if we can construct the URL
   // This helps with client-side navigation where headers might not be set
   const isOnboardingPage =
-    pathname === "/onboarding" || 
+    pathname === "/onboarding" ||
     pathname === "/profile-setup" ||
     pathname.endsWith("/onboarding") ||
     pathname.endsWith("/profile-setup");
@@ -167,23 +167,23 @@ export default async function DashboardLayout({
 
   return (
     <SidebarProvider
-      className="lg:p-6 xl:p-4 h-[100dvh] overflow-hidden"
-      suppressHydrationWarning
+      className="h-[100dvh] overflow-hidden lg:p-6 xl:p-4"
       style={
         {
           "--sidebar-width": "calc(var(--spacing) * 64)",
           "--header-height": "calc(var(--spacing) * 14)",
         } as React.CSSProperties
       }
+      suppressHydrationWarning
     >
       <AppSidebarWrapper />
       <SidebarInset className="dark:bg-[#000000]">
         <SiteHeader />
-        <div className="flex flex-1 flex-col min-h-0 h-full overflow-y-auto pb-16 lg:pb-0 dark:bg-[#000000]">
+        <div className="flex h-full min-h-0 flex-1 flex-col overflow-y-auto pb-16 lg:pb-0 dark:bg-[#000000]">
           {children}
         </div>
       </SidebarInset>
-      <MobileBottomNavWrapper userRole={dbUser.role} gymWebsite={gymWebsite} />
+      <MobileBottomNavWrapper gymWebsite={gymWebsite} userRole={dbUser.role} />
     </SidebarProvider>
   );
 }

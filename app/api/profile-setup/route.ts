@@ -101,7 +101,7 @@ export async function POST(request: Request) {
     console.error("Profile setup error:", error);
     return NextResponse.json(
       { error: "Failed to update profile" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

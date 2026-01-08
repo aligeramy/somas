@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export async function GET() {
   console.log("[API /profile GET] Request received");
-  
+
   try {
     const supabase = await createClient();
     const {
@@ -35,8 +35,13 @@ export async function GET() {
       console.log("[API /profile GET] User not found in DB:", user.id);
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
-    
-    console.log("[API /profile GET] User found:", dbUser.name, "| onboarded:", dbUser.onboarded);
+
+    console.log(
+      "[API /profile GET] User found:",
+      dbUser.name,
+      "| onboarded:",
+      dbUser.onboarded
+    );
 
     return NextResponse.json({
       user: {
@@ -66,7 +71,7 @@ export async function GET() {
     console.error("Profile fetch error:", error);
     return NextResponse.json(
       { error: "Failed to fetch profile" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -153,7 +158,7 @@ export async function PUT(request: Request) {
     console.error("Profile update error:", error);
     return NextResponse.json(
       { error: "Failed to update profile" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

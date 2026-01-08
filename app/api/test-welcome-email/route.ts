@@ -40,7 +40,7 @@ export async function POST(request: Request) {
         const { data: existingUsers } =
           await supabaseAdmin.auth.admin.listUsers();
         const existingUser = existingUsers?.users?.find(
-          (u) => u.email === email,
+          (u) => u.email === email
         );
 
         if (existingUser) {
@@ -48,7 +48,7 @@ export async function POST(request: Request) {
           const { data: resetData, error: resetError } =
             await supabaseAdmin.auth.admin.generateLink({
               type: "recovery",
-              email: email,
+              email,
             });
 
           if (resetError) {
@@ -72,7 +72,7 @@ export async function POST(request: Request) {
             console.error("Create user error:", createError);
             return NextResponse.json(
               { error: `Failed to create user: ${createError.message}` },
-              { status: 500 },
+              { status: 500 }
             );
           }
 
@@ -83,7 +83,7 @@ export async function POST(request: Request) {
           const { data: inviteData, error: inviteError } =
             await supabaseAdmin.auth.admin.generateLink({
               type: "magiclink",
-              email: email,
+              email,
             });
 
           if (inviteError) {
@@ -119,7 +119,7 @@ export async function POST(request: Request) {
     if (result.error) {
       return NextResponse.json(
         { error: `Failed to send email: ${result.error.message}` },
-        { status: 500 },
+        { status: 500 }
       );
     }
 
@@ -136,7 +136,7 @@ export async function POST(request: Request) {
       {
         error: error instanceof Error ? error.message : "Failed to send email",
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

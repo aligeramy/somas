@@ -12,7 +12,7 @@ export function useChatScroll<T>(_dep: T) {
         // Find the ScrollArea viewport element (Radix UI ScrollArea)
         const scrollArea = ref.current.closest('[data-slot="scroll-area"]');
         const viewport = scrollArea?.querySelector(
-          '[data-slot="scroll-area-viewport"]',
+          '[data-slot="scroll-area-viewport"]'
         ) as HTMLElement;
 
         if (viewport) {

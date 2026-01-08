@@ -1,7 +1,7 @@
-import { readFileSync } from "fs";
 import { createClient } from "@supabase/supabase-js";
-import { drizzle } from "drizzle-orm/postgres-js";
 import { eq } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/postgres-js";
+import { readFileSync } from "fs";
 import postgres from "postgres";
 import * as schema from "@/drizzle/schema";
 import { users } from "@/drizzle/schema";
@@ -22,7 +22,7 @@ const supabaseUrl = envVars.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = envVars.SUPABASE_SERVICE_ROLE_KEY;
 const databaseUrl = envVars.DATABASE_URL;
 
-if (!supabaseUrl || !supabaseServiceKey || !databaseUrl) {
+if (!(supabaseUrl && supabaseServiceKey && databaseUrl)) {
   throw new Error("Missing environment variables");
 }
 
@@ -68,12 +68,15 @@ async function createAliUser() {
         password,
         email_confirm: true,
         user_metadata: {
-          name: name,
+          name,
         },
       });
 
     if (authError || !authData.user) {
-      console.error(`❌ Failed to create auth user:`, authError?.message || "Unknown error");
+      console.error(
+        "❌ Failed to create auth user:",
+        authError?.message || "Unknown error"
+      );
       process.exit(1);
     }
 
@@ -83,7 +86,7 @@ async function createAliUser() {
         .update(users)
         .set({
           id: authData.user.id,
-          name: name,
+          name,
           role: role as "owner" | "coach" | "athlete",
           updatedAt: new Date(),
         })
@@ -99,8 +102,8 @@ async function createAliUser() {
 
       await db.insert(users).values({
         id: authData.user.id,
-        email: email,
-        name: name,
+        email,
+        name,
         role: role as "owner" | "coach" | "athlete",
         gymId: firstOwner?.gymId || null,
         onboarded: false,
@@ -110,7 +113,7 @@ async function createAliUser() {
 
     console.log(`\nUser ID: ${authData.user.id}`);
     console.log(`Password: ${password}`);
-    console.log(`\nAdd this to USER_PASSWORDS mapping:`);
+    console.log("\nAdd this to USER_PASSWORDS mapping:");
     console.log(`  "${authData.user.id}": "${password}", // ${name}`);
 
     process.exit(0);

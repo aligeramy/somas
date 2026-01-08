@@ -40,7 +40,7 @@ export default function TestEmailPage() {
       if (data.setupUrl) {
         setResult(
           (prev) =>
-            `${prev}\n\nSetup URL: ${data.setupUrl}\n\nCheck ${email} inbox for the welcome email.`,
+            `${prev}\n\nSetup URL: ${data.setupUrl}\n\nCheck ${email} inbox for the welcome email.`
         );
       }
     } catch (err) {
@@ -64,29 +64,29 @@ export default function TestEmailPage() {
             <Label htmlFor="email">Email Address</Label>
             <Input
               id="email"
-              type="email"
-              value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="email@example.com"
+              type="email"
+              value={email}
             />
           </div>
 
           <Button
-            onClick={handleSend}
-            disabled={loading || !email}
             className="w-full"
+            disabled={loading || !email}
+            onClick={handleSend}
           >
             {loading ? "Sending..." : "Send Test Email"}
           </Button>
 
           {error && (
-            <div className="bg-destructive/10 text-destructive rounded-md p-3 text-sm">
+            <div className="rounded-md bg-destructive/10 p-3 text-destructive text-sm">
               {error}
             </div>
           )}
 
           {result && (
-            <div className="bg-green-50 text-green-900 rounded-md p-3 text-sm whitespace-pre-line">
+            <div className="whitespace-pre-line rounded-md bg-green-50 p-3 text-green-900 text-sm">
               {result}
             </div>
           )}

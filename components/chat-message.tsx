@@ -21,8 +21,8 @@ export function ChatMessageItem({
   return (
     <div
       className={cn(
-        "flex mt-2 animate-in fade-in slide-in-from-bottom-2 duration-300",
-        isOwnMessage ? "justify-end" : "justify-start",
+        "fade-in slide-in-from-bottom-2 mt-2 flex animate-in duration-300",
+        isOwnMessage ? "justify-end" : "justify-start"
       )}
       style={{
         animationDelay: isPending ? "0ms" : "100ms",
@@ -30,14 +30,14 @@ export function ChatMessageItem({
       }}
     >
       <div
-        className={cn("max-w-[75%] w-fit flex flex-col gap-1", {
+        className={cn("flex w-fit max-w-[75%] flex-col gap-1", {
           "items-end": isOwnMessage,
         })}
       >
         {showHeader && (
           <div
-            className={cn("flex items-center gap-2 text-xs px-3", {
-              "justify-end flex-row-reverse": isOwnMessage,
+            className={cn("flex items-center gap-2 px-3 text-xs", {
+              "flex-row-reverse justify-end": isOwnMessage,
             })}
           >
             <span className="font-medium">{message.user.name}</span>
@@ -48,31 +48,31 @@ export function ChatMessageItem({
         )}
         <div
           className={cn(
-            "py-2 px-3 rounded-2xl text-sm w-fit flex flex-col gap-2 transition-all duration-300",
+            "flex w-fit flex-col gap-2 rounded-2xl px-3 py-2 text-sm transition-all duration-300",
             isOwnMessage
-              ? "bg-primary text-primary-foreground rounded-br-sm"
-              : "bg-muted text-foreground rounded-bl-sm",
-            isPending && isOwnMessage && "opacity-80",
+              ? "rounded-br-sm bg-primary text-primary-foreground"
+              : "rounded-bl-sm bg-muted text-foreground",
+            isPending && isOwnMessage && "opacity-80"
           )}
         >
           {message.attachmentUrl && message.attachmentType === "image" && (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={message.attachmentUrl}
               alt="Attachment"
               className="max-w-[200px] rounded-lg"
+              src={message.attachmentUrl}
             />
           )}
           <div className="flex items-end gap-2">
             {message.content && (
-              <p className="whitespace-pre-wrap wrap-break-word">
+              <p className="wrap-break-word whitespace-pre-wrap">
                 {message.content}
               </p>
             )}
             {isOwnMessage && (
-              <div className="flex items-center shrink-0">
+              <div className="flex shrink-0 items-center">
                 {isPending ? (
-                  <IconClock className="h-3 w-3 opacity-70 animate-pulse" />
+                  <IconClock className="h-3 w-3 animate-pulse opacity-70" />
                 ) : (
                   <IconCheck className="h-3 w-3 opacity-70 transition-opacity duration-300" />
                 )}

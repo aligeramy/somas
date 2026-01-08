@@ -83,27 +83,27 @@ export function PWAInstallPrompt() {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Fullscreen backdrop with blur */}
       <div
+        aria-hidden="true"
         className="absolute inset-0 bg-background/80 backdrop-blur-md transition-opacity"
         onClick={handleDismiss}
-        aria-hidden="true"
       />
 
       {/* Centered modal card */}
-      <Card className="relative z-10 w-full max-w-md rounded-2xl border shadow-2xl animate-in fade-in-0 zoom-in-95 duration-200">
-        <CardHeader className="text-center pb-4">
+      <Card className="fade-in-0 zoom-in-95 relative z-10 w-full max-w-md animate-in rounded-2xl border shadow-2xl duration-200">
+        <CardHeader className="pb-4 text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
             <IconDeviceMobile className="h-8 w-8 text-primary" />
           </div>
-          <CardTitle className="text-2xl font-bold">
+          <CardTitle className="font-bold text-2xl">
             Install SOMAS App
           </CardTitle>
           <CardDescription className="mt-2 text-base">
-            Get quick access and a better experience by installing SOMAS on
-            your device
+            Get quick access and a better experience by installing SOMAS on your
+            device
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2 text-sm text-muted-foreground">
+          <div className="space-y-2 text-muted-foreground text-sm">
             <div className="flex items-center gap-2">
               <div className="h-1.5 w-1.5 rounded-full bg-primary" />
               <span>Faster access from your home screen</span>
@@ -122,30 +122,30 @@ export function PWAInstallPrompt() {
             {hasNativePrompt ? (
               <>
                 <Button
+                  className="h-11 w-full rounded-xl font-semibold text-base"
                   onClick={handleInstall}
-                  className="w-full rounded-xl h-11 text-base font-semibold"
                   size="lg"
                 >
-                  <IconDownload className="h-5 w-5 mr-2" />
+                  <IconDownload className="mr-2 h-5 w-5" />
                   Install Now
                 </Button>
                 <Button
-                  variant="ghost"
-                  onClick={handleDismiss}
                   className="w-full rounded-xl"
+                  onClick={handleDismiss}
+                  variant="ghost"
                 >
                   Maybe Later
                 </Button>
               </>
             ) : (
               <>
-                <div className="text-sm text-muted-foreground space-y-2 mb-2">
+                <div className="mb-2 space-y-2 text-muted-foreground text-sm">
                   {isIOS ? (
                     <div>
-                      <p className="font-medium text-foreground mb-2">
+                      <p className="mb-2 font-medium text-foreground">
                         To install on iPhone/iPad:
                       </p>
-                      <ol className="list-decimal list-inside space-y-1 text-xs">
+                      <ol className="list-inside list-decimal space-y-1 text-xs">
                         <li>Tap the Share button at the bottom</li>
                         <li>Scroll and tap &quot;Add to Home Screen&quot;</li>
                         <li>Tap &quot;Add&quot;</li>
@@ -153,10 +153,10 @@ export function PWAInstallPrompt() {
                     </div>
                   ) : isAndroid ? (
                     <div>
-                      <p className="font-medium text-foreground mb-2">
+                      <p className="mb-2 font-medium text-foreground">
                         To install on Android:
                       </p>
-                      <ol className="list-decimal list-inside space-y-1 text-xs">
+                      <ol className="list-inside list-decimal space-y-1 text-xs">
                         <li>Tap the menu (three dots)</li>
                         <li>Select &quot;Install app&quot;</li>
                         <li>Follow the prompts</li>
@@ -164,7 +164,7 @@ export function PWAInstallPrompt() {
                     </div>
                   ) : (
                     <div>
-                      <p className="font-medium text-foreground mb-2">
+                      <p className="mb-2 font-medium text-foreground">
                         To install:
                       </p>
                       <p className="text-xs">
@@ -175,9 +175,9 @@ export function PWAInstallPrompt() {
                   )}
                 </div>
                 <Button
-                  variant="ghost"
-                  onClick={handleDismiss}
                   className="w-full rounded-xl"
+                  onClick={handleDismiss}
+                  variant="ghost"
                 >
                   Got it
                 </Button>
@@ -188,10 +188,10 @@ export function PWAInstallPrompt() {
 
         {/* Close button */}
         <Button
-          variant="ghost"
-          size="icon"
           className="absolute top-4 right-4 h-8 w-8 rounded-lg"
           onClick={handleDismiss}
+          size="icon"
+          variant="ghost"
         >
           <IconX className="h-4 w-4" />
           <span className="sr-only">Close</span>

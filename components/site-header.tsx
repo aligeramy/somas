@@ -1,8 +1,15 @@
 "use client";
 
-import { IconCheck, IconDeviceFloppy, IconMessageCircle, IconPlus, IconUsers } from "@tabler/icons-react";
+import {
+  IconCheck,
+  IconDeviceFloppy,
+  IconMessageCircle,
+  IconPlus,
+  IconUsers,
+} from "@tabler/icons-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -15,7 +22,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 export function SiteHeader() {
@@ -27,7 +33,12 @@ export function SiteHeader() {
   const [newChannelName, setNewChannelName] = useState("");
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [gymMembers, setGymMembers] = useState<
-    Array<{ id: string; name: string | null; email: string; avatarUrl: string | null }>
+    Array<{
+      id: string;
+      name: string | null;
+      email: string;
+      avatarUrl: string | null;
+    }>
   >([]);
   const [loadingMembers, setLoadingMembers] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -60,7 +71,7 @@ export function SiteHeader() {
         if (result.roster && Array.isArray(result.roster)) {
           // Filter out current user
           const filtered = result.roster.filter(
-            (m: { id: string }) => String(m.id) !== String(user.id),
+            (m: { id: string }) => String(m.id) !== String(user.id)
           );
           setGymMembers(filtered);
         }
@@ -90,7 +101,7 @@ export function SiteHeader() {
             : {
                 type: "group",
                 name: newChannelName.trim(),
-              },
+              }
         ),
       });
 
@@ -114,51 +125,59 @@ export function SiteHeader() {
       setSaving(true);
       setSuccess(false);
     };
-    
+
     const handleSaveSuccess = () => {
       setSaving(false);
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     };
-    
+
     const handleSaveEnd = () => {
       setSaving(false);
     };
-    
+
     const handleSaveError = () => {
       setSaving(false);
       setSuccess(false);
     };
 
     if (pathname === "/profile") {
-      window.addEventListener('profile-save-start', handleSaveStart);
-      window.addEventListener('profile-save-success', handleSaveSuccess);
-      window.addEventListener('profile-save-end', handleSaveEnd);
-      window.addEventListener('profile-save-error', handleSaveError);
+      window.addEventListener("profile-save-start", handleSaveStart);
+      window.addEventListener("profile-save-success", handleSaveSuccess);
+      window.addEventListener("profile-save-end", handleSaveEnd);
+      window.addEventListener("profile-save-error", handleSaveError);
     } else if (pathname === "/gym-settings") {
-      window.addEventListener('gym-settings-save-start', handleSaveStart);
-      window.addEventListener('gym-settings-save-success', handleSaveSuccess);
-      window.addEventListener('gym-settings-save-end', handleSaveEnd);
-      window.addEventListener('gym-settings-save-error', handleSaveError);
+      window.addEventListener("gym-settings-save-start", handleSaveStart);
+      window.addEventListener("gym-settings-save-success", handleSaveSuccess);
+      window.addEventListener("gym-settings-save-end", handleSaveEnd);
+      window.addEventListener("gym-settings-save-error", handleSaveError);
     }
 
     return () => {
       if (pathname === "/profile") {
-        window.removeEventListener('profile-save-start', handleSaveStart);
-        window.removeEventListener('profile-save-success', handleSaveSuccess);
-        window.removeEventListener('profile-save-end', handleSaveEnd);
-        window.removeEventListener('profile-save-error', handleSaveError);
+        window.removeEventListener("profile-save-start", handleSaveStart);
+        window.removeEventListener("profile-save-success", handleSaveSuccess);
+        window.removeEventListener("profile-save-end", handleSaveEnd);
+        window.removeEventListener("profile-save-error", handleSaveError);
       } else if (pathname === "/gym-settings") {
-        window.removeEventListener('gym-settings-save-start', handleSaveStart);
-        window.removeEventListener('gym-settings-save-success', handleSaveSuccess);
-        window.removeEventListener('gym-settings-save-end', handleSaveEnd);
-        window.removeEventListener('gym-settings-save-error', handleSaveError);
+        window.removeEventListener("gym-settings-save-start", handleSaveStart);
+        window.removeEventListener(
+          "gym-settings-save-success",
+          handleSaveSuccess
+        );
+        window.removeEventListener("gym-settings-save-end", handleSaveEnd);
+        window.removeEventListener("gym-settings-save-error", handleSaveError);
       }
     };
   }, [pathname]);
 
   const handleSave = () => {
-    const formId = pathname === "/profile" ? "profile-form" : pathname === "/gym-settings" ? "gym-settings-form" : null;
+    const formId =
+      pathname === "/profile"
+        ? "profile-form"
+        : pathname === "/gym-settings"
+          ? "gym-settings-form"
+          : null;
     if (!formId) return;
 
     const form = document.getElementById(formId) as HTMLFormElement;
@@ -168,15 +187,15 @@ export function SiteHeader() {
   };
 
   return (
-    <header className="hidden lg:flex h-14 shrink-0 items-center gap-2 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60 transition-[width,height] ease-linear pt-0 !px-0 -mt-3">
+    <header className="!px-0 -mt-3 hidden h-14 shrink-0 items-center gap-2 bg-background/95 pt-0 backdrop-blur transition-[width,height] ease-linear supports-backdrop-filter:bg-background/60 lg:flex">
       <div className="flex w-full items-center justify-end gap-3">
         <div className="flex items-center gap-2">
           {(pathname === "/profile" || pathname === "/gym-settings") && (
             <Button
-              size="sm"
               className="gap-2 rounded-sm"
-              onClick={handleSave}
               disabled={saving}
+              onClick={handleSave}
+              size="sm"
             >
               {success ? (
                 <>
@@ -198,11 +217,11 @@ export function SiteHeader() {
           )}
           {pathname === "/roster" && (
             <Button
-              size="sm"
               className="gap-2 rounded-sm"
               onClick={() => {
-                window.dispatchEvent(new CustomEvent('roster-open-add-member'));
+                window.dispatchEvent(new CustomEvent("roster-open-add-member"));
               }}
+              size="sm"
             >
               <IconPlus className="h-4 w-4" />
               Add Member
@@ -210,11 +229,11 @@ export function SiteHeader() {
           )}
           {pathname === "/blog" && (
             <Button
-              size="sm"
               className="gap-2 rounded-sm"
               onClick={() => {
-                window.dispatchEvent(new CustomEvent('blog-open-create-post'));
+                window.dispatchEvent(new CustomEvent("blog-open-create-post"));
               }}
+              size="sm"
             >
               <IconPlus className="h-4 w-4" />
               New Post
@@ -222,18 +241,20 @@ export function SiteHeader() {
           )}
           {pathname === "/notices" && (
             <Button
-              size="sm"
               className="gap-2 rounded-sm"
               onClick={() => {
-                window.dispatchEvent(new CustomEvent('notices-open-create-notice'));
+                window.dispatchEvent(
+                  new CustomEvent("notices-open-create-notice")
+                );
               }}
+              size="sm"
             >
               <IconPlus className="h-4 w-4" />
               New Notice
             </Button>
           )}
           {pathname?.startsWith("/events") && (
-            <Button size="sm" className="gap-2 rounded-sm" asChild>
+            <Button asChild className="gap-2 rounded-sm" size="sm">
               <Link href="/events/new">
                 <IconPlus className="h-4 w-4" />
                 Add Event
@@ -241,9 +262,12 @@ export function SiteHeader() {
             </Button>
           )}
           {pathname?.startsWith("/chat") && (
-            <Dialog open={isCreateDialogOpen} onOpenChange={handleDialogOpenChange}>
+            <Dialog
+              onOpenChange={handleDialogOpenChange}
+              open={isCreateDialogOpen}
+            >
               <DialogTrigger asChild>
-                <Button size="sm" className="gap-2 rounded-sm">
+                <Button className="gap-2 rounded-sm" size="sm">
                   <IconPlus className="h-4 w-4" />
                   Add Chat
                 </Button>
@@ -256,104 +280,106 @@ export function SiteHeader() {
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
-                  {!chatType ? (
+                  {chatType ? (
+                    chatType === "dm" ? (
+                      <div className="space-y-2">
+                        <Label>Select a person</Label>
+                        {loadingMembers ? (
+                          <div className="py-4 text-muted-foreground text-sm">
+                            Loading members...
+                          </div>
+                        ) : (
+                          <div className="max-h-60 space-y-1 overflow-y-auto">
+                            {gymMembers.map((member) => (
+                              <button
+                                className={`flex w-full items-center gap-3 rounded-lg border p-3 transition-colors ${
+                                  selectedUserId === member.id
+                                    ? "bg-primary text-primary-foreground"
+                                    : "hover:bg-muted"
+                                }`}
+                                key={member.id}
+                                onClick={() => setSelectedUserId(member.id)}
+                                type="button"
+                              >
+                                <div className="flex-1 text-left">
+                                  <div className="font-medium">
+                                    {member.name || member.email}
+                                  </div>
+                                  {member.name && (
+                                    <div className="text-sm opacity-70">
+                                      {member.email}
+                                    </div>
+                                  )}
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <Label htmlFor="channel-name">Group Name</Label>
+                        <Input
+                          className="rounded-xl"
+                          id="channel-name"
+                          onChange={(e) => setNewChannelName(e.target.value)}
+                          placeholder="Enter group name"
+                          value={newChannelName}
+                        />
+                      </div>
+                    )
+                  ) : (
                     <div className="grid grid-cols-2 gap-4">
                       <button
-                        type="button"
+                        className="flex flex-col items-center gap-3 rounded-xl border p-6 transition-colors hover:bg-muted"
                         onClick={() => {
                           setChatType("dm");
                           loadGymMembers();
                         }}
-                        className="flex flex-col items-center gap-3 p-6 border rounded-xl hover:bg-muted transition-colors"
+                        type="button"
                       >
                         <IconMessageCircle className="h-8 w-8 text-muted-foreground" />
                         <span className="font-medium">Direct Message</span>
-                        <span className="text-sm text-muted-foreground text-center">
+                        <span className="text-center text-muted-foreground text-sm">
                           Chat with one person
                         </span>
                       </button>
                       <button
-                        type="button"
+                        className="flex flex-col items-center gap-3 rounded-xl border p-6 transition-colors hover:bg-muted"
                         onClick={() => setChatType("group")}
-                        className="flex flex-col items-center gap-3 p-6 border rounded-xl hover:bg-muted transition-colors"
+                        type="button"
                       >
                         <IconUsers className="h-8 w-8 text-muted-foreground" />
                         <span className="font-medium">Group Chat</span>
-                        <span className="text-sm text-muted-foreground text-center">
+                        <span className="text-center text-muted-foreground text-sm">
                           Create a group conversation
                         </span>
                       </button>
-                    </div>
-                  ) : chatType === "dm" ? (
-                    <div className="space-y-2">
-                      <Label>Select a person</Label>
-                      {loadingMembers ? (
-                        <div className="text-sm text-muted-foreground py-4">
-                          Loading members...
-                        </div>
-                      ) : (
-                        <div className="max-h-60 overflow-y-auto space-y-1">
-                          {gymMembers.map((member) => (
-                            <button
-                              key={member.id}
-                              type="button"
-                              onClick={() => setSelectedUserId(member.id)}
-                              className={`w-full flex items-center gap-3 p-3 rounded-lg border transition-colors ${
-                                selectedUserId === member.id
-                                  ? "bg-primary text-primary-foreground"
-                                  : "hover:bg-muted"
-                              }`}
-                            >
-                              <div className="flex-1 text-left">
-                                <div className="font-medium">
-                                  {member.name || member.email}
-                                </div>
-                                {member.name && (
-                                  <div className="text-sm opacity-70">
-                                    {member.email}
-                                  </div>
-                                )}
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      <Label htmlFor="channel-name">Group Name</Label>
-                      <Input
-                        id="channel-name"
-                        placeholder="Enter group name"
-                        value={newChannelName}
-                        onChange={(e) => setNewChannelName(e.target.value)}
-                        className="rounded-xl"
-                      />
                     </div>
                   )}
                 </div>
                 <DialogFooter>
                   <Button
-                    variant="outline"
-                    onClick={() => handleDialogOpenChange(false)}
                     className="rounded-xl"
+                    onClick={() => handleDialogOpenChange(false)}
+                    variant="outline"
                   >
                     Cancel
                   </Button>
                   <Button
-                    onClick={handleCreateChat}
+                    className="rounded-xl"
                     disabled={
                       creating ||
                       (chatType === "dm" && !selectedUserId) ||
                       (chatType === "group" && !newChannelName.trim())
                     }
-                    className="rounded-xl"
+                    onClick={handleCreateChat}
                   >
                     {creating ? "Creating..." : "Create"}
                   </Button>
                 </DialogFooter>
               </DialogContent>
-          </Dialog>
+            </Dialog>
           )}
         </div>
       </div>

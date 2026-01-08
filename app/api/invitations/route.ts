@@ -26,10 +26,10 @@ export async function POST(request: Request) {
       .where(eq(users.id, user.id))
       .limit(1);
 
-    if (!dbUser || !dbUser.gymId) {
+    if (!(dbUser && dbUser.gymId)) {
       return NextResponse.json(
         { error: "User must belong to a gym" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -51,17 +51,17 @@ export async function POST(request: Request) {
 
     const { emails, role, userInfo } = await request.json();
 
-    if (!emails || !Array.isArray(emails) || emails.length === 0) {
+    if (!(emails && Array.isArray(emails)) || emails.length === 0) {
       return NextResponse.json(
         { error: "Emails array is required" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
-    if (!role || !["coach", "athlete"].includes(role)) {
+    if (!(role && ["coach", "athlete"].includes(role))) {
       return NextResponse.json(
         { error: "Valid role (coach or athlete) is required" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -91,8 +91,8 @@ export async function POST(request: Request) {
               eq(invitations.email, email),
               eq(invitations.gymId, dbUser.gymId),
               eq(invitations.used, false),
-              gt(invitations.expiresAt, new Date()),
-            ),
+              gt(invitations.expiresAt, new Date())
+            )
           )
           .limit(1);
 
@@ -156,7 +156,7 @@ export async function POST(request: Request) {
     console.error("Invitation error:", error);
     return NextResponse.json(
       { error: "Failed to send invitations" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

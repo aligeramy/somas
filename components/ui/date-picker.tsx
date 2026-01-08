@@ -105,8 +105,8 @@ export function DatePicker({
   const maxDays = React.useMemo(() => {
     if (selectedYear && selectedMonth) {
       return getDaysInMonth(
-        parseInt(selectedYear, 10),
-        parseInt(selectedMonth, 10),
+        Number.parseInt(selectedYear, 10),
+        Number.parseInt(selectedMonth, 10)
       );
     }
     return 31; // Default to 31 if no month/year selected
@@ -117,9 +117,9 @@ export function DatePicker({
     (newYear: string, newMonth: string, newDay: string) => {
       if (newYear && newMonth && newDay) {
         // Validate the date
-        const yearNum = parseInt(newYear, 10);
-        const monthNum = parseInt(newMonth, 10);
-        const dayNum = parseInt(newDay, 10);
+        const yearNum = Number.parseInt(newYear, 10);
+        const monthNum = Number.parseInt(newMonth, 10);
+        const dayNum = Number.parseInt(newDay, 10);
         const maxDaysForMonth = getDaysInMonth(yearNum, monthNum);
 
         // If selected day is invalid for the month, adjust it
@@ -132,7 +132,7 @@ export function DatePicker({
         onChange?.("");
       }
     },
-    [onChange],
+    [onChange]
   );
 
   const handleYearChange = (newYear: string) => {
@@ -140,10 +140,10 @@ export function DatePicker({
     // Adjust day if needed when year changes (leap year)
     if (selectedMonth && selectedDay) {
       const maxDaysForMonth = getDaysInMonth(
-        parseInt(newYear, 10),
-        parseInt(selectedMonth, 10),
+        Number.parseInt(newYear, 10),
+        Number.parseInt(selectedMonth, 10)
       );
-      const dayNum = parseInt(selectedDay, 10);
+      const dayNum = Number.parseInt(selectedDay, 10);
       const validDay = dayNum > maxDaysForMonth ? maxDaysForMonth : dayNum;
       const formattedDay = String(validDay).padStart(2, "0");
       setSelectedDay(formattedDay);
@@ -158,10 +158,10 @@ export function DatePicker({
     // Adjust day if needed when month changes
     if (selectedYear && selectedDay) {
       const maxDaysForMonth = getDaysInMonth(
-        parseInt(selectedYear, 10),
-        parseInt(newMonth, 10),
+        Number.parseInt(selectedYear, 10),
+        Number.parseInt(newMonth, 10)
       );
-      const dayNum = parseInt(selectedDay, 10);
+      const dayNum = Number.parseInt(selectedDay, 10);
       const validDay = dayNum > maxDaysForMonth ? maxDaysForMonth : dayNum;
       const formattedDay = String(validDay).padStart(2, "0");
       setSelectedDay(formattedDay);
@@ -181,12 +181,12 @@ export function DatePicker({
 
   return (
     <div className={cn("flex items-center gap-2", className)} id={id}>
-      <div className="flex items-center gap-2 flex-1">
+      <div className="flex flex-1 items-center gap-2">
         {/* Year Selector */}
         <Select
-          value={selectedYear}
-          onValueChange={handleYearChange}
           disabled={disabled}
+          onValueChange={handleYearChange}
+          value={selectedYear}
         >
           <SelectTrigger className="h-9 min-w-[100px]">
             <SelectValue placeholder="Year" />
@@ -202,9 +202,9 @@ export function DatePicker({
 
         {/* Month Selector */}
         <Select
-          value={selectedMonth}
-          onValueChange={handleMonthChange}
           disabled={disabled}
+          onValueChange={handleMonthChange}
+          value={selectedMonth}
         >
           <SelectTrigger className="h-9 min-w-[140px]">
             <SelectValue placeholder="Month" />
@@ -220,9 +220,9 @@ export function DatePicker({
 
         {/* Day Selector */}
         <Select
-          value={selectedDay}
-          onValueChange={handleDayChange}
           disabled={disabled || !selectedMonth || !selectedYear}
+          onValueChange={handleDayChange}
+          value={selectedDay}
         >
           <SelectTrigger className="h-9 min-w-[80px]">
             <SelectValue placeholder="Day" />
@@ -230,7 +230,7 @@ export function DatePicker({
           <SelectContent>
             {days.map((d) => (
               <SelectItem key={d} value={d}>
-                {parseInt(d, 10)}
+                {Number.parseInt(d, 10)}
               </SelectItem>
             ))}
           </SelectContent>

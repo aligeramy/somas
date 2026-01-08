@@ -21,10 +21,10 @@ export async function GET(request: Request) {
       .where(eq(users.id, user.id))
       .limit(1);
 
-    if (!dbUser || !dbUser.gymId) {
+    if (!(dbUser && dbUser.gymId)) {
       return NextResponse.json(
         { error: "User must belong to a gym" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -58,7 +58,7 @@ export async function GET(request: Request) {
       .where(
         dbUser.role === "athlete"
           ? eq(users.gymId, dbUser.gymId) // Will filter in code below
-          : eq(users.gymId, dbUser.gymId),
+          : eq(users.gymId, dbUser.gymId)
       )
       .orderBy(asc(users.createdAt));
 
@@ -66,7 +66,7 @@ export async function GET(request: Request) {
     const filteredRoster =
       dbUser.role === "athlete" && !forEvents
         ? roster.filter(
-            (user) => user.role === "coach" || user.role === "owner",
+            (user) => user.role === "coach" || user.role === "owner"
           )
         : roster;
 
@@ -75,7 +75,7 @@ export async function GET(request: Request) {
     console.error("Roster fetch error:", error);
     return NextResponse.json(
       { error: "Failed to fetch roster" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

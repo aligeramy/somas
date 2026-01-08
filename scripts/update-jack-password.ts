@@ -1,5 +1,5 @@
-import { readFileSync } from "fs";
 import { createClient } from "@supabase/supabase-js";
+import { readFileSync } from "fs";
 
 const envFile = readFileSync(".env", "utf-8");
 const envVars: Record<string, string> = {};
@@ -21,23 +21,33 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
 
 async function updateJack() {
   const { data: authUsersData } = await supabaseAdmin.auth.admin.listUsers();
-  const jackAuthUser = authUsersData?.users?.find((u) => u.email === "Abellery@wightman.ca");
-  
+  const jackAuthUser = authUsersData?.users?.find(
+    (u) => u.email === "Abellery@wightman.ca"
+  );
+
   if (jackAuthUser) {
-    const { error } = await supabaseAdmin.auth.admin.updateUserById(jackAuthUser.id, {
-      password: "jack123",
-      email_confirm: true,
-    });
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(
+      jackAuthUser.id,
+      {
+        password: "jack123",
+        email_confirm: true,
+      }
+    );
     if (error) {
-      console.error(`❌ Failed:`, error.message);
+      console.error("❌ Failed:", error.message);
     } else {
-      console.log(`✅ Updated Jack Ellery`);
+      console.log("✅ Updated Jack Ellery");
       console.log(`   User ID: ${jackAuthUser.id}`);
-      console.log(`   Password: jack123`);
+      console.log("   Password: jack123");
     }
   } else {
-    console.log(`❌ Jack Ellery not found in auth`);
+    console.log("❌ Jack Ellery not found in auth");
   }
 }
 
-updateJack().then(() => process.exit(0)).catch((e) => { console.error(e); process.exit(1); });
+updateJack()
+  .then(() => process.exit(0))
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  });

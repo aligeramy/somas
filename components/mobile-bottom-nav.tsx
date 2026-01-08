@@ -119,12 +119,12 @@ export function MobileBottomNav({
   ].filter((item) => item.roles.includes(userRole));
 
   const isMoreActive = moreItems.some(
-    (item) => pathname === item.url || pathname.startsWith(`${item.url}/`),
+    (item) => pathname === item.url || pathname.startsWith(`${item.url}/`)
   );
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 lg:hidden"
+      className="fixed right-0 bottom-0 left-0 z-50 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 lg:hidden"
       style={{
         paddingBottom: "env(safe-area-inset-bottom, 0)",
         paddingLeft: "env(safe-area-inset-left, 0)",
@@ -138,41 +138,41 @@ export function MobileBottomNav({
             pathname === item.url || pathname.startsWith(`${item.url}/`);
           return (
             <Link
-              key={item.url}
-              href={item.url}
               className={cn(
-                "flex flex-col items-center justify-center gap-1 flex-1 h-full transition-colors",
+                "flex h-full flex-1 flex-col items-center justify-center gap-1 transition-colors",
                 isActive
                   ? "text-primary"
-                  : "text-muted-foreground hover:text-foreground",
+                  : "text-muted-foreground hover:text-foreground"
               )}
+              href={item.url}
+              key={item.url}
             >
               <Icon className="h-5 w-5" />
-              <span className="text-xs font-medium">{item.title}</span>
+              <span className="font-medium text-xs">{item.title}</span>
             </Link>
           );
         })}
 
         {/* More Menu */}
-        <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
+        <Sheet onOpenChange={setMoreOpen} open={moreOpen}>
           <SheetTrigger asChild>
             <button
-              type="button"
-              suppressHydrationWarning
               className={cn(
-                "flex flex-col items-center justify-center gap-1 flex-1 h-full transition-colors",
+                "flex h-full flex-1 flex-col items-center justify-center gap-1 transition-colors",
                 isMoreActive
                   ? "text-primary"
-                  : "text-muted-foreground hover:text-foreground",
+                  : "text-muted-foreground hover:text-foreground"
               )}
+              suppressHydrationWarning
+              type="button"
             >
               <IconDots className="h-5 w-5" />
-              <span className="text-xs font-medium">More</span>
+              <span className="font-medium text-xs">More</span>
             </button>
           </SheetTrigger>
           <SheetContent
-            side="bottom"
             className="h-[60vh] rounded-t-xl p-0"
+            side="bottom"
             style={{
               paddingTop: "calc(0.5rem + env(safe-area-inset-top, 0))",
               paddingBottom: "calc(1.5rem + env(safe-area-inset-bottom, 0))",
@@ -188,46 +188,46 @@ export function MobileBottomNav({
                   pathname === item.url || pathname.startsWith(`${item.url}/`);
                 return (
                   <Link
-                    key={item.url}
-                    href={item.url}
-                    onClick={() => setMoreOpen(false)}
                     className={cn(
-                      "flex items-center gap-3 px-6 py-4 transition-colors border-b",
+                      "flex items-center gap-3 border-b px-6 py-4 transition-colors",
                       isActive
                         ? "bg-primary/10 text-primary"
-                        : "hover:bg-muted/50",
+                        : "hover:bg-muted/50"
                     )}
+                    href={item.url}
+                    key={item.url}
+                    onClick={() => setMoreOpen(false)}
                   >
                     <Icon className="h-4 w-4" />
-                    <span className="text-sm font-medium">{item.title}</span>
+                    <span className="font-medium text-sm">{item.title}</span>
                   </Link>
                 );
               })}
               {gymWebsite && (
                 <a
-                  href={gymWebsite}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => setMoreOpen(false)}
                   className={cn(
-                    "flex items-center gap-3 px-6 py-4 transition-colors hover:bg-muted/50 border-b",
+                    "flex items-center gap-3 border-b px-6 py-4 transition-colors hover:bg-muted/50"
                   )}
+                  href={gymWebsite}
+                  onClick={() => setMoreOpen(false)}
+                  rel="noopener noreferrer"
+                  target="_blank"
                 >
                   <IconWorldWww className="h-4 w-4" />
-                  <span className="text-sm font-medium">Club Website</span>
+                  <span className="font-medium text-sm">Club Website</span>
                 </a>
               )}
               <button
+                className={cn(
+                  "flex w-full items-center gap-3 border-b px-6 py-4 text-left text-destructive transition-colors hover:bg-muted/50"
+                )}
                 onClick={() => {
                   setMoreOpen(false);
                   handleLogout();
                 }}
-                className={cn(
-                  "flex items-center gap-3 px-6 py-4 transition-colors hover:bg-muted/50 text-destructive w-full text-left border-b",
-                )}
               >
                 <IconLogout className="h-4 w-4" />
-                <span className="text-sm font-medium">Log out</span>
+                <span className="font-medium text-sm">Log out</span>
               </button>
             </div>
           </SheetContent>

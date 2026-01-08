@@ -21,10 +21,10 @@ export async function GET() {
       .where(eq(users.id, user.id))
       .limit(1);
 
-    if (!dbUser || !dbUser.gymId) {
+    if (!(dbUser && dbUser.gymId)) {
       return NextResponse.json(
         { error: "User must belong to a gym" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -52,7 +52,7 @@ export async function GET() {
     console.error("Notices fetch error:", error);
     return NextResponse.json(
       { error: "Failed to fetch notices" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
