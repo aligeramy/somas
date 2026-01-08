@@ -52,19 +52,19 @@ export function MobileBottomNav({
       title: "Dashboard",
       url: "/dashboard",
       icon: IconDashboard,
-      roles: ["owner", "coach", "athlete"],
+      roles: ["owner", "manager", "coach", "athlete"],
     },
     {
       title: "Events",
       url: "/events",
       icon: IconCalendar,
-      roles: ["owner", "coach", "athlete"],
+      roles: ["owner", "manager", "coach", "athlete"],
     },
     {
       title: "Chat",
       url: "/chat",
       icon: IconMessageCircle,
-      roles: ["owner", "coach", "athlete"],
+      roles: ["owner", "manager", "coach", "athlete"],
     },
     {
       title: "Attendance",
@@ -90,25 +90,25 @@ export function MobileBottomNav({
       title: "Settings",
       url: "/profile",
       icon: IconSettings,
-      roles: ["owner", "coach", "athlete"],
+      roles: ["owner", "manager", "coach", "athlete"],
     },
     {
       title: "Blog Posts",
       url: "/blog",
       icon: IconNews,
-      roles: ["owner", "coach", "athlete"],
+      roles: ["owner", "manager", "coach", "athlete"],
     },
     {
       title: "Notices",
       url: "/notices",
       icon: IconBell,
-      roles: ["owner", "coach", "athlete"], // All roles see notices in more menu
+      roles: ["owner", "manager", "coach", "athlete"], // All roles see notices in more menu
     },
     {
       title: "Attendance",
       url: "/rsvp",
       icon: IconListCheck,
-      roles: ["owner", "coach"], // Only owners/coaches see attendance in more menu (athletes have it in main nav)
+      roles: ["owner", "manager", "coach"], // Owners/managers/coaches see attendance in more menu (athletes have it in main nav)
     },
     {
       title: "Email Management",

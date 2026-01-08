@@ -54,25 +54,25 @@ export function AppSidebar({
       title: "Dashboard",
       url: "/dashboard",
       icon: IconDashboard,
-      roles: ["owner", "coach", "athlete"],
+      roles: ["owner", "manager", "coach", "athlete"],
     },
     {
       title: "Calendar",
       url: "/calendar",
       icon: IconCalendar,
-      roles: ["owner", "coach", "athlete"],
+      roles: ["owner", "manager", "coach", "athlete"],
     },
     {
       title: "Events",
       url: "/events",
       icon: IconCalendar,
-      roles: ["owner", "coach", "athlete"],
+      roles: ["owner", "manager", "coach", "athlete"],
     },
     {
       title: "Chat",
       url: "/chat",
       icon: IconMessageCircle,
-      roles: ["owner", "coach", "athlete"],
+      roles: ["owner", "manager", "coach", "athlete"],
     },
     {
       title: "Members",
@@ -84,7 +84,7 @@ export function AppSidebar({
       title: "Attendance",
       url: "/rsvp",
       icon: IconListCheck,
-      roles: ["owner", "coach", "athlete"],
+      roles: ["owner", "manager", "coach", "athlete"],
     },
   ].filter((item) => item.roles.includes(user.role));
 
@@ -93,13 +93,13 @@ export function AppSidebar({
       title: "Blog Posts",
       url: "/blog",
       icon: IconNews,
-      roles: ["owner", "coach", "athlete"],
+      roles: ["owner", "manager", "coach", "athlete"],
     },
     {
       title: "Notices",
       url: "/notices",
       icon: IconBell,
-      roles: ["owner", "coach", "athlete"],
+      roles: ["owner", "manager", "coach", "athlete"],
     },
     {
       title: "Profile",
@@ -113,7 +113,7 @@ export function AppSidebar({
             title: "Club Website",
             url: gymWebsite,
             icon: IconWorldWww,
-            roles: ["owner", "coach", "athlete"],
+            roles: ["owner", "manager", "coach", "athlete"],
             external: true,
           },
         ]
