@@ -456,7 +456,11 @@ export default async function DashboardPage() {
     if (rsvp.status === "going") {
       current.going.push(rsvp.user);
       // Separate coaches and athletes
-      if (rsvp.user.role === "coach" || rsvp.user.role === "owner") {
+      if (
+        rsvp.user.role === "coach" ||
+        rsvp.user.role === "owner" ||
+        rsvp.user.role === "manager"
+      ) {
         current.goingCoaches.push({
           id: rsvp.user.id,
           name: rsvp.user.name,

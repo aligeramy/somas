@@ -232,7 +232,9 @@ export default function RSVPPage() {
 
   useEffect(() => {
     const isOwnerOrCoachLocal =
-      userInfo?.role === "owner" || userInfo?.role === "coach";
+      userInfo?.role === "owner" ||
+      userInfo?.role === "coach" ||
+      userInfo?.role === "manager";
     if (isOwnerOrCoachLocal) {
       loadRoster();
     }
@@ -581,7 +583,9 @@ export default function RSVPPage() {
                     // Filter coaches from going RSVPs
                     const goingCoaches = going.filter(
                       (r) =>
-                        r.user?.role === "coach" || r.user?.role === "owner"
+                        r.user?.role === "coach" ||
+                        r.user?.role === "owner" ||
+                        r.user?.role === "manager"
                     );
                     // Count athletes going
                     const goingAthletes = going.filter(

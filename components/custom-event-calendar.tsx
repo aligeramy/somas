@@ -78,7 +78,10 @@ export function CustomEventCalendar({
   const [rsvping, setRsvping] = useState<string | null>(null);
   const [canceling, setCanceling] = useState<string | null>(null);
 
-  const isAdmin = currentUserRole === "owner" || currentUserRole === "coach";
+  const isAdmin =
+    currentUserRole === "owner" ||
+    currentUserRole === "coach" ||
+    currentUserRole === "manager";
 
   // Create a map of dates to occurrences
   const occurrenceMap = useMemo(() => {

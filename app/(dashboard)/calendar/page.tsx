@@ -228,7 +228,9 @@ export default function CalendarPage() {
               .filter(
                 (r: { status: string; user: { role?: string } }) =>
                   r.status === "going" &&
-                  (r.user?.role === "coach" || r.user?.role === "owner")
+                  (r.user?.role === "coach" ||
+                    r.user?.role === "owner" ||
+                    r.user?.role === "manager")
               )
               .map(
                 (r: {
@@ -331,7 +333,11 @@ export default function CalendarPage() {
   }
 
   async function handleCancelOccurrence(occurrenceId: string) {
-    if (userInfo?.role !== "coach" && userInfo?.role !== "owner") {
+    if (
+      userInfo?.role !== "coach" &&
+      userInfo?.role !== "owner" &&
+      userInfo?.role !== "manager"
+    ) {
       return;
     }
 
@@ -690,7 +696,9 @@ export default function CalendarPage() {
               const isCanceling = cancelingOccurrence === occ.id;
 
               const isCoachOrOwner =
-                userInfo?.role === "coach" || userInfo?.role === "owner";
+                userInfo?.role === "coach" ||
+                userInfo?.role === "owner" ||
+                userInfo?.role === "manager";
 
               return (
                 <div

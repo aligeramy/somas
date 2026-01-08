@@ -62,11 +62,14 @@ export async function GET(request: Request) {
       )
       .orderBy(asc(users.createdAt));
 
-    // Filter: Athletes can only see coaches/owners (unless forEvents=true)
+    // Filter: Athletes can only see coaches/owners/managers (unless forEvents=true)
     const filteredRoster =
       dbUser.role === "athlete" && !forEvents
         ? roster.filter(
-            (user) => user.role === "coach" || user.role === "owner"
+            (user) =>
+              user.role === "coach" ||
+              user.role === "owner" ||
+              user.role === "manager"
           )
         : roster;
 

@@ -103,7 +103,8 @@ export function MobileEventActions({
     }
   }
 
-  const isCoachOrOwner = userRole === "owner" || userRole === "coach";
+  const isCoachOrOwner =
+    userRole === "owner" || userRole === "coach" || userRole === "manager";
   const showRsvpOptions = isCoachOrOwner && !isCanceled;
 
   return (

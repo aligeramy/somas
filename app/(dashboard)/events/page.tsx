@@ -785,7 +785,9 @@ export default function EventsPage() {
   // Load RSVP summaries for owner/coach view when event is selected
   const loadOccurrenceSummaries = useCallback(async () => {
     if (
-      (currentUserRole === "owner" || currentUserRole === "coach") &&
+      (currentUserRole === "owner" ||
+        currentUserRole === "coach" ||
+        currentUserRole === "manager") &&
       selectedEvent
     ) {
       const occurrenceIds = selectedEvent.occurrences.map((occ) => occ.id);
@@ -1116,7 +1118,11 @@ export default function EventsPage() {
       }
       await loadOccurrenceRsvps(selectedOccurrence.id);
       // Reload summaries for owner/coach view
-      if (currentUserRole === "owner" || currentUserRole === "coach") {
+      if (
+        currentUserRole === "owner" ||
+        currentUserRole === "coach" ||
+        currentUserRole === "manager"
+      ) {
         await loadOccurrenceSummaries();
       }
     } catch (err) {
@@ -1153,7 +1159,11 @@ export default function EventsPage() {
       }
 
       // Reload summaries for owner/coach view
-      if (currentUserRole === "owner" || currentUserRole === "coach") {
+      if (
+        currentUserRole === "owner" ||
+        currentUserRole === "coach" ||
+        currentUserRole === "manager"
+      ) {
         await loadOccurrenceSummaries();
       }
 
@@ -1434,7 +1444,11 @@ export default function EventsPage() {
   const notAnsweredUsers = gymMembers.filter((m) => {
     const role = m.role;
     const isCoachOrAthlete =
-      role === "coach" || role === "owner" || role === "athlete" || !role;
+      role === "coach" ||
+      role === "owner" ||
+      role === "manager" ||
+      role === "athlete" ||
+      !role;
     return isCoachOrAthlete && !respondedIds.has(m.id);
   });
 
@@ -1752,11 +1766,19 @@ export default function EventsPage() {
                     userId: string,
                     userRole?: string
                   ): boolean => {
-                    if (userRole === "coach" || userRole === "owner") {
+                    if (
+                      userRole === "coach" ||
+                      userRole === "owner" ||
+                      userRole === "manager"
+                    ) {
                       return true;
                     }
                     const member = gymMembers.find((m) => m.id === userId);
-                    return member?.role === "coach" || member?.role === "owner";
+                    return (
+                      member?.role === "coach" ||
+                      member?.role === "owner" ||
+                      member?.role === "manager"
+                    );
                   };
                   const isAthlete = (
                     userId: string,
@@ -1765,7 +1787,11 @@ export default function EventsPage() {
                     if (userRole === "athlete") {
                       return true;
                     }
-                    if (userRole === "coach" || userRole === "owner") {
+                    if (
+                      userRole === "coach" ||
+                      userRole === "owner" ||
+                      userRole === "manager"
+                    ) {
                       return false;
                     }
                     const member = gymMembers.find((m) => m.id === userId);
@@ -1784,7 +1810,10 @@ export default function EventsPage() {
                     isAthlete(u.id, u.role)
                   );
                   const pendingCoaches = gymMembers.filter((m) => {
-                    const isCoach = m.role === "coach" || m.role === "owner";
+                    const isCoach =
+                      m.role === "coach" ||
+                      m.role === "owner" ||
+                      m.role === "manager";
                     return isCoach && !rsvpedUserIds.has(m.id);
                   });
                   const pendingAthletes = gymMembers.filter((m) => {
@@ -2445,7 +2474,9 @@ export default function EventsPage() {
                         }
                         const member = gymMembers.find((m) => m.id === userId);
                         return (
-                          member?.role === "coach" || member?.role === "owner"
+                          member?.role === "coach" ||
+                          member?.role === "owner" ||
+                          member?.role === "manager"
                         );
                       };
 
@@ -2494,7 +2525,9 @@ export default function EventsPage() {
                       const pendingCoaches = gymMembers
                         .filter((m) => {
                           const isCoach =
-                            m.role === "coach" || m.role === "owner";
+                            m.role === "coach" ||
+                            m.role === "owner" ||
+                            m.role === "manager";
                           return isCoach && !rsvpedUserIds.has(m.id);
                         })
                         .map((m) => ({
@@ -3174,7 +3207,11 @@ export default function EventsPage() {
         return true;
       }
       const member = gymMembers.find((m) => m.id === userId);
-      return member?.role === "coach" || member?.role === "owner";
+      return (
+        member?.role === "coach" ||
+        member?.role === "owner" ||
+        member?.role === "manager"
+      );
     };
 
     // Helper function to determine if user is athlete (use role from RSVP first, then gymMembers)
@@ -3225,10 +3262,11 @@ export default function EventsPage() {
       });
 
     // Pending coaches: those who haven't RSVP'd at all (not in rsvpedUserIds)
-    // Only include coaches/owners, and always include current user if they're a coach/owner
+    // Only include coaches/owners/managers, and always include current user if they're a coach/owner/manager
     const pendingCoaches = gymMembers
       .filter((m) => {
-        const isCoach = m.role === "coach" || m.role === "owner";
+        const isCoach =
+          m.role === "coach" || m.role === "owner" || m.role === "manager";
         return isCoach && !rsvpedUserIds.has(m.id);
       })
       .map((m) => ({
@@ -5417,10 +5455,16 @@ function UserList({
   const isMobile = useIsMobile();
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
-  // Filter to only include coaches/owners and athletes (exclude any other roles)
+  // Filter to only include coaches/owners/managers and athletes (exclude any other roles)
   const filteredUsers = users.filter((u) => {
     const role = u.role;
-    return role === "coach" || role === "owner" || role === "athlete" || !role;
+    return (
+      role === "coach" ||
+      role === "owner" ||
+      role === "manager" ||
+      role === "athlete" ||
+      !role
+    );
   });
 
   const selectedUser = selectedUserId
@@ -5437,7 +5481,7 @@ function UserList({
 
   // Separate coaches and athletes
   const coaches = filteredUsers.filter(
-    (u) => u.role === "coach" || u.role === "owner"
+    (u) => u.role === "coach" || u.role === "owner" || u.role === "manager"
   );
   const athletes = filteredUsers.filter((u) => u.role === "athlete" || !u.role);
 

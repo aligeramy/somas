@@ -62,7 +62,7 @@ interface Coach {
   name: string | null;
   phone: string | null;
   avatarUrl: string | null;
-  role: "coach" | "owner";
+  role: "coach" | "owner" | "manager";
   createdAt: string;
 }
 
@@ -118,9 +118,12 @@ export default function ClubSettingsPage() {
         throw new Error("Failed to load coaches");
       }
       const data = await response.json();
-      // Include both coaches and owners (head coaches)
+      // Include coaches, owners, and managers
       const coachesList = data.roster.filter(
-        (user: Coach) => user.role === "coach" || user.role === "owner"
+        (user: Coach) =>
+          user.role === "coach" ||
+          user.role === "owner" ||
+          user.role === "manager"
       );
       setCoaches(coachesList);
     } catch (err) {
@@ -283,7 +286,10 @@ export default function ClubSettingsPage() {
     return email[0].toUpperCase();
   }
 
-  async function handleRoleChange(coachId: string, newRole: "coach" | "owner") {
+  async function handleRoleChange(
+    coachId: string,
+    newRole: "coach" | "owner" | "manager"
+  ) {
     setChangingRole(coachId);
     setError(null);
 
@@ -310,8 +316,10 @@ export default function ClubSettingsPage() {
     }
   }
 
-  function formatRole(role: "coach" | "owner") {
-    return role === "owner" ? "Head Coach" : "Coach";
+  function formatRole(role: "coach" | "owner" | "manager") {
+    if (role === "owner") return "Head Coach";
+    if (role === "manager") return "Manager";
+    return "Coach";
   }
 
   if (loading) {
@@ -577,12 +585,12 @@ export default function ClubSettingsPage() {
                             <Badge
                               className="rounded-lg"
                               variant={
-                                coach.role === "owner" ? "default" : "secondary"
+                                coach.role === "owner" || coach.role === "manager" ? "default" : "secondary"
                               }
                             >
                               {formatRole(coach.role)}
                             </Badge>
-                            {currentUserRole === "owner" && (
+                            {(currentUserRole === "owner" || currentUserRole === "manager") && (
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                   <Button
@@ -599,14 +607,50 @@ export default function ClubSettingsPage() {
                                   className="rounded-xl"
                                 >
                                   {coach.role === "coach" ? (
+                                    <>
+                                      <DropdownMenuItem
+                                        className="rounded-lg"
+                                        disabled={changingRole === coach.id}
+                                        onClick={() =>
+                                          handleRoleChange(coach.id, "owner")
+                                        }
+                                      >
+                                        Promote to Head Coach
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        className="rounded-lg"
+                                        disabled={changingRole === coach.id}
+                                        onClick={() =>
+                                          handleRoleChange(coach.id, "manager")
+                                        }
+                                      >
+                                        Promote to Manager
+                                      </DropdownMenuItem>
+                                    </>
+                                  ) : coach.role === "manager" ? (
                                     <DropdownMenuItem
                                       className="rounded-lg"
                                       disabled={changingRole === coach.id}
                                       onClick={() =>
-                                        handleRoleChange(coach.id, "owner")
+                                        handleRoleChange(coach.id, "coach")
                                       }
                                     >
-                                      Promote to Head Coach
+                                      Demote to Coach
+                                    </DropdownMenuItem>
+                                  ) : (
+                                    <DropdownMenuItem
+                                      className="rounded-lg"
+                                      disabled={changingRole === coach.id}
+                                      onClick={() =>
+                                        handleRoleChange(coach.id, "coach")
+                                      }
+                                    >
+                                      Demote to Coach
+                                    </DropdownMenuItem>
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            )}
                                     </DropdownMenuItem>
                                   ) : (
                                     <DropdownMenuItem
@@ -632,7 +676,7 @@ export default function ClubSettingsPage() {
             </CardContent>
           </Card>
         </div>
-      </div>
+  </div>
     </div>
-  );
+  )
 }

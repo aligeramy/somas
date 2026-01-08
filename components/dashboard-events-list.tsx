@@ -109,7 +109,8 @@ export function DashboardEventsList({
     isCanceled: boolean;
   } | null>(null);
 
-  const isCoachOrOwner = userRole === "owner" || userRole === "coach";
+  const isCoachOrOwner =
+    userRole === "owner" || userRole === "coach" || userRole === "manager";
 
   return (
     <>
@@ -645,7 +646,8 @@ export function DashboardEventsList({
                                             .filter(
                                               (u) =>
                                                 u.role === "coach" ||
-                                                u.role === "owner"
+                                                u.role === "owner" ||
+                                                u.role === "manager"
                                             )
                                             .map((c) => ({
                                               id: c.id,
