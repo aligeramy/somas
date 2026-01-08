@@ -10,14 +10,16 @@ import { getAppUrl } from "@/lib/utils";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-// Password mapping for non-onboarded users (all wrestler names)
+// Password mapping for non-onboarded users (simple phrases)
 const USER_PASSWORDS: Record<string, string> = {
-  "2bb0fc74-0d3a-4ca1-bc56-960cce122e7c": "therock", // Fariba Akbar
-  "7f7e141c-ee02-47f7-a136-8e931715a423": "johncena", // Tatiana Bell
-  "f294fb66-4c84-49b0-b602-b3d1c8b82d2b": "hulkhogan", // Mitra Jabbour
-  "0be52ade-8fb3-4140-a338-726a1ffcfac2": "austin", // Luke Drummond
-  "c2d420f0-e398-4be9-8dab-1c4d4388cd0b": "undertaker", // Mazin Turki
-  "3265fb61-ad5a-4a6c-b9ec-b6ed9b4c1535": "goldberg", // Erik Singer
+  "b866a793-d050-4440-ab01-fa76a5502249": "admin123", // Pascal Tyrrell
+  "4edfaa2a-02c4-4ebb-b5e6-408973be66a1": "coach123", // Sabrina
+  "1dd9d2cb-54ce-4113-9d76-0776d2d4aa79": "volunteer123", // Alex Gaul
+  "a8543e21-c1fa-4f0f-ba0c-17359d866008": "athlete123", // Timea Dancisinova
+  "ae15e708-9aeb-4215-92f8-25af062f4b55": "peter123", // Peter Smith
+  "09c69b09-1b66-47dc-9393-32c436f4c734": "jack123", // Jack Ellery
+  "c9c4542e-ad41-40d1-a24c-50b51e84c9de": "lauren123", // Lauren Maquis
+  "6832441b-8005-4480-89b7-4160ed5773a8": "ali123", // Ali
 };
 
 interface EmailResult {
