@@ -380,10 +380,12 @@ export default function ClubSettingsPage() {
               <div className="flex items-center gap-4">
                 <div className="relative">
                   {clubLogoPreview || club.logoUrl ? (
-                    <img
+                    <Image
                       alt="Club logo"
                       className="h-24 w-24 rounded-xl border-4 border-background object-cover shadow-lg"
+                      height={96}
                       src={clubLogoPreview || club.logoUrl || ""}
+                      width={96}
                     />
                   ) : (
                     <div className="flex h-24 w-24 items-center justify-center rounded-xl border-4 border-background bg-muted shadow-lg">

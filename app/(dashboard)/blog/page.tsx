@@ -63,6 +63,8 @@ export default function BlogPage() {
   const [editingPost, setEditingPost] = useState<BlogPost | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [postToDelete, setPostToDelete] = useState<string | null>(null);
 
   // Form state
   const [title, setTitle] = useState("");
@@ -239,12 +241,17 @@ export default function BlogPage() {
   }
 
   async function handleDelete(postId: string) {
-    if (!confirm("Are you sure you want to delete this post?")) {
+    setPostToDelete(postId);
+    setDeleteDialogOpen(true);
+  }
+
+  async function confirmDelete() {
+    if (!postToDelete) {
       return;
     }
 
     try {
-      const response = await fetch(`/api/blog/${postId}`, {
+      const response = await fetch(`/api/blog/${postToDelete}`, {
         method: "DELETE",
       });
 
@@ -252,8 +259,10 @@ export default function BlogPage() {
         throw new Error("Failed to delete post");
       }
       await loadPosts();
+      setDeleteDialogOpen(false);
+      setPostToDelete(null);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to delete post");
+      setError(err instanceof Error ? err.message : "Failed to delete post");
     }
   }
 
@@ -356,11 +365,12 @@ export default function BlogPage() {
                   </CardHeader>
                   <CardContent>
                     {post.imageUrl && (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
+                      <Image
                         alt={post.title}
                         className="mb-4 max-h-64 w-full rounded-xl object-cover"
+                        height={250}
                         src={post.imageUrl}
+                        width={400}
                       />
                     )}
                     <div
@@ -466,11 +476,12 @@ export default function BlogPage() {
                 <input {...getInputProps()} />
                 {imagePreview ? (
                   <div className="space-y-2">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
+                    <Image
                       alt="Preview"
                       className="mx-auto max-h-48 rounded-lg"
+                      height={150}
                       src={imagePreview}
+                      width={200}
                     />
                     <p className="text-muted-foreground text-sm">
                       Click or drag to replace
@@ -507,6 +518,29 @@ export default function BlogPage() {
                 : editingPost
                   ? "Update Post"
                   : "Create Post"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog onOpenChange={setDeleteDialogOpen} open={deleteDialogOpen}>
+        <DialogContent className="rounded-xl">
+          <DialogHeader>
+            <DialogTitle>Delete Post</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this post? This action cannot be
+              undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              onClick={() => setDeleteDialogOpen(false)}
+              variant="outline"
+            >
+              Cancel
+            </Button>
+            <Button onClick={confirmDelete} variant="destructive">
+              Delete
             </Button>
           </DialogFooter>
         </DialogContent>

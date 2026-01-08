@@ -124,14 +124,14 @@ export default async function BlogPostPage({
             </CardHeader>
             <CardContent>
               {post.imageUrl && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
+                <Image
                   alt={post.title}
                   className="mb-6 max-h-96 w-full rounded-xl object-cover"
+                  height={400}
                   src={post.imageUrl}
+                  width={800}
                 />
               )}
-              {/* biome-ignore lint/security/noDangerouslySetInnerHtml: Rich text content from editor */}
               <div
                 className="prose prose-sm dark:prose-invert max-w-none"
                 dangerouslySetInnerHTML={{ __html: post.content }}

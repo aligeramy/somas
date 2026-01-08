@@ -1,10 +1,14 @@
 "use server";
 
+import type { InferSelectModel } from "drizzle-orm";
 import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
+import type { invitations as invitationsTable } from "@/drizzle/schema";
 import { invitations, users } from "@/drizzle/schema";
 import { db } from "@/lib/db";
 import { createClient } from "@/lib/supabase/server";
+
+type Invitation = InferSelectModel<typeof invitationsTable>;
 
 export async function registerAction(formData: FormData) {
   const supabase = await createClient();
@@ -15,7 +19,7 @@ export async function registerAction(formData: FormData) {
   const role = formData.get("role") as string | null;
 
   // If token provided, validate invitation
-  let invitation = null;
+  let invitation: Invitation | null = null;
   if (token) {
     const [invitationData] = await db
       .select()

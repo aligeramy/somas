@@ -1,16 +1,18 @@
 import { readFileSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
 
+const ENV_LINE_REGEX = /^([^#=]+)=(.*)$/;
+
 const envFile = readFileSync(".env", "utf-8");
 const envVars: Record<string, string> = {};
-envFile.split("\n").forEach((line) => {
-  const match = line.match(/^([^#=]+)=(.*)$/);
+for (const line of envFile.split("\n")) {
+  const match = line.match(ENV_LINE_REGEX);
   if (match) {
     const key = match[1].trim();
     const value = match[2].trim().replace(/^["']|["']$/g, "");
     envVars[key] = value;
   }
-});
+}
 
 const supabaseUrl = envVars.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = envVars.SUPABASE_SERVICE_ROLE_KEY;
@@ -27,9 +29,9 @@ async function listUsers() {
   }
 
   console.log("All auth users:\n");
-  data.users.forEach((u) => {
+  for (const u of data.users) {
     console.log(`${u.email} - ID: ${u.id}`);
-  });
+  }
 
   const jack = data.users.find(
     (u) => u.email.toLowerCase() === "Abellery@wightman.ca".toLowerCase()

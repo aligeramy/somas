@@ -1,17 +1,19 @@
 import { readFileSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
 
+const ENV_LINE_REGEX = /^([^#=]+)=(.*)$/;
+
 // Load .env manually
 const envFile = readFileSync(".env", "utf-8");
 const envVars: Record<string, string> = {};
-envFile.split("\n").forEach((line) => {
-  const match = line.match(/^([^#=]+)=(.*)$/);
+for (const line of envFile.split("\n")) {
+  const match = line.match(ENV_LINE_REGEX);
   if (match) {
     const key = match[1].trim();
     const value = match[2].trim().replace(/^["']|["']$/g, "");
     envVars[key] = value;
   }
-});
+}
 
 const supabaseUrl = envVars.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = envVars.SUPABASE_SERVICE_ROLE_KEY;
@@ -273,7 +275,7 @@ setupUsers()
     console.log("USER CREDENTIALS SUMMARY");
     console.log(`${"=".repeat(70)}\n`);
 
-    results.forEach((result) => {
+    for (const result of results) {
       console.log(`${result.success ? "✅" : "❌"} ${result.email}`);
       console.log(`   Password: ${result.password}`);
       if (result.userId) {
@@ -283,12 +285,12 @@ setupUsers()
         console.log(`   Error: ${result.error}`);
       }
       console.log("");
-    });
+    }
 
     console.log("=".repeat(70));
     console.log("\nUSER_PASSWORDS mapping for route file:\n");
     console.log("const USER_PASSWORDS: Record<string, string> = {");
-    results.forEach((result) => {
+    for (const result of results) {
       if (result.success && result.userId) {
         const userData = Object.values(USER_PASSWORDS).find(
           (u) => u.email === result.email
@@ -296,7 +298,7 @@ setupUsers()
         const name = userData?.name || result.email.split("@")[0];
         console.log(`  "${result.userId}": "${result.password}", // ${name}`);
       }
-    });
+    }
     // Add ali if created
     const aliResult = results.find(
       (r) => r.email === "ali@softxinnovations.ca" && r.success
