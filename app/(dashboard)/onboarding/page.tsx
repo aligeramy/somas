@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useDropzone } from "react-dropzone";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -14,24 +13,20 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useGooglePlacesAutocomplete } from "@/hooks/use-google-places-autocomplete";
-import { createClient } from "@/lib/supabase/client";
 
 export default function OnboardingPage() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const addressInputRef = useRef<HTMLInputElement>(null);
 
   useGooglePlacesAutocomplete(addressInputRef, (address) => {
     setAddress(address);
   });
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const supabase = createClient();
 
   const loadUserProfile = useCallback(async () => {
     try {
@@ -56,9 +51,6 @@ export default function OnboardingPage() {
         if (data.user.address) {
           setAddress(data.user.address);
         }
-        if (data.user.avatarUrl) {
-          setAvatarPreview(data.user.avatarUrl);
-        }
       }
     } catch (_err) {
       // Ignore errors, user might not exist yet
@@ -72,64 +64,12 @@ export default function OnboardingPage() {
     loadUserProfile();
   }, [loadUserProfile]);
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    accept: {
-      "image/*": [".png", ".jpg", ".jpeg", ".gif", ".webp"],
-    },
-    maxFiles: 1,
-    onDrop: (acceptedFiles) => {
-      if (acceptedFiles.length > 0) {
-        const file = acceptedFiles[0];
-        setAvatarFile(file);
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setAvatarPreview(reader.result as string);
-        };
-        reader.readAsDataURL(file);
-      }
-    },
-  });
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) {
-        router.push("/login");
-        return;
-      }
-
-      let avatarUrl = null;
-
-      // Upload avatar if provided
-      if (avatarFile) {
-        const fileExt = avatarFile.name.split(".").pop();
-        const fileName = `${user.id}-${Date.now()}.${fileExt}`;
-        const filePath = `avatars/${fileName}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from("avatars")
-          .upload(filePath, avatarFile, {
-            cacheControl: "3600",
-            upsert: false,
-          });
-
-        if (uploadError) {
-          throw new Error(`Failed to upload avatar: ${uploadError.message}`);
-        }
-
-        const {
-          data: { publicUrl },
-        } = supabase.storage.from("avatars").getPublicUrl(filePath);
-        avatarUrl = publicUrl;
-      }
-
       // Update user profile
       const response = await fetch("/api/profile-setup", {
         method: "POST",
@@ -138,7 +78,6 @@ export default function OnboardingPage() {
           name,
           phone: phone || null,
           address: address || null,
-          avatarUrl,
         }),
       });
 
@@ -219,43 +158,6 @@ export default function OnboardingPage() {
                 ref={addressInputRef}
                 value={address}
               />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Profile Photo (Optional)</Label>
-              <div
-                {...getRootProps()}
-                className={`cursor-pointer rounded-lg border border-dashed p-6 text-center transition-colors md:p-8 ${
-                  isDragActive
-                    ? "border-primary bg-primary/5"
-                    : "border-muted-foreground/25 hover:border-muted-foreground/50"
-                }`}
-              >
-                <input {...getInputProps()} />
-                {avatarPreview ? (
-                  <div className="space-y-2">
-                    <img
-                      alt="Avatar preview"
-                      className="mx-auto max-h-32 rounded-full"
-                      src={avatarPreview}
-                    />
-                    <p className="text-muted-foreground text-sm">
-                      Click or drag to replace
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <p className="text-muted-foreground text-sm">
-                      {isDragActive
-                        ? "Drop the photo here"
-                        : "Drag & drop a photo here, or click to select"}
-                    </p>
-                    <p className="text-muted-foreground text-xs">
-                      PNG, JPG, GIF up to 5MB
-                    </p>
-                  </div>
-                )}
-              </div>
             </div>
 
             <Button

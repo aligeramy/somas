@@ -146,7 +146,7 @@ export default function ProfilePage() {
     loadProfile();
     loadGym();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loadGym, loadProfile]);
+  }, []);
 
   async function loadProfile() {
     try {
