@@ -1,5 +1,6 @@
 "use client";
 
+import { IconLoader2 } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useGooglePlacesAutocomplete } from "@/hooks/use-google-places-autocomplete";
+import { createClient } from "@/lib/supabase/client";
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -27,11 +29,77 @@ export default function OnboardingPage() {
   const [loading, setLoading] = useState(false);
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [sessionReady, setSessionReady] = useState(false);
+  const supabaseRef = useRef(createClient());
+  const retryCountRef = useRef(0);
+
+  // Wait for Supabase session to be ready before doing anything
+  useEffect(() => {
+    const supabase = supabaseRef.current;
+
+    // Check initial session state
+    const checkSession = async () => {
+      const {
+        data: { session },
+        error,
+      } = await supabase.auth.getSession();
+
+      if (error) {
+        console.error("[Onboarding] Error getting session:", error);
+      }
+
+      if (session) {
+        setSessionReady(true);
+      }
+    };
+
+    checkSession();
+
+    // Listen for auth state changes - this is crucial for post-login redirects
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (
+        event === "SIGNED_IN" ||
+        event === "TOKEN_REFRESHED" ||
+        event === "INITIAL_SESSION"
+      ) {
+        if (session) {
+          setSessionReady(true);
+        }
+      } else if (event === "SIGNED_OUT") {
+        router.push("/login");
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [router]);
 
   const loadUserProfile = useCallback(async () => {
+    if (!sessionReady) {
+      return;
+    }
+
     try {
       setLoadingProfile(true);
       const response = await fetch("/api/profile");
+
+      if (response.status === 401) {
+        if (retryCountRef.current < 3) {
+          // Session not ready yet, retry after a short delay
+          retryCountRef.current += 1;
+          setTimeout(() => {
+            loadUserProfile();
+          }, 500);
+          return;
+        }
+        // After retries exhausted, redirect to login
+        router.push("/login");
+        return;
+      }
+
       if (response.ok) {
         const data = await response.json();
 
@@ -51,18 +119,32 @@ export default function OnboardingPage() {
         if (data.user.address) {
           setAddress(data.user.address);
         }
+        retryCountRef.current = 0; // Reset on success
+      } else if (response.status === 404) {
+        // User not found in database - this is okay, they can still fill out the form
+        retryCountRef.current = 0;
       }
     } catch (_err) {
-      // Ignore errors, user might not exist yet
+      // Retry on error if we haven't exceeded retry limit
+      if (retryCountRef.current < 3) {
+        retryCountRef.current += 1;
+        setTimeout(() => {
+          loadUserProfile();
+        }, 1000);
+        return;
+      }
       console.log("Could not load existing profile");
     } finally {
       setLoadingProfile(false);
     }
-  }, [router]);
+  }, [sessionReady, router]);
 
+  // Load profile when session becomes ready
   useEffect(() => {
-    loadUserProfile();
-  }, [loadUserProfile]);
+    if (sessionReady) {
+      loadUserProfile();
+    }
+  }, [sessionReady, loadUserProfile]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -92,6 +174,22 @@ export default function OnboardingPage() {
       setError(err instanceof Error ? err.message : "An error occurred");
       setLoading(false);
     }
+  }
+
+  // Show loading state while waiting for session
+  if (!sessionReady) {
+    return (
+      <div className="flex min-h-screen items-center justify-center p-4 md:p-6">
+        <Card className="w-full max-w-2xl">
+          <CardContent className="pt-6">
+            <div className="flex flex-col items-center gap-4">
+              <IconLoader2 className="h-8 w-8 animate-spin text-primary" />
+              <p className="text-muted-foreground">Loading your session...</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   if (loadingProfile) {
