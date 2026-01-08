@@ -80,6 +80,11 @@ export default function NewEventPage() {
   const [endType, setEndType] = useState<"never" | "date" | "count">("never");
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
   const [occurrenceCount, setOccurrenceCount] = useState("12");
+  const prevRecurrenceRef = useRef<
+    "none" | "daily" | "weekly" | "monthly"
+  >("none");
+  const prevDayOfWeekRef = useRef<string>("MO");
+  const isUpdatingFromDayChangeRef = useRef(false);
 
   // Helper to parse date input without timezone issues
   function parseDateInput(dateStr: string): Date {
@@ -88,14 +93,63 @@ export default function NewEventPage() {
     return new Date(year, month - 1, day);
   }
 
-  // Update day of week when start date changes
+  // Update day of week when recurrence changes to weekly (initial sync only)
   useEffect(() => {
-    const dayIndex = startDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
-    const matchingDay = DAYS_OF_WEEK.find((d) => d.index === dayIndex);
-    if (matchingDay) {
-      setDayOfWeek(matchingDay.value);
+    // Only sync when recurrence changes from non-weekly to weekly
+    // Don't sync if we're updating from a dayOfWeek change
+    if (
+      recurrence === "weekly" &&
+      prevRecurrenceRef.current !== "weekly" &&
+      !isUpdatingFromDayChangeRef.current
+    ) {
+      const dayIndex = startDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
+      const matchingDay = DAYS_OF_WEEK.find((d) => d.index === dayIndex);
+      if (matchingDay) {
+        setDayOfWeek(matchingDay.value);
+        prevDayOfWeekRef.current = matchingDay.value;
+      }
     }
-  }, [startDate]);
+    prevRecurrenceRef.current = recurrence;
+  }, [recurrence, startDate]);
+
+  // Update start date to next occurrence when day of week changes
+  useEffect(() => {
+    // Only update if dayOfWeek actually changed (user picked a different day)
+    if (
+      recurrence === "weekly" &&
+      dayOfWeek !== prevDayOfWeekRef.current &&
+      !isUpdatingFromDayChangeRef.current
+    ) {
+      const targetDay =
+        DAYS_OF_WEEK.find((d) => d.value === dayOfWeek)?.index ?? 1;
+      
+      // Start from today to find the next occurrence
+      const today = startOfToday();
+      const currentDay = today.getDay();
+      
+      // Calculate days until next occurrence of target day
+      let daysUntilTarget = targetDay - currentDay;
+      if (daysUntilTarget <= 0) {
+        // If the target day has passed this week, go to next week
+        daysUntilTarget += 7;
+      }
+      
+      const nextDate = addDays(today, daysUntilTarget);
+      
+      isUpdatingFromDayChangeRef.current = true;
+      setStartDate(nextDate);
+      prevDayOfWeekRef.current = dayOfWeek;
+      // Reset flag after state update
+      setTimeout(() => {
+        isUpdatingFromDayChangeRef.current = false;
+      }, 0);
+    } else if (dayOfWeek !== prevDayOfWeekRef.current) {
+      // Update ref even if we didn't update startDate
+      prevDayOfWeekRef.current = dayOfWeek;
+    }
+    // Only run when dayOfWeek or recurrence changes, not when startDate changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dayOfWeek, recurrence]);
 
   // Generate preview dates
   const previewDates = useMemo(() => {
@@ -396,7 +450,7 @@ export default function NewEventPage() {
                             onValueChange={setDayOfWeek}
                           >
                             <SelectTrigger className="h-11 rounded-xl w-full">
-                              <SelectValue />
+                              <SelectValue placeholder="Select day of week" />
                             </SelectTrigger>
                             <SelectContent className="rounded-xl">
                               {DAYS_OF_WEEK.map((day) => (

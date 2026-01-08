@@ -4421,7 +4421,7 @@ export default function EventsPage() {
 
       <div className="flex flex-1 overflow-hidden gap-4 min-h-0 h-0">
         {/* Events Sidebar */}
-        <div className="w-64 flex flex-col bg-card border rounded-xl shadow-sm overflow-hidden min-h-0 h-full">
+        <div className="w-64 lg:w-80 flex flex-col bg-card border rounded-xl shadow-sm overflow-visible min-h-0 h-full">
           <ScrollArea className="h-full">
             <div className="p-2">
               {initialLoading ? (
@@ -4454,7 +4454,7 @@ export default function EventsPage() {
                           : "hover:bg-muted"
                       }`}
                     >
-                      <p className="font-medium truncate text-sm pr-6">
+                      <p className="font-medium truncate text-sm pr-10">
                         {event.title}
                       </p>
                       <div
@@ -4479,7 +4479,7 @@ export default function EventsPage() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className={`absolute right-2 top-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity ${
+                          className={`absolute right-2 top-2 h-7 w-7 lg:opacity-100 opacity-0 group-hover:opacity-100 transition-opacity ${
                             selectedEvent?.id === event.id &&
                             (!isEventsMobile || mobileView !== "events")
                               ? "text-primary-foreground hover:bg-primary-foreground/20"
@@ -4489,7 +4489,7 @@ export default function EventsPage() {
                           <IconDotsVertical className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="rounded-xl">
+                      <DropdownMenuContent align="end" side="bottom" className="rounded-xl">
                         <DropdownMenuItem asChild className="gap-2">
                           <Link href={`/events/${event.id}/edit`}>
                             <IconEdit className="h-4 w-4" />

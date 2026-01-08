@@ -81,19 +81,20 @@ interface CoachAttendee {
 }
 
 // Color palette for events (for athletes view)
+// Using darker shades that work well in dark mode with white text
 const EVENT_COLORS = [
-  "bg-blue-500",
-  "bg-purple-500",
-  "bg-pink-500",
-  "bg-indigo-500",
-  "bg-cyan-500",
-  "bg-teal-500",
-  "bg-orange-500",
-  "bg-amber-500",
-  "bg-lime-500",
-  "bg-emerald-500",
-  "bg-violet-500",
-  "bg-fuchsia-500",
+  "bg-blue-600 dark:bg-blue-700",
+  "bg-purple-600 dark:bg-purple-700",
+  "bg-pink-600 dark:bg-pink-700",
+  "bg-indigo-600 dark:bg-indigo-700",
+  "bg-cyan-600 dark:bg-cyan-700",
+  "bg-teal-600 dark:bg-teal-700",
+  "bg-orange-600 dark:bg-orange-700",
+  "bg-amber-600 dark:bg-amber-700",
+  "bg-lime-600 dark:bg-lime-700",
+  "bg-emerald-600 dark:bg-emerald-700",
+  "bg-violet-600 dark:bg-violet-700",
+  "bg-fuchsia-600 dark:bg-fuchsia-700",
 ];
 
 export default function CalendarPage() {
@@ -389,12 +390,24 @@ export default function CalendarPage() {
 
   const isAthlete = userInfo?.role === "athlete";
 
-  // Get unique events and assign colors
+  // Hash function to deterministically assign colors based on event ID
+  function hashString(str: string): number {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = (hash << 5) - hash + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    return Math.abs(hash);
+  }
+
+  // Get unique events and assign colors deterministically
   const uniqueEvents = useMemo(() => {
     const eventMap = new Map<string, { id: string; title: string; color: string }>();
     events.forEach((occ) => {
       if (!eventMap.has(occ.event.id)) {
-        const colorIndex = eventMap.size % EVENT_COLORS.length;
+        // Use hash of event ID to ensure consistent color assignment
+        const colorIndex = hashString(occ.event.id) % EVENT_COLORS.length;
         eventMap.set(occ.event.id, {
           id: occ.event.id,
           title: occ.event.title,
@@ -543,17 +556,17 @@ export default function CalendarPage() {
                         // For athletes, use event-specific colors; for others, use RSVP-based colors
                         const eventColor = isAthlete
                           ? getEventColor(occ.event.id)
-                          : "bg-primary";
+                          : "bg-primary dark:bg-primary/50";
                         const bgColor =
                           occ.status === "canceled"
-                            ? "bg-destructive"
+                            ? "bg-destructive dark:bg-destructive/80"
                             : isAthlete
                               ? eventColor
                               : rsvpStatus === "going"
-                                ? "bg-emerald-500"
+                                ? "bg-emerald-600 dark:bg-emerald-700"
                                 : rsvpStatus === "not_going"
-                                  ? "bg-red-500"
-                                  : "bg-primary";
+                                  ? "bg-red-600 dark:bg-red-700"
+                                  : "bg-primary dark:bg-primary/80";
                         return (
                           <div
                             key={occ.id}
@@ -566,7 +579,7 @@ export default function CalendarPage() {
                       })}
                       {occurrences.length > 3 && (
                         <div
-                          className="text-[10px] px-1.5 py-0.5 rounded-sm bg-muted-foreground text-white font-medium truncate leading-tight"
+                          className="text-[10px] px-1.5 py-0.5 rounded-sm bg-muted-foreground/60 dark:bg-muted-foreground/30 text-white font-medium truncate leading-tight"
                           title={`+${occurrences.length - 3} more`}
                         >
                           +{occurrences.length - 3} more
