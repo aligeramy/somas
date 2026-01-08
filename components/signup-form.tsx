@@ -50,10 +50,10 @@ export function SignupForm({
               <div className="flex size-8 items-center justify-center rounded-md">
                 <GalleryVerticalEnd className="size-6" />
               </div>
-              <span className="sr-only">SOMAS</span>
+              <span className="sr-only">Titans of Mississauga</span>
             </div>
             <h1 className="text-xl font-bold">
-              Welcome to SOMAS
+              Welcome to Titans of Mississauga
             </h1>
             <FieldDescription>
               Already have an account?{" "}

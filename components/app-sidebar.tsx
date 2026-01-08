@@ -133,14 +133,14 @@ export function AppSidebar({
   ].filter((item) => item.roles.includes(user.role));
 
   const getGymInitials = (name: string | null) => {
-    if (!name) return "SOMAS";
+    if (!name) return "TOM";
     const initials = name
       .split(" ")
       .map((n) => n[0])
       .join("")
       .toUpperCase();
-    // Return up to 5 characters to allow "SOMAS"
-    return initials.slice(0, 5);
+    // Return up to 3 characters to allow "TOM"
+    return initials.slice(0, 3);
   };
 
   return (
@@ -168,7 +168,7 @@ export function AppSidebar({
                   </AvatarFallback>
                 </Avatar>
                 <span className="text-base font-semibold truncate">
-                  {gymName || "SOMAS"}
+                  {gymName || "TOM"}
                 </span>
               </Link>
             </SidebarMenuButton>

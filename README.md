@@ -1,6 +1,6 @@
-# SOMAS — Gym Management & Athlete Coordination Platform
+# TOM — Gym Management & Athlete Coordination Platform
 
-SOMAS is a modern, mobile‑first gym management system designed for private gyms, coaches, and athletes.  
+TOM is a modern, mobile‑first gym management system designed for private gyms, coaches, and athletes.  
 It includes:
 
 - Expo mobile app for athletes (RSVP, chat, notifications)
