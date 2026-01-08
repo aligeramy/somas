@@ -87,7 +87,7 @@ export default function ClubSettingsPage() {
   const [coachEmail, setCoachEmail] = useState("");
   const [invitingCoach, setInvitingCoach] = useState(false);
   const [currentUserRole, setCurrentUserRole] = useState<
-    "owner" | "coach" | "athlete" | null
+    "owner" | "coach" | "athlete" | "manager" | null
   >(null);
   const [changingRole, setChangingRole] = useState<string | null>(null);
 
@@ -585,12 +585,16 @@ export default function ClubSettingsPage() {
                             <Badge
                               className="rounded-lg"
                               variant={
-                                coach.role === "owner" || coach.role === "manager" ? "default" : "secondary"
+                                coach.role === "owner" ||
+                                coach.role === "manager"
+                                  ? "default"
+                                  : "secondary"
                               }
                             >
                               {formatRole(coach.role)}
                             </Badge>
-                            {(currentUserRole === "owner" || currentUserRole === "manager") && (
+                            {(currentUserRole === "owner" ||
+                              currentUserRole === "manager") && (
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                   <Button
@@ -673,21 +677,6 @@ export default function ClubSettingsPage() {
                                 </DropdownMenuContent>
                               </DropdownMenu>
                             )}
-                                    </DropdownMenuItem>
-                                  ) : (
-                                    <DropdownMenuItem
-                                      className="rounded-lg"
-                                      disabled={changingRole === coach.id}
-                                      onClick={() =>
-                                        handleRoleChange(coach.id, "coach")
-                                      }
-                                    >
-                                      Demote to Coach
-                                    </DropdownMenuItem>
-                                  )}
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            )}
                           </div>
                         </div>
                       ))}
@@ -698,7 +687,7 @@ export default function ClubSettingsPage() {
             </CardContent>
           </Card>
         </div>
-  </div>
+      </div>
     </div>
-  )
+  );
 }
