@@ -26,7 +26,7 @@ interface User {
   emergencyContactPhone?: string | null;
   emergencyContactRelationship?: string | null;
   emergencyContactEmail?: string | null;
-  role: "owner" | "coach" | "athlete";
+  role: "owner" | "coach" | "athlete" | "manager";
   avatarUrl: string | null;
 }
 
@@ -184,19 +184,21 @@ export function MobileMemberActions({
                   <IconEdit className="h-5 w-5" />
                   <span>Edit Member</span>
                 </Button>
-                {isOwner && member.role !== "owner" && (
-                  <Button
-                    className="h-12 w-full justify-start gap-3 px-3 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                    onClick={() => {
-                      onOpenChange(false);
-                      onDelete();
-                    }}
-                    variant="ghost"
-                  >
-                    <IconTrash className="h-5 w-5" />
-                    <span>Remove from Gym</span>
-                  </Button>
-                )}
+                {isOwner &&
+                  member.role !== "owner" &&
+                  member.role !== "manager" && (
+                    <Button
+                      className="h-12 w-full justify-start gap-3 px-3 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      onClick={() => {
+                        onOpenChange(false);
+                        onDelete();
+                      }}
+                      variant="ghost"
+                    >
+                      <IconTrash className="h-5 w-5" />
+                      <span>Remove from Gym</span>
+                    </Button>
+                  )}
               </div>
             </>
           )}

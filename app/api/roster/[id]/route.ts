@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { users } from "@/drizzle/schema";
 import { db } from "@/lib/db";
 import { createClient } from "@/lib/supabase/server";
+import { isOwnerOrManager } from "@/lib/utils";
 
 // GET - Get single roster member
 export async function GET(

@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { gyms, users } from "@/drizzle/schema";
 import { db } from "@/lib/db";
 import { createClient } from "@/lib/supabase/server";
+import { isOwnerOrManager } from "@/lib/utils";
 
 export async function GET() {
   try {

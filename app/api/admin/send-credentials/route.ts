@@ -6,7 +6,7 @@ import { LoginCredentialsEmail } from "@/emails/login-credentials";
 import { db } from "@/lib/db";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { getAppUrl } from "@/lib/utils";
+import { getAppUrl, isOwnerOrManager } from "@/lib/utils";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
