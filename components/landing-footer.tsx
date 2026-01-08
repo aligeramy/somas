@@ -8,7 +8,7 @@ export function LandingFooter() {
       <div className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
           <div>
-            <h3 className="text-lg font-semibold mb-4">TOM</h3>
+            <h3 className="text-lg font-semibold mb-4">SOMAS</h3>
             <p className="text-muted-foreground text-sm">
               The modern platform for club management and athlete coordination.
             </p>
@@ -57,7 +57,7 @@ export function LandingFooter() {
           </div>
         </div>
         <div className="pt-8 border-t text-center text-sm text-muted-foreground">
-          <p>© {currentYear} TOM. All rights reserved.</p>
+          <p>© {currentYear} SOMAS. All rights reserved.</p>
         </div>
       </div>
     </footer>

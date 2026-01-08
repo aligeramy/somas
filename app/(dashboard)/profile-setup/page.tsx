@@ -343,7 +343,7 @@ export default function ProfileSetupPage() {
         description={
           loadingProfile
             ? "Loading your existing profile..."
-            : "Set up your profile to get started with Titans of Mississauga. You can edit any pre-filled information."
+            : "Set up your profile to get started with SOMAS. You can edit any pre-filled information."
         }
       >
         <Button

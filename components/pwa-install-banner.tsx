@@ -70,7 +70,7 @@ export function PWAInstallBanner() {
           <IconDownload className="h-5 w-5 text-primary" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-medium text-sm">Install Titans App</p>
+          <p className="font-medium text-sm">Install SOMAS App</p>
           <p className="text-xs text-muted-foreground truncate">
             Quick access from your home screen
           </p>

@@ -151,7 +151,7 @@ export async function POST(request: Request) {
         }
 
         await resend.emails.send({
-          from: `${process.env.RESEND_FROM_NAME || "Titans of Mississauga"} <${process.env.RESEND_FROM_EMAIL || "noreply@mail.titansofmississauga.ca"}>`,
+          from: `${process.env.RESEND_FROM_NAME || "SOMAS"} <${process.env.RESEND_FROM_EMAIL || "noreply@mail.titansofmississauga.ca"}>`,
           to: recipients,
           subject: `RSVP needed for ${occurrenceData.event.title}`,
           react: RsvpReminderEmail({

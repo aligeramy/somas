@@ -95,10 +95,10 @@ export function PWAInstallPrompt() {
             <IconDeviceMobile className="h-8 w-8 text-primary" />
           </div>
           <CardTitle className="text-2xl font-bold">
-            Install Titans App
+            Install SOMAS App
           </CardTitle>
           <CardDescription className="mt-2 text-base">
-            Get quick access and a better experience by installing Titans on
+            Get quick access and a better experience by installing SOMAS on
             your device
           </CardDescription>
         </CardHeader>

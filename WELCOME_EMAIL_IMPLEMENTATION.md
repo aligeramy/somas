@@ -104,7 +104,7 @@ SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here
 
 # Email (already configured)
 RESEND_API_KEY=your_resend_key
-RESEND_FROM_NAME=Titans of Mississauga
+RESEND_FROM_NAME=SOMAS
 RESEND_FROM_EMAIL=noreply@mail.titansofmississauga.ca
 NEXT_PUBLIC_APP_URL=https://your-domain.com
 ```

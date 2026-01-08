@@ -53,7 +53,7 @@ export function PWAInstallButton() {
       <Dialog open={showInstructions} onOpenChange={setShowInstructions}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-xl">Install Titans</DialogTitle>
+            <DialogTitle className="text-xl">Install SOMAS</DialogTitle>
           </DialogHeader>
 
           {isIOS ? (

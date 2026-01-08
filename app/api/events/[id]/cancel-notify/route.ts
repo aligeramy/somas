@@ -139,7 +139,7 @@ export async function POST(
             }
 
             await resend.emails.send({
-              from: `${process.env.RESEND_FROM_NAME || "Titans of Mississauga"} <${process.env.RESEND_FROM_EMAIL || "noreply@mail.titansofmississauga.ca"}>`,
+              from: `${process.env.RESEND_FROM_NAME || "SOMAS"} <${process.env.RESEND_FROM_EMAIL || "noreply@mail.titansofmississauga.ca"}>`,
               to: recipients,
               subject: `${occurrenceData.event.title} has been canceled`,
               react: EventReminderEmail({

@@ -128,7 +128,7 @@ export async function POST(request: Request) {
         await resend.emails.send({
           from: `${process.env.RESEND_FROM_NAME} <${process.env.RESEND_FROM_EMAIL}>`,
           to: email,
-          subject: `Invitation to join ${gym.name} on Titans of Mississauga`,
+          subject: `Invitation to join ${gym.name} on SOMAS`,
           react: InvitationEmail({
             gymName: gym.name,
             gymLogoUrl: gym.logoUrl,

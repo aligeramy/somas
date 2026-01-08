@@ -52,7 +52,7 @@ export function LoginForm({
               <div className="flex flex-col items-center gap-2 text-center">
                 <h1 className="text-2xl font-bold">Welcome back</h1>
                 <p className="text-muted-foreground text-balance">
-                  Login to your Titans of Mississauga account
+                  Login to your SOMAS account
                 </p>
               </div>
               {error && <div className="text-destructive text-sm">{error}</div>}
@@ -137,8 +137,8 @@ export function LoginForm({
           </form>
           <div className="bg-muted relative hidden md:block overflow-hidden aspect-[3/4]">
             <Image
-              src="/portrait.jpg"
-              alt="Club background"
+              src="/login.png"
+              alt="Athlete in action"
               fill
               className="object-cover object-center"
               sizes="(max-width: 768px) 0vw, 50vw"

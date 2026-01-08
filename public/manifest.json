@@ -1,6 +1,6 @@
 {
-  "name": "Titans of Mississauga",
-  "short_name": "Titans",
+  "name": "SOMAS",
+  "short_name": "SOMAS",
   "description": "Club management and athlete coordination platform",
   "start_url": "/dashboard",
   "display": "standalone",

@@ -4712,137 +4712,145 @@ export default function EventsPage() {
             <div className="flex-1 flex flex-col bg-card border rounded-xl shadow-sm overflow-hidden min-h-0">
               {selectedOccurrence ? (
                 <>
-                  <div className="p-4 border-b flex items-center justify-between shrink-0">
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold">{selectedEvent?.title}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {formatDate(selectedOccurrence.date).weekday},{" "}
-                        {formatDate(selectedOccurrence.date).month}{" "}
-                        {formatDate(selectedOccurrence.date).day} •{" "}
-                        {formatTime(selectedEvent?.startTime)}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {/* Going/Not Going buttons for coaches/head coaches */}
-                      {(currentUserRole === "coach" ||
-                        currentUserRole === "owner") &&
-                        selectedOccurrence.status !== "canceled" &&
-                        eventDetailTab === "details" && (
-                          <>
-                            {(() => {
-                              const currentUserRsvp = occurrenceRsvps.find(
-                                (r) => r.id === currentUserId,
-                              );
-                              const currentUserRsvpStatus =
-                                currentUserRsvp?.status;
-                              return (
-                                <>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={async () => {
-                                      const response = await fetch(
-                                        "/api/rsvp",
-                                        {
-                                          method: "POST",
-                                          headers: {
-                                            "Content-Type": "application/json",
+                  <div className="p-4 border-b flex flex-col shrink-0">
+                    {/* Title row */}
+                    <h3 className="font-semibold">{selectedEvent?.title}</h3>
+                    
+                    {/* Date row */}
+                    <p className="text-sm text-muted-foreground mt-0.5">
+                      {formatDate(selectedOccurrence.date).weekday},{" "}
+                      {formatDate(selectedOccurrence.date).month}{" "}
+                      {formatDate(selectedOccurrence.date).day} •{" "}
+                      {formatTime(selectedEvent?.startTime)}
+                    </p>
+                    
+                    {/* Buttons row */}
+                    <div className="flex items-center gap-2 mt-3">
+                      {/* Left side: Going/Not Going buttons */}
+                      <div className="flex items-center gap-2 flex-1">
+                        {(currentUserRole === "coach" ||
+                          currentUserRole === "owner") &&
+                          selectedOccurrence.status !== "canceled" &&
+                          eventDetailTab === "details" && (
+                            <>
+                              {(() => {
+                                const currentUserRsvp = occurrenceRsvps.find(
+                                  (r) => r.id === currentUserId,
+                                );
+                                const currentUserRsvpStatus =
+                                  currentUserRsvp?.status;
+                                return (
+                                  <>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={async () => {
+                                        const response = await fetch(
+                                          "/api/rsvp",
+                                          {
+                                            method: "POST",
+                                            headers: {
+                                              "Content-Type": "application/json",
+                                            },
+                                            body: JSON.stringify({
+                                              occurrenceId: selectedOccurrence.id,
+                                              status: "going",
+                                            }),
                                           },
-                                          body: JSON.stringify({
-                                            occurrenceId: selectedOccurrence.id,
-                                            status: "going",
-                                          }),
-                                        },
-                                      );
-                                      if (response.ok) {
-                                        loadOccurrenceRsvps(
-                                          selectedOccurrence.id,
                                         );
-                                      }
-                                    }}
-                                    className={`h-9 rounded-xl gap-1.5 px-3 ${
-                                      currentUserRsvpStatus === "going"
-                                        ? "!bg-emerald-600 hover:!bg-emerald-700 !text-white border-emerald-600"
-                                        : "border-emerald-400 text-emerald-400 hover:bg-emerald-50 hover:text-emerald-500 dark:hover:bg-emerald-950"
-                                    }`}
-                                  >
-                                    <IconCheck className="h-4 w-4" />
-                                    {currentUserRsvpStatus === "going"
-                                      ? "Going!"
-                                      : "Going"}
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={async () => {
-                                      const response = await fetch(
-                                        "/api/rsvp",
-                                        {
-                                          method: "POST",
-                                          headers: {
-                                            "Content-Type": "application/json",
+                                        if (response.ok) {
+                                          loadOccurrenceRsvps(
+                                            selectedOccurrence.id,
+                                          );
+                                        }
+                                      }}
+                                      className={`h-9 rounded-xl gap-1.5 px-3 flex-1 ${
+                                        currentUserRsvpStatus === "going"
+                                          ? "!bg-emerald-600 hover:!bg-emerald-700 !text-white border-emerald-600"
+                                          : "border-emerald-400 text-emerald-400 hover:bg-emerald-50 hover:text-emerald-500 dark:hover:bg-emerald-950"
+                                      }`}
+                                    >
+                                      <IconCheck className="h-4 w-4" />
+                                      {currentUserRsvpStatus === "going"
+                                        ? "Going!"
+                                        : "Going"}
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={async () => {
+                                        const response = await fetch(
+                                          "/api/rsvp",
+                                          {
+                                            method: "POST",
+                                            headers: {
+                                              "Content-Type": "application/json",
+                                            },
+                                            body: JSON.stringify({
+                                              occurrenceId: selectedOccurrence.id,
+                                              status: "not_going",
+                                            }),
                                           },
-                                          body: JSON.stringify({
-                                            occurrenceId: selectedOccurrence.id,
-                                            status: "not_going",
-                                          }),
-                                        },
-                                      );
-                                      if (response.ok) {
-                                        loadOccurrenceRsvps(
-                                          selectedOccurrence.id,
                                         );
-                                      }
-                                    }}
-                                    className={`h-9 rounded-xl gap-1.5 px-3 ${
-                                      currentUserRsvpStatus === "not_going"
-                                        ? "!bg-red-600 hover:!bg-red-700 !text-white border-red-600"
-                                        : "border-red-400 text-red-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950"
-                                    }`}
-                                  >
-                                    <IconX className="h-4 w-4" />
-                                    Can't
-                                  </Button>
-                                </>
-                              );
-                            })()}
-                            <div className="h-9 w-px bg-border mx-2" />
-                          </>
-                        )}
-                      {notAnsweredUsers.length > 0 &&
-                        selectedOccurrence.status !== "canceled" &&
-                        eventDetailTab === "details" && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                onClick={handleSendReminders}
-                                disabled={sendingReminder}
-                                className="h-9 w-9 rounded-xl"
-                              >
-                                <IconBell className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              {sendingReminder
-                                ? "Sending..."
-                                : `Remind (${notAnsweredUsers.length})`}
-                            </TooltipContent>
-                          </Tooltip>
-                        )}
-                      {selectedOccurrence.status !== "canceled" &&
-                        eventDetailTab === "details" && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setCancelDialogOpen(true)}
-                            className="h-9 text-destructive hover:text-destructive rounded-xl gap-2"
-                          >
-                            <IconBan className="h-4 w-4" />
-                            Cancel Event
-                          </Button>
-                        )}
+                                        if (response.ok) {
+                                          loadOccurrenceRsvps(
+                                            selectedOccurrence.id,
+                                          );
+                                        }
+                                      }}
+                                      className={`h-9 rounded-xl gap-1.5 px-3 flex-1 ${
+                                        currentUserRsvpStatus === "not_going"
+                                          ? "!bg-red-600 hover:!bg-red-700 !text-white border-red-600"
+                                          : "border-red-400 text-red-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950"
+                                      }`}
+                                    >
+                                      <IconX className="h-4 w-4" />
+                                      Can't
+                                    </Button>
+                                  </>
+                                );
+                              })()}
+                            </>
+                          )}
+                      </div>
+                      
+                      {/* Right side: Action buttons */}
+                      <div className="flex items-center gap-2">
+                        {notAnsweredUsers.length > 0 &&
+                          selectedOccurrence.status !== "canceled" &&
+                          eventDetailTab === "details" && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  onClick={handleSendReminders}
+                                  disabled={sendingReminder}
+                                  className="h-9 w-9 rounded-xl"
+                                >
+                                  <IconBell className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                {sendingReminder
+                                  ? "Sending..."
+                                  : `Remind (${notAnsweredUsers.length})`}
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
+                        {selectedOccurrence.status !== "canceled" &&
+                          eventDetailTab === "details" && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setCancelDialogOpen(true)}
+                              className="h-9 text-destructive hover:text-destructive rounded-xl gap-2"
+                            >
+                              <IconBan className="h-4 w-4" />
+                              Cancel Event
+                            </Button>
+                          )}
+                      </div>
                     </div>
                   </div>
                   <Tabs

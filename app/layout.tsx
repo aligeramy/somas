@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Titans of Mississauga",
+  title: "SOMAS",
   description: "Club management and athlete coordination platform",
   manifest: "/manifest.json",
   icons: {
@@ -28,12 +28,12 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Titans",
+    title: "SOMAS",
   },
   other: {
     "apple-mobile-web-app-capable": "yes",
     "apple-mobile-web-app-status-bar-style": "black-translucent",
-    "apple-mobile-web-app-title": "Titans",
+    "apple-mobile-web-app-title": "SOMAS",
   },
 };
 

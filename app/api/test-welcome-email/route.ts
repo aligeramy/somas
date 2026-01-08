@@ -24,7 +24,7 @@ export async function POST(request: Request) {
     }
 
     // For testing, use default gym info
-    const gymName = "Titans of Mississauga";
+    const gymName = "SOMAS";
     const gymLogoUrl = null;
     const userName = email.split("@")[0];
 
@@ -103,7 +103,7 @@ export async function POST(request: Request) {
     const result = await resend.emails.send({
       from: `${process.env.RESEND_FROM_NAME} <${process.env.RESEND_FROM_EMAIL}>`,
       to: email,
-      subject: `Get Started with ${gymName || "TOM"} - Account Setup`,
+      subject: `Get Started with ${gymName || "SOMAS"} - Account Setup`,
       react: WelcomeEmail({
         gymName,
         gymLogoUrl,

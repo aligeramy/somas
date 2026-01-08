@@ -81,10 +81,10 @@ export default async function HomePage() {
           <LaserFlowBg />
           <div className="flex flex-col items-center gap-6 text-center max-w-3xl relative z-10">
             <h1 className="text-5xl font-bold tracking-tight md:text-6xl lg:text-7xl">
-              TOM
+              SOMAS
             </h1>
             <p className="text-muted-foreground text-xl md:text-2xl max-w-2xl">
-              Titans of Mississauga
+              Gym Management & Athlete Coordination Platform
             </p>
             <p className="text-muted-foreground text-lg md:text-xl max-w-xl">
               The modern platform for club management and athlete coordination.
@@ -143,7 +143,7 @@ export default async function HomePage() {
               Ready to get started?
             </h2>
             <p className="text-muted-foreground text-lg mb-8 max-w-2xl mx-auto">
-              Join clubs and coaches who are already using Titans of Mississauga
+              Join clubs and coaches who are already using SOMAS
               to streamline their operations and improve athlete coordination.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">

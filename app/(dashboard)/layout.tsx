@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { AppSidebarWrapper } from "@/components/app-sidebar-wrapper";
 import { MobileBottomNavWrapper } from "@/components/mobile-bottom-nav-wrapper";
+import { SiteHeader } from "@/components/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { gyms, users } from "@/drizzle/schema";
 import { db } from "@/lib/db";
@@ -24,9 +25,29 @@ export default async function DashboardLayout({
 
   // Get current pathname to avoid redirect loops
   const headersList = await headers();
-  const pathname = headersList.get("x-pathname") || "";
+  // Try x-pathname header first (set by middleware)
+  let pathname = headersList.get("x-pathname") || "";
+  
+  // If x-pathname is not set, try to extract from referer as fallback
+  if (!pathname) {
+    const referer = headersList.get("referer");
+    if (referer) {
+      try {
+        const refererUrl = new URL(referer);
+        pathname = refererUrl.pathname;
+      } catch {
+        // Ignore URL parsing errors
+      }
+    }
+  }
+  
+  // Also check the host header to see if we can construct the URL
+  // This helps with client-side navigation where headers might not be set
   const isOnboardingPage =
-    pathname === "/onboarding" || pathname === "/profile-setup";
+    pathname === "/onboarding" || 
+    pathname === "/profile-setup" ||
+    pathname.endsWith("/onboarding") ||
+    pathname.endsWith("/profile-setup");
 
   // Check if user exists in our database with retry logic
   let dbUser;
@@ -116,7 +137,9 @@ export default async function DashboardLayout({
   }
 
   // Check onboarding status (skip if already on onboarding pages to avoid redirect loop)
-  if (!dbUser.onboarded && !isOnboardingPage) {
+  // Only redirect if we can reliably determine we're NOT on an onboarding page
+  // If pathname is empty/unclear, don't redirect to prevent loops
+  if (!dbUser.onboarded && pathname && !isOnboardingPage) {
     if (dbUser.role === "owner") {
       redirect("/onboarding");
     } else {
@@ -155,6 +178,7 @@ export default async function DashboardLayout({
     >
       <AppSidebarWrapper />
       <SidebarInset className="dark:bg-[#000000]">
+        <SiteHeader />
         <div className="flex flex-1 flex-col min-h-0 h-full overflow-y-auto pb-16 lg:pb-0 dark:bg-[#000000]">
           {children}
         </div>
