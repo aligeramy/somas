@@ -42,8 +42,8 @@ export function MobileBottomNav({
   const handleLogout = async () => {
     const supabase = createClient();
     await supabase.auth.signOut();
-    router.push("/login");
-    router.refresh();
+    // Force full page reload to ensure proper redirect
+    window.location.href = "/login";
   };
 
   // Main nav items (max 4 for admin, 5 for users)

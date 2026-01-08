@@ -28,13 +28,15 @@ export default async function DashboardLayout({
   // Try x-pathname header first (set by middleware)
   let pathname = headersList.get("x-pathname") || "";
 
-  // If x-pathname is not set, try to extract from referer as fallback
+  // If x-pathname is not set, try to get from the URL directly
+  // This is more reliable for server-side rendering
   if (!pathname) {
-    const referer = headersList.get("referer");
-    if (referer) {
+    // Try to get from the request URL if available
+    const url = headersList.get("x-url") || headersList.get("referer");
+    if (url) {
       try {
-        const refererUrl = new URL(referer);
-        pathname = refererUrl.pathname;
+        const urlObj = new URL(url);
+        pathname = urlObj.pathname;
       } catch {
         // Ignore URL parsing errors
       }
@@ -139,7 +141,13 @@ export default async function DashboardLayout({
   // Check onboarding status (skip if already on onboarding pages to avoid redirect loop)
   // Only redirect if we can reliably determine we're NOT on an onboarding page
   // If pathname is empty/unclear, don't redirect to prevent loops
-  if (!dbUser.onboarded && pathname && !isOnboardingPage) {
+  // Also check if pathname starts with /onboarding or /profile-setup to catch any variations
+  const isOnboardingPath =
+    isOnboardingPage ||
+    pathname.startsWith("/onboarding") ||
+    pathname.startsWith("/profile-setup");
+
+  if (!dbUser.onboarded && pathname && !isOnboardingPath) {
     if (dbUser.role === "owner" || dbUser.role === "manager") {
       redirect("/onboarding");
     } else {
@@ -167,7 +175,7 @@ export default async function DashboardLayout({
 
   return (
     <SidebarProvider
-      className="h-[100dvh] overflow-hidden lg:p-6 xl:p-4"
+      className="h-dvh overflow-hidden lg:p-6 xl:p-4"
       style={
         {
           "--sidebar-width": "calc(var(--spacing) * 64)",

@@ -36,24 +36,50 @@ export default function OnboardingPage() {
   // Wait for Supabase session to be ready before doing anything
   useEffect(() => {
     const supabase = supabaseRef.current;
+    let timeoutId: NodeJS.Timeout;
+    let hasSetReady = false;
 
-    // Check initial session state
+    // Check initial session state immediately
     const checkSession = async () => {
-      const {
-        data: { session },
-        error,
-      } = await supabase.auth.getSession();
+      try {
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.getSession();
 
-      if (error) {
-        console.error("[Onboarding] Error getting session:", error);
-      }
+        if (error) {
+          console.error("[Onboarding] Error getting session:", error);
+          // If there's an error but we have a session, proceed anyway
+          if (session && !hasSetReady) {
+            hasSetReady = true;
+            clearTimeout(timeoutId);
+            setSessionReady(true);
+          }
+          return;
+        }
 
-      if (session) {
-        setSessionReady(true);
+        if (session && !hasSetReady) {
+          hasSetReady = true;
+          clearTimeout(timeoutId);
+          setSessionReady(true);
+        }
+      } catch (err) {
+        console.error("[Onboarding] Exception checking session:", err);
       }
     };
 
+    // Check session immediately
     checkSession();
+
+    // Set a shorter timeout - if session isn't ready after 2 seconds, show form anyway
+    // This prevents infinite waiting if there's an issue
+    timeoutId = setTimeout(() => {
+      if (!hasSetReady) {
+        console.log("[Onboarding] Session check timeout, proceeding anyway");
+        hasSetReady = true;
+        setSessionReady(true);
+      }
+    }, 2000);
 
     // Listen for auth state changes - this is crucial for post-login redirects
     const {
@@ -64,15 +90,23 @@ export default function OnboardingPage() {
         event === "TOKEN_REFRESHED" ||
         event === "INITIAL_SESSION"
       ) {
-        if (session) {
+        if (session && !hasSetReady) {
+          hasSetReady = true;
+          clearTimeout(timeoutId);
           setSessionReady(true);
         }
       } else if (event === "SIGNED_OUT") {
-        router.push("/login");
+        // Only redirect if we're sure the user is signed out
+        // Don't redirect during initial load to prevent false positives
+        if (hasSetReady) {
+          clearTimeout(timeoutId);
+          router.push("/login");
+        }
       }
     });
 
     return () => {
+      clearTimeout(timeoutId);
       subscription.unsubscribe();
     };
   }, [router]);
@@ -87,16 +121,21 @@ export default function OnboardingPage() {
       const response = await fetch("/api/profile");
 
       if (response.status === 401) {
-        if (retryCountRef.current < 3) {
+        if (retryCountRef.current < 5) {
           // Session not ready yet, retry after a short delay
           retryCountRef.current += 1;
           setTimeout(() => {
             loadUserProfile();
-          }, 500);
+          }, 1000);
           return;
         }
-        // After retries exhausted, redirect to login
-        router.push("/login");
+        // After retries exhausted, just show the form anyway
+        // The user can still submit - session should be ready by then
+        console.log(
+          "[Onboarding] Could not load profile after retries, showing form anyway"
+        );
+        retryCountRef.current = 0;
+        setLoadingProfile(false);
         return;
       }
 
@@ -126,14 +165,18 @@ export default function OnboardingPage() {
       }
     } catch (_err) {
       // Retry on error if we haven't exceeded retry limit
-      if (retryCountRef.current < 3) {
+      if (retryCountRef.current < 5) {
         retryCountRef.current += 1;
         setTimeout(() => {
           loadUserProfile();
         }, 1000);
         return;
       }
-      console.log("Could not load existing profile");
+      // After retries, just show the form - user can still submit
+      console.log(
+        "[Onboarding] Could not load existing profile, showing form anyway"
+      );
+      retryCountRef.current = 0;
     } finally {
       setLoadingProfile(false);
     }
@@ -179,29 +222,22 @@ export default function OnboardingPage() {
   // Show loading state while waiting for session
   if (!sessionReady) {
     return (
-      <div className="flex min-h-screen items-center justify-center p-4 md:p-6">
-        <Card className="w-full max-w-2xl">
-          <CardContent className="pt-6">
-            <div className="flex flex-col items-center gap-4">
-              <IconLoader2 className="h-8 w-8 animate-spin text-primary" />
-              <p className="text-muted-foreground">Loading your session...</p>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <IconLoader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Loading your session...</p>
+        </div>
       </div>
     );
   }
 
   if (loadingProfile) {
     return (
-      <div className="flex min-h-screen items-center justify-center p-4 md:p-6">
-        <Card className="w-full max-w-2xl">
-          <CardContent className="pt-6">
-            <div className="animate-pulse text-center text-muted-foreground">
-              Loading...
-            </div>
-          </CardContent>
-        </Card>
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <IconLoader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
       </div>
     );
   }

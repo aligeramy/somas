@@ -37,9 +37,9 @@ export function LoginForm({
       setError(result.error);
       setLoading(false);
     } else if (result?.success) {
-      // Login successful - refresh and navigate
-      router.refresh();
-      router.push("/dashboard");
+      // Login successful - let the server-side redirect handle navigation
+      // This ensures proper redirect to onboarding if needed
+      window.location.href = "/dashboard";
     }
   }
 
@@ -135,7 +135,7 @@ export function LoginForm({
               </FieldDescription>
             </FieldGroup>
           </form>
-          <div className="relative hidden aspect-[3/4] overflow-hidden bg-muted md:block">
+          <div className="relative hidden aspect-3/4 overflow-hidden bg-muted md:block">
             <Image
               alt="Athlete in action"
               className="object-cover object-center"
