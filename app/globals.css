@@ -265,3 +265,17 @@
     opacity: 0.9;
   }
 }
+
+/* Subtle green styling for success toasts */
+.toaster [data-sonner-toast][data-type="success"] {
+  background-color: rgb(240 253 244) !important; /* green-50 */
+  border-color: rgb(187 247 208) !important; /* green-200 */
+  color: rgb(20 83 45) !important; /* green-900 */
+  backdrop-filter: blur(10px);
+}
+
+.dark .toaster [data-sonner-toast][data-type="success"] {
+  background-color: rgb(5 46 22 / 0.2) !important; /* green-950/20 */
+  border-color: rgb(22 101 52) !important; /* green-800 */
+  color: rgb(220 252 231) !important; /* green-100 */
+}

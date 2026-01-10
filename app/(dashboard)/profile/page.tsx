@@ -5,9 +5,11 @@ import {
   IconCamera,
   IconCheck,
   IconDeviceFloppy,
+  IconKey,
 } from "@tabler/icons-react";
 import { useEffect, useRef, useState } from "react";
 import { useDropzone } from "react-dropzone";
+import { toast } from "sonner";
 import { PageHeader } from "@/components/page-header";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -18,6 +20,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -92,6 +102,12 @@ export default function ProfilePage() {
   const [emailNotif, setEmailNotif] = useState(true);
   const [pushNotif, setPushNotif] = useState(true);
   const [reminders, setReminders] = useState(true);
+
+  // Password change modal
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [changingPassword, setChangingPassword] = useState(false);
 
   // Avatar upload
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -347,6 +363,52 @@ export default function ProfilePage() {
     return email[0].toUpperCase();
   }
 
+  async function handleChangePassword(e: React.FormEvent) {
+    e.preventDefault();
+
+    // Validation
+    if (!(newPassword && confirmPassword)) {
+      toast.error("Please fill in all fields");
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      toast.error("Password must be at least 8 characters long");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      toast.error("New passwords do not match");
+      return;
+    }
+
+    setChangingPassword(true);
+
+    try {
+      // Update password - Supabase handles authentication internally
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (updateError) {
+        toast.error(updateError.message);
+        return;
+      }
+
+      // Success - close modal and reset form
+      setIsPasswordModalOpen(false);
+      setNewPassword("");
+      setConfirmPassword("");
+      toast.success("Password changed successfully");
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Failed to change password"
+      );
+    } finally {
+      setChangingPassword(false);
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex flex-1 flex-col">
@@ -416,7 +478,7 @@ export default function ProfilePage() {
 
           {/* Avatar Section */}
           {isMobile ? (
-            <div className="border-border border-b bg-background px-4 pt-4 pb-6">
+            <div className="border-border border-b bg-background px-4 py-2">
               <div className="flex items-center gap-4">
                 <div className="relative">
                   <Avatar className="h-16 w-16 border-2 border-background">
@@ -447,41 +509,61 @@ export default function ProfilePage() {
                     {profile.role === "owner" ? "Head Coach" : profile.role}
                   </p>
                 </div>
+                <Button
+                  className="gap-2 rounded-sm"
+                  onClick={() => setIsPasswordModalOpen(true)}
+                  type="button"
+                  variant="outline"
+                >
+                  <IconKey className="h-4 w-4" />
+                  Change Password
+                </Button>
               </div>
             </div>
           ) : (
             <Card className="rounded-xl">
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-4">
-                  <div className="relative">
-                    <Avatar className="h-20 w-20 border-4 border-background shadow-lg">
-                      <AvatarImage
-                        src={avatarPreview || profile.avatarUrl || undefined}
-                      />
-                      <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/5 text-xl">
-                        {getInitials(profile.name, profile.email)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <button
-                      {...getAvatarRootProps()}
-                      className="absolute right-0 bottom-0 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-colors hover:bg-primary/90"
-                      type="button"
-                    >
-                      <input {...getAvatarInputProps()} />
-                      <IconCamera className="h-4 w-4" />
-                    </button>
+              <CardContent className="py-6">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="relative">
+                      <Avatar className="h-20 w-20 border-4 border-background shadow-lg">
+                        <AvatarImage
+                          src={avatarPreview || profile.avatarUrl || undefined}
+                        />
+                        <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/5 text-xl">
+                          {getInitials(profile.name, profile.email)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <button
+                        {...getAvatarRootProps()}
+                        className="absolute right-0 bottom-0 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-colors hover:bg-primary/90"
+                        type="button"
+                      >
+                        <input {...getAvatarInputProps()} />
+                        <IconCamera className="h-4 w-4" />
+                      </button>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-lg">
+                        {profile.name || "Unnamed"}
+                      </p>
+                      <p className="text-muted-foreground text-sm">
+                        {profile.email}
+                      </p>
+                      <p className="mt-1 text-muted-foreground text-xs capitalize">
+                        {profile.role === "owner" ? "Head Coach" : profile.role}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-semibold text-lg">
-                      {profile.name || "Unnamed"}
-                    </p>
-                    <p className="text-muted-foreground text-sm">
-                      {profile.email}
-                    </p>
-                    <p className="mt-1 text-muted-foreground text-xs capitalize">
-                      {profile.role === "owner" ? "Head Coach" : profile.role}
-                    </p>
-                  </div>
+                  <Button
+                    className="gap-2 rounded-xl"
+                    onClick={() => setIsPasswordModalOpen(true)}
+                    type="button"
+                    variant="outline"
+                  >
+                    <IconKey className="h-4 w-4" />
+                    Change Password
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -1214,6 +1296,65 @@ export default function ProfilePage() {
           )}
         </form>
       </div>
+
+      {/* Password Change Modal */}
+      <Dialog onOpenChange={setIsPasswordModalOpen} open={isPasswordModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Change Password</DialogTitle>
+            <DialogDescription>
+              Enter a new password for your account (minimum 8 characters)
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleChangePassword}>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="newPassword">New Password</Label>
+                <Input
+                  autoComplete="new-password"
+                  className="h-11 rounded-xl"
+                  id="newPassword"
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Enter new password (min. 8 characters)"
+                  required
+                  type="password"
+                  value={newPassword}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                <Input
+                  autoComplete="new-password"
+                  className="h-11 rounded-xl"
+                  id="confirmPassword"
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Confirm new password"
+                  required
+                  type="password"
+                  value={confirmPassword}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                disabled={changingPassword}
+                onClick={() => {
+                  setIsPasswordModalOpen(false);
+                  setNewPassword("");
+                  setConfirmPassword("");
+                }}
+                type="button"
+                variant="outline"
+              >
+                Cancel
+              </Button>
+              <Button disabled={changingPassword} type="submit">
+                {changingPassword ? "Changing..." : "Change Password"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

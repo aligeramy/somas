@@ -1,8 +1,9 @@
-pnpm test
-
 #!/bin/sh
 # Exit on any error
 set -e
+
+# Run tests
+pnpm test
 
 # Check if there are any staged files
 if [ -z "$(git diff --cached --name-only)" ]; then
@@ -22,9 +23,14 @@ PARTIALLY_STAGED=$(git diff --name-only)
 git stash push --quiet --keep-index --message "pre-commit-stash" || true
 STASHED=$?
 
-# Run formatter on the staged files
-pnpm dlx ultracite fix
-FORMAT_EXIT_CODE=$?
+# Run formatter on the staged files only
+# Build array of staged files and pass them to ultracite
+FORMAT_EXIT_CODE=0
+if [ -n "$STAGED_FILES" ]; then
+  # Convert newline-separated list to space-separated for passing as arguments
+  STAGED_ARGS=$(echo "$STAGED_FILES" | tr '\n' ' ')
+  pnpm dlx ultracite fix $STAGED_ARGS || FORMAT_EXIT_CODE=$?
+fi
 
 # Restore working directory state
 if [ $STASHED -eq 0 ]; then

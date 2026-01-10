@@ -32,6 +32,12 @@ const Toaster = ({ ...props }: ToasterProps) => {
         } as React.CSSProperties
       }
       theme={theme as ToasterProps["theme"]}
+      toastOptions={{
+        classNames: {
+          success:
+            "bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800 text-green-900 dark:text-green-100",
+        },
+      }}
       {...props}
     />
   );
