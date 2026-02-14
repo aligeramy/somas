@@ -9,6 +9,7 @@ interface EventReminderEmailProps {
   eventDate: string;
   eventTime: string;
   eventLocation?: string;
+  fullDate?: string; // e.g. "Sunday, February 1, 2026"
   reminderType: string; // "7_day", "1_day", "30_min"
   rsvpUrl: string;
 }
@@ -21,10 +22,12 @@ export function EventReminderEmail({
   eventDate,
   eventTime,
   eventLocation,
+  fullDate,
   reminderType,
   rsvpUrl,
 }: EventReminderEmailProps) {
   const reminderText = getReminderText(reminderType);
+  const isCanceled = reminderType === "canceled";
 
   return (
     <BaseLayout
@@ -32,7 +35,13 @@ export function EventReminderEmail({
       gymName={gymName}
       preview={`${eventTitle} - ${reminderText}`}
     >
-      <Heading className="mb-6 text-center font-bold text-2xl text-zinc-900">
+      <Heading
+        className={
+          isCanceled
+            ? "mb-6 rounded-lg bg-red-600 py-3 text-center font-bold text-2xl text-white"
+            : "mb-6 text-center font-bold text-2xl text-zinc-900"
+        }
+      >
         {reminderText}
       </Heading>
 
@@ -41,7 +50,9 @@ export function EventReminderEmail({
       </Text>
 
       <Text className="mb-6 text-[15px] text-gray-600 leading-6">
-        Just a friendly reminder about your upcoming session.
+        {isCanceled
+          ? "This session has been canceled."
+          : "Just a friendly reminder about your upcoming session."}
       </Text>
 
       {/* Event Card */}
@@ -58,29 +69,40 @@ export function EventReminderEmail({
           <Text className="mt-0 mb-1 font-semibold text-base text-zinc-900">
             {eventTitle}
           </Text>
-          <Text className="m-0 text-gray-500 text-sm">{eventTime}</Text>
+          {fullDate ? (
+            <>
+              <Text className="m-0 text-gray-500 text-sm">{fullDate}</Text>
+              <Text className="m-0 text-gray-500 text-sm">{eventTime}</Text>
+            </>
+          ) : (
+            <Text className="m-0 text-gray-500 text-sm">{eventTime}</Text>
+          )}
           {eventLocation && (
             <Text className="m-0 text-gray-500 text-sm">{eventLocation}</Text>
           )}
         </div>
       </Section>
 
-      <Text className="mb-6 text-[15px] text-gray-600 leading-6">
-        Let us know if you're coming!
-      </Text>
+      {!isCanceled && (
+        <>
+          <Text className="mb-6 text-[15px] text-gray-600 leading-6">
+            Let us know if you're coming!
+          </Text>
 
-      <Section className="mb-6 text-center">
-        <Button
-          className="rounded-lg bg-zinc-900 px-7 py-3.5 text-center font-semibold text-[15px] text-white no-underline"
-          href={rsvpUrl}
-        >
-          Confirm Attendance
-        </Button>
-      </Section>
+          <Section className="mb-6 text-center">
+            <Button
+              className="rounded-lg bg-zinc-900 px-7 py-3.5 text-center font-semibold text-[15px] text-white no-underline"
+              href={rsvpUrl}
+            >
+              Confirm Attendance
+            </Button>
+          </Section>
 
-      <Text className="m-0 text-center text-[13px] text-gray-400">
-        Can't make it? Update your RSVP to let the coach know.
-      </Text>
+          <Text className="m-0 text-center text-[13px] text-gray-400">
+            Can't make it? Update your RSVP to let the coach know.
+          </Text>
+        </>
+      )}
     </BaseLayout>
   );
 }

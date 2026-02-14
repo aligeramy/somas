@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import {
@@ -16,6 +16,7 @@ import { createClient } from "@/lib/supabase/server";
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 // Send reminder to pending RSVPs for a specific occurrence
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: route handler; refactor into helpers if needed
 export async function POST(request: Request) {
   try {
     const supabase = await createClient();
@@ -49,6 +50,14 @@ export async function POST(request: Request) {
       );
     }
 
+    const gymId = dbUser.gymId;
+    if (!gymId) {
+      return NextResponse.json(
+        { error: "User must belong to a gym" },
+        { status: 400 }
+      );
+    }
+
     const { occurrenceId, userIds } = await request.json();
 
     if (!occurrenceId) {
@@ -76,7 +85,7 @@ export async function POST(request: Request) {
       );
     }
 
-    if (occurrenceData.event.gymId !== dbUser.gymId) {
+    if (occurrenceData.event.gymId !== gymId) {
       return NextResponse.json(
         { error: "Not authorized to send reminders for this event" },
         { status: 403 }
@@ -87,18 +96,18 @@ export async function POST(request: Request) {
     const [gym] = await db
       .select()
       .from(gyms)
-      .where(eq(gyms.id, dbUser.gymId!))
+      .where(eq(gyms.id, gymId))
       .limit(1);
 
     if (!gym) {
       return NextResponse.json({ error: "Gym not found" }, { status: 404 });
     }
 
-    // Get all athletes in the gym who haven't RSVP'd (including altEmail)
-    const allAthletes = await db
+    // Get all gym members (athletes, coaches, owners, managers) who haven't RSVP'd
+    const allMembers = await db
       .select()
       .from(users)
-      .where(and(eq(users.gymId, dbUser.gymId!), eq(users.role, "athlete")));
+      .where(eq(users.gymId, gymId));
 
     // Get existing RSVPs for this occurrence
     const existingRsvps = await db
@@ -109,7 +118,7 @@ export async function POST(request: Request) {
     const respondedUserIds = new Set(existingRsvps.map((r) => r.userId));
 
     // Filter to pending users (or specific userIds if provided)
-    let targetUsers = allAthletes.filter((a) => !respondedUserIds.has(a.id));
+    let targetUsers = allMembers.filter((m) => !respondedUserIds.has(m.id));
 
     if (userIds && userIds.length > 0) {
       targetUsers = targetUsers.filter((u) => userIds.includes(u.id));
@@ -161,7 +170,7 @@ export async function POST(request: Request) {
           react: RsvpReminderEmail({
             gymName: gym.name,
             gymLogoUrl: gym.logoUrl,
-            athleteName: targetUser.name || "Athlete",
+            athleteName: targetUser.name || "there",
             eventTitle: occurrenceData.event.title,
             eventDate: dateStr,
             eventTime: timeStr,

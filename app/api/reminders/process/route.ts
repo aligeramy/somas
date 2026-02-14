@@ -16,6 +16,7 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 // This endpoint should be called by a cron job (e.g., Vercel Cron, GitHub Actions, etc.)
 // It processes all events and sends reminders based on reminderDays settings
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: cron handler with nested loops; refactor into helpers if needed
 export async function GET(request: Request) {
   try {
     // Optional: Add authentication/authorization check
@@ -87,11 +88,11 @@ export async function GET(request: Request) {
         continue;
       }
 
-      // Get all athletes in the gym (including altEmail)
-      const athletes = await db
+      // Get all gym members (athletes, coaches, owners, managers) for reminders
+      const members = await db
         .select()
         .from(users)
-        .where(and(eq(users.gymId, event.gymId), eq(users.role, "athlete")));
+        .where(eq(users.gymId, event.gymId));
 
       // Process each occurrence
       for (const occurrence of occurrences) {
@@ -168,14 +169,9 @@ export async function GET(request: Request) {
 
           const respondedUserIds = new Set(existingRsvps.map((r) => r.userId));
 
-          // Send reminders to all athletes (or only those who RSVP'd going)
-          // For now, send to all athletes - you can filter by RSVP status if needed
-          const targetAthletes = athletes.filter(
-            (a) =>
-              !respondedUserIds.has(a.id) ||
-              existingRsvps.find(
-                (r) => r.userId === a.id && r.status === "going"
-              )
+          // Send reminders to all gym members who haven't RSVP'd yet
+          const targetMembers = members.filter(
+            (m) => !respondedUserIds.has(m.id)
           );
 
           // Format date and time
@@ -194,8 +190,8 @@ export async function GET(request: Request) {
             process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
           // Send emails
-          for (const athlete of targetAthletes) {
-            if (!athlete.email) {
+          for (const member of targetMembers) {
+            if (!member.email) {
               continue;
             }
 
@@ -207,7 +203,7 @@ export async function GET(request: Request) {
                 .where(
                   and(
                     eq(reminderLogs.occurrenceId, occurrence.id),
-                    eq(reminderLogs.userId, athlete.id),
+                    eq(reminderLogs.userId, member.id),
                     eq(reminderLogs.reminderType, reminderType)
                   )
                 )
@@ -218,9 +214,9 @@ export async function GET(request: Request) {
               }
 
               // Build recipient list including altEmail
-              const recipients = [athlete.email];
-              if (athlete.altEmail) {
-                recipients.push(athlete.altEmail);
+              const recipients = [member.email];
+              if (member.altEmail) {
+                recipients.push(member.altEmail);
               }
 
               await resend.emails.send({
@@ -230,7 +226,7 @@ export async function GET(request: Request) {
                 react: EventReminderEmail({
                   gymName: gym.name,
                   gymLogoUrl: gym.logoUrl,
-                  athleteName: athlete.name || "Athlete",
+                  athleteName: member.name || "there",
                   eventTitle: event.title,
                   eventDate: dateStr,
                   eventTime: timeStr,
@@ -243,17 +239,33 @@ export async function GET(request: Request) {
               // Log the reminder
               await db.insert(reminderLogs).values({
                 occurrenceId: occurrence.id,
-                userId: athlete.id,
+                userId: member.id,
                 reminderType,
               });
 
               results.sent++;
             } catch (err) {
+<<<<<<< Updated upstream
+              <<<<<<< Updated upstream
+              console.error(`Failed to send reminder to $member.email:`, err)
+              =======
               console.error(
-                `Failed to send reminder to ${athlete.email}:`,
+                `Failed to send reminder to $member.email:`,
+                err
+              )
+              >>>>>>> Stashed changes
+              results.errors.push(member.email || "unknown")
+=======
+<<<<<<< Updated upstream
+              console.error(`Failed to send reminder to ${member.email}:`, err);
+=======
+              console.error(
+                `Failed to send reminder to ${member.email}:`,
                 err
               );
-              results.errors.push(athlete.email || "unknown");
+>>>>>>> Stashed changes
+              results.errors.push(member.email || "unknown");
+>>>>>>> Stashed changes
             }
           }
 

@@ -125,6 +125,12 @@ export function AppSidebar({
       roles: ["owner", "manager"],
     },
     {
+      title: "Send cancellation emails",
+      url: "/admin/cancel-notify",
+      icon: IconMail,
+      roles: ["owner", "manager", "coach"],
+    },
+    {
       title: "Club Settings",
       url: "/gym-settings",
       icon: IconBuilding,

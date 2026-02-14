@@ -117,6 +117,12 @@ export async function POST(
         // Format date for email
         const eventDate = new Date(occurrenceData.occurrence.date);
         const dateStr = `${eventDate.getDate()} ${eventDate.toLocaleDateString("en-US", { month: "short" })}`;
+        const fullDateStr = eventDate.toLocaleDateString("en-US", {
+          weekday: "long",
+          month: "long",
+          day: "numeric",
+          year: "numeric",
+        });
 
         const formatTime = (time: string) => {
           const [hours, minutes] = time.split(":");
@@ -150,6 +156,7 @@ export async function POST(
                 eventTitle: `${occurrenceData.event.title} - CANCELED`,
                 eventDate: dateStr,
                 eventTime: timeStr,
+                fullDate: fullDateStr,
                 reminderType: "canceled",
                 rsvpUrl: `${appUrl}/dashboard`,
               }),
