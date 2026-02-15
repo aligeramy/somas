@@ -68,7 +68,7 @@ export async function POST(request: Request) {
     // Create global channel for the gym
     await db.insert(channels).values({
       gymId: gym.id,
-      name: "Gym Chat",
+      name: "Club Chat",
       type: "global",
       eventId: null,
     });

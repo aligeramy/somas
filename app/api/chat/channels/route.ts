@@ -42,7 +42,7 @@ export async function GET(request: Request) {
     if (!existingGlobal) {
       await db.insert(channels).values({
         gymId,
-        name: "Gym Chat",
+        name: "Club Chat",
         type: "global",
         eventId: null,
       });
