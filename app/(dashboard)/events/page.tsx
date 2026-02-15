@@ -23,7 +23,7 @@ import {
 } from "@tabler/icons-react";
 import { format } from "date-fns";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CustomEventCalendar } from "@/components/custom-event-calendar";
 import { PageHeader } from "@/components/page-header";
@@ -103,7 +103,7 @@ interface GymMember {
 // Custom hook for events page breakpoint (1200px)
 function useIsEventsMobile() {
   const [isEventsMobile, setIsEventsMobile] = useState<boolean | undefined>(
-    undefined
+    undefined,
   );
 
   useEffect(() => {
@@ -133,7 +133,7 @@ function EventChatContent({
 }) {
   const [loading, setLoading] = useState(true);
   const [currentChannelId, setCurrentChannelId] = useState<string | null>(
-    channelId || null
+    channelId || null,
   );
   const [currentUser, setCurrentUser] = useState<{
     id: string;
@@ -187,6 +187,20 @@ function EventChatContent({
         const result = await createResponse.json();
         setCurrentChannelId(result.channel.id);
         onChannelLoad(result.channel.id);
+      } else {
+        // If creation fails, try to fetch again (maybe it was created by another user)
+        const retryResponse = await fetch(`/api/chat/channels?eventId=${eventId}`);
+        if (retryResponse.ok) {
+          const retryResult = await retryResponse.json();
+          if (retryResult.channels && retryResult.channels.length > 0) {
+            setCurrentChannelId(retryResult.channels[0].id);
+            onChannelLoad(retryResult.channels[0].id);
+          } else {
+            console.error("Failed to create or find event channel");
+          }
+        } else {
+          console.error("Failed to create event channel:", await createResponse.text());
+        }
       }
     } catch (error) {
       console.error("Error loading channel:", error);
@@ -210,8 +224,8 @@ function EventChatContent({
       <div className="flex flex-1 flex-col p-4">
         <div className="space-y-3">
           {[1, 2, 3, 4, 5].map((i) => (
-            <div className="flex items-start gap-3" key={i}>
-              <Skeleton className="h-10 w-10 shrink-0 rounded-full" />
+            <div key={i} className="flex items-start gap-3">
+              <Skeleton className="h-10 w-10 rounded-full shrink-0" />
               <div className="flex-1 space-y-2">
                 <Skeleton className="h-4 w-24" />
                 <Skeleton className="h-16 w-full rounded-xl" />
@@ -223,7 +237,7 @@ function EventChatContent({
     );
   }
 
-  if (!(currentChannelId && currentUser)) {
+  if (!currentChannelId || !currentUser) {
     return (
       <div className="flex flex-1 items-center justify-center text-muted-foreground">
         <p>Unable to load chat</p>
@@ -257,6 +271,7 @@ const EVENT_COLORS = [
 ];
 
 export default function EventsPage() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const isEventsMobile = useIsEventsMobile();
   const [events, setEvents] = useState<Event[]>([]);
@@ -275,24 +290,25 @@ export default function EventsPage() {
     "events" | "occurrences" | "details" | "chat"
   >("events");
   const [mobileSortMode, setMobileSortMode] = useState<"event" | "session">(
-    "session"
+    "session",
   );
   const [cameFromSessionView, setCameFromSessionView] = useState(false);
   const cameFromSessionViewRef = useRef(false);
   const [eventDetailTab, setEventDetailTab] = useState<"details" | "chat">(
-    "details"
+    "details",
   );
   const [eventChannelId, setEventChannelId] = useState<string | null>(null);
   const [eventChatDialogOpen, setEventChatDialogOpen] = useState(false);
   const [eventChatEventId, _setEventChatEventId] = useState<string | null>(
-    null
+    null,
   );
   const [eventChatChannelId, setEventChatChannelId] = useState<string | null>(
-    null
+    null,
   );
   const isInitialMount = useRef(true);
   const selectedEventIdRef = useRef<string | null>(null);
   const hasNavigatedAwayRef = useRef(false);
+  const isNavigatingBackRef = useRef(false);
 
   // Current user info
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
@@ -310,7 +326,7 @@ export default function EventsPage() {
   // Athlete view state (always declared)
   const [selectedOccurrenceForAthlete, setSelectedOccurrenceForAthlete] =
     useState<{ id: string; date: string; status: string; event: Event } | null>(
-      null
+      null,
     );
   const [selectedEventForAthlete, setSelectedEventForAthlete] =
     useState<Event | null>(null);
@@ -382,7 +398,7 @@ export default function EventsPage() {
 
     selectedEventIdRef.current = eventId || null;
 
-    if (!(selectedEvent && eventId)) {
+    if (!selectedEvent || !eventId) {
       setEventChannelId(null);
       return;
     }
@@ -404,7 +420,7 @@ export default function EventsPage() {
             body: JSON.stringify({
               name: `${eventTitle || "Event"} Chat`,
               type: "group",
-              eventId,
+              eventId: eventId,
             }),
           })
             .then((res) => res.json())
@@ -427,9 +443,7 @@ export default function EventsPage() {
           setInitialLoading(true);
         }
         const response = await fetch("/api/events");
-        if (!response.ok) {
-          throw new Error("Failed to load events");
-        }
+        if (!response.ok) throw new Error("Failed to load events");
         const data = await response.json();
         const newEvents = data.events || [];
         setEvents(newEvents);
@@ -449,7 +463,7 @@ export default function EventsPage() {
             if (eventToSelect && occurrenceIdParam) {
               occurrenceToSelect =
                 eventToSelect.occurrences.find(
-                  (o: EventOccurrence) => o.id === occurrenceIdParam
+                  (o: EventOccurrence) => o.id === occurrenceIdParam,
                 ) || null;
             }
           }
@@ -457,12 +471,22 @@ export default function EventsPage() {
           // If no URL params or not found, use default selection logic
           if (!eventToSelect) {
             const currentSelectedId = selectedEventIdRef.current;
-            if (currentSelectedId) {
+            if (!currentSelectedId) {
+              // On mobile, don't auto-select the first event - user must click
+              if (!isEventsMobile) {
+                eventToSelect = newEvents[0];
+              }
+            } else {
               // Check if current selected event still exists
               const stillExists = newEvents.find(
-                (e: Event) => e.id === currentSelectedId
+                (e: Event) => e.id === currentSelectedId,
               );
-              if (stillExists) {
+              if (!stillExists) {
+                // On mobile, don't auto-select the first event - user must click
+                if (!isEventsMobile) {
+                  eventToSelect = newEvents[0];
+                }
+              } else {
                 // Find the updated event object from newEvents
                 eventToSelect =
                   newEvents.find((e: Event) => e.id === currentSelectedId) ||
@@ -470,25 +494,20 @@ export default function EventsPage() {
                 // On mobile, if we're on events view, don't keep selection
                 if (isEventsMobile && mobileView === "events") {
                   eventToSelect = null;
-                } else if (!(eventToSelect || isEventsMobile)) {
+                } else if (!eventToSelect && !isEventsMobile) {
                   eventToSelect = newEvents[0];
                 }
-              } else {
-                // On mobile, don't auto-select the first event - user must click
-                if (!isEventsMobile) {
-                  eventToSelect = newEvents[0];
-                }
-              }
-            } else {
-              // On mobile, don't auto-select the first event - user must click
-              if (!isEventsMobile) {
-                eventToSelect = newEvents[0];
               }
             }
           }
 
           // On mobile, if we're starting on events view (no URL params), clear selection
-          if (isEventsMobile && !eventIdParam && !occurrenceIdParam) {
+          // Also clear if we're intentionally navigating back
+          if (
+            isEventsMobile &&
+            (!eventIdParam && !occurrenceIdParam) ||
+            isNavigatingBackRef.current
+          ) {
             eventToSelect = null;
             occurrenceToSelect = null;
           }
@@ -510,20 +529,36 @@ export default function EventsPage() {
             // Update the event object to get latest data, but only if ID matches
             setSelectedEvent(eventToSelect);
           }
-          setSelectedOccurrence(occurrenceToSelect);
+          // Don't set occurrence if we're navigating back
+          if (!isNavigatingBackRef.current) {
+            setSelectedOccurrence(occurrenceToSelect);
+          } else {
+            // When navigating back, explicitly clear occurrence
+            setSelectedOccurrence(null);
+            if (currentUserRole === "athlete") {
+              setSelectedOccurrenceForAthleteDetail(null);
+            }
+            setOccurrenceRsvps([]);
+          }
 
           // Set mobile view based on selection
           if (isEventsMobile) {
-            // Only navigate away from events view if URL params explicitly specify it
-            // Otherwise, start on events view even if an event is selected
-            if (occurrenceToSelect && occurrenceIdParam) {
-              setMobileView("details");
-            } else if (eventToSelect && eventIdParam) {
-              // Only go to occurrences if eventId was in URL
-              setMobileView("occurrences");
-            } else {
-              // Start on events view - no event selected
+            // Don't auto-navigate if we're intentionally navigating back
+            if (isNavigatingBackRef.current) {
+              // When navigating back, ensure we stay on events view
               setMobileView("events");
+            } else {
+              // Only navigate away from events view if URL params explicitly specify it
+              // Otherwise, start on events view even if an event is selected
+              if (occurrenceToSelect && occurrenceIdParam) {
+                setMobileView("details");
+              } else if (eventToSelect && eventIdParam) {
+                // Only go to occurrences if eventId was in URL
+                setMobileView("occurrences");
+              } else {
+                // Start on events view - no event selected
+                setMobileView("events");
+              }
             }
           }
 
@@ -548,7 +583,7 @@ export default function EventsPage() {
         }
       }
     },
-    [searchParams, isEventsMobile, mobileView]
+    [searchParams, isEventsMobile, mobileView],
   ); // Removed selectedEvent dependency to prevent infinite loops
 
   const loadGymMembers = useCallback(async () => {
@@ -562,10 +597,10 @@ export default function EventsPage() {
         return;
       }
       const data = await response.json();
-      // Include all gym members (athletes, coaches, and head coaches) for events
+      // Include all club members (athletes, coaches, and head coaches) for events
       setGymMembers(data.roster || []);
     } catch (err) {
-      console.error("Failed to load gym members:", err);
+      console.error("Failed to load club members:", err);
       setGymMembers([]);
     } finally {
       setGymMembersLoading(false);
@@ -609,8 +644,8 @@ export default function EventsPage() {
             phone: r.user.phone,
             cellPhone: r.user.cellPhone,
             role: r.user.role,
-          })
-        )
+          }),
+        ),
       );
     } catch (err) {
       console.error("RSVP loading error:", err);
@@ -655,7 +690,7 @@ export default function EventsPage() {
               ) {
                 rsvpMap.set(occId, rsvp.status as "going" | "not_going");
               }
-            }
+            },
           );
         }
         setCurrentUserRsvps(rsvpMap);
@@ -678,6 +713,10 @@ export default function EventsPage() {
 
   // Reload events when URL params change (e.g., when clicking from dashboard)
   useEffect(() => {
+    // Don't reload if we're intentionally navigating back
+    if (isNavigatingBackRef.current) {
+      return;
+    }
     const eventIdParam = searchParams.get("eventId");
     const occurrenceIdParam = searchParams.get("occurrenceId");
 
@@ -691,6 +730,17 @@ export default function EventsPage() {
       loadEvents(false);
     }
   }, [searchParams, initialLoading, events.length, loadEvents]);
+
+  // Reset navigation back flag when we successfully reach events view
+  useEffect(() => {
+    if (isEventsMobile && mobileView === "events") {
+      // Small delay to ensure all state updates have completed
+      const timer = setTimeout(() => {
+        isNavigatingBackRef.current = false;
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [isEventsMobile, mobileView]);
 
   // Load user RSVPs for all events when user is athlete
   useEffect(() => {
@@ -715,7 +765,7 @@ export default function EventsPage() {
                 ) {
                   rsvpMap.set(occId, rsvp.status as "going" | "not_going");
                 }
-              }
+              },
             );
             setCurrentUserRsvps(rsvpMap);
           }
@@ -737,10 +787,11 @@ export default function EventsPage() {
           event.occurrences.map((occ) => ({
             ...occ,
             event,
-          }))
+          })),
         )
         .filter((occ) => {
           const occDate = new Date(occ.date);
+          occDate.setHours(0, 0, 0, 0);
           const today = new Date();
           today.setHours(0, 0, 0, 0);
           return occDate >= today && occ.status === "scheduled";
@@ -785,16 +836,14 @@ export default function EventsPage() {
   // Load RSVP summaries for owner/coach view when event is selected
   const loadOccurrenceSummaries = useCallback(async () => {
     if (
-      (currentUserRole === "owner" ||
-        currentUserRole === "coach" ||
-        currentUserRole === "manager") &&
+      (currentUserRole === "owner" || currentUserRole === "coach") &&
       selectedEvent
     ) {
       const occurrenceIds = selectedEvent.occurrences.map((occ) => occ.id);
       if (occurrenceIds.length > 0) {
         try {
           const response = await fetch(
-            `/api/rsvp?summaryOccurrences=${occurrenceIds.join(",")}`
+            `/api/rsvp?summaryOccurrences=${occurrenceIds.join(",")}`,
           );
           if (response.ok) {
             const data = await response.json();
@@ -840,7 +889,7 @@ export default function EventsPage() {
             body: JSON.stringify({
               name: `${eventTitle || "Event"} Chat`,
               type: "group",
-              eventId,
+              eventId: eventId,
             }),
           })
             .then((res) => res.json())
@@ -875,9 +924,7 @@ export default function EventsPage() {
   ]);
 
   async function handleCancelWithNotify() {
-    if (!(selectedOccurrence && selectedEvent)) {
-      return;
-    }
+    if (!selectedOccurrence || !selectedEvent) return;
     const occurrenceIdToCancel = selectedOccurrence.id;
     const eventIdToKeep = selectedEvent.id;
     setCanceling(true);
@@ -891,25 +938,21 @@ export default function EventsPage() {
             occurrenceId: occurrenceIdToCancel,
             notifyUsers: notifyOnCancel,
           }),
-        }
+        },
       );
-      if (!response.ok) {
-        throw new Error("Failed to cancel");
-      }
+      if (!response.ok) throw new Error("Failed to cancel");
       const data = await response.json();
 
       setCancelDialogOpen(false);
 
       // Reload events to get updated occurrence status
       const eventsResponse = await fetch("/api/events");
-      if (!eventsResponse.ok) {
-        throw new Error("Failed to reload events");
-      }
+      if (!eventsResponse.ok) throw new Error("Failed to reload events");
       const eventsData = await eventsResponse.json();
       const newEvents = eventsData.events || [];
       setEvents(newEvents);
 
-      // Reload gym members to update counts
+      // Reload club members to update counts
       await loadGymMembers();
 
       // Find and update the selected event and occurrence with fresh data
@@ -917,7 +960,7 @@ export default function EventsPage() {
       if (updatedEvent) {
         setSelectedEvent(updatedEvent);
         const updatedOccurrence = updatedEvent.occurrences.find(
-          (o: EventOccurrence) => o.id === occurrenceIdToCancel
+          (o: EventOccurrence) => o.id === occurrenceIdToCancel,
         );
         if (updatedOccurrence) {
           setSelectedOccurrence(updatedOccurrence);
@@ -951,17 +994,13 @@ export default function EventsPage() {
   }
 
   async function handleDeleteEvent() {
-    if (!selectedEvent) {
-      return;
-    }
+    if (!selectedEvent) return;
     setDeleting(true);
     try {
       const response = await fetch(`/api/events/${selectedEvent.id}`, {
         method: "DELETE",
       });
-      if (!response.ok) {
-        throw new Error("Failed to delete");
-      }
+      if (!response.ok) throw new Error("Failed to delete");
 
       setDeleteDialogOpen(false);
       setSelectedEvent(null);
@@ -977,20 +1016,16 @@ export default function EventsPage() {
 
   async function handleToggleOccurrence(
     date: Date,
-    currentStatus: string | null
+    currentStatus: string | null,
   ) {
-    if (!selectedEvent) {
-      return;
-    }
+    if (!selectedEvent) return;
 
     const occurrence = selectedEvent.occurrences.find((occ) => {
       const occDate = new Date(occ.date);
       return occDate.toDateString() === date.toDateString();
     });
 
-    if (!occurrence) {
-      return;
-    }
+    if (!occurrence) return;
 
     if (currentStatus === "scheduled") {
       setSelectedOccurrence(occurrence);
@@ -1017,17 +1052,17 @@ export default function EventsPage() {
             const newEvents = eventsData.events || [];
             setEvents(newEvents);
 
-            // Reload gym members to update counts
+            // Reload club members to update counts
             await loadGymMembers();
 
             // Find and update the selected event and occurrence with fresh data
             const updatedEvent = newEvents.find(
-              (e: Event) => e.id === eventIdToKeep
+              (e: Event) => e.id === eventIdToKeep,
             );
             if (updatedEvent) {
               setSelectedEvent(updatedEvent);
               const updatedOccurrence = updatedEvent.occurrences.find(
-                (o: EventOccurrence) => o.id === occurrenceIdToRestore
+                (o: EventOccurrence) => o.id === occurrenceIdToRestore,
               );
               if (updatedOccurrence) {
                 setSelectedOccurrence(updatedOccurrence);
@@ -1049,9 +1084,7 @@ export default function EventsPage() {
   }
 
   async function confirmAddCustomDate() {
-    if (!(selectedEvent && customDate)) {
-      return;
-    }
+    if (!selectedEvent || !customDate) return;
     setAddingDate(true);
     try {
       const response = await fetch(
@@ -1060,7 +1093,7 @@ export default function EventsPage() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ date: customDate.toISOString() }),
-        }
+        },
       );
       if (!response.ok) {
         const data = await response.json();
@@ -1077,9 +1110,7 @@ export default function EventsPage() {
   }
 
   async function handleRemoveCustomDate(occurrenceId: string) {
-    if (!selectedEvent) {
-      return;
-    }
+    if (!selectedEvent) return;
     try {
       const response = await fetch(
         `/api/events/${selectedEvent.id}/occurrences`,
@@ -1087,11 +1118,9 @@ export default function EventsPage() {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ occurrenceId }),
-        }
+        },
       );
-      if (!response.ok) {
-        throw new Error("Failed to remove");
-      }
+      if (!response.ok) throw new Error("Failed to remove");
       await loadEvents();
     } catch (err) {
       console.error(err);
@@ -1100,9 +1129,7 @@ export default function EventsPage() {
   }
 
   async function handleEditRsvp(userId: string, status: "going" | "not_going") {
-    if (!selectedOccurrence) {
-      return;
-    }
+    if (!selectedOccurrence) return;
     try {
       const response = await fetch("/api/rsvp/edit", {
         method: "POST",
@@ -1113,16 +1140,10 @@ export default function EventsPage() {
           status,
         }),
       });
-      if (!response.ok) {
-        throw new Error("Failed to edit RSVP");
-      }
+      if (!response.ok) throw new Error("Failed to edit RSVP");
       await loadOccurrenceRsvps(selectedOccurrence.id);
       // Reload summaries for owner/coach view
-      if (
-        currentUserRole === "owner" ||
-        currentUserRole === "coach" ||
-        currentUserRole === "manager"
-      ) {
+      if (currentUserRole === "owner" || currentUserRole === "coach") {
         await loadOccurrenceSummaries();
       }
     } catch (err) {
@@ -1132,7 +1153,7 @@ export default function EventsPage() {
 
   async function handleRsvp(
     occurrenceId: string,
-    status: "going" | "not_going"
+    status: "going" | "not_going",
   ) {
     try {
       const response = await fetch("/api/rsvp", {
@@ -1159,11 +1180,7 @@ export default function EventsPage() {
       }
 
       // Reload summaries for owner/coach view
-      if (
-        currentUserRole === "owner" ||
-        currentUserRole === "coach" ||
-        currentUserRole === "manager"
-      ) {
+      if (currentUserRole === "owner" || currentUserRole === "coach") {
         await loadOccurrenceSummaries();
       }
 
@@ -1177,9 +1194,7 @@ export default function EventsPage() {
   }
 
   async function handleCancelFromCalendar(occurrenceId: string) {
-    if (!selectedEvent) {
-      return;
-    }
+    if (!selectedEvent) return;
     const eventIdToKeep = selectedEvent.id;
     try {
       const response = await fetch(`/api/events/${selectedEvent.id}/cancel`, {
@@ -1197,14 +1212,12 @@ export default function EventsPage() {
 
       // Reload events to get updated occurrence status
       const eventsResponse = await fetch("/api/events");
-      if (!eventsResponse.ok) {
-        throw new Error("Failed to reload events");
-      }
+      if (!eventsResponse.ok) throw new Error("Failed to reload events");
       const eventsData = await eventsResponse.json();
       const newEvents = eventsData.events || [];
       setEvents(newEvents);
 
-      // Reload gym members to update counts
+      // Reload club members to update counts
       await loadGymMembers();
 
       // Find and update the selected event with fresh data
@@ -1212,7 +1225,7 @@ export default function EventsPage() {
       if (updatedEvent) {
         setSelectedEvent(updatedEvent);
         const updatedOccurrence = updatedEvent.occurrences.find(
-          (o: EventOccurrence) => o.id === occurrenceId
+          (o: EventOccurrence) => o.id === occurrenceId,
         );
         if (updatedOccurrence) {
           setSelectedOccurrence(updatedOccurrence);
@@ -1246,9 +1259,7 @@ export default function EventsPage() {
   }
 
   async function handleSendReminders() {
-    if (!selectedOccurrence) {
-      return;
-    }
+    if (!selectedOccurrence) return;
     setSendingReminder(true);
     try {
       const response = await fetch("/api/reminders/send", {
@@ -1257,9 +1268,7 @@ export default function EventsPage() {
         body: JSON.stringify({ occurrenceId: selectedOccurrence.id }),
       });
       const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error);
-      }
+      if (!response.ok) throw new Error(data.error);
       alert(`Sent ${data.sent} reminder(s)`);
     } catch (err) {
       console.error(err);
@@ -1274,22 +1283,24 @@ export default function EventsPage() {
     if (event.id === selectedEventIdRef.current) {
       // On mobile, always navigate forward instead of deselecting
       if (isEventsMobile) {
-        if (skipViewChange) {
+        if (!skipViewChange) {
+          if (currentUserRole === "athlete") {
+            // For athletes, ensure event is set and navigate to occurrences
+            setSelectedEventForAthlete(event);
+            // Don't auto-select first occurrence - user must click
+            setSelectedOccurrenceForAthleteDetail(null);
+            setMobileView("occurrences");
+          } else {
+            setMobileView("occurrences");
+          }
+        } else {
           // When skipping view change, still set athlete event if needed
           if (currentUserRole === "athlete") {
             setSelectedEventForAthlete(event);
           }
-        } else if (currentUserRole === "athlete") {
-          // For athletes, ensure event is set and navigate to occurrences
-          setSelectedEventForAthlete(event);
-          // Don't auto-select first occurrence - user must click
-          setSelectedOccurrenceForAthleteDetail(null);
-          setMobileView("occurrences");
-        } else {
-          setMobileView("occurrences");
         }
         // Only reset session view flag if not already set (preserve it when coming from session view)
-        if (!(cameFromSessionView || skipViewChange)) {
+        if (!cameFromSessionView && !skipViewChange) {
           setCameFromSessionView(false);
           cameFromSessionViewRef.current = false;
         }
@@ -1311,32 +1322,38 @@ export default function EventsPage() {
       if (isEventsMobile) {
         hasNavigatedAwayRef.current = false;
         // Only reset session view flag if not already set (preserve it when coming from session view)
-        if (!(cameFromSessionView || skipViewChange)) {
+        if (!cameFromSessionView && !skipViewChange) {
           setCameFromSessionView(false);
           cameFromSessionViewRef.current = false;
         }
         // If skipViewChange is true (coming from session view), don't set view to occurrences
         // selectOccurrence will handle the view change
-        if (skipViewChange) {
+        if (!skipViewChange) {
+          if (currentUserRole === "athlete") {
+            // For athletes, go to occurrences view to pick which day
+            setSelectedEventForAthlete(event);
+            // Don't auto-select first occurrence - user must click
+            setSelectedOccurrenceForAthleteDetail(null);
+            setMobileView("occurrences");
+          } else {
+            setMobileView("occurrences");
+          }
+        } else {
           // When coming from session view, still set athlete event but don't change view yet
           // selectOccurrence will handle the view change
           if (currentUserRole === "athlete") {
             setSelectedEventForAthlete(event);
           }
-        } else if (currentUserRole === "athlete") {
-          // For athletes, go to occurrences view to pick which day
-          setSelectedEventForAthlete(event);
-          // Don't auto-select first occurrence - user must click
-          setSelectedOccurrenceForAthleteDetail(null);
-          setMobileView("occurrences");
-        } else {
-          setMobileView("occurrences");
         }
       }
     }
   }
 
   function selectOccurrence(occurrence: EventOccurrence) {
+    // Don't navigate if we're intentionally going back
+    if (isNavigatingBackRef.current) {
+      return;
+    }
     setSelectedOccurrence(occurrence);
     loadOccurrenceRsvps(occurrence.id);
     if (isEventsMobile && occurrence) {
@@ -1361,14 +1378,11 @@ export default function EventsPage() {
   }, [isEventsMobile, mobileView]);
 
   function formatDate(dateValue: string | Date | undefined | null) {
-    if (!dateValue) {
-      return { day: "", month: "", weekday: "" };
-    }
+    if (!dateValue) return { day: "", month: "", weekday: "" };
     const date =
       typeof dateValue === "string" ? new Date(dateValue) : dateValue;
-    if (Number.isNaN(date.getTime())) {
+    if (Number.isNaN(date.getTime()))
       return { day: "", month: "", weekday: "" };
-    }
     return {
       day: date.getDate().toString(),
       month: date.toLocaleDateString("en-US", { month: "short" }).toUpperCase(),
@@ -1377,49 +1391,45 @@ export default function EventsPage() {
   }
 
   function formatTime(time: string | undefined | null) {
-    if (!time) {
-      return "";
-    }
+    if (!time) return "";
     const [hours, minutes] = time.split(":");
-    const hour = Number.parseInt(hours, 10);
-    if (Number.isNaN(hour)) {
-      return time;
-    }
+    const hour = parseInt(hours, 10);
+    if (Number.isNaN(hour)) return time;
     const ampm = hour >= 12 ? "PM" : "AM";
     const displayHour = hour % 12 || 12;
     return `${displayHour}:${minutes} ${ampm}`;
   }
 
+  // Helper function to find event that contains an occurrence
+  function findEventForOccurrence(occurrence: EventOccurrence | null): Event | null {
+    if (!occurrence) return null;
+    return events.find(event => 
+      event.occurrences.some(occ => occ.id === occurrence.id)
+    ) || null;
+  }
+
   function getRecurrenceLabel(rule: string | null) {
-    if (!rule) {
-      return "One-time";
-    }
-    if (rule.includes("DAILY")) {
-      return "Daily";
-    }
-    if (rule.includes("WEEKLY")) {
-      return "Weekly";
-    }
-    if (rule.includes("MONTHLY")) {
-      return "Monthly";
-    }
+    if (!rule) return "One-time";
+    if (rule.includes("DAILY")) return "Daily";
+    if (rule.includes("WEEKLY")) return "Weekly";
+    if (rule.includes("MONTHLY")) return "Monthly";
     return "Recurring";
   }
 
   function getInitials(name: string | null, email: string) {
-    if (name) {
+    if (name)
       return name
         .split(" ")
         .map((n) => n[0])
         .join("")
         .toUpperCase()
         .slice(0, 2);
-    }
     return email[0].toUpperCase();
   }
 
   function isPastDate(dateStr: string) {
     const date = new Date(dateStr);
+    date.setHours(0, 0, 0, 0);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     return date < today;
@@ -1444,11 +1454,7 @@ export default function EventsPage() {
   const notAnsweredUsers = gymMembers.filter((m) => {
     const role = m.role;
     const isCoachOrAthlete =
-      role === "coach" ||
-      role === "owner" ||
-      role === "manager" ||
-      role === "athlete" ||
-      !role;
+      role === "coach" || role === "owner" || role === "athlete" || !role;
     return isCoachOrAthlete && !respondedIds.has(m.id);
   });
 
@@ -1460,10 +1466,11 @@ export default function EventsPage() {
           event.occurrences.map((occ) => ({
             ...occ,
             event,
-          }))
+          })),
         )
         .filter((occ) => {
           const occDate = new Date(occ.date);
+          occDate.setHours(0, 0, 0, 0);
           const today = new Date();
           today.setHours(0, 0, 0, 0);
           return occDate >= today && occ.status === "scheduled";
@@ -1480,7 +1487,7 @@ export default function EventsPage() {
             setSelectedEventForAthlete(event);
             if (occurrenceIdParam) {
               const occ = event.occurrences.find(
-                (o) => o.id === occurrenceIdParam
+                (o) => o.id === occurrenceIdParam,
               );
               if (occ) {
                 setSelectedOccurrenceForAthleteDetail(occ);
@@ -1490,11 +1497,7 @@ export default function EventsPage() {
                 }
               } else if (event.occurrences.length > 0) {
                 // On mobile, don't auto-select first occurrence - user must click
-                if (isEventsMobile) {
-                  // On mobile, go to occurrences view without selecting
-                  setSelectedOccurrenceForAthleteDetail(null);
-                  setMobileView("occurrences");
-                } else {
+                if (!isEventsMobile) {
                   const upcomingOccs = event.occurrences.filter((occ) => {
                     const occDate = new Date(occ.date);
                     const today = new Date();
@@ -1504,15 +1507,15 @@ export default function EventsPage() {
                   if (upcomingOccs.length > 0) {
                     setSelectedOccurrenceForAthleteDetail(upcomingOccs[0]);
                   }
+                } else {
+                  // On mobile, go to occurrences view without selecting
+                  setSelectedOccurrenceForAthleteDetail(null);
+                  setMobileView("occurrences");
                 }
               }
             } else if (event.occurrences.length > 0) {
               // On mobile, don't auto-select first occurrence - user must click
-              if (isEventsMobile) {
-                // On mobile, go to occurrences view without selecting
-                setSelectedOccurrenceForAthleteDetail(null);
-                setMobileView("occurrences");
-              } else {
+              if (!isEventsMobile) {
                 const upcomingOccs = event.occurrences.filter((occ) => {
                   const occDate = new Date(occ.date);
                   const today = new Date();
@@ -1522,6 +1525,10 @@ export default function EventsPage() {
                 if (upcomingOccs.length > 0) {
                   setSelectedOccurrenceForAthleteDetail(upcomingOccs[0]);
                 }
+              } else {
+                // On mobile, go to occurrences view without selecting
+                setSelectedOccurrenceForAthleteDetail(null);
+                setMobileView("occurrences");
               }
             }
           }
@@ -1558,7 +1565,7 @@ export default function EventsPage() {
           eventIdParam && occurrenceIdParam
             ? allOccurrences.find(
                 (occ) =>
-                  occ.id === occurrenceIdParam && occ.event.id === eventIdParam
+                  occ.id === occurrenceIdParam && occ.event.id === eventIdParam,
               )
             : null;
 
@@ -1580,9 +1587,8 @@ export default function EventsPage() {
 
   // Ensure mobile view shows details when clicking from dashboard with eventId and occurrenceId
   useEffect(() => {
-    if (!isEventsMobile || currentUserRole === "athlete" || initialLoading) {
+    if (!isEventsMobile || currentUserRole === "athlete" || initialLoading)
       return;
-    }
 
     const eventIdParam = searchParams.get("eventId");
     const occurrenceIdParam = searchParams.get("occurrenceId");
@@ -1600,7 +1606,7 @@ export default function EventsPage() {
         const matchingEvent = events.find((e) => e.id === eventIdParam);
         if (matchingEvent) {
           const matchingOccurrence = matchingEvent.occurrences.find(
-            (o) => o.id === occurrenceIdParam
+            (o) => o.id === occurrenceIdParam,
           );
           if (matchingOccurrence) {
             setMobileView("details");
@@ -1622,34 +1628,91 @@ export default function EventsPage() {
   if (isEventsMobile) {
     // Function to handle back navigation
     const handleBack = () => {
+      // Set flag to prevent auto-navigation in loadEvents
+      isNavigatingBackRef.current = true;
+
       if (mobileView === "chat") {
         setMobileView("details");
+        // Reset flag after a short delay to allow navigation to complete
+        setTimeout(() => {
+          isNavigatingBackRef.current = false;
+        }, 100);
       } else if (mobileView === "details") {
         // For athletes, skip occurrences and go directly to events
         // For coaches/owners, check if we came from session view
         if (currentUserRole === "athlete") {
-          setMobileView("events");
+          // Clear all occurrence-related state first
+          setSelectedOccurrence(null);
+          setSelectedOccurrenceForAthleteDetail(null);
+          setOccurrenceRsvps([]);
           setCameFromSessionView(false);
           cameFromSessionViewRef.current = false;
+          // Clear URL params if they exist
+          const currentParams = new URLSearchParams(window.location.search);
+          if (currentParams.has("occurrenceId") || currentParams.has("eventId")) {
+            router.replace("/events");
+          }
+          // Change view after clearing state
+          setMobileView("events");
+          // Reset flag after navigation completes
+          setTimeout(() => {
+            isNavigatingBackRef.current = false;
+          }, 200);
         } else if (cameFromSessionViewRef.current) {
-          setMobileView("events");
+          // Coming from session view - go back to events and clear occurrence selection
+          // Clear all occurrence-related state first
+          setSelectedOccurrence(null);
+          if (currentUserRole === "athlete") {
+            setSelectedOccurrenceForAthleteDetail(null);
+          }
+          setOccurrenceRsvps([]);
           setCameFromSessionView(false);
           cameFromSessionViewRef.current = false;
+          // Clear URL params if they exist
+          const currentParams = new URLSearchParams(window.location.search);
+          if (currentParams.has("occurrenceId") || currentParams.has("eventId")) {
+            router.replace("/events");
+          }
+          // Change view after clearing state
+          setMobileView("events");
+          // Reset flag after navigation completes
+          setTimeout(() => {
+            isNavigatingBackRef.current = false;
+          }, 200);
         } else {
+          // Going back to occurrences view - just change view
           setMobileView("occurrences");
+          // Reset flag after a short delay
+          setTimeout(() => {
+            isNavigatingBackRef.current = false;
+          }, 100);
         }
       } else if (mobileView === "occurrences") {
-        setMobileView("events");
+        // Clear all occurrence-related state first
+        setSelectedOccurrence(null);
+        if (currentUserRole === "athlete") {
+          setSelectedOccurrenceForAthleteDetail(null);
+        }
+        setOccurrenceRsvps([]);
         setCameFromSessionView(false);
         cameFromSessionViewRef.current = false;
+        // Clear URL params if they exist
+        const currentParams = new URLSearchParams(window.location.search);
+        if (currentParams.has("occurrenceId") || currentParams.has("eventId")) {
+          router.replace("/events");
+        }
+        // Change view after clearing state
+        setMobileView("events");
+        // Reset flag after navigation completes
+        setTimeout(() => {
+          isNavigatingBackRef.current = false;
+        }, 200);
       }
     };
 
     // Get page title based on current view
     const getPageTitle = () => {
-      if (mobileView === "events") {
-        return "Events";
-      }
+      if (mobileView === "events") return "Events";
       if (mobileView === "occurrences") {
         if (currentUserRole === "athlete") {
           return selectedEventForAthlete?.title || "Sessions";
@@ -1675,37 +1738,37 @@ export default function EventsPage() {
     const showBackButton = mobileView !== "events";
 
     return (
-      <div className="flex h-full min-h-0 flex-1 flex-col">
+      <div className="flex flex-1 flex-col min-h-0 h-full">
         {/* Custom Mobile Header */}
-        <div className="flex h-14 shrink-0 items-center justify-between border-b bg-background px-6">
-          <div className="flex min-w-0 flex-1 items-center gap-3">
+        <div className="flex items-center justify-between px-6 h-14 shrink-0 border-b bg-background">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
             {showBackButton && (
               <Button
-                className="h-9 w-9 shrink-0 rounded-xl"
-                onClick={handleBack}
-                size="icon"
                 variant="ghost"
+                size="icon"
+                onClick={handleBack}
+                className="h-9 w-9 shrink-0 rounded-xl"
               >
                 <IconArrowLeft className="h-5 w-5" />
               </Button>
             )}
-            <h1 className="truncate font-semibold text-base">
+            <h1 className="font-semibold text-base truncate">
               {getPageTitle()}
             </h1>
           </div>
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             {mobileView === "events" && (
               <>
                 <Button
-                  className="h-8 gap-2 rounded-sm px-3 text-xs"
-                  data-show-text-mobile
+                  variant="outline"
+                  size="sm"
                   onClick={() =>
                     setMobileSortMode(
-                      mobileSortMode === "event" ? "session" : "event"
+                      mobileSortMode === "event" ? "session" : "event",
                     )
                   }
-                  size="sm"
-                  variant="outline"
+                  className="gap-2 rounded-sm text-xs px-3 h-8"
+                  data-show-text-mobile
                 >
                   {mobileSortMode === "event" ? (
                     <>
@@ -1720,9 +1783,9 @@ export default function EventsPage() {
                   )}
                 </Button>
                 <Button
-                  asChild
-                  className="h-8 gap-2 rounded-sm px-3 text-xs"
                   size="sm"
+                  className="gap-2 rounded-sm text-xs px-3 h-8"
+                  asChild
                 >
                   <Link href="/events/new">
                     <IconPlus className="h-4 w-4" />
@@ -1732,12 +1795,30 @@ export default function EventsPage() {
               </>
             )}
             {(mobileView === "details" || mobileView === "occurrences") &&
-              (selectedEvent || selectedEventForAthlete) && (
+              (selectedEvent ||
+                selectedEventForAthlete ||
+                findEventForOccurrence(selectedOccurrence) ||
+                (selectedOccurrenceForAthleteDetail &&
+                  selectedEventForAthlete)) && (
                 <Button
-                  className="h-9 gap-2 rounded-xl"
-                  onClick={() => setMobileView("chat")}
-                  size="sm"
                   variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    // Ensure event is selected before navigating to chat
+                    // If we have an occurrence but no event selected, set the event
+                    const eventForOccurrence = findEventForOccurrence(selectedOccurrence);
+                    if (
+                      eventForOccurrence &&
+                      !selectedEvent &&
+                      currentUserRole !== "athlete"
+                    ) {
+                      // Set event without changing view (skipViewChange=true)
+                      selectEvent(eventForOccurrence, true);
+                    }
+                    // Navigate to chat view
+                    setMobileView("chat");
+                  }}
+                  className="h-9 rounded-xl gap-2"
                 >
                   <IconMessageCircle className="h-5 w-5" />
                   Chat
@@ -1754,66 +1835,47 @@ export default function EventsPage() {
                 (() => {
                   const occurrenceRsvpsForAthlete = occurrenceRsvps || [];
                   const goingUsers = occurrenceRsvpsForAthlete.filter(
-                    (r) => r.status === "going"
+                    (r) => r.status === "going",
                   );
                   const notGoingUsers = occurrenceRsvpsForAthlete.filter(
-                    (r) => r.status === "not_going"
+                    (r) => r.status === "not_going",
                   );
                   const rsvpedUserIds = new Set(
-                    occurrenceRsvpsForAthlete.map((r) => r.id)
+                    occurrenceRsvpsForAthlete.map((r) => r.id),
                   );
                   const isCoachOrOwner = (
                     userId: string,
-                    userRole?: string
+                    userRole?: string,
                   ): boolean => {
-                    if (
-                      userRole === "coach" ||
-                      userRole === "owner" ||
-                      userRole === "manager"
-                    ) {
+                    if (userRole === "coach" || userRole === "owner")
                       return true;
-                    }
                     const member = gymMembers.find((m) => m.id === userId);
-                    return (
-                      member?.role === "coach" ||
-                      member?.role === "owner" ||
-                      member?.role === "manager"
-                    );
+                    return member?.role === "coach" || member?.role === "owner";
                   };
                   const isAthlete = (
                     userId: string,
-                    userRole?: string
+                    userRole?: string,
                   ): boolean => {
-                    if (userRole === "athlete") {
-                      return true;
-                    }
-                    if (
-                      userRole === "coach" ||
-                      userRole === "owner" ||
-                      userRole === "manager"
-                    ) {
+                    if (userRole === "athlete") return true;
+                    if (userRole === "coach" || userRole === "owner")
                       return false;
-                    }
                     const member = gymMembers.find((m) => m.id === userId);
                     return member?.role === "athlete" || !member?.role;
                   };
                   const goingCoaches = goingUsers.filter((u) =>
-                    isCoachOrOwner(u.id, u.role)
+                    isCoachOrOwner(u.id, u.role),
                   );
                   const goingAthletes = goingUsers.filter((u) =>
-                    isAthlete(u.id, u.role)
+                    isAthlete(u.id, u.role),
                   );
                   const notGoingCoaches = notGoingUsers.filter((u) =>
-                    isCoachOrOwner(u.id, u.role)
+                    isCoachOrOwner(u.id, u.role),
                   );
                   const notGoingAthletes = notGoingUsers.filter((u) =>
-                    isAthlete(u.id, u.role)
+                    isAthlete(u.id, u.role),
                   );
                   const pendingCoaches = gymMembers.filter((m) => {
-                    const isCoach =
-                      m.role === "coach" ||
-                      m.role === "owner" ||
-                      m.role === "manager";
+                    const isCoach = m.role === "coach" || m.role === "owner";
                     return isCoach && !rsvpedUserIds.has(m.id);
                   });
                   const pendingAthletes = gymMembers.filter((m) => {
@@ -1823,15 +1885,15 @@ export default function EventsPage() {
 
                   return (
                     <Tabs
+                      value={athleteFilterTab}
                       onValueChange={(value) =>
                         setAthleteFilterTab(value as typeof athleteFilterTab)
                       }
-                      value={athleteFilterTab}
                     >
-                      <TabsList className="grid h-10 w-full grid-cols-4 rounded-none border-b-0 bg-transparent">
+                      <TabsList className="w-full grid grid-cols-4 h-10 rounded-none border-b-0 bg-transparent">
                         <TabsTrigger
-                          className="rounded-none text-xs data-[state=active]:border-primary data-[state=active]:border-b-2 data-[state=active]:bg-transparent"
                           value="all"
+                          className="text-xs rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent"
                         >
                           All (
                           {goingCoaches.length +
@@ -1843,21 +1905,21 @@ export default function EventsPage() {
                           )
                         </TabsTrigger>
                         <TabsTrigger
-                          className="rounded-none text-xs data-[state=active]:border-primary data-[state=active]:border-b-2 data-[state=active]:bg-transparent"
                           value="going"
+                          className="text-xs rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent"
                         >
                           Going ({goingCoaches.length + goingAthletes.length})
                         </TabsTrigger>
                         <TabsTrigger
-                          className="rounded-none text-xs data-[state=active]:border-primary data-[state=active]:border-b-2 data-[state=active]:bg-transparent"
                           value="not_going"
+                          className="text-xs rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent"
                         >
                           Can't (
                           {notGoingCoaches.length + notGoingAthletes.length})
                         </TabsTrigger>
                         <TabsTrigger
-                          className="rounded-none text-xs data-[state=active]:border-primary data-[state=active]:border-b-2 data-[state=active]:bg-transparent"
                           value="pending"
+                          className="text-xs rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent"
                         >
                           Pending (
                           {pendingCoaches.length + pendingAthletes.length})
@@ -1868,33 +1930,33 @@ export default function EventsPage() {
                 })()
               ) : (
                 <Tabs
+                  value={coachFilterTab}
                   onValueChange={(value) =>
                     setCoachFilterTab(value as typeof coachFilterTab)
                   }
-                  value={coachFilterTab}
                 >
-                  <TabsList className="grid h-10 w-full grid-cols-4 rounded-none border-b-0 bg-transparent">
+                  <TabsList className="w-full grid grid-cols-4 h-10 rounded-none border-b-0 bg-transparent">
                     <TabsTrigger
-                      className="rounded-none text-xs data-[state=active]:border-primary data-[state=active]:border-b-2 data-[state=active]:bg-transparent"
                       value="all"
+                      className="text-xs rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent"
                     >
                       All ({gymMembers.length})
                     </TabsTrigger>
                     <TabsTrigger
-                      className="rounded-none text-xs data-[state=active]:border-primary data-[state=active]:border-b-2 data-[state=active]:bg-transparent"
                       value="going"
+                      className="text-xs rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent"
                     >
                       Going ({goingUsers.length})
                     </TabsTrigger>
                     <TabsTrigger
-                      className="rounded-none text-xs data-[state=active]:border-primary data-[state=active]:border-b-2 data-[state=active]:bg-transparent"
                       value="not_going"
+                      className="text-xs rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent"
                     >
                       Can't ({notGoingUsers.length})
                     </TabsTrigger>
                     <TabsTrigger
-                      className="rounded-none text-xs data-[state=active]:border-primary data-[state=active]:border-b-2 data-[state=active]:bg-transparent"
                       value="pending"
+                      className="text-xs rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent"
                     >
                       Pending ({notAnsweredUsers.length})
                     </TabsTrigger>
@@ -1905,17 +1967,17 @@ export default function EventsPage() {
           )}
 
         <Tabs
-          className="flex min-h-0 flex-1 flex-col"
-          onValueChange={(value) => setMobileView(value as typeof mobileView)}
           value={mobileView}
+          onValueChange={(value) => setMobileView(value as typeof mobileView)}
+          className="flex-1 flex flex-col min-h-0"
         >
           {/* Events Tab - Fullscreen */}
           <TabsContent
-            className="m-0 flex h-0 min-h-0 flex-1 flex-col"
             value="events"
+            className="flex-1 flex flex-col min-h-0 m-0 h-0"
           >
             <div
-              className="h-full flex-1 overflow-y-auto overscroll-contain"
+              className="flex-1 overflow-y-auto overscroll-contain h-full"
               style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}
             >
               <div className="p-4">
@@ -1923,8 +1985,8 @@ export default function EventsPage() {
                   <div className="space-y-3">
                     {[1, 2, 3, 4].map((i) => (
                       <div
-                        className="relative w-full rounded-xl bg-card p-4"
                         key={i}
+                        className="relative w-full rounded-xl bg-card p-4"
                       >
                         <div className="flex items-start gap-3">
                           <div className="flex-1 space-y-2">
@@ -1934,16 +1996,16 @@ export default function EventsPage() {
                               <Skeleton className="h-4 w-24 rounded" />
                             </div>
                           </div>
-                          <Skeleton className="h-8 w-8 shrink-0 rounded" />
+                          <Skeleton className="h-8 w-8 rounded shrink-0" />
                         </div>
                       </div>
                     ))}
                   </div>
                 ) : events.length === 0 ? (
                   <div className="p-8 text-center text-muted-foreground">
-                    <IconCalendar className="mx-auto mb-4 h-12 w-12 opacity-20" />
+                    <IconCalendar className="h-12 w-12 mx-auto mb-4 opacity-20" />
                     <p className="text-sm">No events yet</p>
-                    <Button asChild className="mt-4">
+                    <Button className="mt-4" asChild>
                       <Link href="/events/new">Create your first event</Link>
                     </Button>
                   </div>
@@ -1957,7 +2019,7 @@ export default function EventsPage() {
                           .map((occ) => ({
                             ...occ,
                             event,
-                          }))
+                          })),
                       )
                       .sort((a, b) => {
                         const dateA = new Date(a.date).getTime();
@@ -1966,10 +2028,10 @@ export default function EventsPage() {
                       });
 
                     const futureOccurrences = allOccurrences.filter(
-                      (occ) => !isPastDate(occ.date)
+                      (occ) => !isPastDate(occ.date),
                     );
                     const pastOccurrences = allOccurrences.filter((occ) =>
-                      isPastDate(occ.date)
+                      isPastDate(occ.date),
                     );
                     const displayedSessions = showPastEvents
                       ? [...futureOccurrences, ...pastOccurrences]
@@ -1979,7 +2041,7 @@ export default function EventsPage() {
                       <div className="space-y-3">
                         {displayedSessions.length === 0 ? (
                           <div className="p-8 text-center text-muted-foreground">
-                            <IconCalendar className="mx-auto mb-4 h-12 w-12 opacity-20" />
+                            <IconCalendar className="h-12 w-12 mx-auto mb-4 opacity-20" />
                             <p className="text-sm">No upcoming sessions</p>
                           </div>
                         ) : (
@@ -1988,14 +2050,12 @@ export default function EventsPage() {
                               const isPast = isPastDate(occ.date);
                               const dateInfo = formatDate(occ.date);
                               const userRsvpStatus = currentUserRsvps.get(
-                                occ.id
+                                occ.id,
                               );
                               return (
                                 <button
-                                  className={`w-full rounded-xl bg-card text-left transition-all hover:bg-muted/50 ${
-                                    isPast ? "opacity-60" : ""
-                                  } ${occ.status === "canceled" ? "opacity-40" : ""}`}
                                   key={occ.id}
+                                  type="button"
                                   onClick={() => {
                                     // Track that we came from session view (both state and ref)
                                     setCameFromSessionView(true);
@@ -2005,71 +2065,73 @@ export default function EventsPage() {
                                     // Find and select the specific occurrence to open it
                                     const eventOccurrence =
                                       occ.event.occurrences.find(
-                                        (o) => o.id === occ.id
+                                        (o) => o.id === occ.id,
                                       );
                                     if (eventOccurrence) {
                                       selectOccurrence(eventOccurrence);
                                     }
                                   }}
-                                  type="button"
+                                  className={`w-full rounded-xl transition-all bg-card hover:bg-muted/50 text-left ${
+                                    isPast ? "opacity-60" : ""
+                                  } ${occ.status === "canceled" ? "opacity-40" : ""}`}
                                 >
                                   <div className="flex items-center gap-6 p-4">
-                                    <div className="flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-xl bg-black dark:bg-white">
-                                      <span className="font-bold text-2xl text-white leading-none dark:text-black">
+                                    <div className="h-16 w-16 rounded-xl flex flex-col items-center justify-center shrink-0 bg-black dark:bg-white">
+                                      <span className="text-2xl font-bold leading-none text-white dark:text-black">
                                         {dateInfo.day}
                                       </span>
-                                      <span className="mt-1 font-medium text-white text-xs opacity-70 dark:text-black">
+                                      <span className="text-xs font-medium opacity-70 mt-1 text-white dark:text-black">
                                         {dateInfo.month}
                                       </span>
                                     </div>
-                                    <div className="min-w-0 flex-1">
-                                      <div className="mb-1 flex items-center gap-2">
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-2 mb-1">
                                         <div
-                                          className={`h-2 w-2 shrink-0 rounded-full ${getEventColor(occ.event.id)}`}
+                                          className={`h-2 w-2 rounded-full shrink-0 ${getEventColor(occ.event.id)}`}
                                         />
                                         <p className="font-semibold text-base">
                                           {occ.event.title}
                                         </p>
                                       </div>
-                                      <p className="mb-1 text-sm opacity-80">
+                                      <p className="text-sm opacity-80 mb-1">
                                         {dateInfo.weekday} •{" "}
                                         {formatTime(occ.event.startTime)}
                                       </p>
                                       {occ.status === "canceled" && (
                                         <Badge
-                                          className="mt-1 text-xs"
                                           variant="destructive"
+                                          className="text-xs mt-1"
                                         >
                                           Canceled
                                         </Badge>
                                       )}
                                     </div>
-                                    <div className="flex shrink-0 items-center gap-2">
+                                    <div className="flex items-center gap-2 shrink-0">
                                       {/* User's RSVP Status */}
                                       {occurrenceRsvpsLoading ? (
-                                        <Skeleton className="h-5 w-16 shrink-0 rounded" />
+                                        <Skeleton className="h-5 w-16 rounded shrink-0" />
                                       ) : (
                                         <>
                                           {userRsvpStatus === "going" && (
                                             <Badge
-                                              className="shrink-0 border-emerald-200 bg-emerald-50 text-emerald-600 text-xs dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-400"
                                               variant="outline"
+                                              className="text-xs text-emerald-600 border-emerald-200 bg-emerald-50 dark:bg-emerald-950/50 dark:text-emerald-400 dark:border-emerald-800 shrink-0"
                                             >
                                               Going
                                             </Badge>
                                           )}
                                           {userRsvpStatus === "not_going" && (
                                             <Badge
-                                              className="shrink-0 border-red-200 bg-red-50 text-red-600 text-xs dark:border-red-800 dark:bg-red-950/50 dark:text-red-400"
                                               variant="outline"
+                                              className="text-xs text-red-600 border-red-200 bg-red-50 dark:bg-red-950/50 dark:text-red-400 dark:border-red-800 shrink-0"
                                             >
                                               Can't Go
                                             </Badge>
                                           )}
                                           {!userRsvpStatus && (
                                             <Badge
-                                              className="shrink-0 border-amber-200 bg-amber-50 text-amber-600 text-xs dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-400"
                                               variant="outline"
+                                              className="text-xs text-amber-600 border-amber-200 bg-amber-50 dark:bg-amber-950/50 dark:text-amber-400 dark:border-amber-800 shrink-0"
                                             >
                                               Pending
                                             </Badge>
@@ -2083,11 +2145,11 @@ export default function EventsPage() {
                             })}
                             {pastOccurrences.length > 0 && (
                               <button
-                                className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl p-3 text-muted-foreground text-sm hover:text-foreground"
+                                type="button"
                                 onClick={() =>
                                   setShowPastEvents(!showPastEvents)
                                 }
-                                type="button"
+                                className="w-full mt-4 p-3 text-sm text-muted-foreground hover:text-foreground flex items-center justify-center gap-2 rounded-xl"
                               >
                                 <IconHistory className="h-4 w-4" />
                                 {showPastEvents ? "Hide" : "Show"} past sessions
@@ -2103,21 +2165,21 @@ export default function EventsPage() {
                   <div className="space-y-3">
                     {events.map((event) => (
                       <div
+                        key={event.id}
                         className={`relative w-full rounded-xl transition-all ${
                           selectedEvent?.id === event.id &&
                           (!isEventsMobile || mobileView !== "events")
                             ? "bg-primary text-primary-foreground"
                             : "bg-card hover:bg-muted/50"
                         }`}
-                        key={event.id}
                       >
                         <div className="flex items-start gap-3">
                           <button
-                            className="min-w-0 flex-1 p-4 text-left"
-                            onClick={() => selectEvent(event)}
                             type="button"
+                            onClick={() => selectEvent(event)}
+                            className="flex-1 text-left p-4 min-w-0"
                           >
-                            <p className="mb-2 font-semibold text-base">
+                            <p className="font-semibold text-base mb-2">
                               {event.title}
                             </p>
                             <div className="flex flex-wrap items-center gap-3 text-sm opacity-80">
@@ -2135,9 +2197,9 @@ export default function EventsPage() {
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button
-                                  className="h-8 w-8 shrink-0"
-                                  size="icon"
                                   variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 shrink-0"
                                 >
                                   <IconDotsVertical className="h-4 w-4" />
                                 </Button>
@@ -2177,36 +2239,36 @@ export default function EventsPage() {
 
           {/* Occurrences Tab - Fullscreen */}
           <TabsContent
-            className="m-0 flex min-h-0 flex-1 flex-col overflow-hidden"
             value="occurrences"
+            className="flex-1 flex flex-col min-h-0 m-0 overflow-hidden"
           >
             {selectedEvent || selectedEventForAthlete ? (
               <>
-                <div className="shrink-0 p-4">
+                <div className="p-4 shrink-0">
                   <h2 className="font-semibold text-lg">
                     {currentUserRole === "athlete"
                       ? selectedEventForAthlete?.title
                       : selectedEvent?.title}
                   </h2>
-                  <p className="mt-1 text-muted-foreground text-sm">
+                  <p className="text-sm text-muted-foreground mt-1">
                     {formatTime(
                       currentUserRole === "athlete"
                         ? selectedEventForAthlete?.startTime
-                        : selectedEvent?.startTime
+                        : selectedEvent?.startTime,
                     )}{" "}
                     -{" "}
                     {formatTime(
                       currentUserRole === "athlete"
                         ? selectedEventForAthlete?.endTime
-                        : selectedEvent?.endTime
+                        : selectedEvent?.endTime,
                     )}
                   </p>
                 </div>
-                <div className="min-h-0 flex-1 overflow-y-auto">
+                <div className="flex-1 min-h-0 overflow-y-auto">
                   <div className="p-4">
                     {displayedOccurrences.length === 0 ? (
                       <div className="p-8 text-center text-muted-foreground">
-                        <IconCalendar className="mx-auto mb-4 h-12 w-12 opacity-20" />
+                        <IconCalendar className="h-12 w-12 mx-auto mb-4 opacity-20" />
                         <p className="text-sm">No upcoming sessions</p>
                       </div>
                     ) : (
@@ -2224,47 +2286,47 @@ export default function EventsPage() {
                               : selectedOccurrence?.id === occ.id;
                           return (
                             <div
+                              key={occ.id}
                               className={`w-full rounded-xl transition-all ${
                                 isSelected
                                   ? "bg-primary text-primary-foreground"
                                   : "bg-card hover:bg-muted/50"
                               } ${isPast ? "opacity-60" : ""} ${occ.status === "canceled" ? "opacity-40" : ""}`}
-                              key={occ.id}
                             >
                               <div className="flex items-center gap-2 p-4">
                                 <button
-                                  className="flex min-w-0 flex-1 items-center gap-6 text-left"
-                                  onClick={() => selectOccurrence(occ)}
                                   type="button"
+                                  onClick={() => selectOccurrence(occ)}
+                                  className="flex-1 text-left flex items-center gap-6 min-w-0"
                                 >
                                   <div
-                                    className={`flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-xl bg-black dark:bg-white ${
+                                    className={`h-16 w-16 rounded-xl flex flex-col items-center justify-center shrink-0 bg-black dark:bg-white ${
                                       isSelected ? "ring-2 ring-primary" : ""
                                     }`}
                                   >
-                                    <span className="font-bold text-2xl text-white leading-none dark:text-black">
+                                    <span className="text-2xl font-bold leading-none text-white dark:text-black">
                                       {dateInfo.day}
                                     </span>
-                                    <span className="mt-1 font-medium text-white text-xs opacity-70 dark:text-black">
+                                    <span className="text-xs font-medium opacity-70 mt-1 text-white dark:text-black">
                                       {dateInfo.month}
                                     </span>
                                   </div>
-                                  <div className="min-w-0 flex-1">
-                                    <p className="mb-1 font-semibold text-base">
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-semibold text-base mb-1">
                                       {dateInfo.weekday}
                                     </p>
                                     <p className="text-sm opacity-80">
                                       {formatTime(
                                         currentUserRole === "athlete"
                                           ? selectedEventForAthlete?.startTime
-                                          : selectedEvent?.startTime
+                                          : selectedEvent?.startTime,
                                       )}
                                     </p>
                                     {/* RSVP counts for coaches/owners */}
                                     {(currentUserRole === "owner" ||
                                       currentUserRole === "coach") && (
                                       <div
-                                        className={`mt-1 flex items-center gap-2 ${
+                                        className={`flex items-center gap-2 mt-1 ${
                                           isSelected ? "opacity-90" : ""
                                         }`}
                                       >
@@ -2277,7 +2339,7 @@ export default function EventsPage() {
                                             }`}
                                           />
                                           <span
-                                            className={`font-medium text-xs ${
+                                            className={`text-xs font-medium ${
                                               isSelected
                                                 ? "text-primary-foreground"
                                                 : "text-emerald-600"
@@ -2295,7 +2357,7 @@ export default function EventsPage() {
                                             }`}
                                           />
                                           <span
-                                            className={`font-medium text-xs ${
+                                            className={`text-xs font-medium ${
                                               isSelected
                                                 ? "text-primary-foreground"
                                                 : "text-red-600"
@@ -2308,10 +2370,10 @@ export default function EventsPage() {
                                     )}
                                   </div>
                                 </button>
-                                <div className="flex shrink-0 items-center gap-2">
+                                <div className="flex items-center gap-2 shrink-0">
                                   {/* User's RSVP Status */}
                                   {occurrenceRsvpsLoading ? (
-                                    <Skeleton className="h-5 w-5 shrink-0 rounded" />
+                                    <Skeleton className="h-5 w-5 rounded shrink-0" />
                                   ) : (
                                     (() => {
                                       const userRsvpStatus =
@@ -2319,7 +2381,7 @@ export default function EventsPage() {
                                       if (userRsvpStatus === "going") {
                                         return (
                                           <div
-                                            className={`flex shrink-0 items-center ${
+                                            className={`flex items-center shrink-0 ${
                                               isSelected
                                                 ? "text-primary-foreground"
                                                 : "text-emerald-600"
@@ -2332,7 +2394,7 @@ export default function EventsPage() {
                                       if (userRsvpStatus === "not_going") {
                                         return (
                                           <div
-                                            className={`flex shrink-0 items-center ${
+                                            className={`flex items-center shrink-0 ${
                                               isSelected
                                                 ? "text-primary-foreground"
                                                 : "text-red-600"
@@ -2344,7 +2406,7 @@ export default function EventsPage() {
                                       }
                                       return (
                                         <div
-                                          className={`flex shrink-0 items-center ${
+                                          className={`flex items-center shrink-0 ${
                                             isSelected
                                               ? "text-primary-foreground/60"
                                               : "text-amber-600"
@@ -2358,8 +2420,8 @@ export default function EventsPage() {
                                   <div className="flex flex-col items-end gap-1">
                                     {occ.status === "canceled" && (
                                       <Badge
-                                        className="text-xs"
                                         variant="destructive"
+                                        className="text-xs"
                                       >
                                         Canceled
                                       </Badge>
@@ -2370,8 +2432,8 @@ export default function EventsPage() {
                                       }
                                     ).isCustom && (
                                       <Badge
-                                        className="text-xs"
                                         variant="outline"
+                                        className="text-xs"
                                       >
                                         Custom
                                       </Badge>
@@ -2386,9 +2448,9 @@ export default function EventsPage() {
                     )}
                     {pastOccurrences.length > 0 && (
                       <button
-                        className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl p-3 text-muted-foreground text-sm hover:text-foreground"
-                        onClick={() => setShowPastEvents(!showPastEvents)}
                         type="button"
+                        onClick={() => setShowPastEvents(!showPastEvents)}
+                        className="w-full mt-4 p-3 text-sm text-muted-foreground hover:text-foreground flex items-center justify-center gap-2 rounded-xl"
                       >
                         <IconHistory className="h-4 w-4" />
                         {showPastEvents ? "Hide" : "Show"} past sessions (
@@ -2399,9 +2461,9 @@ export default function EventsPage() {
                 </div>
               </>
             ) : (
-              <div className="flex flex-1 items-center justify-center text-muted-foreground">
+              <div className="flex-1 flex items-center justify-center text-muted-foreground">
                 <div className="text-center">
-                  <IconCalendar className="mx-auto mb-4 h-12 w-12 opacity-20" />
+                  <IconCalendar className="h-12 w-12 mx-auto mb-4 opacity-20" />
                   <p className="text-sm">Select an event first</p>
                 </div>
               </div>
@@ -2410,18 +2472,18 @@ export default function EventsPage() {
 
           {/* Details Tab - Fullscreen */}
           <TabsContent
-            className="m-0 flex min-h-0 flex-1 flex-col overflow-hidden"
             value="details"
+            className="flex-1 flex flex-col min-h-0 m-0 overflow-hidden"
           >
             {currentUserRole === "athlete" &&
             selectedOccurrenceForAthleteDetail ? (
-              <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-                <div className="shrink-0 border-b p-4">
-                  <div className="min-w-0 flex-1">
+              <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                <div className="p-4 shrink-0 border-b">
+                  <div className="flex-1 min-w-0">
                     <h2 className="font-semibold text-lg">
                       {selectedEventForAthlete?.title}
                     </h2>
-                    <p className="mt-1 text-muted-foreground text-sm">
+                    <p className="text-sm text-muted-foreground mt-1">
                       {
                         formatDate(selectedOccurrenceForAthleteDetail.date)
                           .weekday
@@ -2436,15 +2498,15 @@ export default function EventsPage() {
                     </p>
                   </div>
                 </div>
-                <div className="min-h-0 flex-1 overflow-auto">
+                <div className="flex-1 overflow-auto min-h-0">
                   <div className="p-4 pb-40">
                     {selectedEventForAthlete?.description && (
                       <div className="mb-4">
-                        <p className="whitespace-pre-wrap text-muted-foreground text-sm">
+                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">
                           {selectedEventForAthlete.description}
                         </p>
                         {selectedEventForAthlete.location && (
-                          <p className="mt-2 text-muted-foreground text-sm">
+                          <p className="text-sm text-muted-foreground mt-2">
                             📍 {selectedEventForAthlete.location}
                           </p>
                         )}
@@ -2456,40 +2518,34 @@ export default function EventsPage() {
                       // Compute RSVP lists for athlete mobile view
                       const occurrenceRsvpsForAthlete = occurrenceRsvps || [];
                       const goingUsers = occurrenceRsvpsForAthlete.filter(
-                        (r) => r.status === "going"
+                        (r) => r.status === "going",
                       );
                       const notGoingUsers = occurrenceRsvpsForAthlete.filter(
-                        (r) => r.status === "not_going"
+                        (r) => r.status === "not_going",
                       );
                       const rsvpedUserIds = new Set(
-                        occurrenceRsvpsForAthlete.map((r) => r.id)
+                        occurrenceRsvpsForAthlete.map((r) => r.id),
                       );
 
                       const isCoachOrOwner = (
                         userId: string,
-                        userRole?: string
+                        userRole?: string,
                       ): boolean => {
-                        if (userRole === "coach" || userRole === "owner") {
+                        if (userRole === "coach" || userRole === "owner")
                           return true;
-                        }
                         const member = gymMembers.find((m) => m.id === userId);
                         return (
-                          member?.role === "coach" ||
-                          member?.role === "owner" ||
-                          member?.role === "manager"
+                          member?.role === "coach" || member?.role === "owner"
                         );
                       };
 
                       const isAthlete = (
                         userId: string,
-                        userRole?: string
+                        userRole?: string,
                       ): boolean => {
-                        if (userRole === "athlete") {
-                          return true;
-                        }
-                        if (userRole === "coach" || userRole === "owner") {
+                        if (userRole === "athlete") return true;
+                        if (userRole === "coach" || userRole === "owner")
                           return false;
-                        }
                         const member = gymMembers.find((m) => m.id === userId);
                         return member?.role === "athlete" || !member?.role;
                       };
@@ -2525,9 +2581,7 @@ export default function EventsPage() {
                       const pendingCoaches = gymMembers
                         .filter((m) => {
                           const isCoach =
-                            m.role === "coach" ||
-                            m.role === "owner" ||
-                            m.role === "manager";
+                            m.role === "coach" || m.role === "owner";
                           return isCoach && !rsvpedUserIds.has(m.id);
                         })
                         .map((m) => ({
@@ -2568,11 +2622,11 @@ export default function EventsPage() {
                         });
 
                       const renderStatusBadge = (
-                        status: "going" | "not_going" | "pending"
+                        status: "going" | "not_going" | "pending",
                       ) => {
                         if (status === "going") {
                           return (
-                            <div className="flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 font-medium text-emerald-600 text-xs dark:bg-emerald-950/50">
+                            <div className="flex items-center gap-1 text-emerald-600 bg-emerald-100 dark:bg-emerald-950/50 px-2.5 py-1 rounded-full text-xs font-medium">
                               <IconCheck className="h-3 w-3" />
                               Going
                             </div>
@@ -2580,14 +2634,14 @@ export default function EventsPage() {
                         }
                         if (status === "not_going") {
                           return (
-                            <div className="flex items-center gap-1 rounded-full bg-red-100 px-2.5 py-1 font-medium text-red-600 text-xs dark:bg-red-950/50">
+                            <div className="flex items-center gap-1 text-red-600 bg-red-100 dark:bg-red-950/50 px-2.5 py-1 rounded-full text-xs font-medium">
                               <IconX className="h-3 w-3" />
                               Can't
                             </div>
                           );
                         }
                         return (
-                          <div className="flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-1 font-medium text-amber-600 text-xs dark:bg-amber-950/50">
+                          <div className="flex items-center gap-1 text-amber-600 bg-amber-100 dark:bg-amber-950/50 px-2.5 py-1 rounded-full text-xs font-medium">
                             <IconBell className="h-3 w-3" />
                             Pending
                           </div>
@@ -2606,7 +2660,7 @@ export default function EventsPage() {
                         displayStatusOverride?:
                           | "going"
                           | "not_going"
-                          | "pending"
+                          | "pending",
                       ) => {
                         const displayStatus: "going" | "not_going" | "pending" =
                           displayStatusOverride ||
@@ -2622,17 +2676,17 @@ export default function EventsPage() {
                                 : "pending");
                         return (
                           <div
-                            className="flex items-center gap-2 rounded-lg p-2 transition-colors hover:bg-muted/50"
                             key={user.id}
+                            className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted/50 transition-colors"
                           >
-                            <Avatar className="h-8 w-8 shrink-0 rounded-lg">
+                            <Avatar className="h-8 w-8 rounded-lg shrink-0">
                               <AvatarImage src={user.avatarUrl || undefined} />
-                              <AvatarFallback className="rounded-lg bg-muted text-xs">
+                              <AvatarFallback className="rounded-lg text-xs bg-muted">
                                 {getInitials(user.name, user.email)}
                               </AvatarFallback>
                             </Avatar>
-                            <div className="min-w-0 flex-1">
-                              <p className="truncate font-medium text-sm">
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm truncate">
                                 {user.name || "Unnamed"}
                               </p>
                             </div>
@@ -2643,15 +2697,15 @@ export default function EventsPage() {
 
                       return (
                         <Tabs
-                          className="w-full"
+                          value={athleteFilterTab}
                           onValueChange={(value) =>
                             setAthleteFilterTab(
-                              value as typeof athleteFilterTab
+                              value as typeof athleteFilterTab,
                             )
                           }
-                          value={athleteFilterTab}
+                          className="w-full"
                         >
-                          <TabsContent className="mt-0" value="all">
+                          <TabsContent value="all" className="mt-0">
                             <div className="space-y-0.5">
                               {(() => {
                                 const allCoaches = [
@@ -2696,31 +2750,31 @@ export default function EventsPage() {
                                   <>
                                     {allCoaches.length > 0 && (
                                       <div>
-                                        <p className="mb-2 font-medium text-muted-foreground text-xs">
+                                        <p className="text-xs font-medium text-muted-foreground mb-2">
                                           Coaches
                                         </p>
                                         <div className="space-y-0.5">
                                           {allCoaches.map((coach) =>
-                                            renderUserItem(coach, true)
+                                            renderUserItem(coach, true),
                                           )}
                                         </div>
                                       </div>
                                     )}
                                     {allAthletes.length > 0 && (
                                       <div>
-                                        <p className="mb-2 font-medium text-muted-foreground text-xs">
+                                        <p className="text-xs font-medium text-muted-foreground mb-2">
                                           Athletes
                                         </p>
                                         <div className="space-y-0.5">
                                           {allAthletes.map((athlete) =>
-                                            renderUserItem(athlete, false)
+                                            renderUserItem(athlete, false),
                                           )}
                                         </div>
                                       </div>
                                     )}
                                     {allCoaches.length === 0 &&
                                       allAthletes.length === 0 && (
-                                        <div className="py-8 text-center text-muted-foreground text-sm">
+                                        <div className="text-center text-sm text-muted-foreground py-8">
                                           No members found
                                         </div>
                                       )}
@@ -2729,57 +2783,57 @@ export default function EventsPage() {
                               })()}
                             </div>
                           </TabsContent>
-                          <TabsContent className="mt-0" value="going">
+                          <TabsContent value="going" className="mt-0">
                             <div className="space-y-0.5">
                               {goingCoaches.length > 0 && (
                                 <div>
-                                  <p className="mb-2 font-medium text-muted-foreground text-xs">
+                                  <p className="text-xs font-medium text-muted-foreground mb-2">
                                     Coaches
                                   </p>
                                   <div className="space-y-0.5">
                                     {goingCoaches.map((coach) =>
-                                      renderUserItem(coach, true, "going")
+                                      renderUserItem(coach, true, "going"),
                                     )}
                                   </div>
                                 </div>
                               )}
                               {goingAthletes.length > 0 && (
                                 <div>
-                                  <p className="mb-2 font-medium text-muted-foreground text-xs">
+                                  <p className="text-xs font-medium text-muted-foreground mb-2">
                                     Athletes
                                   </p>
                                   <div className="space-y-0.5">
                                     {goingAthletes.map((athlete) =>
-                                      renderUserItem(athlete, false, "going")
+                                      renderUserItem(athlete, false, "going"),
                                     )}
                                   </div>
                                 </div>
                               )}
                               {goingCoaches.length === 0 &&
                                 goingAthletes.length === 0 && (
-                                  <div className="py-8 text-center text-muted-foreground text-sm">
+                                  <div className="text-center text-sm text-muted-foreground py-8">
                                     No one is going
                                   </div>
                                 )}
                             </div>
                           </TabsContent>
-                          <TabsContent className="mt-0" value="not_going">
+                          <TabsContent value="not_going" className="mt-0">
                             <div className="space-y-0.5">
                               {notGoingCoaches.length > 0 && (
                                 <div>
-                                  <p className="mb-2 font-medium text-muted-foreground text-xs">
+                                  <p className="text-xs font-medium text-muted-foreground mb-2">
                                     Coaches
                                   </p>
                                   <div className="space-y-0.5">
                                     {notGoingCoaches.map((coach) =>
-                                      renderUserItem(coach, true, "not_going")
+                                      renderUserItem(coach, true, "not_going"),
                                     )}
                                   </div>
                                 </div>
                               )}
                               {notGoingAthletes.length > 0 && (
                                 <div>
-                                  <p className="mb-2 font-medium text-muted-foreground text-xs">
+                                  <p className="text-xs font-medium text-muted-foreground mb-2">
                                     Athletes
                                   </p>
                                   <div className="space-y-0.5">
@@ -2787,49 +2841,49 @@ export default function EventsPage() {
                                       renderUserItem(
                                         athlete,
                                         false,
-                                        "not_going"
-                                      )
+                                        "not_going",
+                                      ),
                                     )}
                                   </div>
                                 </div>
                               )}
                               {notGoingCoaches.length === 0 &&
                                 notGoingAthletes.length === 0 && (
-                                  <div className="py-8 text-center text-muted-foreground text-sm">
+                                  <div className="text-center text-sm text-muted-foreground py-8">
                                     No one can't make it
                                   </div>
                                 )}
                             </div>
                           </TabsContent>
-                          <TabsContent className="mt-0" value="pending">
+                          <TabsContent value="pending" className="mt-0">
                             <div className="space-y-0.5">
                               {pendingCoaches.length > 0 && (
                                 <div>
-                                  <p className="mb-2 font-medium text-muted-foreground text-xs">
+                                  <p className="text-xs font-medium text-muted-foreground mb-2">
                                     Coaches
                                   </p>
                                   <div className="space-y-0.5">
                                     {pendingCoaches.map((coach) =>
-                                      renderUserItem(coach, true, "pending")
+                                      renderUserItem(coach, true, "pending"),
                                     )}
                                   </div>
                                 </div>
                               )}
                               {pendingAthletes.length > 0 && (
                                 <div>
-                                  <p className="mb-2 font-medium text-muted-foreground text-xs">
+                                  <p className="text-xs font-medium text-muted-foreground mb-2">
                                     Athletes
                                   </p>
                                   <div className="space-y-0.5">
                                     {pendingAthletes.map((athlete) =>
-                                      renderUserItem(athlete, false, "pending")
+                                      renderUserItem(athlete, false, "pending"),
                                     )}
                                   </div>
                                 </div>
                               )}
                               {pendingCoaches.length === 0 &&
                                 pendingAthletes.length === 0 && (
-                                  <div className="py-8 text-center text-muted-foreground text-sm">
+                                  <div className="text-center text-sm text-muted-foreground py-8">
                                     Everyone has responded
                                   </div>
                                 )}
@@ -2843,11 +2897,11 @@ export default function EventsPage() {
               </div>
             ) : selectedOccurrence ? (
               <>
-                <div className="shrink-0 border-b p-4">
+                <div className="p-4 shrink-0 border-b">
                   <h2 className="font-semibold text-lg">
                     {selectedEvent?.title}
                   </h2>
-                  <p className="mt-1 text-muted-foreground text-sm">
+                  <p className="text-sm text-muted-foreground mt-1">
                     {formatDate(selectedOccurrence.date).weekday},{" "}
                     {formatDate(selectedOccurrence.date).month}{" "}
                     {formatDate(selectedOccurrence.date).day} •{" "}
@@ -2856,13 +2910,13 @@ export default function EventsPage() {
                 </div>
                 <div className="flex-1 overflow-hidden">
                   {rsvpLoading ? (
-                    <div className="flex h-full flex-col p-4 pb-40">
-                      <Skeleton className="mb-4 h-12 w-full rounded-xl" />
+                    <div className="flex flex-col h-full p-4 pb-40">
+                      <Skeleton className="h-12 w-full mb-4 rounded-xl" />
                       <div className="space-y-3">
                         {[1, 2, 3, 4, 5].map((i) => (
                           <div
-                            className="flex items-center gap-3 rounded-xl p-3"
                             key={i}
+                            className="flex items-center gap-3 p-3 rounded-xl"
                           >
                             <Skeleton className="h-12 w-12 rounded-xl" />
                             <div className="flex-1 space-y-2">
@@ -2876,22 +2930,22 @@ export default function EventsPage() {
                     </div>
                   ) : (
                     <Tabs
-                      className="flex h-full min-h-0 flex-col"
+                      value={coachFilterTab}
                       onValueChange={(value) =>
                         setCoachFilterTab(value as typeof coachFilterTab)
                       }
-                      value={coachFilterTab}
+                      className="h-full flex flex-col min-h-0"
                     >
                       <TabsContent
-                        className="mt-0 min-h-0 flex-1 overflow-auto p-4 pb-40"
                         value="all"
+                        className="flex-1 overflow-auto mt-0 p-4 pb-40 min-h-0"
                       >
                         {gymMembersLoading ? (
                           <div className="space-y-3">
                             {[1, 2, 3].map((i) => (
                               <div
-                                className="flex items-center gap-3 rounded-xl p-3"
                                 key={i}
+                                className="flex items-center gap-3 p-3 rounded-xl"
                               >
                                 <Skeleton className="h-10 w-10 rounded-xl" />
                                 <div className="flex-1 space-y-2">
@@ -2904,29 +2958,26 @@ export default function EventsPage() {
                           </div>
                         ) : (
                           <UserList
-                            currentUserRole={currentUserRole}
-                            getInitials={getInitials}
-                            onEditRsvp={handleEditRsvp}
                             users={gymMembers.map((m) => ({
                               ...m,
                               status:
                                 occurrenceRsvps.find((r) => r.id === m.id)
                                   ?.status || null,
                             }))}
+                            getInitials={getInitials}
+                            onEditRsvp={handleEditRsvp}
+                            currentUserRole={currentUserRole}
                           />
                         )}
                       </TabsContent>
                       <TabsContent
-                        className="mt-0 flex-1 overflow-auto p-4 pb-40"
                         value="going"
+                        className="flex-1 overflow-auto mt-0 p-4 pb-40"
                       >
                         <UserList
-                          currentUserRole={currentUserRole}
-                          getInitials={getInitials}
-                          onEditRsvp={handleEditRsvp}
                           users={goingUsers.map((u) => {
                             const member = gymMembers.find(
-                              (m) => m.id === u.id
+                              (m) => m.id === u.id,
                             );
                             // Use role from RSVP user object first, then fall back to gymMembers
                             return {
@@ -2935,19 +2986,19 @@ export default function EventsPage() {
                               role: u.role || member?.role,
                             };
                           })}
+                          getInitials={getInitials}
+                          onEditRsvp={handleEditRsvp}
+                          currentUserRole={currentUserRole}
                         />
                       </TabsContent>
                       <TabsContent
-                        className="mt-0 flex-1 overflow-auto p-4 pb-40"
                         value="not_going"
+                        className="flex-1 overflow-auto mt-0 p-4 pb-40"
                       >
                         <UserList
-                          currentUserRole={currentUserRole}
-                          getInitials={getInitials}
-                          onEditRsvp={handleEditRsvp}
                           users={notGoingUsers.map((u) => {
                             const member = gymMembers.find(
-                              (m) => m.id === u.id
+                              (m) => m.id === u.id,
                             );
                             // Use role from RSVP user object first, then fall back to gymMembers
                             return {
@@ -2956,20 +3007,23 @@ export default function EventsPage() {
                               role: u.role || member?.role,
                             };
                           })}
+                          getInitials={getInitials}
+                          onEditRsvp={handleEditRsvp}
+                          currentUserRole={currentUserRole}
                         />
                       </TabsContent>
                       <TabsContent
-                        className="mt-0 flex-1 overflow-auto p-4 pb-40"
                         value="pending"
+                        className="flex-1 overflow-auto mt-0 p-4 pb-40"
                       >
                         <UserList
-                          currentUserRole={currentUserRole}
-                          getInitials={getInitials}
-                          onEditRsvp={handleEditRsvp}
                           users={notAnsweredUsers.map((u) => ({
                             ...u,
                             status: null,
                           }))}
+                          getInitials={getInitials}
+                          onEditRsvp={handleEditRsvp}
+                          currentUserRole={currentUserRole}
                         />
                       </TabsContent>
                     </Tabs>
@@ -2977,9 +3031,9 @@ export default function EventsPage() {
                 </div>
               </>
             ) : (
-              <div className="flex flex-1 items-center justify-center text-muted-foreground">
+              <div className="flex-1 flex items-center justify-center text-muted-foreground">
                 <div className="text-center">
-                  <IconUsers className="mx-auto mb-4 h-12 w-12 opacity-20" />
+                  <IconUsers className="h-12 w-12 mx-auto mb-4 opacity-20" />
                   <p className="text-sm">Select a session to view details</p>
                 </div>
               </div>
@@ -2988,39 +3042,98 @@ export default function EventsPage() {
 
           {/* Chat Tab */}
           <TabsContent
-            className="m-0 flex min-h-0 flex-1 flex-col overflow-hidden"
-            key={`chat-${selectedEvent?.id || selectedEventForAthlete?.id || "none"}-${mobileView}`}
             value="chat"
+            key={`chat-${selectedEvent?.id || selectedEventForAthlete?.id || "none"}-${mobileView}`}
+            className="m-0 flex min-h-0 flex-1 flex-col overflow-hidden"
+            forceMount={mobileView === "chat" ? true : undefined}
           >
-            {selectedEvent && eventChannelId ? (
-              <EventChatContent
-                channelId={eventChannelId}
-                eventTitle={selectedEvent.title}
-                onChannelLoad={setEventChannelId}
-              />
-            ) : selectedEvent ? (
-              <EventChatContent
-                eventId={selectedEvent.id}
-                eventTitle={selectedEvent.title}
-                onChannelLoad={setEventChannelId}
-              />
-            ) : selectedEventForAthlete && athleteEventChannelId ? (
-              <EventChatContent
-                channelId={athleteEventChannelId}
-                eventTitle={selectedEventForAthlete.title}
-                onChannelLoad={setAthleteEventChannelId}
-              />
-            ) : selectedEventForAthlete ? (
-              <EventChatContent
-                eventId={selectedEventForAthlete.id}
-                eventTitle={selectedEventForAthlete.title}
-                onChannelLoad={setAthleteEventChannelId}
-              />
-            ) : (
-              <div className="flex flex-1 items-center justify-center text-muted-foreground">
-                <p>Select an event to view chat</p>
-              </div>
-            )}
+            {(() => {
+              // Determine which event to use for chat
+              const eventForChat =
+                currentUserRole === "athlete"
+                  ? selectedEventForAthlete
+                  : selectedEvent;
+              const channelIdForChat =
+                currentUserRole === "athlete"
+                  ? athleteEventChannelId
+                  : eventChannelId;
+              const setChannelIdForChat =
+                currentUserRole === "athlete"
+                  ? setAthleteEventChannelId
+                  : setEventChannelId;
+
+              // If we have an occurrence selected but no event, try to get event from occurrence
+              if (!eventForChat) {
+                const eventForOccurrence = findEventForOccurrence(selectedOccurrence);
+                if (eventForOccurrence) {
+                  // Event should be set, but if not, use occurrence's event
+                  return (
+                    <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
+                      <EventChatContent
+                        eventId={eventForOccurrence.id}
+                        eventTitle={eventForOccurrence.title}
+                        onChannelLoad={setChannelIdForChat}
+                      />
+                    </div>
+                  );
+                } else if (
+                  selectedOccurrenceForAthleteDetail &&
+                  selectedEventForAthlete
+                ) {
+                  // For athletes, use selectedEventForAthlete
+                  return (
+                    <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
+                      {athleteEventChannelId ? (
+                        <EventChatContent
+                          channelId={athleteEventChannelId}
+                          eventTitle={selectedEventForAthlete.title}
+                          onChannelLoad={setAthleteEventChannelId}
+                        />
+                      ) : (
+                        <EventChatContent
+                          eventId={selectedEventForAthlete.id}
+                          eventTitle={selectedEventForAthlete.title}
+                          onChannelLoad={setAthleteEventChannelId}
+                        />
+                      )}
+                    </div>
+                  );
+                }
+              }
+
+              // Render chat content with proper event
+              if (eventForChat && channelIdForChat) {
+                return (
+                  <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
+                    <EventChatContent
+                      channelId={channelIdForChat}
+                      eventTitle={eventForChat.title}
+                      onChannelLoad={setChannelIdForChat}
+                    />
+                  </div>
+                );
+              } else if (eventForChat) {
+                return (
+                  <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
+                    <EventChatContent
+                      eventId={eventForChat.id}
+                      eventTitle={eventForChat.title}
+                      onChannelLoad={setChannelIdForChat}
+                    />
+                  </div>
+                );
+              }
+
+              // Fallback: no event selected
+              return (
+                <div className="flex flex-1 items-center justify-center text-muted-foreground p-4">
+                  <div className="text-center">
+                    <IconMessageCircle className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                    <p className="text-sm">Select an event to view chat</p>
+                  </div>
+                </div>
+              );
+            })()}
           </TabsContent>
         </Tabs>
 
@@ -3032,27 +3145,18 @@ export default function EventsPage() {
             (currentUserRole !== "athlete" &&
               selectedOccurrence &&
               selectedOccurrence.status !== "canceled")) && (
-            <div className="fixed right-0 bottom-16 left-0 z-40 border-t bg-background/95 p-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 lg:hidden">
+            <div className="fixed bottom-16 left-0 right-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t p-4 lg:hidden">
               <div className="grid grid-cols-2 gap-2">
                 {/* Going Button */}
                 <Button
-                  className={`h-9 w-full gap-2 rounded-sm px-3 ${
-                    currentUserRsvps.get(
-                      currentUserRole === "athlete"
-                        ? selectedOccurrenceForAthleteDetail?.id || ""
-                        : selectedOccurrence?.id || ""
-                    ) === "going"
-                      ? "!bg-emerald-600 hover:!bg-emerald-700 !text-white border-emerald-600"
-                      : "border-emerald-400 text-emerald-400 hover:bg-emerald-50 hover:text-emerald-500 dark:hover:bg-emerald-950"
-                  }`}
+                  size="sm"
+                  variant="outline"
                   onClick={async () => {
                     const occurrenceId =
                       currentUserRole === "athlete"
                         ? selectedOccurrenceForAthleteDetail?.id
                         : selectedOccurrence?.id;
-                    if (!occurrenceId) {
-                      return;
-                    }
+                    if (!occurrenceId) return;
                     const response = await fetch("/api/rsvp", {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
@@ -3067,19 +3171,24 @@ export default function EventsPage() {
                         newMap.set(occurrenceId, "going");
                         return newMap;
                       });
-                      if (occurrenceId) {
-                        loadOccurrenceRsvps(occurrenceId);
-                      }
+                      if (occurrenceId) loadOccurrenceRsvps(occurrenceId);
                     }
                   }}
-                  size="sm"
-                  variant="outline"
+                  className={`h-9 rounded-sm gap-2 px-3 w-full ${
+                    currentUserRsvps.get(
+                      currentUserRole === "athlete"
+                        ? selectedOccurrenceForAthleteDetail?.id || ""
+                        : selectedOccurrence?.id || "",
+                    ) === "going"
+                      ? "!bg-emerald-600 hover:!bg-emerald-700 !text-white border-emerald-600"
+                      : "border-emerald-400 text-emerald-400 hover:bg-emerald-50 hover:text-emerald-500 dark:hover:bg-emerald-950"
+                  }`}
                 >
                   <IconCheck className="h-4 w-4" />
                   {currentUserRsvps.get(
                     currentUserRole === "athlete"
                       ? selectedOccurrenceForAthleteDetail?.id || ""
-                      : selectedOccurrence?.id || ""
+                      : selectedOccurrence?.id || "",
                   ) === "going"
                     ? "Going!"
                     : "Going"}
@@ -3087,23 +3196,14 @@ export default function EventsPage() {
 
                 {/* Not Going Button */}
                 <Button
-                  className={`h-9 w-full gap-2 rounded-sm px-3 ${
-                    currentUserRsvps.get(
-                      currentUserRole === "athlete"
-                        ? selectedOccurrenceForAthleteDetail?.id || ""
-                        : selectedOccurrence?.id || ""
-                    ) === "not_going"
-                      ? "!bg-red-600 hover:!bg-red-700 !text-white border-red-600"
-                      : "border-red-400 text-red-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950"
-                  }`}
+                  size="sm"
+                  variant="outline"
                   onClick={async () => {
                     const occurrenceId =
                       currentUserRole === "athlete"
                         ? selectedOccurrenceForAthleteDetail?.id
                         : selectedOccurrence?.id;
-                    if (!occurrenceId) {
-                      return;
-                    }
+                    if (!occurrenceId) return;
                     const response = await fetch("/api/rsvp", {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
@@ -3118,13 +3218,18 @@ export default function EventsPage() {
                         newMap.set(occurrenceId, "not_going");
                         return newMap;
                       });
-                      if (occurrenceId) {
-                        loadOccurrenceRsvps(occurrenceId);
-                      }
+                      if (occurrenceId) loadOccurrenceRsvps(occurrenceId);
                     }
                   }}
-                  size="sm"
-                  variant="outline"
+                  className={`h-9 rounded-sm gap-2 px-3 w-full ${
+                    currentUserRsvps.get(
+                      currentUserRole === "athlete"
+                        ? selectedOccurrenceForAthleteDetail?.id || ""
+                        : selectedOccurrence?.id || "",
+                    ) === "not_going"
+                      ? "!bg-red-600 hover:!bg-red-700 !text-white border-red-600"
+                      : "border-red-400 text-red-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950"
+                  }`}
                 >
                   <IconX className="h-4 w-4" />
                   Not Going
@@ -3136,11 +3241,11 @@ export default function EventsPage() {
                   selectedOccurrence &&
                   selectedOccurrence.status !== "canceled" && (
                     <Button
-                      className="h-9 w-full gap-2 rounded-sm px-3"
-                      disabled={sendingReminder}
-                      onClick={handleSendReminders}
-                      size="sm"
                       variant="outline"
+                      size="sm"
+                      onClick={handleSendReminders}
+                      disabled={sendingReminder}
+                      className="h-9 w-full gap-2 rounded-sm px-3"
                     >
                       <IconBell className="h-4 w-4" />
                       {sendingReminder
@@ -3152,15 +3257,15 @@ export default function EventsPage() {
                 {/* Cancel Session Button - Only for coaches/owners */}
                 {currentUserRole !== "athlete" && (
                   <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCancelDialogOpen(true)}
                     className={`h-9 w-full gap-2 rounded-sm px-3 text-destructive hover:text-destructive ${
                       notAnsweredUsers.length > 0 &&
                       selectedOccurrence?.status !== "canceled"
                         ? ""
                         : "col-span-2"
                     }`}
-                    onClick={() => setCancelDialogOpen(true)}
-                    size="sm"
-                    variant="outline"
                   >
                     <IconBan className="h-4 w-4" />
                     Cancel Session
@@ -3185,17 +3290,17 @@ export default function EventsPage() {
             return occDate >= today && occ.status === "scheduled";
           })
           .sort(
-            (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+            (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
           )
       : [];
 
     // Filter RSVPs: show coaches individually, athletes as counts only
     const occurrenceRsvpsForAthlete = occurrenceRsvps || [];
     const goingUsers = occurrenceRsvpsForAthlete.filter(
-      (r) => r.status === "going"
+      (r) => r.status === "going",
     );
     const notGoingUsers = occurrenceRsvpsForAthlete.filter(
-      (r) => r.status === "not_going"
+      (r) => r.status === "not_going",
     );
 
     // Get IDs of users who have RSVP'd
@@ -3203,25 +3308,15 @@ export default function EventsPage() {
 
     // Helper function to determine if user is coach/owner (use role from RSVP first, then gymMembers)
     const isCoachOrOwner = (userId: string, userRole?: string): boolean => {
-      if (userRole === "coach" || userRole === "owner") {
-        return true;
-      }
+      if (userRole === "coach" || userRole === "owner") return true;
       const member = gymMembers.find((m) => m.id === userId);
-      return (
-        member?.role === "coach" ||
-        member?.role === "owner" ||
-        member?.role === "manager"
-      );
+      return member?.role === "coach" || member?.role === "owner";
     };
 
     // Helper function to determine if user is athlete (use role from RSVP first, then gymMembers)
     const isAthlete = (userId: string, userRole?: string): boolean => {
-      if (userRole === "athlete") {
-        return true;
-      }
-      if (userRole === "coach" || userRole === "owner") {
-        return false;
-      }
+      if (userRole === "athlete") return true;
+      if (userRole === "coach" || userRole === "owner") return false;
       const member = gymMembers.find((m) => m.id === userId);
       return member?.role === "athlete" || !member?.role;
     };
@@ -3262,11 +3357,10 @@ export default function EventsPage() {
       });
 
     // Pending coaches: those who haven't RSVP'd at all (not in rsvpedUserIds)
-    // Only include coaches/owners/managers, and always include current user if they're a coach/owner/manager
+    // Only include coaches/owners, and always include current user if they're a coach/owner
     const pendingCoaches = gymMembers
       .filter((m) => {
-        const isCoach =
-          m.role === "coach" || m.role === "owner" || m.role === "manager";
+        const isCoach = m.role === "coach" || m.role === "owner";
         return isCoach && !rsvpedUserIds.has(m.id);
       })
       .map((m) => ({
@@ -3314,7 +3408,7 @@ export default function EventsPage() {
     if (currentUserId) {
       const currentUserMember = gymMembers.find((m) => m.id === currentUserId);
       const currentUserRsvp = occurrenceRsvpsForAthlete.find(
-        (r) => r.id === currentUserId
+        (r) => r.id === currentUserId,
       );
       // Determine role: use RSVP role first, then gymMembers role, then assume athlete if none
       const currentUserRole = currentUserRsvp?.role || currentUserMember?.role;
@@ -3322,19 +3416,19 @@ export default function EventsPage() {
       // Check if current user is already in any list
       const isInGoingCoaches = goingCoaches.some((u) => u.id === currentUserId);
       const isInGoingAthletes = goingAthletes.some(
-        (u) => u.id === currentUserId
+        (u) => u.id === currentUserId,
       );
       const isInNotGoingCoaches = notGoingCoaches.some(
-        (u) => u.id === currentUserId
+        (u) => u.id === currentUserId,
       );
       const isInNotGoingAthletes = notGoingAthletes.some(
-        (u) => u.id === currentUserId
+        (u) => u.id === currentUserId,
       );
       const isInPendingCoaches = pendingCoaches.some(
-        (u) => u.id === currentUserId
+        (u) => u.id === currentUserId,
       );
       const isInPendingAthletes = pendingAthletes.some(
-        (u) => u.id === currentUserId
+        (u) => u.id === currentUserId,
       );
 
       const isCurrentUserCoach = isCoachOrOwner(currentUserId, currentUserRole);
@@ -3342,14 +3436,12 @@ export default function EventsPage() {
 
       // If current user is not in any list, add them to the appropriate pending list
       if (
-        !(
-          isInGoingCoaches ||
-          isInGoingAthletes ||
-          isInNotGoingCoaches ||
-          isInNotGoingAthletes ||
-          isInPendingCoaches ||
-          isInPendingAthletes
-        )
+        !isInGoingCoaches &&
+        !isInGoingAthletes &&
+        !isInNotGoingCoaches &&
+        !isInNotGoingAthletes &&
+        !isInPendingCoaches &&
+        !isInPendingAthletes
       ) {
         // Create entry from RSVP data if available, otherwise from gymMembers, or create minimal entry
         const currentUserEntry = currentUserRsvp
@@ -3402,17 +3494,17 @@ export default function EventsPage() {
       : null;
 
     return (
-      <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
-        <PageHeader description="View all upcoming events" title="Events" />
-        <div className="flex h-0 min-h-0 flex-1 gap-4 overflow-hidden">
+      <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
+        <PageHeader title="Events" description="View all upcoming events" />
+        <div className="flex flex-1 overflow-hidden gap-4 min-h-0 h-0">
           {/* Events Sidebar */}
-          <div className="flex h-full min-h-0 w-64 flex-col overflow-hidden rounded-xl border bg-card shadow-sm">
+          <div className="w-64 flex flex-col bg-card border rounded-xl shadow-sm overflow-hidden min-h-0 h-full">
             <ScrollArea className="h-full">
               <div className="p-2">
                 {initialLoading ? (
                   <div className="space-y-2">
                     {[1, 2, 3].map((i) => (
-                      <div className="w-full space-y-2 rounded-xl p-3" key={i}>
+                      <div key={i} className="w-full rounded-xl p-3 space-y-2">
                         <Skeleton className="h-4 w-3/4 rounded" />
                         <div className="flex items-center gap-2">
                           <Skeleton className="h-3 w-16 rounded" />
@@ -3423,7 +3515,7 @@ export default function EventsPage() {
                     ))}
                   </div>
                 ) : events.length === 0 ? (
-                  <div className="p-4 text-center text-muted-foreground text-sm">
+                  <div className="p-4 text-center text-sm text-muted-foreground">
                     No upcoming events
                   </div>
                 ) : (
@@ -3434,19 +3526,12 @@ export default function EventsPage() {
                       today.setHours(0, 0, 0, 0);
                       return occDate >= today && occ.status === "scheduled";
                     });
-                    if (upcomingOccs.length === 0) {
-                      return null;
-                    }
+                    if (upcomingOccs.length === 0) return null;
 
                     return (
-                      <div className="group relative mb-1" key={event.id}>
+                      <div key={event.id} className="relative group mb-1">
                         <button
-                          className={`w-full rounded-xl p-3 text-left transition-all ${
-                            selectedEventForAthlete?.id === event.id &&
-                            (!isEventsMobile || mobileView !== "events")
-                              ? "bg-primary text-primary-foreground"
-                              : "hover:bg-muted"
-                          }`}
+                          type="button"
                           onClick={() => {
                             // If clicking the same event that's already selected, deselect it
                             if (selectedEventForAthlete?.id === event.id) {
@@ -3456,18 +3541,23 @@ export default function EventsPage() {
                               setSelectedEventForAthlete(event);
                               if (upcomingOccs.length > 0) {
                                 setSelectedOccurrenceForAthleteDetail(
-                                  upcomingOccs[0]
+                                  upcomingOccs[0],
                                 );
                               }
                             }
                           }}
-                          type="button"
+                          className={`w-full text-left p-3 rounded-xl transition-all ${
+                            selectedEventForAthlete?.id === event.id &&
+                            (!isEventsMobile || mobileView !== "events")
+                              ? "bg-primary text-primary-foreground"
+                              : "hover:bg-muted"
+                          }`}
                         >
-                          <p className="truncate pr-6 font-medium text-sm">
+                          <p className="font-medium truncate text-sm pr-6">
                             {event.title}
                           </p>
                           <div
-                            className={`mt-1.5 flex items-center gap-2 text-xs ${
+                            className={`flex items-center gap-2 mt-1.5 text-xs ${
                               selectedEventForAthlete?.id === event.id &&
                               (!isEventsMobile || mobileView !== "events")
                                 ? "text-primary-foreground/70"
@@ -3490,12 +3580,12 @@ export default function EventsPage() {
           </div>
 
           {/* Occurrences List */}
-          <div className="flex h-full min-h-0 w-72 flex-col overflow-hidden rounded-xl border bg-card shadow-sm">
+          <div className="w-72 flex flex-col bg-card border rounded-xl shadow-sm overflow-hidden min-h-0 h-full">
             {selectedEventForAthlete ? (
               <ScrollArea className="h-full">
                 <div className="p-2">
                   {selectedEventOccurrences.length === 0 ? (
-                    <div className="p-4 text-center text-muted-foreground text-sm">
+                    <div className="p-4 text-center text-sm text-muted-foreground">
                       No upcoming sessions
                     </div>
                   ) : (
@@ -3503,64 +3593,64 @@ export default function EventsPage() {
                       const dateInfo = formatDate(occ.date);
                       return (
                         <button
-                          className={`mb-1 flex w-full items-center gap-4 rounded-xl p-3 text-left transition-all ${
+                          key={occ.id}
+                          type="button"
+                          onClick={() =>
+                            setSelectedOccurrenceForAthleteDetail(occ)
+                          }
+                          className={`w-full text-left p-3 rounded-xl mb-1 transition-all flex items-center gap-4 ${
                             selectedOccurrenceForAthleteDetail?.id === occ.id
                               ? "bg-primary/10 ring-1 ring-primary"
                               : "hover:bg-muted"
                           } ${occ.status === "canceled" ? "opacity-40" : ""}`}
-                          key={occ.id}
-                          onClick={() =>
-                            setSelectedOccurrenceForAthleteDetail(occ)
-                          }
-                          type="button"
                         >
                           <div
-                            className={`flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-xl ${
+                            className={`h-14 w-14 rounded-xl flex flex-col items-center justify-center shrink-0 ${
                               selectedOccurrenceForAthleteDetail?.id === occ.id
                                 ? "bg-primary text-primary-foreground"
                                 : "bg-muted"
                             }`}
                           >
-                            <span className="font-bold text-xl leading-none">
+                            <span className="text-xl font-bold leading-none">
                               {dateInfo.day}
                             </span>
-                            <span className="mt-0.5 font-medium text-[10px] opacity-70">
+                            <span className="text-[10px] font-medium opacity-70 mt-0.5">
                               {dateInfo.month}
                             </span>
                           </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="whitespace-nowrap font-medium text-sm">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm whitespace-nowrap">
                               {dateInfo.weekday}
                             </p>
-                            <p className="text-muted-foreground text-xs">
+                            <p className="text-xs text-muted-foreground">
                               {formatTime(selectedEventForAthlete.startTime)}
                             </p>
                           </div>
-                          <div className="flex shrink-0 items-center gap-2">
+                          <div className="flex items-center gap-2 shrink-0">
                             {/* User's RSVP Status */}
                             {occurrenceRsvpsLoading ? (
-                              <Skeleton className="h-5 w-5 shrink-0 rounded" />
+                              <Skeleton className="h-5 w-5 rounded shrink-0" />
                             ) : (
                               (() => {
                                 const userRsvpStatus = currentUserRsvps.get(
-                                  occ.id
+                                  occ.id,
                                 );
                                 if (userRsvpStatus === "going") {
                                   return (
-                                    <div className="flex shrink-0 items-center text-emerald-600">
+                                    <div className="flex items-center text-emerald-600 shrink-0">
                                       <IconCheck className="h-5 w-5" />
                                     </div>
                                   );
                                 }
                                 if (userRsvpStatus === "not_going") {
                                   return (
-                                    <div className="flex shrink-0 items-center text-red-600">
+                                    <div className="flex items-center text-red-600 shrink-0">
                                       <IconX className="h-5 w-5" />
                                     </div>
                                   );
                                 }
                                 return (
-                                  <div className="flex shrink-0 items-center text-amber-600">
+                                  <div className="flex items-center text-amber-600 shrink-0">
                                     <IconBell className="h-4 w-4" />
                                   </div>
                                 );
@@ -3568,8 +3658,8 @@ export default function EventsPage() {
                             )}
                             {occ.status === "canceled" && (
                               <Badge
-                                className="text-[10px]"
                                 variant="destructive"
+                                className="text-[10px]"
                               >
                                 Canceled
                               </Badge>
@@ -3582,22 +3672,22 @@ export default function EventsPage() {
                 </div>
               </ScrollArea>
             ) : (
-              <div className="flex flex-1 items-center justify-center text-muted-foreground text-sm">
+              <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground">
                 Select an event
               </div>
             )}
           </div>
 
           {/* Event Detail */}
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border bg-card shadow-sm">
+          <div className="flex-1 flex flex-col bg-card border rounded-xl shadow-sm overflow-hidden min-h-0">
             {selectedOccurrenceForAthleteDetail ? (
               <>
-                <div className="flex shrink-0 items-center justify-between gap-4 border-b p-4">
+                <div className="p-4 border-b flex items-center justify-between shrink-0 gap-4">
                   <div>
                     <h3 className="font-semibold">
                       {selectedEventForAthlete?.title}
                     </h3>
-                    <p className="text-muted-foreground text-sm">
+                    <p className="text-sm text-muted-foreground">
                       {
                         formatDate(selectedOccurrenceForAthleteDetail.date)
                           .weekday
@@ -3611,13 +3701,10 @@ export default function EventsPage() {
                       • {formatTime(selectedEventForAthlete?.startTime)}
                     </p>
                   </div>
-                  <div className="flex shrink-0 gap-2">
+                  <div className="flex gap-2 shrink-0">
                     <Button
-                      className={`h-9 gap-1.5 rounded-xl px-3 ${
-                        currentUserRsvpForOccurrence === "going"
-                          ? "!bg-emerald-600 hover:!bg-emerald-700 !text-white border-emerald-600"
-                          : "border-emerald-400 text-emerald-400 hover:bg-emerald-50 hover:text-emerald-500 dark:hover:bg-emerald-950"
-                      }`}
+                      size="sm"
+                      variant="outline"
                       onClick={async () => {
                         const response = await fetch("/api/rsvp", {
                           method: "POST",
@@ -3632,17 +3719,20 @@ export default function EventsPage() {
                             const newMap = new Map(prev);
                             newMap.set(
                               selectedOccurrenceForAthleteDetail.id,
-                              "going"
+                              "going",
                             );
                             return newMap;
                           });
                           loadOccurrenceRsvps(
-                            selectedOccurrenceForAthleteDetail.id
+                            selectedOccurrenceForAthleteDetail.id,
                           );
                         }
                       }}
-                      size="sm"
-                      variant="outline"
+                      className={`h-9 rounded-xl gap-1.5 px-3 ${
+                        currentUserRsvpForOccurrence === "going"
+                          ? "!bg-emerald-600 hover:!bg-emerald-700 !text-white border-emerald-600"
+                          : "border-emerald-400 text-emerald-400 hover:bg-emerald-50 hover:text-emerald-500 dark:hover:bg-emerald-950"
+                      }`}
                     >
                       <IconCheck className="h-4 w-4" />
                       {currentUserRsvpForOccurrence === "going"
@@ -3650,11 +3740,8 @@ export default function EventsPage() {
                         : "Going"}
                     </Button>
                     <Button
-                      className={`h-9 gap-1.5 rounded-xl px-3 ${
-                        currentUserRsvpForOccurrence === "not_going"
-                          ? "!bg-red-600 hover:!bg-red-700 !text-white border-red-600"
-                          : "border-red-400 text-red-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950"
-                      }`}
+                      size="sm"
+                      variant="outline"
                       onClick={async () => {
                         const response = await fetch("/api/rsvp", {
                           method: "POST",
@@ -3669,17 +3756,20 @@ export default function EventsPage() {
                             const newMap = new Map(prev);
                             newMap.set(
                               selectedOccurrenceForAthleteDetail.id,
-                              "not_going"
+                              "not_going",
                             );
                             return newMap;
                           });
                           loadOccurrenceRsvps(
-                            selectedOccurrenceForAthleteDetail.id
+                            selectedOccurrenceForAthleteDetail.id,
                           );
                         }
                       }}
-                      size="sm"
-                      variant="outline"
+                      className={`h-9 rounded-xl gap-1.5 px-3 ${
+                        currentUserRsvpForOccurrence === "not_going"
+                          ? "!bg-red-600 hover:!bg-red-700 !text-white border-red-600"
+                          : "border-red-400 text-red-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950"
+                      }`}
                     >
                       <IconX className="h-4 w-4" />
                       Can't
@@ -3687,39 +3777,39 @@ export default function EventsPage() {
                   </div>
                 </div>
                 <Tabs
-                  className="flex min-h-0 flex-1 flex-col"
+                  value={athleteEventDetailTab}
                   onValueChange={(value) =>
                     setAthleteEventDetailTab(
-                      value as typeof athleteEventDetailTab
+                      value as typeof athleteEventDetailTab,
                     )
                   }
-                  value={athleteEventDetailTab}
+                  className="flex-1 flex flex-col min-h-0"
                 >
-                  <div className="shrink-0 border-b px-4 py-4">
-                    <TabsList className="grid h-10 w-full grid-cols-2 rounded-xl">
+                  <div className="px-4 py-4 shrink-0 border-b">
+                    <TabsList className="w-full grid grid-cols-2 h-10 rounded-xl">
                       <TabsTrigger
-                        className="rounded-lg text-xs"
                         value="details"
+                        className="text-xs rounded-lg"
                       >
                         Details
                       </TabsTrigger>
-                      <TabsTrigger className="rounded-lg text-xs" value="chat">
+                      <TabsTrigger value="chat" className="text-xs rounded-lg">
                         Chat
                       </TabsTrigger>
                     </TabsList>
                   </div>
                   <TabsContent
-                    className="mt-0 min-h-0 flex-1 overflow-hidden"
                     value="details"
+                    className="flex-1 overflow-hidden mt-0 min-h-0"
                   >
                     {rsvpLoading ? (
-                      <div className="flex h-full flex-col p-4">
-                        <Skeleton className="mb-4 h-10 w-full rounded-xl" />
+                      <div className="flex flex-col h-full p-4">
+                        <Skeleton className="h-10 w-full mb-4 rounded-xl" />
                         <div className="space-y-3">
                           {[1, 2, 3, 4, 5].map((i) => (
                             <div
-                              className="flex items-center gap-3 rounded-xl p-3"
                               key={i}
+                              className="flex items-center gap-3 p-3 rounded-xl"
                             >
                               <Skeleton className="h-10 w-10 rounded-xl" />
                               <div className="flex-1 space-y-2">
@@ -3732,15 +3822,15 @@ export default function EventsPage() {
                         </div>
                       </div>
                     ) : (
-                      <div className="flex h-full flex-col">
+                      <div className="flex flex-col h-full">
                         {/* Event Description */}
                         {selectedEventForAthlete?.description && (
-                          <div className="border-b p-4">
-                            <p className="whitespace-pre-wrap text-muted-foreground text-sm">
+                          <div className="p-4 border-b">
+                            <p className="text-sm text-muted-foreground whitespace-pre-wrap">
                               {selectedEventForAthlete.description}
                             </p>
                             {selectedEventForAthlete.location && (
-                              <p className="mt-2 text-muted-foreground text-sm">
+                              <p className="text-sm text-muted-foreground mt-2">
                                 📍 {selectedEventForAthlete.location}
                               </p>
                             )}
@@ -3751,11 +3841,11 @@ export default function EventsPage() {
                         <div className="flex-1 overflow-auto p-4">
                           <div className="space-y-6">
                             {/* RSVP Lists */}
-                            <Tabs className="flex-1" defaultValue="all">
-                              <TabsList className="mb-4 grid h-10 w-full grid-cols-4 rounded-xl">
+                            <Tabs defaultValue="all" className="flex-1">
+                              <TabsList className="w-full grid grid-cols-4 h-10 rounded-xl mb-4">
                                 <TabsTrigger
-                                  className="rounded-lg text-xs"
                                   value="all"
+                                  className="text-xs rounded-lg"
                                 >
                                   All (
                                   {goingCoaches.length +
@@ -3767,15 +3857,15 @@ export default function EventsPage() {
                                   )
                                 </TabsTrigger>
                                 <TabsTrigger
-                                  className="rounded-lg text-xs"
                                   value="going"
+                                  className="text-xs rounded-lg"
                                 >
                                   Going (
                                   {goingCoaches.length + goingAthletes.length})
                                 </TabsTrigger>
                                 <TabsTrigger
-                                  className="rounded-lg text-xs"
                                   value="not_going"
+                                  className="text-xs rounded-lg"
                                 >
                                   Can't (
                                   {notGoingCoaches.length +
@@ -3783,8 +3873,8 @@ export default function EventsPage() {
                                   )
                                 </TabsTrigger>
                                 <TabsTrigger
-                                  className="rounded-lg text-xs"
                                   value="pending"
+                                  className="text-xs rounded-lg"
                                 >
                                   Pending (
                                   {pendingCoaches.length +
@@ -3792,7 +3882,7 @@ export default function EventsPage() {
                                   )
                                 </TabsTrigger>
                               </TabsList>
-                              <TabsContent className="mt-0" value="all">
+                              <TabsContent value="all" className="mt-0">
                                 <div className="space-y-3">
                                   {/* Combine all coaches and athletes into single arrays */}
                                   {(() => {
@@ -3838,11 +3928,11 @@ export default function EventsPage() {
 
                                     // Helper function to render status badge
                                     const renderStatusBadge = (
-                                      status: "going" | "not_going" | "pending"
+                                      status: "going" | "not_going" | "pending",
                                     ) => {
                                       if (status === "going") {
                                         return (
-                                          <div className="flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 font-medium text-emerald-600 text-xs dark:bg-emerald-950/50">
+                                          <div className="flex items-center gap-1 text-emerald-600 bg-emerald-100 dark:bg-emerald-950/50 px-2.5 py-1 rounded-full text-xs font-medium">
                                             <IconCheck className="h-3 w-3" />
                                             Going
                                           </div>
@@ -3850,14 +3940,14 @@ export default function EventsPage() {
                                       }
                                       if (status === "not_going") {
                                         return (
-                                          <div className="flex items-center gap-1 rounded-full bg-red-100 px-2.5 py-1 font-medium text-red-600 text-xs dark:bg-red-950/50">
+                                          <div className="flex items-center gap-1 text-red-600 bg-red-100 dark:bg-red-950/50 px-2.5 py-1 rounded-full text-xs font-medium">
                                             <IconX className="h-3 w-3" />
                                             Can't
                                           </div>
                                         );
                                       }
                                       return (
-                                        <div className="flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-1 font-medium text-amber-600 text-xs dark:bg-amber-950/50">
+                                        <div className="flex items-center gap-1 text-amber-600 bg-amber-100 dark:bg-amber-950/50 px-2.5 py-1 rounded-full text-xs font-medium">
                                           <IconBell className="h-3 w-3" />
                                           Pending
                                         </div>
@@ -3869,43 +3959,43 @@ export default function EventsPage() {
                                       user:
                                         | (typeof allCoaches)[0]
                                         | (typeof allAthletes)[0],
-                                      isCoach: boolean
+                                      isCoach: boolean,
                                     ) => {
                                       const phoneNumber =
                                         user.phone || user.cellPhone;
                                       return (
                                         <div
-                                          className="group flex items-center gap-3 rounded-xl p-3 transition-colors hover:bg-muted/50"
                                           key={user.id}
+                                          className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 transition-colors group"
                                         >
                                           <Avatar className="h-10 w-10 rounded-xl">
                                             <AvatarImage
                                               src={user.avatarUrl || undefined}
                                             />
-                                            <AvatarFallback className="rounded-xl bg-linear-to-br from-primary/20 to-primary/5 text-xs">
+                                            <AvatarFallback className="rounded-xl text-xs bg-linear-to-br from-primary/20 to-primary/5">
                                               {getInitials(
                                                 user.name,
-                                                user.email
+                                                user.email,
                                               )}
                                             </AvatarFallback>
                                           </Avatar>
-                                          <div className="min-w-0 flex-1">
-                                            <p className="truncate font-medium text-sm">
+                                          <div className="flex-1 min-w-0">
+                                            <p className="font-medium text-sm truncate">
                                               {user.name || "Unnamed"}
                                             </p>
-                                            <p className="truncate text-muted-foreground text-xs">
+                                            <p className="text-xs text-muted-foreground truncate">
                                               {user.email}
                                             </p>
                                           </div>
                                           {renderStatusBadge(
-                                            user.displayStatus
+                                            user.displayStatus,
                                           )}
                                           <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
                                               <Button
-                                                className="h-8 w-8 opacity-0 transition-opacity group-hover:opacity-100"
-                                                size="icon"
                                                 variant="ghost"
+                                                size="icon"
+                                                className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
                                               >
                                                 <IconDotsVertical className="h-4 w-4" />
                                               </Button>
@@ -3916,8 +4006,8 @@ export default function EventsPage() {
                                             >
                                               <DropdownMenuItem asChild>
                                                 <Link
-                                                  className="flex cursor-pointer items-center gap-2"
                                                   href={`/chat?userId=${user.id}`}
+                                                  className="flex items-center gap-2 cursor-pointer"
                                                 >
                                                   <IconMessageCircle className="h-4 w-4" />
                                                   Chat
@@ -3926,8 +4016,8 @@ export default function EventsPage() {
                                               {isCoach && phoneNumber && (
                                                 <DropdownMenuItem asChild>
                                                   <a
-                                                    className="flex cursor-pointer items-center gap-2"
                                                     href={`tel:${phoneNumber.replace(/\D/g, "")}`}
+                                                    className="flex items-center gap-2 cursor-pointer"
                                                   >
                                                     <IconPhone className="h-4 w-4" />
                                                     Call
@@ -3937,8 +4027,8 @@ export default function EventsPage() {
                                               {isCoach && (
                                                 <DropdownMenuItem asChild>
                                                   <a
-                                                    className="flex cursor-pointer items-center gap-2"
                                                     href={`mailto:${user.email}`}
+                                                    className="flex items-center gap-2 cursor-pointer"
                                                   >
                                                     <IconMail className="h-4 w-4" />
                                                     Email
@@ -3955,31 +4045,31 @@ export default function EventsPage() {
                                       <>
                                         {allCoaches.length > 0 && (
                                           <div>
-                                            <p className="mb-2 font-medium text-muted-foreground text-xs">
+                                            <p className="text-xs font-medium text-muted-foreground mb-2">
                                               Coaches
                                             </p>
                                             <div className="space-y-1">
                                               {allCoaches.map((coach) =>
-                                                renderUserItem(coach, true)
+                                                renderUserItem(coach, true),
                                               )}
                                             </div>
                                           </div>
                                         )}
                                         {allAthletes.length > 0 && (
                                           <div>
-                                            <p className="mb-2 font-medium text-muted-foreground text-xs">
+                                            <p className="text-xs font-medium text-muted-foreground mb-2">
                                               Athletes
                                             </p>
                                             <div className="space-y-1">
                                               {allAthletes.map((athlete) =>
-                                                renderUserItem(athlete, false)
+                                                renderUserItem(athlete, false),
                                               )}
                                             </div>
                                           </div>
                                         )}
                                         {allCoaches.length === 0 &&
                                           allAthletes.length === 0 && (
-                                            <div className="py-8 text-center text-muted-foreground text-sm">
+                                            <div className="text-center text-sm text-muted-foreground py-8">
                                               No members found
                                             </div>
                                           )}
@@ -3988,11 +4078,11 @@ export default function EventsPage() {
                                   })()}
                                 </div>
                               </TabsContent>
-                              <TabsContent className="mt-0" value="going">
+                              <TabsContent value="going" className="mt-0">
                                 <div className="space-y-3">
                                   {goingCoaches.length > 0 && (
                                     <div>
-                                      <p className="mb-2 font-medium text-muted-foreground text-xs">
+                                      <p className="text-xs font-medium text-muted-foreground mb-2">
                                         Coaches
                                       </p>
                                       <div className="space-y-1">
@@ -4001,8 +4091,8 @@ export default function EventsPage() {
                                             coach.phone || coach.cellPhone;
                                           return (
                                             <div
-                                              className="group flex items-center gap-3 rounded-xl p-3 transition-colors hover:bg-muted/50"
                                               key={coach.id}
+                                              className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 transition-colors group"
                                             >
                                               <Avatar className="h-10 w-10 rounded-xl">
                                                 <AvatarImage
@@ -4010,31 +4100,31 @@ export default function EventsPage() {
                                                     coach.avatarUrl || undefined
                                                   }
                                                 />
-                                                <AvatarFallback className="rounded-xl bg-linear-to-br from-primary/20 to-primary/5 text-xs">
+                                                <AvatarFallback className="rounded-xl text-xs bg-linear-to-br from-primary/20 to-primary/5">
                                                   {getInitials(
                                                     coach.name,
-                                                    coach.email
+                                                    coach.email,
                                                   )}
                                                 </AvatarFallback>
                                               </Avatar>
-                                              <div className="min-w-0 flex-1">
-                                                <p className="truncate font-medium text-sm">
+                                              <div className="flex-1 min-w-0">
+                                                <p className="font-medium text-sm truncate">
                                                   {coach.name || "Unnamed"}
                                                 </p>
-                                                <p className="truncate text-muted-foreground text-xs">
+                                                <p className="text-xs text-muted-foreground truncate">
                                                   {coach.email}
                                                 </p>
                                               </div>
-                                              <div className="flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 font-medium text-emerald-600 text-xs dark:bg-emerald-950/50">
+                                              <div className="flex items-center gap-1 text-emerald-600 bg-emerald-100 dark:bg-emerald-950/50 px-2.5 py-1 rounded-full text-xs font-medium">
                                                 <IconCheck className="h-3 w-3" />
                                                 Going
                                               </div>
                                               <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
                                                   <Button
-                                                    className="h-8 w-8 opacity-0 transition-opacity group-hover:opacity-100"
-                                                    size="icon"
                                                     variant="ghost"
+                                                    size="icon"
+                                                    className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
                                                   >
                                                     <IconDotsVertical className="h-4 w-4" />
                                                   </Button>
@@ -4045,8 +4135,8 @@ export default function EventsPage() {
                                                 >
                                                   <DropdownMenuItem asChild>
                                                     <Link
-                                                      className="flex cursor-pointer items-center gap-2"
                                                       href={`/chat?userId=${coach.id}`}
+                                                      className="flex items-center gap-2 cursor-pointer"
                                                     >
                                                       <IconMessageCircle className="h-4 w-4" />
                                                       Chat
@@ -4055,8 +4145,8 @@ export default function EventsPage() {
                                                   {phoneNumber && (
                                                     <DropdownMenuItem asChild>
                                                       <a
-                                                        className="flex cursor-pointer items-center gap-2"
                                                         href={`tel:${phoneNumber.replace(/\D/g, "")}`}
+                                                        className="flex items-center gap-2 cursor-pointer"
                                                       >
                                                         <IconPhone className="h-4 w-4" />
                                                         Call
@@ -4065,8 +4155,8 @@ export default function EventsPage() {
                                                   )}
                                                   <DropdownMenuItem asChild>
                                                     <a
-                                                      className="flex cursor-pointer items-center gap-2"
                                                       href={`mailto:${coach.email}`}
+                                                      className="flex items-center gap-2 cursor-pointer"
                                                     >
                                                       <IconMail className="h-4 w-4" />
                                                       Email
@@ -4082,14 +4172,14 @@ export default function EventsPage() {
                                   )}
                                   {goingAthletes.length > 0 && (
                                     <div>
-                                      <p className="mb-2 font-medium text-muted-foreground text-xs">
+                                      <p className="text-xs font-medium text-muted-foreground mb-2">
                                         Athletes
                                       </p>
                                       <div className="space-y-1">
                                         {goingAthletes.map((athlete) => (
                                           <div
-                                            className="group flex items-center gap-3 rounded-xl p-3 transition-colors hover:bg-muted/50"
                                             key={athlete.id}
+                                            className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 transition-colors group"
                                           >
                                             <Avatar className="h-10 w-10 rounded-xl">
                                               <AvatarImage
@@ -4097,31 +4187,31 @@ export default function EventsPage() {
                                                   athlete.avatarUrl || undefined
                                                 }
                                               />
-                                              <AvatarFallback className="rounded-xl bg-linear-to-br from-primary/20 to-primary/5 text-xs">
+                                              <AvatarFallback className="rounded-xl text-xs bg-linear-to-br from-primary/20 to-primary/5">
                                                 {getInitials(
                                                   athlete.name,
-                                                  athlete.email
+                                                  athlete.email,
                                                 )}
                                               </AvatarFallback>
                                             </Avatar>
-                                            <div className="min-w-0 flex-1">
-                                              <p className="truncate font-medium text-sm">
+                                            <div className="flex-1 min-w-0">
+                                              <p className="font-medium text-sm truncate">
                                                 {athlete.name || "Unnamed"}
                                               </p>
-                                              <p className="truncate text-muted-foreground text-xs">
+                                              <p className="text-xs text-muted-foreground truncate">
                                                 {athlete.email}
                                               </p>
                                             </div>
-                                            <div className="flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 font-medium text-emerald-600 text-xs dark:bg-emerald-950/50">
+                                            <div className="flex items-center gap-1 text-emerald-600 bg-emerald-100 dark:bg-emerald-950/50 px-2.5 py-1 rounded-full text-xs font-medium">
                                               <IconCheck className="h-3 w-3" />
                                               Going
                                             </div>
                                             <DropdownMenu>
                                               <DropdownMenuTrigger asChild>
                                                 <Button
-                                                  className="h-8 w-8 opacity-0 transition-opacity group-hover:opacity-100"
-                                                  size="icon"
                                                   variant="ghost"
+                                                  size="icon"
+                                                  className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
                                                 >
                                                   <IconDotsVertical className="h-4 w-4" />
                                                 </Button>
@@ -4132,8 +4222,8 @@ export default function EventsPage() {
                                               >
                                                 <DropdownMenuItem asChild>
                                                   <Link
-                                                    className="flex cursor-pointer items-center gap-2"
                                                     href={`/chat?userId=${athlete.id}`}
+                                                    className="flex items-center gap-2 cursor-pointer"
                                                   >
                                                     <IconMessageCircle className="h-4 w-4" />
                                                     Chat
@@ -4148,17 +4238,17 @@ export default function EventsPage() {
                                   )}
                                   {goingCoaches.length === 0 &&
                                     goingAthletes.length === 0 && (
-                                      <div className="py-8 text-center text-muted-foreground text-sm">
+                                      <div className="text-center text-sm text-muted-foreground py-8">
                                         No one going yet
                                       </div>
                                     )}
                                 </div>
                               </TabsContent>
-                              <TabsContent className="mt-0" value="not_going">
+                              <TabsContent value="not_going" className="mt-0">
                                 <div className="space-y-3">
                                   {notGoingCoaches.length > 0 && (
                                     <div>
-                                      <p className="mb-2 font-medium text-muted-foreground text-xs">
+                                      <p className="text-xs font-medium text-muted-foreground mb-2">
                                         Coaches
                                       </p>
                                       <div className="space-y-1">
@@ -4167,8 +4257,8 @@ export default function EventsPage() {
                                             coach.phone || coach.cellPhone;
                                           return (
                                             <div
-                                              className="group flex items-center gap-3 rounded-xl p-3 transition-colors hover:bg-muted/50"
                                               key={coach.id}
+                                              className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 transition-colors group"
                                             >
                                               <Avatar className="h-10 w-10 rounded-xl">
                                                 <AvatarImage
@@ -4176,31 +4266,31 @@ export default function EventsPage() {
                                                     coach.avatarUrl || undefined
                                                   }
                                                 />
-                                                <AvatarFallback className="rounded-xl bg-linear-to-br from-primary/20 to-primary/5 text-xs">
+                                                <AvatarFallback className="rounded-xl text-xs bg-linear-to-br from-primary/20 to-primary/5">
                                                   {getInitials(
                                                     coach.name,
-                                                    coach.email
+                                                    coach.email,
                                                   )}
                                                 </AvatarFallback>
                                               </Avatar>
-                                              <div className="min-w-0 flex-1">
-                                                <p className="truncate font-medium text-sm">
+                                              <div className="flex-1 min-w-0">
+                                                <p className="font-medium text-sm truncate">
                                                   {coach.name || "Unnamed"}
                                                 </p>
-                                                <p className="truncate text-muted-foreground text-xs">
+                                                <p className="text-xs text-muted-foreground truncate">
                                                   {coach.email}
                                                 </p>
                                               </div>
-                                              <div className="flex items-center gap-1 rounded-full bg-red-100 px-2.5 py-1 font-medium text-red-600 text-xs dark:bg-red-950/50">
+                                              <div className="flex items-center gap-1 text-red-600 bg-red-100 dark:bg-red-950/50 px-2.5 py-1 rounded-full text-xs font-medium">
                                                 <IconX className="h-3 w-3" />
                                                 Can't
                                               </div>
                                               <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
                                                   <Button
-                                                    className="h-8 w-8 opacity-0 transition-opacity group-hover:opacity-100"
-                                                    size="icon"
                                                     variant="ghost"
+                                                    size="icon"
+                                                    className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
                                                   >
                                                     <IconDotsVertical className="h-4 w-4" />
                                                   </Button>
@@ -4211,8 +4301,8 @@ export default function EventsPage() {
                                                 >
                                                   <DropdownMenuItem asChild>
                                                     <Link
-                                                      className="flex cursor-pointer items-center gap-2"
                                                       href={`/chat?userId=${coach.id}`}
+                                                      className="flex items-center gap-2 cursor-pointer"
                                                     >
                                                       <IconMessageCircle className="h-4 w-4" />
                                                       Chat
@@ -4221,8 +4311,8 @@ export default function EventsPage() {
                                                   {phoneNumber && (
                                                     <DropdownMenuItem asChild>
                                                       <a
-                                                        className="flex cursor-pointer items-center gap-2"
                                                         href={`tel:${phoneNumber.replace(/\D/g, "")}`}
+                                                        className="flex items-center gap-2 cursor-pointer"
                                                       >
                                                         <IconPhone className="h-4 w-4" />
                                                         Call
@@ -4231,8 +4321,8 @@ export default function EventsPage() {
                                                   )}
                                                   <DropdownMenuItem asChild>
                                                     <a
-                                                      className="flex cursor-pointer items-center gap-2"
                                                       href={`mailto:${coach.email}`}
+                                                      className="flex items-center gap-2 cursor-pointer"
                                                     >
                                                       <IconMail className="h-4 w-4" />
                                                       Email
@@ -4248,14 +4338,14 @@ export default function EventsPage() {
                                   )}
                                   {notGoingAthletes.length > 0 && (
                                     <div>
-                                      <p className="mb-2 font-medium text-muted-foreground text-xs">
+                                      <p className="text-xs font-medium text-muted-foreground mb-2">
                                         Athletes
                                       </p>
                                       <div className="space-y-1">
                                         {notGoingAthletes.map((athlete) => (
                                           <div
-                                            className="group flex items-center gap-3 rounded-xl p-3 transition-colors hover:bg-muted/50"
                                             key={athlete.id}
+                                            className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 transition-colors group"
                                           >
                                             <Avatar className="h-10 w-10 rounded-xl">
                                               <AvatarImage
@@ -4263,31 +4353,31 @@ export default function EventsPage() {
                                                   athlete.avatarUrl || undefined
                                                 }
                                               />
-                                              <AvatarFallback className="rounded-xl bg-linear-to-br from-primary/20 to-primary/5 text-xs">
+                                              <AvatarFallback className="rounded-xl text-xs bg-linear-to-br from-primary/20 to-primary/5">
                                                 {getInitials(
                                                   athlete.name,
-                                                  athlete.email
+                                                  athlete.email,
                                                 )}
                                               </AvatarFallback>
                                             </Avatar>
-                                            <div className="min-w-0 flex-1">
-                                              <p className="truncate font-medium text-sm">
+                                            <div className="flex-1 min-w-0">
+                                              <p className="font-medium text-sm truncate">
                                                 {athlete.name || "Unnamed"}
                                               </p>
-                                              <p className="truncate text-muted-foreground text-xs">
+                                              <p className="text-xs text-muted-foreground truncate">
                                                 {athlete.email}
                                               </p>
                                             </div>
-                                            <div className="flex items-center gap-1 rounded-full bg-red-100 px-2.5 py-1 font-medium text-red-600 text-xs dark:bg-red-950/50">
+                                            <div className="flex items-center gap-1 text-red-600 bg-red-100 dark:bg-red-950/50 px-2.5 py-1 rounded-full text-xs font-medium">
                                               <IconX className="h-3 w-3" />
                                               Can't
                                             </div>
                                             <DropdownMenu>
                                               <DropdownMenuTrigger asChild>
                                                 <Button
-                                                  className="h-8 w-8 opacity-0 transition-opacity group-hover:opacity-100"
-                                                  size="icon"
                                                   variant="ghost"
+                                                  size="icon"
+                                                  className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
                                                 >
                                                   <IconDotsVertical className="h-4 w-4" />
                                                 </Button>
@@ -4298,8 +4388,8 @@ export default function EventsPage() {
                                               >
                                                 <DropdownMenuItem asChild>
                                                   <Link
-                                                    className="flex cursor-pointer items-center gap-2"
                                                     href={`/chat?userId=${athlete.id}`}
+                                                    className="flex items-center gap-2 cursor-pointer"
                                                   >
                                                     <IconMessageCircle className="h-4 w-4" />
                                                     Chat
@@ -4314,17 +4404,17 @@ export default function EventsPage() {
                                   )}
                                   {notGoingCoaches.length === 0 &&
                                     notGoingAthletes.length === 0 && (
-                                      <div className="py-8 text-center text-muted-foreground text-sm">
+                                      <div className="text-center text-sm text-muted-foreground py-8">
                                         Everyone is going
                                       </div>
                                     )}
                                 </div>
                               </TabsContent>
-                              <TabsContent className="mt-0" value="pending">
+                              <TabsContent value="pending" className="mt-0">
                                 <div className="space-y-3">
                                   {pendingCoaches.length > 0 && (
                                     <div>
-                                      <p className="mb-2 font-medium text-muted-foreground text-xs">
+                                      <p className="text-xs font-medium text-muted-foreground mb-2">
                                         Coaches
                                       </p>
                                       <div className="space-y-1">
@@ -4333,8 +4423,8 @@ export default function EventsPage() {
                                             coach.phone || coach.cellPhone;
                                           return (
                                             <div
-                                              className="group flex items-center gap-3 rounded-xl p-3 transition-colors hover:bg-muted/50"
                                               key={coach.id}
+                                              className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 transition-colors group"
                                             >
                                               <Avatar className="h-10 w-10 rounded-xl">
                                                 <AvatarImage
@@ -4342,31 +4432,31 @@ export default function EventsPage() {
                                                     coach.avatarUrl || undefined
                                                   }
                                                 />
-                                                <AvatarFallback className="rounded-xl bg-linear-to-br from-primary/20 to-primary/5 text-xs">
+                                                <AvatarFallback className="rounded-xl text-xs bg-linear-to-br from-primary/20 to-primary/5">
                                                   {getInitials(
                                                     coach.name,
-                                                    coach.email
+                                                    coach.email,
                                                   )}
                                                 </AvatarFallback>
                                               </Avatar>
-                                              <div className="min-w-0 flex-1">
-                                                <p className="truncate font-medium text-sm">
+                                              <div className="flex-1 min-w-0">
+                                                <p className="font-medium text-sm truncate">
                                                   {coach.name || "Unnamed"}
                                                 </p>
-                                                <p className="truncate text-muted-foreground text-xs">
+                                                <p className="text-xs text-muted-foreground truncate">
                                                   {coach.email}
                                                 </p>
                                               </div>
-                                              <div className="flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-1 font-medium text-amber-600 text-xs dark:bg-amber-950/50">
+                                              <div className="flex items-center gap-1 text-amber-600 bg-amber-100 dark:bg-amber-950/50 px-2.5 py-1 rounded-full text-xs font-medium">
                                                 <IconBell className="h-3 w-3" />
                                                 Pending
                                               </div>
                                               <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
                                                   <Button
-                                                    className="h-8 w-8 opacity-0 transition-opacity group-hover:opacity-100"
-                                                    size="icon"
                                                     variant="ghost"
+                                                    size="icon"
+                                                    className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
                                                   >
                                                     <IconDotsVertical className="h-4 w-4" />
                                                   </Button>
@@ -4377,8 +4467,8 @@ export default function EventsPage() {
                                                 >
                                                   <DropdownMenuItem asChild>
                                                     <Link
-                                                      className="flex cursor-pointer items-center gap-2"
                                                       href={`/chat?userId=${coach.id}`}
+                                                      className="flex items-center gap-2 cursor-pointer"
                                                     >
                                                       <IconMessageCircle className="h-4 w-4" />
                                                       Chat
@@ -4387,8 +4477,8 @@ export default function EventsPage() {
                                                   {phoneNumber && (
                                                     <DropdownMenuItem asChild>
                                                       <a
-                                                        className="flex cursor-pointer items-center gap-2"
                                                         href={`tel:${phoneNumber.replace(/\D/g, "")}`}
+                                                        className="flex items-center gap-2 cursor-pointer"
                                                       >
                                                         <IconPhone className="h-4 w-4" />
                                                         Call
@@ -4397,8 +4487,8 @@ export default function EventsPage() {
                                                   )}
                                                   <DropdownMenuItem asChild>
                                                     <a
-                                                      className="flex cursor-pointer items-center gap-2"
                                                       href={`mailto:${coach.email}`}
+                                                      className="flex items-center gap-2 cursor-pointer"
                                                     >
                                                       <IconMail className="h-4 w-4" />
                                                       Email
@@ -4414,7 +4504,7 @@ export default function EventsPage() {
                                   )}
                                   {pendingAthletes.length > 0 && (
                                     <div>
-                                      <p className="mb-2 font-medium text-muted-foreground text-xs">
+                                      <p className="text-xs font-medium text-muted-foreground mb-2">
                                         Athletes
                                       </p>
                                       <div className="space-y-1">
@@ -4423,8 +4513,8 @@ export default function EventsPage() {
                                             athlete.phone || athlete.cellPhone;
                                           return (
                                             <div
-                                              className="group flex items-center gap-3 rounded-xl p-3 transition-colors hover:bg-muted/50"
                                               key={athlete.id}
+                                              className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 transition-colors group"
                                             >
                                               <Avatar className="h-10 w-10 rounded-xl">
                                                 <AvatarImage
@@ -4433,31 +4523,31 @@ export default function EventsPage() {
                                                     undefined
                                                   }
                                                 />
-                                                <AvatarFallback className="rounded-xl bg-linear-to-br from-primary/20 to-primary/5 text-xs">
+                                                <AvatarFallback className="rounded-xl text-xs bg-linear-to-br from-primary/20 to-primary/5">
                                                   {getInitials(
                                                     athlete.name,
-                                                    athlete.email
+                                                    athlete.email,
                                                   )}
                                                 </AvatarFallback>
                                               </Avatar>
-                                              <div className="min-w-0 flex-1">
-                                                <p className="truncate font-medium text-sm">
+                                              <div className="flex-1 min-w-0">
+                                                <p className="font-medium text-sm truncate">
                                                   {athlete.name || "Unnamed"}
                                                 </p>
-                                                <p className="truncate text-muted-foreground text-xs">
+                                                <p className="text-xs text-muted-foreground truncate">
                                                   {athlete.email}
                                                 </p>
                                               </div>
-                                              <div className="flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-1 font-medium text-amber-600 text-xs dark:bg-amber-950/50">
+                                              <div className="flex items-center gap-1 text-amber-600 bg-amber-100 dark:bg-amber-950/50 px-2.5 py-1 rounded-full text-xs font-medium">
                                                 <IconBell className="h-3 w-3" />
                                                 Pending
                                               </div>
                                               <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
                                                   <Button
-                                                    className="h-8 w-8 opacity-0 transition-opacity group-hover:opacity-100"
-                                                    size="icon"
                                                     variant="ghost"
+                                                    size="icon"
+                                                    className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
                                                   >
                                                     <IconDotsVertical className="h-4 w-4" />
                                                   </Button>
@@ -4468,8 +4558,8 @@ export default function EventsPage() {
                                                 >
                                                   <DropdownMenuItem asChild>
                                                     <Link
-                                                      className="flex cursor-pointer items-center gap-2"
                                                       href={`/chat?userId=${athlete.id}`}
+                                                      className="flex items-center gap-2 cursor-pointer"
                                                     >
                                                       <IconMessageCircle className="h-4 w-4" />
                                                       Chat
@@ -4478,8 +4568,8 @@ export default function EventsPage() {
                                                   {phoneNumber && (
                                                     <DropdownMenuItem asChild>
                                                       <a
-                                                        className="flex cursor-pointer items-center gap-2"
                                                         href={`tel:${phoneNumber.replace(/\D/g, "")}`}
+                                                        className="flex items-center gap-2 cursor-pointer"
                                                       >
                                                         <IconPhone className="h-4 w-4" />
                                                         Call
@@ -4488,8 +4578,8 @@ export default function EventsPage() {
                                                   )}
                                                   <DropdownMenuItem asChild>
                                                     <a
-                                                      className="flex cursor-pointer items-center gap-2"
                                                       href={`mailto:${athlete.email}`}
+                                                      className="flex items-center gap-2 cursor-pointer"
                                                     >
                                                       <IconMail className="h-4 w-4" />
                                                       Email
@@ -4505,7 +4595,7 @@ export default function EventsPage() {
                                   )}
                                   {pendingCoaches.length === 0 &&
                                     pendingAthletes.length === 0 && (
-                                      <div className="py-8 text-center text-muted-foreground text-sm">
+                                      <div className="text-center text-sm text-muted-foreground py-8">
                                         Everyone has responded
                                       </div>
                                     )}
@@ -4518,8 +4608,8 @@ export default function EventsPage() {
                     )}
                   </TabsContent>
                   <TabsContent
-                    className="mt-0 min-h-0 flex-1 overflow-hidden"
                     value="chat"
+                    className="flex-1 overflow-hidden mt-0 min-h-0"
                   >
                     {selectedEventForAthlete && athleteEventChannelId ? (
                       <EventChatContent
@@ -4542,9 +4632,9 @@ export default function EventsPage() {
                 </Tabs>
               </>
             ) : (
-              <div className="flex flex-1 items-center justify-center text-muted-foreground">
+              <div className="flex-1 flex items-center justify-center text-muted-foreground">
                 <div className="text-center">
-                  <IconCalendar className="mx-auto mb-4 h-12 w-12 opacity-20" />
+                  <IconCalendar className="h-12 w-12 mx-auto mb-4 opacity-20" />
                   <p className="text-sm">Select a session to view details</p>
                 </div>
               </div>
@@ -4557,28 +4647,44 @@ export default function EventsPage() {
 
   // Desktop layout (unchanged)
   return (
-    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
+    <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
       <PageHeader title="Events">
         <div className="flex items-center gap-2">
-          <div className="flex gap-1 rounded-xl border p-1">
+          {selectedOccurrence && (
             <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                selectedEventIdRef.current = null;
+                setSelectedEvent(null);
+                setSelectedOccurrence(null);
+                setOccurrenceRsvps([]);
+              }}
+              className="gap-2 rounded-xl"
+            >
+              <IconArrowLeft className="h-4 w-4" />
+              Back
+            </Button>
+          )}
+          <div className="flex rounded-xl border p-1 gap-1">
+            <Button
+              variant={viewMode === "list" ? "secondary" : "ghost"}
+              size="icon"
               className="h-8 w-8 rounded-lg p-0"
               onClick={() => setViewMode("list")}
-              size="icon"
-              variant={viewMode === "list" ? "secondary" : "ghost"}
             >
-              <IconList className="!m-0 h-4 w-4" />
+              <IconList className="h-4 w-4 !m-0" />
             </Button>
             <Button
+              variant={viewMode === "calendar" ? "secondary" : "ghost"}
+              size="icon"
               className="h-8 w-8 rounded-lg p-0"
               onClick={() => setViewMode("calendar")}
-              size="icon"
-              variant={viewMode === "calendar" ? "secondary" : "ghost"}
             >
-              <IconCalendar className="!m-0 h-4 w-4" />
+              <IconCalendar className="h-4 w-4 !m-0" />
             </Button>
           </div>
-          <Button asChild className="gap-2 rounded-xl" size="sm">
+          <Button size="sm" className="gap-2 rounded-xl" asChild>
             <Link href="/events/new">
               <IconPlus className="h-4 w-4" />
               New Event
@@ -4587,15 +4693,15 @@ export default function EventsPage() {
         </div>
       </PageHeader>
 
-      <div className="flex h-0 min-h-0 flex-1 gap-4 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden gap-4 min-h-0 h-0">
         {/* Events Sidebar */}
-        <div className="flex h-full min-h-0 w-64 flex-col overflow-visible rounded-xl border bg-card shadow-sm lg:w-80">
+        <div className="flex h-full min-h-0 w-64 flex-col overflow-hidden rounded-xl border bg-card shadow-sm">
           <ScrollArea className="h-full">
             <div className="p-2">
               {initialLoading ? (
                 <div className="space-y-2">
                   {[1, 2, 3].map((i) => (
-                    <div className="w-full space-y-2 rounded-xl p-3" key={i}>
+                    <div key={i} className="w-full rounded-xl p-3 space-y-2">
                       <Skeleton className="h-4 w-3/4 rounded" />
                       <div className="flex items-center gap-2">
                         <Skeleton className="h-3 w-16 rounded" />
@@ -4606,27 +4712,27 @@ export default function EventsPage() {
                   ))}
                 </div>
               ) : events.length === 0 ? (
-                <div className="p-4 text-center text-muted-foreground text-sm">
+                <div className="p-4 text-center text-sm text-muted-foreground">
                   No events yet
                 </div>
               ) : (
                 events.map((event) => (
-                  <div className="group relative" key={event.id}>
+                  <div key={event.id} className="relative group">
                     <button
-                      className={`mb-1 w-full rounded-xl p-3 text-left transition-all ${
+                      type="button"
+                      onClick={() => selectEvent(event)}
+                      className={`w-full text-left p-3 rounded-xl mb-1 transition-all ${
                         selectedEvent?.id === event.id &&
                         (!isEventsMobile || mobileView !== "events")
                           ? "bg-primary text-primary-foreground"
                           : "hover:bg-muted"
                       }`}
-                      onClick={() => selectEvent(event)}
-                      type="button"
                     >
-                      <p className="truncate pr-10 font-medium text-sm">
+                      <p className="font-medium truncate text-sm pr-6">
                         {event.title}
                       </p>
                       <div
-                        className={`mt-1.5 flex items-center gap-2 text-xs ${
+                        className={`flex items-center gap-2 mt-1.5 text-xs ${
                           selectedEvent?.id === event.id &&
                           (!isEventsMobile || mobileView !== "events")
                             ? "text-primary-foreground/70"
@@ -4645,23 +4751,19 @@ export default function EventsPage() {
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
-                          className={`absolute top-2 right-2 h-7 w-7 opacity-0 transition-opacity group-hover:opacity-100 lg:opacity-100 ${
+                          variant="ghost"
+                          size="icon"
+                          className={`absolute right-2 top-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity ${
                             selectedEvent?.id === event.id &&
                             (!isEventsMobile || mobileView !== "events")
                               ? "text-primary-foreground hover:bg-primary-foreground/20"
                               : ""
                           }`}
-                          size="icon"
-                          variant="ghost"
                         >
                           <IconDotsVertical className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent
-                        align="end"
-                        className="rounded-xl"
-                        side="bottom"
-                      >
+                      <DropdownMenuContent align="end" className="rounded-xl">
                         <DropdownMenuItem asChild className="gap-2">
                           <Link href={`/events/${event.id}/edit`}>
                             <IconEdit className="h-4 w-4" />
@@ -4691,40 +4793,41 @@ export default function EventsPage() {
 
         {/* Main Content */}
         {viewMode === "calendar" ? (
-          <div className="h-full min-h-0 flex-1 overflow-auto">
+          <div className="flex-1 overflow-auto min-h-0 h-full">
             {selectedEvent ? (
-              <div className="flex h-full flex-col p-4">
+              <div className="h-full flex flex-col p-4">
                 <div className="mb-4 shrink-0">
-                  <h2 className="font-semibold text-xl">
+                  <h2 className="text-xl font-semibold">
                     {selectedEvent.title}
                   </h2>
-                  <p className="text-muted-foreground text-sm">
+                  <p className="text-sm text-muted-foreground">
                     {formatTime(selectedEvent.startTime)} -{" "}
                     {formatTime(selectedEvent.endTime)}
                   </p>
                 </div>
-                <div className="min-h-0 flex-1">
+                <div className="flex-1 min-h-0">
                   <CustomEventCalendar
-                    currentUserRole={currentUserRole}
-                    currentUserRsvps={currentUserRsvps}
-                    eventId={selectedEvent.id}
-                    eventTitle={selectedEvent.title}
                     key={`${selectedEvent.id}-${selectedEvent.occurrences.filter((o) => o.status === "canceled").length}`}
                     occurrences={selectedEvent.occurrences.map((o) => ({
                       ...o,
-                      isCustom: (o as EventOccurrence & { isCustom?: boolean })
-                        .isCustom,
+                      isCustom:
+                        (o as EventOccurrence & { isCustom?: boolean })
+                          .isCustom || false,
                     }))}
+                    eventTitle={selectedEvent.title}
+                    eventId={selectedEvent.id}
+                    currentUserRole={currentUserRole}
+                    currentUserRsvps={currentUserRsvps}
+                    onToggleDate={handleToggleOccurrence}
                     onAddCustomDate={handleAddCustomDate}
-                    onCancel={handleCancelFromCalendar}
                     onRemoveDate={handleRemoveCustomDate}
                     onRsvp={handleRsvp}
-                    onToggleDate={handleToggleOccurrence}
+                    onCancel={handleCancelFromCalendar}
                   />
                 </div>
               </div>
             ) : (
-              <div className="flex h-full items-center justify-center text-muted-foreground">
+              <div className="flex items-center justify-center h-full text-muted-foreground">
                 Select an event to view calendar
               </div>
             )}
@@ -4732,21 +4835,21 @@ export default function EventsPage() {
         ) : (
           <>
             {/* Occurrences List */}
-            <div className="flex h-full min-h-0 w-72 flex-col overflow-hidden rounded-xl border bg-card shadow-sm">
+            <div className="w-72 flex flex-col bg-card border rounded-xl shadow-sm overflow-hidden min-h-0 h-full">
               {initialLoading ? (
                 <ScrollArea className="h-full">
-                  <div className="space-y-2 p-2">
+                  <div className="p-2 space-y-2">
                     {[1, 2, 3].map((i) => (
                       <div
-                        className="flex w-full items-center gap-3 rounded-xl p-3"
                         key={i}
+                        className="w-full rounded-xl p-3 flex items-center gap-3"
                       >
-                        <Skeleton className="h-14 w-14 shrink-0 rounded-xl" />
+                        <Skeleton className="h-14 w-14 rounded-xl shrink-0" />
                         <div className="flex-1 space-y-2">
                           <Skeleton className="h-4 w-24 rounded" />
                           <Skeleton className="h-3 w-16 rounded" />
                         </div>
-                        <Skeleton className="h-5 w-5 shrink-0 rounded" />
+                        <Skeleton className="h-5 w-5 rounded shrink-0" />
                       </div>
                     ))}
                   </div>
@@ -4755,7 +4858,7 @@ export default function EventsPage() {
                 <ScrollArea className="h-full">
                   <div className="p-2">
                     {displayedOccurrences.length === 0 ? (
-                      <div className="p-4 text-center text-muted-foreground text-sm">
+                      <div className="p-4 text-center text-sm text-muted-foreground">
                         No upcoming sessions
                       </div>
                     ) : (
@@ -4764,24 +4867,24 @@ export default function EventsPage() {
                         const dateInfo = formatDate(occ.date);
                         return (
                           <button
-                            className={`mb-1 flex w-full items-center gap-4 rounded-xl p-3 text-left transition-all ${
+                            key={occ.id}
+                            type="button"
+                            onClick={() => selectOccurrence(occ)}
+                            className={`w-full text-left p-3 rounded-xl mb-1 transition-all flex items-center gap-4 ${
                               selectedOccurrence?.id === occ.id
                                 ? "bg-primary/10 ring-1 ring-primary"
                                 : "hover:bg-muted"
                             } ${isPast ? "opacity-50" : ""} ${occ.status === "canceled" ? "opacity-40" : ""}`}
-                            key={occ.id}
-                            onClick={() => selectOccurrence(occ)}
-                            type="button"
                           >
                             <div
-                              className={`flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-xl ${
+                              className={`h-14 w-14 rounded-xl flex flex-col items-center justify-center shrink-0 ${
                                 selectedOccurrence?.id === occ.id
                                   ? "bg-primary text-primary-foreground ring-2 ring-primary"
                                   : "bg-black dark:bg-white"
                               }`}
                             >
                               <span
-                                className={`font-bold text-xl leading-none ${
+                                className={`text-xl font-bold leading-none ${
                                   selectedOccurrence?.id === occ.id
                                     ? ""
                                     : "text-white dark:text-black"
@@ -4790,7 +4893,7 @@ export default function EventsPage() {
                                 {dateInfo.day}
                               </span>
                               <span
-                                className={`mt-0.5 font-medium text-[10px] opacity-70 ${
+                                className={`text-[10px] font-medium opacity-70 mt-0.5 ${
                                   selectedOccurrence?.id === occ.id
                                     ? ""
                                     : "text-white dark:text-black"
@@ -4799,39 +4902,39 @@ export default function EventsPage() {
                                 {dateInfo.month}
                               </span>
                             </div>
-                            <div className="min-w-0 flex-1">
-                              <p className="whitespace-nowrap font-medium text-sm">
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm whitespace-nowrap">
                                 {dateInfo.weekday}
                               </p>
-                              <p className="text-muted-foreground text-xs">
+                              <p className="text-xs text-muted-foreground">
                                 {formatTime(selectedEvent.startTime)}
                               </p>
                             </div>
-                            <div className="flex shrink-0 items-center gap-2">
+                            <div className="flex items-center gap-2 shrink-0">
                               {/* User's RSVP Status */}
                               {occurrenceRsvpsLoading ? (
-                                <Skeleton className="h-5 w-5 shrink-0 rounded" />
+                                <Skeleton className="h-5 w-5 rounded shrink-0" />
                               ) : (
                                 (() => {
                                   const userRsvpStatus = currentUserRsvps.get(
-                                    occ.id
+                                    occ.id,
                                   );
                                   if (userRsvpStatus === "going") {
                                     return (
-                                      <div className="flex shrink-0 items-center text-emerald-600">
+                                      <div className="flex items-center text-emerald-600 shrink-0">
                                         <IconCheck className="h-5 w-5" />
                                       </div>
                                     );
                                   }
                                   if (userRsvpStatus === "not_going") {
                                     return (
-                                      <div className="flex shrink-0 items-center text-red-600">
+                                      <div className="flex items-center text-red-600 shrink-0">
                                         <IconX className="h-5 w-5" />
                                       </div>
                                     );
                                   }
                                   return (
-                                    <div className="flex shrink-0 items-center text-amber-600">
+                                    <div className="flex items-center text-amber-600 shrink-0">
                                       <IconBell className="h-4 w-4" />
                                     </div>
                                   );
@@ -4840,8 +4943,8 @@ export default function EventsPage() {
                               <div className="flex flex-col items-end gap-1">
                                 {occ.status === "canceled" && (
                                   <Badge
-                                    className="text-[10px]"
                                     variant="destructive"
+                                    className="text-[10px]"
                                   >
                                     Canceled
                                   </Badge>
@@ -4852,8 +4955,8 @@ export default function EventsPage() {
                                   }
                                 ).isCustom && (
                                   <Badge
-                                    className="text-[10px]"
                                     variant="outline"
+                                    className="text-[10px]"
                                   >
                                     Custom
                                   </Badge>
@@ -4866,9 +4969,9 @@ export default function EventsPage() {
                     )}
                     {pastOccurrences.length > 0 && (
                       <button
-                        className="flex w-full items-center justify-center gap-2 p-3 text-muted-foreground text-xs hover:text-foreground"
-                        onClick={() => setShowPastEvents(!showPastEvents)}
                         type="button"
+                        onClick={() => setShowPastEvents(!showPastEvents)}
+                        className="w-full p-3 text-xs text-muted-foreground hover:text-foreground flex items-center justify-center gap-2"
                       >
                         <IconHistory className="h-4 w-4" />
                         {showPastEvents ? "Hide" : "Show"} past sessions
@@ -4877,22 +4980,22 @@ export default function EventsPage() {
                   </div>
                 </ScrollArea>
               ) : (
-                <div className="flex flex-1 items-center justify-center text-muted-foreground text-sm">
+                <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground">
                   Select an event
                 </div>
               )}
             </div>
 
             {/* Event Detail */}
-            <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border bg-card shadow-sm">
+            <div className="flex-1 flex flex-col bg-card border rounded-xl shadow-sm overflow-hidden min-h-0">
               {selectedOccurrence ? (
                 <>
-                  <div className="flex shrink-0 flex-col border-b p-4">
+                  <div className="p-4 border-b flex flex-col shrink-0">
                     {/* Title row */}
                     <h3 className="font-semibold">{selectedEvent?.title}</h3>
 
                     {/* Date row */}
-                    <p className="mt-0.5 text-muted-foreground text-sm">
+                    <p className="text-sm text-muted-foreground mt-0.5">
                       {formatDate(selectedOccurrence.date).weekday},{" "}
                       {formatDate(selectedOccurrence.date).month}{" "}
                       {formatDate(selectedOccurrence.date).day} •{" "}
@@ -4900,85 +5003,92 @@ export default function EventsPage() {
                     </p>
 
                     {/* Buttons row */}
-                    <div className="mt-3 flex items-center gap-2">
+                    <div className="flex items-center gap-2 mt-3">
                       {/* Left side: Going/Not Going buttons */}
-                      <div className="flex flex-1 items-center gap-2">
-                        {(currentUserRole === "coach" ||
-                          currentUserRole === "owner") &&
-                          selectedOccurrence.status !== "canceled" &&
-                          eventDetailTab === "details" &&
-                          (() => {
-                            const currentUserRsvp = occurrenceRsvps.find(
-                              (r) => r.id === currentUserId
-                            );
-                            const currentUserRsvpStatus =
-                              currentUserRsvp?.status;
-                            return (
-                              <>
-                                <Button
-                                  className={`h-9 flex-1 gap-1.5 rounded-xl px-3 ${
-                                    currentUserRsvpStatus === "going"
-                                      ? "!bg-emerald-600 hover:!bg-emerald-700 !text-white border-emerald-600"
-                                      : "border-emerald-400 text-emerald-400 hover:bg-emerald-50 hover:text-emerald-500 dark:hover:bg-emerald-950"
-                                  }`}
-                                  onClick={async () => {
-                                    const response = await fetch("/api/rsvp", {
-                                      method: "POST",
-                                      headers: {
-                                        "Content-Type": "application/json",
-                                      },
-                                      body: JSON.stringify({
-                                        occurrenceId: selectedOccurrence.id,
-                                        status: "going",
-                                      }),
-                                    });
-                                    if (response.ok) {
-                                      loadOccurrenceRsvps(
-                                        selectedOccurrence.id
+                      {(currentUserRole === "coach" ||
+                        currentUserRole === "owner") &&
+                        selectedOccurrence.status !== "canceled" &&
+                        eventDetailTab === "details" && (
+                          <div className="flex items-center gap-2 flex-1">
+                            {(() => {
+                              const currentUserRsvp = occurrenceRsvps.find(
+                                (r) => r.id === currentUserId,
+                              );
+                              const currentUserRsvpStatus =
+                                currentUserRsvp?.status;
+                              return (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={async () => {
+                                      const response = await fetch(
+                                        "/api/rsvp",
+                                        {
+                                          method: "POST",
+                                          headers: {
+                                            "Content-Type": "application/json",
+                                          },
+                                          body: JSON.stringify({
+                                            occurrenceId: selectedOccurrence.id,
+                                            status: "going",
+                                          }),
+                                        },
                                       );
-                                    }
-                                  }}
-                                  size="sm"
-                                  variant="outline"
-                                >
-                                  <IconCheck className="h-4 w-4" />
-                                  {currentUserRsvpStatus === "going"
-                                    ? "Going!"
-                                    : "Going"}
-                                </Button>
-                                <Button
-                                  className={`h-9 flex-1 gap-1.5 rounded-xl px-3 ${
-                                    currentUserRsvpStatus === "not_going"
-                                      ? "!bg-red-600 hover:!bg-red-700 !text-white border-red-600"
-                                      : "border-red-400 text-red-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950"
-                                  }`}
-                                  onClick={async () => {
-                                    const response = await fetch("/api/rsvp", {
-                                      method: "POST",
-                                      headers: {
-                                        "Content-Type": "application/json",
-                                      },
-                                      body: JSON.stringify({
-                                        occurrenceId: selectedOccurrence.id,
-                                        status: "not_going",
-                                      }),
-                                    });
-                                    if (response.ok) {
-                                      loadOccurrenceRsvps(
-                                        selectedOccurrence.id
+                                      if (response.ok) {
+                                        loadOccurrenceRsvps(
+                                          selectedOccurrence.id,
+                                        );
+                                      }
+                                    }}
+                                    className={`h-9 rounded-xl gap-1.5 px-3 flex-1 ${
+                                      currentUserRsvpStatus === "going"
+                                        ? "!bg-emerald-600 hover:!bg-emerald-700 !text-white border-emerald-600"
+                                        : "border-emerald-400 text-emerald-400 hover:bg-emerald-50 hover:text-emerald-500 dark:hover:bg-emerald-950"
+                                    }`}
+                                  >
+                                    <IconCheck className="h-4 w-4" />
+                                    {currentUserRsvpStatus === "going"
+                                      ? "Going!"
+                                      : "Going"}
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={async () => {
+                                      const response = await fetch(
+                                        "/api/rsvp",
+                                        {
+                                          method: "POST",
+                                          headers: {
+                                            "Content-Type": "application/json",
+                                          },
+                                          body: JSON.stringify({
+                                            occurrenceId: selectedOccurrence.id,
+                                            status: "not_going",
+                                          }),
+                                        },
                                       );
-                                    }
-                                  }}
-                                  size="sm"
-                                  variant="outline"
-                                >
-                                  <IconX className="h-4 w-4" />
-                                  Can't
-                                </Button>
-                              </>
-                            );
-                          })()}
-                      </div>
+                                      if (response.ok) {
+                                        loadOccurrenceRsvps(
+                                          selectedOccurrence.id,
+                                        );
+                                      }
+                                    }}
+                                    className={`h-9 rounded-xl gap-1.5 px-3 flex-1 ${
+                                      currentUserRsvpStatus === "not_going"
+                                        ? "!bg-red-600 hover:!bg-red-700 !text-white border-red-600"
+                                        : "border-red-400 text-red-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950"
+                                    }`}
+                                  >
+                                    <IconX className="h-4 w-4" />
+                                    Can't
+                                  </Button>
+                                </>
+                              );
+                            })()}
+                          </div>
+                        )}
 
                       {/* Right side: Action buttons */}
                       <div className="flex items-center gap-2">
@@ -4988,11 +5098,11 @@ export default function EventsPage() {
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button
-                                  className="h-9 w-9 rounded-xl"
-                                  disabled={sendingReminder}
-                                  onClick={handleSendReminders}
-                                  size="icon"
                                   variant="outline"
+                                  size="icon"
+                                  onClick={handleSendReminders}
+                                  disabled={sendingReminder}
+                                  className="h-9 w-9 rounded-xl"
                                 >
                                   <IconBell className="h-4 w-4" />
                                 </Button>
@@ -5007,10 +5117,10 @@ export default function EventsPage() {
                         {selectedOccurrence.status !== "canceled" &&
                           eventDetailTab === "details" && (
                             <Button
-                              className="h-9 gap-2 rounded-xl text-destructive hover:text-destructive"
-                              onClick={() => setCancelDialogOpen(true)}
-                              size="sm"
                               variant="outline"
+                              size="sm"
+                              onClick={() => setCancelDialogOpen(true)}
+                              className="h-9 text-destructive hover:text-destructive rounded-xl gap-2"
                             >
                               <IconBan className="h-4 w-4" />
                               Cancel Event
@@ -5020,40 +5130,40 @@ export default function EventsPage() {
                     </div>
                   </div>
                   <Tabs
-                    className="flex min-h-0 flex-1 flex-col"
+                    value={eventDetailTab}
                     onValueChange={(value) =>
                       setEventDetailTab(value as typeof eventDetailTab)
                     }
-                    value={eventDetailTab}
+                    className="flex-1 flex flex-col min-h-0"
                   >
-                    <div className="shrink-0 border-b px-4 py-4">
-                      <TabsList className="grid h-10 w-full grid-cols-2 rounded-xl">
+                    <div className="px-4 py-4 shrink-0 border-b">
+                      <TabsList className="w-full grid grid-cols-2 h-10 rounded-xl">
                         <TabsTrigger
-                          className="rounded-lg text-xs"
                           value="details"
+                          className="text-xs rounded-lg"
                         >
                           Details
                         </TabsTrigger>
                         <TabsTrigger
-                          className="rounded-lg text-xs"
                           value="chat"
+                          className="text-xs rounded-lg"
                         >
                           Chat
                         </TabsTrigger>
                       </TabsList>
                     </div>
                     <TabsContent
-                      className="mt-0 min-h-0 flex-1 overflow-hidden"
                       value="details"
+                      className="flex-1 overflow-hidden mt-0 min-h-0"
                     >
                       {rsvpLoading ? (
-                        <div className="flex h-full flex-col p-4">
-                          <Skeleton className="mb-4 h-10 w-full rounded-xl" />
+                        <div className="flex flex-col h-full p-4">
+                          <Skeleton className="h-10 w-full mb-4 rounded-xl" />
                           <div className="space-y-3">
                             {[1, 2, 3, 4, 5].map((i) => (
                               <div
-                                className="flex items-center gap-3 rounded-xl p-3"
                                 key={i}
+                                className="flex items-center gap-3 p-3 rounded-xl"
                               >
                                 <Skeleton className="h-10 w-10 rounded-xl" />
                                 <div className="flex-1 space-y-2">
@@ -5067,47 +5177,47 @@ export default function EventsPage() {
                         </div>
                       ) : (
                         <Tabs
-                          className="flex h-full min-h-0 flex-col"
                           defaultValue="all"
+                          className="h-full flex flex-col min-h-0"
                         >
-                          <div className="shrink-0 px-4 pt-4">
-                            <TabsList className="grid h-10 w-full grid-cols-4 rounded-xl">
+                          <div className="px-4 pt-4 shrink-0">
+                            <TabsList className="w-full grid grid-cols-4 h-10 rounded-xl">
                               <TabsTrigger
-                                className="rounded-lg text-xs"
                                 value="all"
+                                className="text-xs rounded-lg"
                               >
                                 All ({gymMembers.length})
                               </TabsTrigger>
                               <TabsTrigger
-                                className="rounded-lg text-xs"
                                 value="going"
+                                className="text-xs rounded-lg"
                               >
                                 Going ({goingUsers.length})
                               </TabsTrigger>
                               <TabsTrigger
-                                className="rounded-lg text-xs"
                                 value="not_going"
+                                className="text-xs rounded-lg"
                               >
                                 Can't ({notGoingUsers.length})
                               </TabsTrigger>
                               <TabsTrigger
-                                className="rounded-lg text-xs"
                                 value="pending"
+                                className="text-xs rounded-lg"
                               >
                                 Pending ({notAnsweredUsers.length})
                               </TabsTrigger>
                             </TabsList>
                           </div>
                           <TabsContent
-                            className="mt-0 min-h-0 flex-1 overflow-auto p-4"
                             value="all"
+                            className="flex-1 overflow-auto mt-0 p-4 min-h-0"
                           >
                             {gymMembersLoading ? (
                               <div className="space-y-3">
                                 {[1, 2, 3].map((i) => (
                                   <div
-                                    className="flex items-center gap-3 rounded-xl p-3"
                                     key={i}
+                                    className="flex items-center gap-3 p-3 rounded-xl"
                                   >
                                     <Skeleton className="h-10 w-10 rounded-xl" />
                                     <div className="flex-1 space-y-2">
@@ -5120,29 +5230,26 @@ export default function EventsPage() {
                               </div>
                             ) : (
                               <UserList
-                                currentUserRole={currentUserRole}
-                                getInitials={getInitials}
-                                onEditRsvp={handleEditRsvp}
                                 users={gymMembers.map((m) => ({
                                   ...m,
                                   status:
                                     occurrenceRsvps.find((r) => r.id === m.id)
                                       ?.status || null,
                                 }))}
+                                getInitials={getInitials}
+                                onEditRsvp={handleEditRsvp}
+                                currentUserRole={currentUserRole}
                               />
                             )}
                           </TabsContent>
                           <TabsContent
-                            className="mt-0 flex-1 overflow-auto p-4"
                             value="going"
+                            className="flex-1 overflow-auto mt-0 p-4"
                           >
                             <UserList
-                              currentUserRole={currentUserRole}
-                              getInitials={getInitials}
-                              onEditRsvp={handleEditRsvp}
                               users={goingUsers.map((u) => {
                                 const member = gymMembers.find(
-                                  (m) => m.id === u.id
+                                  (m) => m.id === u.id,
                                 );
                                 // Use role from RSVP user object first, then fall back to gymMembers
                                 return {
@@ -5151,19 +5258,19 @@ export default function EventsPage() {
                                   role: u.role || member?.role,
                                 };
                               })}
+                              getInitials={getInitials}
+                              onEditRsvp={handleEditRsvp}
+                              currentUserRole={currentUserRole}
                             />
                           </TabsContent>
                           <TabsContent
-                            className="mt-0 flex-1 overflow-auto p-4"
                             value="not_going"
+                            className="flex-1 overflow-auto mt-0 p-4"
                           >
                             <UserList
-                              currentUserRole={currentUserRole}
-                              getInitials={getInitials}
-                              onEditRsvp={handleEditRsvp}
                               users={notGoingUsers.map((u) => {
                                 const member = gymMembers.find(
-                                  (m) => m.id === u.id
+                                  (m) => m.id === u.id,
                                 );
                                 // Use role from RSVP user object first, then fall back to gymMembers
                                 return {
@@ -5172,27 +5279,30 @@ export default function EventsPage() {
                                   role: u.role || member?.role,
                                 };
                               })}
+                              getInitials={getInitials}
+                              onEditRsvp={handleEditRsvp}
+                              currentUserRole={currentUserRole}
                             />
                           </TabsContent>
                           <TabsContent
-                            className="mt-0 flex-1 overflow-auto p-4"
                             value="pending"
+                            className="flex-1 overflow-auto mt-0 p-4"
                           >
                             <UserList
-                              getInitials={getInitials}
-                              onEditRsvp={handleEditRsvp}
                               users={notAnsweredUsers.map((u) => ({
                                 ...u,
                                 status: null,
                               }))}
+                              getInitials={getInitials}
+                              onEditRsvp={handleEditRsvp}
                             />
                           </TabsContent>
                         </Tabs>
                       )}
                     </TabsContent>
                     <TabsContent
-                      className="mt-0 min-h-0 flex-1 overflow-hidden"
                       value="chat"
+                      className="flex-1 overflow-hidden mt-0 min-h-0"
                     >
                       {selectedEvent && eventChannelId ? (
                         <EventChatContent
@@ -5215,44 +5325,44 @@ export default function EventsPage() {
                   </Tabs>
                 </>
               ) : selectedEvent ? (
-                <div className="flex min-h-0 flex-1 flex-col">
+                <div className="flex-1 flex flex-col min-h-0">
                   <Tabs
-                    className="flex min-h-0 flex-1 flex-col"
+                    value={eventDetailTab}
                     onValueChange={(value) =>
                       setEventDetailTab(value as typeof eventDetailTab)
                     }
-                    value={eventDetailTab}
+                    className="flex-1 flex flex-col min-h-0"
                   >
-                    <div className="shrink-0 border-b px-4 py-4">
-                      <TabsList className="grid h-10 w-full grid-cols-2 rounded-xl">
+                    <div className="px-4 py-4 shrink-0 border-b">
+                      <TabsList className="w-full grid grid-cols-2 h-10 rounded-xl">
                         <TabsTrigger
-                          className="rounded-lg text-xs"
                           value="details"
+                          className="text-xs rounded-lg"
                         >
                           Details
                         </TabsTrigger>
                         <TabsTrigger
-                          className="rounded-lg text-xs"
                           value="chat"
+                          className="text-xs rounded-lg"
                         >
                           Chat
                         </TabsTrigger>
                       </TabsList>
                     </div>
                     <TabsContent
-                      className="mt-0 min-h-0 flex-1 overflow-auto p-4"
                       value="details"
+                      className="flex-1 overflow-auto mt-0 p-4 min-h-0"
                     >
-                      <div className="flex h-full flex-col items-center justify-center text-muted-foreground">
-                        <IconUsers className="mb-3 h-12 w-12 opacity-20" />
+                      <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                        <IconUsers className="h-12 w-12 mb-3 opacity-20" />
                         <p className="text-sm">
                           Select a session to view attendance
                         </p>
                       </div>
                     </TabsContent>
                     <TabsContent
-                      className="mt-0 min-h-0 flex-1 overflow-hidden"
                       value="chat"
+                      className="flex-1 overflow-hidden mt-0 min-h-0"
                     >
                       {eventChannelId ? (
                         <EventChatContent
@@ -5271,8 +5381,8 @@ export default function EventsPage() {
                   </Tabs>
                 </div>
               ) : (
-                <div className="flex flex-1 flex-col items-center justify-center text-muted-foreground">
-                  <IconUsers className="mb-3 h-12 w-12 opacity-20" />
+                <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground">
+                  <IconUsers className="h-12 w-12 mb-3 opacity-20" />
                   <p className="text-sm">Select a session to view attendance</p>
                 </div>
               )}
@@ -5280,7 +5390,7 @@ export default function EventsPage() {
           </>
         )}
       </div>
-      <Dialog onOpenChange={setCancelDialogOpen} open={cancelDialogOpen}>
+      <Dialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
         <DialogContent className="rounded-xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -5292,9 +5402,9 @@ export default function EventsPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
-            <div className="mb-4 rounded-xl bg-muted/50 p-3">
+            <div className="p-3 rounded-xl bg-muted/50 mb-4">
               <p className="font-medium">{selectedEvent?.title}</p>
-              <p className="text-muted-foreground text-sm">
+              <p className="text-sm text-muted-foreground">
                 {selectedOccurrence &&
                   formatDate(selectedOccurrence.date).weekday}
                 ,{" "}
@@ -5303,17 +5413,17 @@ export default function EventsPage() {
                 {selectedOccurrence && formatDate(selectedOccurrence.date).day}
               </p>
             </div>
-            <div className="flex w-full items-center space-x-3 rounded-xl bg-muted/50 p-3">
+            <div className="flex items-center space-x-3 p-3 rounded-xl bg-muted/50 w-full">
               <Checkbox
-                checked={notifyOnCancel}
                 id="notify-on-cancel"
+                checked={notifyOnCancel}
                 onCheckedChange={(checked) =>
                   setNotifyOnCancel(checked as boolean)
                 }
               />
               <Label
-                className="flex-1 cursor-pointer"
                 htmlFor="notify-on-cancel"
+                className="cursor-pointer flex-1"
               >
                 Notify all users who RSVP'd "Going" via email
               </Label>
@@ -5321,25 +5431,25 @@ export default function EventsPage() {
           </div>
           <DialogFooter>
             <Button
-              className="rounded-xl"
-              onClick={() => setCancelDialogOpen(false)}
               variant="outline"
+              onClick={() => setCancelDialogOpen(false)}
+              className="rounded-xl"
             >
               Keep Session
             </Button>
             <Button
-              className="rounded-xl"
-              disabled={canceling}
-              onClick={handleCancelWithNotify}
               variant="destructive"
+              onClick={handleCancelWithNotify}
+              disabled={canceling}
+              className="rounded-xl"
             >
               {canceling ? "Canceling..." : "Cancel Session"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      <Dialog onOpenChange={setDeleteDialogOpen} open={deleteDialogOpen}>
-        <DialogContent className="max-w-[calc(100vw-2rem)] rounded-xl sm:max-w-lg">
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="rounded-xl max-w-[calc(100vw-2rem)] sm:max-w-lg">
           <DialogHeader className="text-left">
             <DialogTitle className="flex items-center gap-2 text-destructive">
               <IconTrash className="h-5 w-5" />
@@ -5350,38 +5460,38 @@ export default function EventsPage() {
               sessions. This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="flex-col-reverse gap-2 sm:flex-row">
+          <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
             <Button
-              className="w-full rounded-xl sm:w-auto"
-              onClick={() => setDeleteDialogOpen(false)}
               variant="outline"
+              onClick={() => setDeleteDialogOpen(false)}
+              className="rounded-xl w-full sm:w-auto"
             >
               Cancel
             </Button>
             <Button
-              className="w-full rounded-xl sm:w-auto"
-              disabled={deleting}
-              onClick={handleDeleteEvent}
               variant="destructive"
+              onClick={handleDeleteEvent}
+              disabled={deleting}
+              className="rounded-xl w-full sm:w-auto"
             >
               {deleting ? "Deleting..." : "Delete Event"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      <Dialog onOpenChange={setEventChatDialogOpen} open={eventChatDialogOpen}>
-        <DialogContent className="flex h-[80vh] max-w-4xl flex-col rounded-xl">
+      <Dialog open={eventChatDialogOpen} onOpenChange={setEventChatDialogOpen}>
+        <DialogContent className="rounded-xl max-w-4xl h-[80vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>{selectedEvent?.title} Chat</DialogTitle>
             <DialogDescription>
               Chat with other members about this event
             </DialogDescription>
           </DialogHeader>
-          <div className="min-h-0 flex-1 overflow-hidden">
+          <div className="flex-1 min-h-0 overflow-hidden">
             {eventChatEventId && eventChatChannelId ? (
               <EventChatContent
-                channelId={eventChatChannelId}
                 eventId={eventChatEventId}
+                channelId={eventChatChannelId}
                 eventTitle={selectedEvent?.title || "Event"}
                 onChannelLoad={(id) => setEventChatChannelId(id)}
               />
@@ -5392,14 +5502,14 @@ export default function EventsPage() {
                 onChannelLoad={(id) => setEventChatChannelId(id)}
               />
             ) : (
-              <div className="flex h-full items-center justify-center text-muted-foreground">
+              <div className="flex items-center justify-center h-full text-muted-foreground">
                 <p>Select an event to view chat</p>
               </div>
             )}
           </div>
         </DialogContent>
       </Dialog>
-      <Dialog onOpenChange={setAddDateDialogOpen} open={addDateDialogOpen}>
+      <Dialog open={addDateDialogOpen} onOpenChange={setAddDateDialogOpen}>
         <DialogContent className="rounded-xl">
           <DialogHeader>
             <DialogTitle>Add Custom Session</DialogTitle>
@@ -5410,16 +5520,16 @@ export default function EventsPage() {
           </DialogHeader>
           <DialogFooter>
             <Button
-              className="rounded-xl"
-              onClick={() => setAddDateDialogOpen(false)}
               variant="outline"
+              onClick={() => setAddDateDialogOpen(false)}
+              className="rounded-xl"
             >
               Cancel
             </Button>
             <Button
-              className="rounded-xl"
-              disabled={addingDate}
               onClick={confirmAddCustomDate}
+              disabled={addingDate}
+              className="rounded-xl"
             >
               {addingDate ? "Adding..." : "Add Session"}
             </Button>
@@ -5455,16 +5565,10 @@ function UserList({
   const isMobile = useIsMobile();
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
-  // Filter to only include coaches/owners/managers and athletes (exclude any other roles)
+  // Filter to only include coaches/owners and athletes (exclude any other roles)
   const filteredUsers = users.filter((u) => {
     const role = u.role;
-    return (
-      role === "coach" ||
-      role === "owner" ||
-      role === "manager" ||
-      role === "athlete" ||
-      !role
-    );
+    return role === "coach" || role === "owner" || role === "athlete" || !role;
   });
 
   const selectedUser = selectedUserId
@@ -5473,7 +5577,7 @@ function UserList({
 
   if (filteredUsers.length === 0) {
     return (
-      <div className="py-8 text-center text-muted-foreground text-sm">
+      <div className="text-center text-sm text-muted-foreground py-8">
         No members in this list
       </div>
     );
@@ -5481,7 +5585,7 @@ function UserList({
 
   // Separate coaches and athletes
   const coaches = filteredUsers.filter(
-    (u) => u.role === "coach" || u.role === "owner" || u.role === "manager"
+    (u) => u.role === "coach" || u.role === "owner",
   );
   const athletes = filteredUsers.filter((u) => u.role === "athlete" || !u.role);
 
@@ -5489,52 +5593,52 @@ function UserList({
     <div className="space-y-0.5">
       {coaches.length > 0 && (
         <>
-          <div className="my-2 flex items-center gap-2">
-            <span className="whitespace-nowrap font-medium text-muted-foreground text-xs">
+          <div className="flex items-center gap-2 my-2">
+            <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">
               Coaches
             </span>
             <hr className="flex-1 border-border" />
           </div>
           {coaches.map((user) => (
             <div
-              className={`group flex items-center gap-2 rounded-lg p-2 transition-colors ${
+              key={user.id}
+              className={`flex items-center gap-2 p-2 rounded-lg transition-colors group ${
                 isMobile && onEditRsvp
                   ? "cursor-pointer active:bg-muted/70"
                   : "hover:bg-muted/50"
               }`}
-              key={user.id}
               onClick={
                 isMobile && onEditRsvp
                   ? () => setSelectedUserId(user.id)
                   : undefined
               }
             >
-              <Avatar className="h-8 w-8 shrink-0 rounded-lg">
+              <Avatar className="h-8 w-8 rounded-lg shrink-0">
                 <AvatarImage src={user.avatarUrl || undefined} />
-                <AvatarFallback className="rounded-lg bg-linear-to-br from-primary/20 to-primary/5 text-xs">
+                <AvatarFallback className="rounded-lg text-xs bg-linear-to-br from-primary/20 to-primary/5">
                   {getInitials(user.name, user.email)}
                 </AvatarFallback>
               </Avatar>
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-medium text-sm">
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-sm truncate">
                   {user.name || "Unnamed"}
                 </p>
               </div>
               <div className="flex items-center gap-2">
                 {user.status === "going" && (
-                  <div className="flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 font-medium text-emerald-600 text-xs dark:bg-emerald-950/50">
+                  <div className="flex items-center gap-1 text-emerald-600 bg-emerald-100 dark:bg-emerald-950/50 px-2.5 py-1 rounded-full text-xs font-medium">
                     <IconCheck className="h-3 w-3" />
                     Going
                   </div>
                 )}
                 {user.status === "not_going" && (
-                  <div className="flex items-center gap-1 rounded-full bg-red-100 px-2.5 py-1 font-medium text-red-600 text-xs dark:bg-red-950/50">
+                  <div className="flex items-center gap-1 text-red-600 bg-red-100 dark:bg-red-950/50 px-2.5 py-1 rounded-full text-xs font-medium">
                     <IconX className="h-3 w-3" />
                     Can't Go
                   </div>
                 )}
                 {user.status === null && (
-                  <div className="flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-1 font-medium text-amber-600 text-xs dark:bg-amber-950/50">
+                  <div className="flex items-center gap-1 text-amber-600 bg-amber-100 dark:bg-amber-950/50 px-2.5 py-1 rounded-full text-xs font-medium">
                     <IconBell className="h-3 w-3" />
                     Pending
                   </div>
@@ -5543,9 +5647,9 @@ function UserList({
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
-                        className="h-8 w-8 opacity-0 transition-opacity group-hover:opacity-100"
-                        size="icon"
                         variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
                       >
                         <IconDotsVertical className="h-4 w-4" />
                       </Button>
@@ -5553,8 +5657,8 @@ function UserList({
                     <DropdownMenuContent align="end" className="rounded-xl">
                       <DropdownMenuItem asChild>
                         <Link
-                          className="flex cursor-pointer items-center gap-2"
                           href={`/chat?userId=${user.id}`}
+                          className="flex items-center gap-2 cursor-pointer"
                         >
                           <IconMessageCircle className="h-4 w-4" />
                           Chat
@@ -5562,8 +5666,8 @@ function UserList({
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
                         <Link
-                          className="flex cursor-pointer items-center gap-2"
                           href={`/roster/${user.id}`}
+                          className="flex items-center gap-2 cursor-pointer"
                         >
                           <IconUsers className="h-4 w-4" />
                           View Profile
@@ -5577,8 +5681,8 @@ function UserList({
                             {(user.phone || user.cellPhone) && (
                               <DropdownMenuItem asChild>
                                 <a
-                                  className="flex cursor-pointer items-center gap-2"
                                   href={`tel:${(user.phone || user.cellPhone || "").replace(/\D/g, "")}`}
+                                  className="flex items-center gap-2 cursor-pointer"
                                 >
                                   <IconPhone className="h-4 w-4" />
                                   Call
@@ -5587,8 +5691,8 @@ function UserList({
                             )}
                             <DropdownMenuItem asChild>
                               <a
-                                className="flex cursor-pointer items-center gap-2"
                                 href={`mailto:${user.email}`}
+                                className="flex items-center gap-2 cursor-pointer"
                               >
                                 <IconMail className="h-4 w-4" />
                                 Email
@@ -5598,15 +5702,15 @@ function UserList({
                         )}
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
-                        className="gap-2"
                         onClick={() => onEditRsvp(user.id, "going")}
+                        className="gap-2"
                       >
                         <IconCheck className="h-4 w-4 text-emerald-600" />
                         Mark as Going
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        className="gap-2"
                         onClick={() => onEditRsvp(user.id, "not_going")}
+                        className="gap-2"
                       >
                         <IconX className="h-4 w-4 text-red-600" />
                         Mark as Can't Go
@@ -5621,8 +5725,8 @@ function UserList({
       )}
       {athletes.length > 0 && (
         <>
-          <div className="my-2 flex items-center gap-2">
-            <span className="whitespace-nowrap font-medium text-muted-foreground text-xs">
+          <div className="flex items-center gap-2 my-2">
+            <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">
               Athletes
             </span>
             <hr className="flex-1 border-border" />
@@ -5630,44 +5734,44 @@ function UserList({
           <div className="divide-y divide-border">
             {athletes.map((user) => (
               <div
-                className={`group flex items-center gap-2 p-2 transition-colors ${
+                key={user.id}
+                className={`flex items-center gap-2 p-2 transition-colors group ${
                   isMobile && onEditRsvp
                     ? "cursor-pointer active:bg-muted/70"
                     : "hover:bg-muted/50"
                 }`}
-                key={user.id}
                 onClick={
                   isMobile && onEditRsvp
                     ? () => setSelectedUserId(user.id)
                     : undefined
                 }
               >
-                <Avatar className="h-8 w-8 shrink-0 rounded-lg">
+                <Avatar className="h-8 w-8 rounded-lg shrink-0">
                   <AvatarImage src={user.avatarUrl || undefined} />
-                  <AvatarFallback className="rounded-lg bg-linear-to-br from-primary/20 to-primary/5 text-xs">
+                  <AvatarFallback className="rounded-lg text-xs bg-linear-to-br from-primary/20 to-primary/5">
                     {getInitials(user.name, user.email)}
                   </AvatarFallback>
                 </Avatar>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium text-sm">
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm truncate">
                     {user.name || "Unnamed"}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
                   {user.status === "going" && (
-                    <div className="flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 font-medium text-emerald-600 text-xs dark:bg-emerald-950/50">
+                    <div className="flex items-center gap-1 text-emerald-600 bg-emerald-100 dark:bg-emerald-950/50 px-2.5 py-1 rounded-full text-xs font-medium">
                       <IconCheck className="h-3 w-3" />
                       Going
                     </div>
                   )}
                   {user.status === "not_going" && (
-                    <div className="flex items-center gap-1 rounded-full bg-red-100 px-2.5 py-1 font-medium text-red-600 text-xs dark:bg-red-950/50">
+                    <div className="flex items-center gap-1 text-red-600 bg-red-100 dark:bg-red-950/50 px-2.5 py-1 rounded-full text-xs font-medium">
                       <IconX className="h-3 w-3" />
                       Can't Go
                     </div>
                   )}
                   {user.status === null && (
-                    <div className="flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-1 font-medium text-amber-600 text-xs dark:bg-amber-950/50">
+                    <div className="flex items-center gap-1 text-amber-600 bg-amber-100 dark:bg-amber-950/50 px-2.5 py-1 rounded-full text-xs font-medium">
                       <IconBell className="h-3 w-3" />
                       Pending
                     </div>
@@ -5676,9 +5780,9 @@ function UserList({
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
-                          className="h-8 w-8 opacity-0 transition-opacity group-hover:opacity-100"
-                          size="icon"
                           variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
                         >
                           <IconDotsVertical className="h-4 w-4" />
                         </Button>
@@ -5686,8 +5790,8 @@ function UserList({
                       <DropdownMenuContent align="end" className="rounded-xl">
                         <DropdownMenuItem asChild>
                           <Link
-                            className="flex cursor-pointer items-center gap-2"
                             href={`/chat?userId=${user.id}`}
+                            className="flex items-center gap-2 cursor-pointer"
                           >
                             <IconMessageCircle className="h-4 w-4" />
                             Chat
@@ -5695,8 +5799,8 @@ function UserList({
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
                           <Link
-                            className="flex cursor-pointer items-center gap-2"
                             href={`/roster/${user.id}`}
+                            className="flex items-center gap-2 cursor-pointer"
                           >
                             <IconUsers className="h-4 w-4" />
                             View Profile
@@ -5710,8 +5814,8 @@ function UserList({
                               {(user.phone || user.cellPhone) && (
                                 <DropdownMenuItem asChild>
                                   <a
-                                    className="flex cursor-pointer items-center gap-2"
                                     href={`tel:${(user.phone || user.cellPhone || "").replace(/\D/g, "")}`}
+                                    className="flex items-center gap-2 cursor-pointer"
                                   >
                                     <IconPhone className="h-4 w-4" />
                                     Call
@@ -5720,8 +5824,8 @@ function UserList({
                               )}
                               <DropdownMenuItem asChild>
                                 <a
-                                  className="flex cursor-pointer items-center gap-2"
                                   href={`mailto:${user.email}`}
+                                  className="flex items-center gap-2 cursor-pointer"
                                 >
                                   <IconMail className="h-4 w-4" />
                                   Email
@@ -5731,15 +5835,15 @@ function UserList({
                           )}
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
-                          className="gap-2"
                           onClick={() => onEditRsvp(user.id, "going")}
+                          className="gap-2"
                         >
                           <IconCheck className="h-4 w-4 text-emerald-600" />
                           Mark as Going
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          className="gap-2"
                           onClick={() => onEditRsvp(user.id, "not_going")}
+                          className="gap-2"
                         >
                           <IconX className="h-4 w-4 text-red-600" />
                           Mark as Can't Go
@@ -5757,38 +5861,38 @@ function UserList({
       {/* Mobile Drawer for User Actions */}
       {isMobile && selectedUser && (
         <Drawer
-          onOpenChange={(open) => !open && setSelectedUserId(null)}
           open={!!selectedUser}
+          onOpenChange={(open) => !open && setSelectedUserId(null)}
         >
           <DrawerContent className="max-h-[85vh]">
-            <div className="border-b px-4 pt-4 pb-3">
-              <div className="mb-3 flex items-center gap-3">
-                <Avatar className="h-14 w-14 shrink-0 rounded-xl">
+            <div className="px-4 pt-4 pb-3 border-b">
+              <div className="flex items-center gap-3 mb-3">
+                <Avatar className="h-14 w-14 rounded-xl shrink-0">
                   <AvatarImage src={selectedUser.avatarUrl || undefined} />
-                  <AvatarFallback className="rounded-xl font-semibold text-base">
+                  <AvatarFallback className="rounded-xl text-base font-semibold">
                     {getInitials(selectedUser.name, selectedUser.email)}
                   </AvatarFallback>
                 </Avatar>
-                <div className="min-w-0 flex-1">
-                  <DrawerTitle className="truncate font-semibold text-lg">
+                <div className="flex-1 min-w-0">
+                  <DrawerTitle className="text-lg font-semibold truncate">
                     {selectedUser.name || "Unnamed"}
                   </DrawerTitle>
-                  <p className="truncate text-muted-foreground text-sm">
+                  <p className="text-sm text-muted-foreground truncate">
                     {selectedUser.email}
                   </p>
                 </div>
               </div>
             </div>
             <div
-              className="space-y-1 overflow-y-auto px-4 py-3"
+              className="px-4 py-3 space-y-1 overflow-y-auto"
               style={{
-                paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom, 0))",
+                paddingBottom: `calc(0.75rem + env(safe-area-inset-bottom, 0))`,
               }}
             >
               <Button
-                asChild
-                className="h-12 w-full justify-start gap-3 px-3"
                 variant="ghost"
+                className="w-full justify-start gap-3 h-12 px-3"
+                asChild
               >
                 <Link href={`/chat?userId=${selectedUser.id}`}>
                   <IconMessageCircle className="h-5 w-5" />
@@ -5796,9 +5900,9 @@ function UserList({
                 </Link>
               </Button>
               <Button
-                asChild
-                className="h-12 w-full justify-start gap-3 px-3"
                 variant="ghost"
+                className="w-full justify-start gap-3 h-12 px-3"
+                asChild
               >
                 <Link href={`/roster/${selectedUser.id}`}>
                   <IconUsers className="h-5 w-5" />
@@ -5810,22 +5914,22 @@ function UserList({
                   <>
                     {(selectedUser.phone || selectedUser.cellPhone) && (
                       <Button
-                        className="h-12 w-full justify-start gap-3 px-3"
+                        variant="ghost"
+                        className="w-full justify-start gap-3 h-12 px-3"
                         onClick={() => {
                           window.location.href = `tel:${(selectedUser.phone || selectedUser.cellPhone || "").replace(/\D/g, "")}`;
                         }}
-                        variant="ghost"
                       >
                         <IconPhone className="h-5 w-5" />
                         <span>Call</span>
                       </Button>
                     )}
                     <Button
-                      className="h-12 w-full justify-start gap-3 px-3"
+                      variant="ghost"
+                      className="w-full justify-start gap-3 h-12 px-3"
                       onClick={() => {
                         window.location.href = `mailto:${selectedUser.email}`;
                       }}
-                      variant="ghost"
                     >
                       <IconMail className="h-5 w-5" />
                       <span>Email</span>
@@ -5834,25 +5938,25 @@ function UserList({
                 )}
               {onEditRsvp && (
                 <>
-                  <div className="my-2 h-px bg-border" />
+                  <div className="h-px bg-border my-2" />
                   <Button
-                    className="h-12 w-full justify-start gap-3 px-3"
+                    variant="ghost"
+                    className="w-full justify-start gap-3 h-12 px-3"
                     onClick={() => {
                       onEditRsvp(selectedUser.id, "going");
                       setSelectedUserId(null);
                     }}
-                    variant="ghost"
                   >
                     <IconCheck className="h-5 w-5 text-emerald-600" />
                     <span>Mark as Going</span>
                   </Button>
                   <Button
-                    className="h-12 w-full justify-start gap-3 px-3"
+                    variant="ghost"
+                    className="w-full justify-start gap-3 h-12 px-3"
                     onClick={() => {
                       onEditRsvp(selectedUser.id, "not_going");
                       setSelectedUserId(null);
                     }}
-                    variant="ghost"
                   >
                     <IconX className="h-5 w-5 text-red-600" />
                     <span>Mark as Can't Go</span>

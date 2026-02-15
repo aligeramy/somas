@@ -30,8 +30,8 @@ export function PasswordResetEmail({
 
       <Text className="mb-6 text-[15px] text-gray-600 leading-6">
         We received a request to reset your password for your{" "}
-        <strong>{gymName || "SOMAS"}</strong> account. Click the button below to
-        set a new password.
+        <strong>{gymName || "SOMAS"}</strong> account. Click the
+        button below to set a new password.
       </Text>
 
       <Section className="mb-6 text-center">

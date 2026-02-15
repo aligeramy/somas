@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, inArray, lte, or } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, lte, or, sql } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { eventOccurrences, events, rsvps, users } from "@/drizzle/schema";
 import { db } from "@/lib/db";
@@ -25,16 +25,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Athletes, coaches, managers, and owners can RSVP
+    // Athletes, coaches, and owners can RSVP
     if (
       dbUser.role !== "athlete" &&
       dbUser.role !== "coach" &&
-      dbUser.role !== "manager" &&
       dbUser.role !== "owner"
     ) {
       return NextResponse.json(
-        { error: "Only athletes, coaches, managers, and owners can RSVP" },
-        { status: 403 }
+        { error: "Only athletes, coaches, and owners can RSVP" },
+        { status: 403 },
       );
     }
 
@@ -43,7 +42,7 @@ export async function POST(request: Request) {
     if (!occurrenceId) {
       return NextResponse.json(
         { error: "Occurrence ID is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -57,7 +56,7 @@ export async function POST(request: Request) {
     if (!occurrence) {
       return NextResponse.json(
         { error: "Event occurrence not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -70,14 +69,14 @@ export async function POST(request: Request) {
     if (occurrenceDate < today) {
       return NextResponse.json(
         { error: "Cannot RSVP to past events" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (occurrence.status === "canceled") {
       return NextResponse.json(
         { error: "Event has been canceled" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -86,11 +85,11 @@ export async function POST(request: Request) {
       .select()
       .from(rsvps)
       .where(
-        and(eq(rsvps.userId, user.id), eq(rsvps.occurrenceId, occurrenceId))
+        and(eq(rsvps.userId, user.id), eq(rsvps.occurrenceId, occurrenceId)),
       )
       .limit(1);
 
-    let rsvp;
+    let rsvp: typeof rsvps.$inferSelect;
     if (existingRsvp) {
       const updated = await db
         .update(rsvps)
@@ -113,7 +112,7 @@ export async function POST(request: Request) {
     if (!rsvp) {
       return NextResponse.json(
         { error: "Failed to create RSVP" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -185,17 +184,20 @@ export async function GET(request: Request) {
     if (summaryOccurrences) {
       const occurrenceIds = summaryOccurrences.split(",");
 
-      // For owner/manager/coach, filter by gymId for security
-      let rsvpsList;
-      if (
-        dbUser.role === "owner" ||
-        dbUser.role === "manager" ||
-        dbUser.role === "coach"
-      ) {
+      // For owner/coach, filter by gymId for security
+      let rsvpsList: Array<{
+        occurrenceId: string;
+        status: string;
+        userId: string;
+        userName: string | null;
+        userAvatarUrl: string | null;
+        userRole: string;
+      }>;
+      if (dbUser.role === "owner" || dbUser.role === "coach") {
         if (!dbUser.gymId) {
           return NextResponse.json(
-            { error: "User must belong to a gym" },
-            { status: 400 }
+            { error: "User must belong to a club" },
+            { status: 400 },
           );
         }
         // Get all RSVPs for these occurrences, filtered by gymId
@@ -212,15 +214,15 @@ export async function GET(request: Request) {
           .innerJoin(users, eq(rsvps.userId, users.id))
           .innerJoin(
             eventOccurrences,
-            eq(rsvps.occurrenceId, eventOccurrences.id)
+            eq(rsvps.occurrenceId, eventOccurrences.id),
           )
           .innerJoin(events, eq(eventOccurrences.eventId, events.id))
           .where(
             and(
               inArray(rsvps.occurrenceId, occurrenceIds),
               eq(events.gymId, dbUser.gymId),
-              or(eq(rsvps.status, "going"), eq(rsvps.status, "not_going"))
-            )
+              or(eq(rsvps.status, "going"), eq(rsvps.status, "not_going")),
+            ),
           );
       } else {
         // For athletes, just filter by occurrenceIds
@@ -238,8 +240,8 @@ export async function GET(request: Request) {
           .where(
             and(
               inArray(rsvps.occurrenceId, occurrenceIds),
-              or(eq(rsvps.status, "going"), eq(rsvps.status, "not_going"))
-            )
+              or(eq(rsvps.status, "going"), eq(rsvps.status, "not_going")),
+            ),
           );
       }
 
@@ -289,17 +291,13 @@ export async function GET(request: Request) {
       return NextResponse.json({ summary: summaryMap });
     }
 
-    // If owner, manager, or coach, get all RSVPs for their gym
+    // If owner or coach, get all RSVPs for their gym
     // Otherwise, get only user's RSVPs
-    if (
-      dbUser.role === "owner" ||
-      dbUser.role === "manager" ||
-      dbUser.role === "coach"
-    ) {
+    if (dbUser.role === "owner" || dbUser.role === "coach") {
       if (!dbUser.gymId) {
         return NextResponse.json(
-          { error: "User must belong to a gym" },
-          { status: 400 }
+          { error: "User must belong to a club" },
+          { status: 400 },
         );
       }
 
@@ -325,8 +323,10 @@ export async function GET(request: Request) {
       }
 
       // If not including past, only get future events
-      if (!(includePast || startDate || endDate || eventId)) {
-        conditions.push(gte(eventOccurrences.date, new Date()));
+      if (!includePast && !startDate && !endDate && !eventId) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        conditions.push(sql`DATE(${eventOccurrences.date}) >= DATE(${sql.raw(`'${today.toISOString().split('T')[0]}'`)}::date)`);
       }
 
       // Get all RSVPs for events in this gym
@@ -347,12 +347,14 @@ export async function GET(request: Request) {
         .innerJoin(users, eq(rsvps.userId, users.id))
         .innerJoin(
           eventOccurrences,
-          eq(rsvps.occurrenceId, eventOccurrences.id)
+          eq(rsvps.occurrenceId, eventOccurrences.id),
         )
         .innerJoin(events, eq(eventOccurrences.eventId, events.id))
         .where(and(...conditions))
         .orderBy(
-          includePast ? desc(eventOccurrences.date) : asc(eventOccurrences.date)
+          includePast
+            ? desc(eventOccurrences.date)
+            : asc(eventOccurrences.date),
         );
 
       const formattedRsvps = rsvpsList.map(
@@ -363,7 +365,7 @@ export async function GET(request: Request) {
             ...occurrence,
             event,
           },
-        })
+        }),
       );
 
       return NextResponse.json({ rsvps: formattedRsvps });
@@ -386,8 +388,10 @@ export async function GET(request: Request) {
     }
 
     // If not including past, only get future events
-    if (!(includePast || startDate || endDate || eventId)) {
-      conditions.push(gte(eventOccurrences.date, new Date()));
+    if (!includePast && !startDate && !endDate && !eventId) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      conditions.push(sql`DATE(${eventOccurrences.date}) >= DATE(${sql.raw(`'${today.toISOString().split('T')[0]}'`)}::date)`);
     }
 
     const rsvpsList = await db
@@ -401,7 +405,7 @@ export async function GET(request: Request) {
       .innerJoin(events, eq(eventOccurrences.eventId, events.id))
       .where(and(...conditions))
       .orderBy(
-        includePast ? desc(eventOccurrences.date) : asc(eventOccurrences.date)
+        includePast ? desc(eventOccurrences.date) : asc(eventOccurrences.date),
       );
 
     const formattedRsvps = rsvpsList.map(({ rsvp, occurrence, event }) => ({
@@ -417,7 +421,7 @@ export async function GET(request: Request) {
     console.error("RSVP fetch error:", error);
     return NextResponse.json(
       { error: "Failed to fetch RSVPs" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

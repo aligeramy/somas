@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export async function GET(
   _request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
@@ -25,10 +25,10 @@ export async function GET(
       .where(eq(users.id, user.id))
       .limit(1);
 
-    if (!dbUser?.gymId) {
+    if (!dbUser || !dbUser.gymId) {
       return NextResponse.json(
-        { error: "User must belong to a gym" },
-        { status: 400 }
+        { error: "User must belong to a club" },
+        { status: 400 },
       );
     }
 
@@ -61,14 +61,14 @@ export async function GET(
     console.error("Blog post fetch error:", error);
     return NextResponse.json(
       { error: "Failed to fetch blog post" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 export async function PUT(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
@@ -82,7 +82,7 @@ export async function PUT(
     }
 
     // Retry logic for database connection
-    let dbUser;
+    let dbUser: typeof users.$inferSelect | undefined;
     let retries = 3;
     while (retries > 0) {
       try {
@@ -93,11 +93,12 @@ export async function PUT(
           .limit(1);
         dbUser = result[0];
         break;
-      } catch (error: any) {
+      } catch (error: unknown) {
         retries--;
+        const errorObj = error as { code?: string };
         if (
           retries === 0 ||
-          (error?.code !== "ECONNRESET" && error?.code !== "ETIMEDOUT")
+          (errorObj?.code !== "ECONNRESET" && errorObj?.code !== "ETIMEDOUT")
         ) {
           throw error;
         }
@@ -106,26 +107,22 @@ export async function PUT(
       }
     }
 
-    if (!dbUser?.gymId) {
+    if (!dbUser || !dbUser.gymId) {
       return NextResponse.json(
-        { error: "User must belong to a gym" },
-        { status: 400 }
+        { error: "User must belong to a club" },
+        { status: 400 },
       );
     }
 
     // Only head coaches and coaches can update posts
-    if (
-      dbUser.role !== "owner" &&
-      dbUser.role !== "manager" &&
-      dbUser.role !== "coach"
-    ) {
+    if (dbUser.role !== "owner" && dbUser.role !== "coach") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const { title, content, type, eventId, imageUrl } = await request.json();
 
-    // Verify post belongs to user's gym with retry
-    let post;
+    // Verify post belongs to user's club with retry
+    let post: typeof blogPosts.$inferSelect | undefined;
     retries = 3;
     while (retries > 0) {
       try {
@@ -136,11 +133,12 @@ export async function PUT(
           .limit(1);
         post = result[0];
         break;
-      } catch (error: any) {
+      } catch (error: unknown) {
         retries--;
+        const errorObj = error as { code?: string };
         if (
           retries === 0 ||
-          (error?.code !== "ECONNRESET" && error?.code !== "ETIMEDOUT")
+          (errorObj?.code !== "ECONNRESET" && errorObj?.code !== "ETIMEDOUT")
         ) {
           throw error;
         }
@@ -153,7 +151,7 @@ export async function PUT(
     }
 
     // Update post with retry
-    let updatedPost;
+    let updatedPost: typeof blogPosts.$inferSelect | undefined;
     retries = 3;
     while (retries > 0) {
       try {
@@ -171,11 +169,12 @@ export async function PUT(
           .returning();
         updatedPost = result[0];
         break;
-      } catch (error: any) {
+      } catch (error: unknown) {
         retries--;
+        const errorObj = error as { code?: string };
         if (
           retries === 0 ||
-          (error?.code !== "ECONNRESET" && error?.code !== "ETIMEDOUT")
+          (errorObj?.code !== "ECONNRESET" && errorObj?.code !== "ETIMEDOUT")
         ) {
           throw error;
         }
@@ -184,10 +183,11 @@ export async function PUT(
     }
 
     return NextResponse.json({ post: updatedPost });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Blog post update error:", error);
+    const errorObj = error as { code?: string; message?: string };
     const errorMessage =
-      error?.code === "ECONNRESET" || error?.code === "ETIMEDOUT"
+      errorObj?.code === "ECONNRESET" || errorObj?.code === "ETIMEDOUT"
         ? "Database connection error. Please try again."
         : "Failed to update blog post";
     return NextResponse.json({ error: errorMessage }, { status: 500 });
@@ -196,7 +196,7 @@ export async function PUT(
 
 export async function DELETE(
   _request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
@@ -210,7 +210,7 @@ export async function DELETE(
     }
 
     // Retry logic for database connection
-    let dbUser;
+    let dbUser: typeof users.$inferSelect | undefined;
     let retries = 3;
     while (retries > 0) {
       try {
@@ -221,11 +221,12 @@ export async function DELETE(
           .limit(1);
         dbUser = result[0];
         break;
-      } catch (error: any) {
+      } catch (error: unknown) {
         retries--;
+        const errorObj = error as { code?: string };
         if (
           retries === 0 ||
-          (error?.code !== "ECONNRESET" && error?.code !== "ETIMEDOUT")
+          (errorObj?.code !== "ECONNRESET" && errorObj?.code !== "ETIMEDOUT")
         ) {
           throw error;
         }
@@ -233,24 +234,20 @@ export async function DELETE(
       }
     }
 
-    if (!dbUser?.gymId) {
+    if (!dbUser || !dbUser.gymId) {
       return NextResponse.json(
-        { error: "User must belong to a gym" },
-        { status: 400 }
+        { error: "User must belong to a club" },
+        { status: 400 },
       );
     }
 
     // Only head coaches and coaches can delete posts
-    if (
-      dbUser.role !== "owner" &&
-      dbUser.role !== "manager" &&
-      dbUser.role !== "coach"
-    ) {
+    if (dbUser.role !== "owner" && dbUser.role !== "coach") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // Verify post belongs to user's gym with retry
-    let post;
+    // Verify post belongs to user's club with retry
+    let post: typeof blogPosts.$inferSelect | undefined;
     retries = 3;
     while (retries > 0) {
       try {
@@ -261,11 +258,12 @@ export async function DELETE(
           .limit(1);
         post = result[0];
         break;
-      } catch (error: any) {
+      } catch (error: unknown) {
         retries--;
+        const errorObj = error as { code?: string };
         if (
           retries === 0 ||
-          (error?.code !== "ECONNRESET" && error?.code !== "ETIMEDOUT")
+          (errorObj?.code !== "ECONNRESET" && errorObj?.code !== "ETIMEDOUT")
         ) {
           throw error;
         }
@@ -283,11 +281,12 @@ export async function DELETE(
       try {
         await db.delete(blogPosts).where(eq(blogPosts.id, id));
         break;
-      } catch (error: any) {
+      } catch (error: unknown) {
         retries--;
+        const errorObj = error as { code?: string };
         if (
           retries === 0 ||
-          (error?.code !== "ECONNRESET" && error?.code !== "ETIMEDOUT")
+          (errorObj?.code !== "ECONNRESET" && errorObj?.code !== "ETIMEDOUT")
         ) {
           throw error;
         }
@@ -296,10 +295,11 @@ export async function DELETE(
     }
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Blog post deletion error:", error);
+    const errorObj = error as { code?: string };
     const errorMessage =
-      error?.code === "ECONNRESET" || error?.code === "ETIMEDOUT"
+      errorObj?.code === "ECONNRESET" || errorObj?.code === "ETIMEDOUT"
         ? "Database connection error. Please try again."
         : "Failed to delete blog post";
     return NextResponse.json({ error: errorMessage }, { status: 500 });

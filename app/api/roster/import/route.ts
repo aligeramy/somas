@@ -8,7 +8,6 @@ import { WelcomeEmail } from "@/emails/welcome";
 import { db } from "@/lib/db";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { isOwnerOrManager } from "@/lib/utils";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -29,14 +28,14 @@ export async function POST(request: Request) {
       .where(eq(users.id, user.id))
       .limit(1);
 
-    if (!dbUser?.gymId) {
+    if (!dbUser || !dbUser.gymId) {
       return NextResponse.json(
-        { error: "User must belong to a gym" },
-        { status: 400 }
+        { error: "User must belong to a club" },
+        { status: 400 },
       );
     }
 
-    // Get gym info
+    // Get club info
     const [gym] = await db
       .select()
       .from(gyms)
@@ -44,11 +43,11 @@ export async function POST(request: Request) {
       .limit(1);
 
     if (!gym) {
-      return NextResponse.json({ error: "Gym not found" }, { status: 400 });
+      return NextResponse.json({ error: "Club not found" }, { status: 400 });
     }
 
-    // Only head coaches/managers can import roster
-    if (!isOwnerOrManager(dbUser.role)) {
+    // Only head coaches can import roster
+    if (dbUser.role !== "owner") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -60,7 +59,7 @@ export async function POST(request: Request) {
     }
 
     const text = await file.text();
-    let data: Record<string, string>[] = [];
+    let data: Array<Record<string, string>> = [];
 
     // Parse file based on extension
     if (file.name.endsWith(".json")) {
@@ -70,11 +69,11 @@ export async function POST(request: Request) {
         header: true,
         skipEmptyLines: true,
       });
-      data = result.data as Record<string, string>[];
+      data = result.data as Array<Record<string, string>>;
     } else {
       return NextResponse.json(
         { error: "Unsupported file format. Use CSV or JSON." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -204,7 +203,7 @@ export async function POST(request: Request) {
             setupUrl,
           }),
           headers: {
-            "Message-ID": `<${messageId}@titansofmississauga.ca>`,
+            "Message-ID": `<${messageId}@softx.ca>`,
             "X-Entity-Ref-ID": messageId,
           },
         });
@@ -241,7 +240,7 @@ export async function POST(request: Request) {
     console.error("Roster import error:", error);
     return NextResponse.json(
       { error: "Failed to import roster" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

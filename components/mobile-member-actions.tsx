@@ -26,7 +26,7 @@ interface User {
   emergencyContactPhone?: string | null;
   emergencyContactRelationship?: string | null;
   emergencyContactEmail?: string | null;
-  role: "owner" | "coach" | "athlete" | "manager";
+  role: "owner" | "coach" | "athlete";
   avatarUrl: string | null;
 }
 
@@ -65,17 +65,17 @@ export function MobileMemberActions({
   };
 
   return (
-    <Drawer onOpenChange={onOpenChange} open={open}>
+    <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerContent className="max-h-[85vh]">
         {/* Header with Avatar and Name */}
-        <div className="border-b px-4 pt-4 pb-3">
-          <div className="mb-3 flex items-center gap-3">
-            <Avatar className="h-14 w-14 shrink-0 rounded-xl">
+        <div className="px-4 pt-4 pb-3 border-b">
+          <div className="flex items-center gap-3 mb-3">
+            <Avatar className="h-14 w-14 rounded-xl shrink-0">
               <AvatarImage
-                alt={member.name || member.email}
                 src={member.avatarUrl || undefined}
+                alt={member.name || member.email}
               />
-              <AvatarFallback className="rounded-xl font-semibold text-base">
+              <AvatarFallback className="rounded-xl text-base font-semibold">
                 {member.name
                   ? member.name
                       .split(" ")
@@ -86,11 +86,11 @@ export function MobileMemberActions({
                   : member.email.charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>
-            <div className="min-w-0 flex-1">
-              <DrawerTitle className="truncate font-semibold text-lg">
+            <div className="flex-1 min-w-0">
+              <DrawerTitle className="text-lg font-semibold truncate">
                 {member.name || "Unnamed"}
               </DrawerTitle>
-              <p className="truncate text-muted-foreground text-sm">
+              <p className="text-sm text-muted-foreground truncate">
                 {member.email}
               </p>
             </div>
@@ -98,26 +98,26 @@ export function MobileMemberActions({
         </div>
 
         <div
-          className="space-y-1 overflow-y-auto px-4 py-3"
+          className="px-4 py-3 space-y-1 overflow-y-auto"
           style={{
-            paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom, 0))",
+            paddingBottom: `calc(0.75rem + env(safe-area-inset-bottom, 0))`,
           }}
         >
           {/* Quick Actions */}
           <div className="space-y-1">
             <Button
-              className="h-12 w-full justify-start gap-3 px-3"
-              onClick={handleViewProfile}
               variant="ghost"
+              className="w-full justify-start gap-3 h-12 px-3"
+              onClick={handleViewProfile}
             >
               <IconUser className="h-5 w-5" />
               <span>View Profile</span>
             </Button>
 
             <Button
-              className="h-12 w-full justify-start gap-3 px-3"
-              onClick={handleEmail}
               variant="ghost"
+              className="w-full justify-start gap-3 h-12 px-3"
+              onClick={handleEmail}
             >
               <IconMail className="h-5 w-5" />
               <span>Email</span>
@@ -125,9 +125,9 @@ export function MobileMemberActions({
 
             {member.cellPhone && (
               <Button
-                className="h-12 w-full justify-start gap-3 px-3"
-                onClick={() => handlePhone(member.cellPhone!)}
                 variant="ghost"
+                className="w-full justify-start gap-3 h-12 px-3"
+                onClick={() => handlePhone(member.cellPhone!)}
               >
                 <IconPhone className="h-5 w-5" />
                 <span>Call Cell: {member.cellPhone}</span>
@@ -136,9 +136,9 @@ export function MobileMemberActions({
 
             {member.phone && !member.cellPhone && (
               <Button
-                className="h-12 w-full justify-start gap-3 px-3"
-                onClick={() => handlePhone(member.phone!)}
                 variant="ghost"
+                className="w-full justify-start gap-3 h-12 px-3"
+                onClick={() => handlePhone(member.phone!)}
               >
                 <IconPhone className="h-5 w-5" />
                 <span>Call: {member.phone}</span>
@@ -147,9 +147,9 @@ export function MobileMemberActions({
 
             {member.homePhone && (
               <Button
-                className="h-12 w-full justify-start gap-3 px-3"
-                onClick={() => handlePhone(member.homePhone!)}
                 variant="ghost"
+                className="w-full justify-start gap-3 h-12 px-3"
+                onClick={() => handlePhone(member.homePhone!)}
               >
                 <IconPhone className="h-5 w-5" />
                 <span>Call Home: {member.homePhone}</span>
@@ -158,9 +158,9 @@ export function MobileMemberActions({
 
             {member.workPhone && (
               <Button
-                className="h-12 w-full justify-start gap-3 px-3"
-                onClick={() => handlePhone(member.workPhone!)}
                 variant="ghost"
+                className="w-full justify-start gap-3 h-12 px-3"
+                onClick={() => handlePhone(member.workPhone!)}
               >
                 <IconPhone className="h-5 w-5" />
                 <span>Call Work: {member.workPhone}</span>
@@ -174,31 +174,29 @@ export function MobileMemberActions({
               <Separator className="my-2" />
               <div className="space-y-1">
                 <Button
-                  className="h-12 w-full justify-start gap-3 px-3"
+                  variant="ghost"
+                  className="w-full justify-start gap-3 h-12 px-3"
                   onClick={() => {
                     onOpenChange(false);
                     onEdit();
                   }}
-                  variant="ghost"
                 >
                   <IconEdit className="h-5 w-5" />
                   <span>Edit Member</span>
                 </Button>
-                {isOwner &&
-                  member.role !== "owner" &&
-                  member.role !== "manager" && (
-                    <Button
-                      className="h-12 w-full justify-start gap-3 px-3 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                      onClick={() => {
-                        onOpenChange(false);
-                        onDelete();
-                      }}
-                      variant="ghost"
-                    >
-                      <IconTrash className="h-5 w-5" />
-                      <span>Remove from Gym</span>
-                    </Button>
-                  )}
+                {isOwner && member.role !== "owner" && (
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start gap-3 h-12 px-3 text-destructive hover:text-destructive hover:bg-destructive/10"
+                    onClick={() => {
+                      onOpenChange(false);
+                      onDelete();
+                    }}
+                  >
+                    <IconTrash className="h-5 w-5" />
+                    <span>Remove from Club</span>
+                  </Button>
+                )}
               </div>
             </>
           )}

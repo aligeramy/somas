@@ -10,7 +10,7 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function PUT(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
@@ -29,25 +29,21 @@ export async function PUT(
       .where(eq(users.id, user.id))
       .limit(1);
 
-    if (!dbUser?.gymId) {
+    if (!dbUser || !dbUser.gymId) {
       return NextResponse.json(
-        { error: "User must belong to a gym" },
-        { status: 400 }
+        { error: "User must belong to a club" },
+        { status: 400 },
       );
     }
 
-    // Only head coaches, managers, and coaches can update notices
-    if (
-      dbUser.role !== "owner" &&
-      dbUser.role !== "manager" &&
-      dbUser.role !== "coach"
-    ) {
+    // Only head coaches and coaches can update notices
+    if (dbUser.role !== "owner" && dbUser.role !== "coach") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const { title, content, sendEmail } = await request.json();
 
-    // Verify notice belongs to user's gym
+    // Verify notice belongs to user's club
     const [notice] = await db
       .select()
       .from(notices)
@@ -63,7 +59,7 @@ export async function PUT(
       .set({
         title,
         content,
-        sendEmail,
+        sendEmail: sendEmail || false,
         updatedAt: new Date(),
       })
       .where(eq(notices.id, id))
@@ -72,7 +68,7 @@ export async function PUT(
     // Send email if requested and notice wasn't already sent
     if (sendEmail && !notice.sendEmail) {
       try {
-        // Get all gym members (including altEmail)
+        // Get all club members (including altEmail)
         const gymMembers = await db
           .select({
             email: users.email,
@@ -82,7 +78,7 @@ export async function PUT(
           .from(users)
           .where(eq(users.gymId, dbUser.gymId));
 
-        // Get gym info
+        // Get club info
         const { gyms } = await import("@/drizzle/schema");
         const [gym] = await db
           .select()
@@ -97,9 +93,7 @@ export async function PUT(
         const emailPromises = gymMembers
           .filter((member) => member.email)
           .map((member) => {
-            if (!member.email) {
-              return Promise.resolve({ error: "No email" });
-            }
+            if (!member.email) return Promise.resolve({ error: "No email" });
             // Build recipient list including altEmail
             const recipients = [member.email];
             if (member.altEmail) {
@@ -107,7 +101,7 @@ export async function PUT(
             }
             return resend.emails
               .send({
-                from: `${process.env.RESEND_FROM_NAME || "SOMAS"} <${process.env.RESEND_FROM_EMAIL || "noreply@mail.titansofmississauga.ca"}>`,
+                from: `${process.env.RESEND_FROM_NAME || "SOMAS"} <${process.env.RESEND_FROM_EMAIL || "noreply@mail.softx.ca"}>`,
                 to: recipients,
                 subject: `Notice: ${title}`,
                 react: NoticeEmail({
@@ -116,13 +110,13 @@ export async function PUT(
                   userName: member.name || "Team Member",
                   noticeTitle: title,
                   noticeContent: content,
-                  authorName,
+                  authorName: authorName,
                 }),
               })
               .catch((error) => {
                 console.error(
                   `Failed to send notice email to ${member.email}:`,
-                  error
+                  error,
                 );
                 return { error: member.email };
               });
@@ -141,14 +135,14 @@ export async function PUT(
     console.error("Notice update error:", error);
     return NextResponse.json(
       { error: "Failed to update notice" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 export async function DELETE(
   _request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
@@ -167,10 +161,10 @@ export async function DELETE(
       .where(eq(users.id, user.id))
       .limit(1);
 
-    if (!dbUser?.gymId) {
+    if (!dbUser || !dbUser.gymId) {
       return NextResponse.json(
-        { error: "User must belong to a gym" },
-        { status: 400 }
+        { error: "User must belong to a club" },
+        { status: 400 },
       );
     }
 
@@ -179,7 +173,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // Verify notice belongs to user's gym
+    // Verify notice belongs to user's club
     const [notice] = await db
       .select()
       .from(notices)
@@ -197,7 +191,7 @@ export async function DELETE(
     console.error("Notice deletion error:", error);
     return NextResponse.json(
       { error: "Failed to delete notice" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

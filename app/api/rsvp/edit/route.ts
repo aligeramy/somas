@@ -95,7 +95,7 @@ export async function POST(request: Request) {
       )
       .limit(1);
 
-    let rsvp;
+    let rsvp: typeof rsvps.$inferSelect;
     if (existingRsvp) {
       [rsvp] = await db
         .update(rsvps)

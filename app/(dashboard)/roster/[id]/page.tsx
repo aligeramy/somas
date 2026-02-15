@@ -70,7 +70,7 @@ interface AthleteDetails {
   role: "owner" | "coach" | "athlete" | "manager";
   avatarUrl: string | null;
   onboarded: boolean;
-  notifPreferences: Record<string, any> | null;
+  notifPreferences: Record<string, unknown> | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -223,7 +223,8 @@ export default function AthleteDetailPage() {
       // Convert empty strings to null for optional fields
       Object.keys(updateData).forEach((key) => {
         if (updateData[key as keyof typeof updateData] === "") {
-          updateData[key as keyof typeof updateData] = null as any;
+          // biome-ignore lint/suspicious/noExplicitAny: Dynamic key access requires type assertion
+          (updateData as any)[key] = null;
         }
       });
 

@@ -7,7 +7,7 @@ import { WelcomeEmail } from "@/emails/welcome";
 import { db } from "@/lib/db";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { getAppUrl, isOwnerOrManager } from "@/lib/utils";
+import { getAppUrl } from "@/lib/utils";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -35,21 +35,21 @@ export async function POST(request: Request) {
       .where(eq(users.id, user.id))
       .limit(1);
 
-    if (!(dbUser && isOwnerOrManager(dbUser.role))) {
+    if (!dbUser || dbUser.role !== "owner") {
       return NextResponse.json(
         { error: "Forbidden - Admin only" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
     if (!dbUser.gymId) {
       return NextResponse.json(
-        { error: "User must belong to a gym" },
-        { status: 400 }
+        { error: "User must belong to a club" },
+        { status: 400 },
       );
     }
 
-    // Get gym info
+    // Get club info
     const [gym] = await db
       .select()
       .from(gyms)
@@ -57,29 +57,29 @@ export async function POST(request: Request) {
       .limit(1);
 
     if (!gym) {
-      return NextResponse.json({ error: "Gym not found" }, { status: 400 });
+      return NextResponse.json({ error: "Club not found" }, { status: 400 });
     }
 
     const { userIds, type } = await request.json();
 
-    if (!(userIds && Array.isArray(userIds)) || userIds.length === 0) {
+    if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
       return NextResponse.json({ error: "No users selected" }, { status: 400 });
     }
 
-    if (!(type && ["welcome", "reset"].includes(type))) {
+    if (!type || !["welcome", "reset"].includes(type)) {
       return NextResponse.json(
         { error: "Invalid email type" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    // Get selected users (only from same gym for security)
+    // Get selected users (only from same club for security)
     const selectedUsers = await db
       .select()
       .from(users)
       .where(inArray(users.id, userIds));
 
-    // Filter to only users in the same gym
+    // Filter to only users in the same club
     const gymUsers = selectedUsers.filter((u) => u.gymId === dbUser.gymId);
 
     const supabaseAdmin = createAdminClient();
@@ -97,7 +97,7 @@ export async function POST(request: Request) {
               ? error.message
               : "Invalid app URL configuration",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -113,27 +113,14 @@ export async function POST(request: Request) {
         // Check if user exists in Supabase Auth
         const { data: authUsers } = await supabaseAdmin.auth.admin.listUsers();
         const authUser = authUsers?.users?.find(
-          (u) => u.email === targetUser.email
+          (u) => u.email === targetUser.email,
         );
 
         if (type === "welcome") {
-          if (authUser) {
-            // User exists - generate recovery link
-            const { data: linkData, error: linkError } =
-              await supabaseAdmin.auth.admin.generateLink({
-                type: "recovery",
-                email: targetUser.email,
-              });
-
-            if (linkError) {
-              console.error("Recovery link error:", linkError);
-            } else if (linkData?.properties?.hashed_token) {
-              setupUrl = `${appUrl}/setup-password?token=${linkData.properties.hashed_token}&type=recovery&email=${encodeURIComponent(targetUser.email)}`;
-            }
-          } else {
+          if (!authUser) {
             // Create user in Supabase Auth if doesn't exist
             const randomPassword = randomBytes(16).toString("hex");
-            const { data: newAuthUser, error: createError } =
+            const { error: createError } =
               await supabaseAdmin.auth.admin.createUser({
                 email: targetUser.email,
                 password: randomPassword,
@@ -161,6 +148,19 @@ export async function POST(request: Request) {
               console.error("Magic link error:", linkError);
             } else if (linkData?.properties?.hashed_token) {
               setupUrl = `${appUrl}/setup-password?token=${linkData.properties.hashed_token}&type=magiclink&email=${encodeURIComponent(targetUser.email)}`;
+            }
+          } else {
+            // User exists - generate recovery link
+            const { data: linkData, error: linkError } =
+              await supabaseAdmin.auth.admin.generateLink({
+                type: "recovery",
+                email: targetUser.email,
+              });
+
+            if (linkError) {
+              console.error("Recovery link error:", linkError);
+            } else if (linkData?.properties?.hashed_token) {
+              setupUrl = `${appUrl}/setup-password?token=${linkData.properties.hashed_token}&type=recovery&email=${encodeURIComponent(targetUser.email)}`;
             }
           }
         } else if (type === "reset") {
@@ -213,7 +213,7 @@ export async function POST(request: Request) {
             setupUrl,
           }),
           headers: {
-            "Message-ID": `<${messageId}@titansofmississauga.ca>`,
+            "Message-ID": `<${messageId}@softx.ca>`,
             "X-Entity-Ref-ID": messageId,
           },
         });
@@ -262,7 +262,7 @@ export async function POST(request: Request) {
     console.error("Error sending emails:", error);
     return NextResponse.json(
       { error: "Failed to send emails" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

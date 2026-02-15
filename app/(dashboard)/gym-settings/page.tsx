@@ -4,7 +4,6 @@ import {
   IconBuilding,
   IconCamera,
   IconCheck,
-  IconDeviceFloppy,
   IconMail,
   IconPhone,
   IconPlus,
@@ -36,7 +35,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { createClient } from "@/lib/supabase/client";
 
 interface GymProfile {
@@ -63,7 +61,6 @@ interface Coach {
 
 export default function GymSettingsPage() {
   const supabase = createClient();
-  const isMobile = useIsMobile();
   const [gym, setGym] = useState<GymProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -106,12 +103,10 @@ export default function GymSettingsPage() {
     setLoadingCoaches(true);
     try {
       const response = await fetch("/api/roster");
-      if (!response.ok) {
-        throw new Error("Failed to load coaches");
-      }
+      if (!response.ok) throw new Error("Failed to load coaches");
       const data = await response.json();
       const coachesList = data.roster.filter(
-        (user: Coach) => user.role === "coach"
+        (user: Coach) => user.role === "coach",
       );
       setCoaches(coachesList);
     } catch (err) {
@@ -124,16 +119,14 @@ export default function GymSettingsPage() {
   const loadGym = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch("/api/gym");
-      if (!response.ok) {
-        throw new Error("Failed to load gym");
-      }
+      const response = await fetch("/api/club");
+      if (!response.ok) throw new Error("Failed to load club");
       const data = await response.json();
       setGym(data.gym);
       setGymName(data.gym.name || "");
       setGymWebsite(data.gym.website || "");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load gym");
+      setError(err instanceof Error ? err.message : "Failed to load club");
     } finally {
       setLoading(false);
     }
@@ -150,20 +143,15 @@ export default function GymSettingsPage() {
     setSuccess(false);
     setSaving(true);
 
-    // Dispatch event for SiteHeader
-    window.dispatchEvent(new CustomEvent("gym-settings-save-start"));
-
     try {
       let logoUrl = gym?.logoUrl || null;
 
-      // Upload gym logo if provided
+      // Upload club logo if provided
       if (gymLogoFile) {
         const {
           data: { user: authUser },
         } = await supabase.auth.getUser();
-        if (!authUser) {
-          throw new Error("Not authenticated");
-        }
+        if (!authUser) throw new Error("Not authenticated");
 
         const fileExt = gymLogoFile.name.split(".").pop();
         const fileName = `${authUser.id}-${Date.now()}.${fileExt}`;
@@ -186,7 +174,7 @@ export default function GymSettingsPage() {
         logoUrl = publicUrl;
       }
 
-      const gymResponse = await fetch("/api/gym", {
+      const gymResponse = await fetch("/api/club", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -196,19 +184,15 @@ export default function GymSettingsPage() {
         }),
       });
 
-      if (!gymResponse.ok) {
-        throw new Error("Failed to save gym");
-      }
+      if (!gymResponse.ok) throw new Error("Failed to save club");
 
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
       await loadGym(); // Reload to get updated data
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save");
-      window.dispatchEvent(new CustomEvent("gym-settings-save-error"));
     } finally {
       setSaving(false);
-      window.dispatchEvent(new CustomEvent("gym-settings-save-end"));
     }
   }
 
@@ -267,7 +251,7 @@ export default function GymSettingsPage() {
 
   if (loading) {
     return (
-      <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
+      <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
         <PageHeader title="Club Settings" />
         <div className="flex flex-1 items-center justify-center">
           <div className="animate-pulse text-muted-foreground">Loading...</div>
@@ -278,7 +262,7 @@ export default function GymSettingsPage() {
 
   if (!gym) {
     return (
-      <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
+      <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
         <PageHeader title="Club Settings" />
         <div className="flex flex-1 items-center justify-center">
           <p className="text-muted-foreground">Club not found</p>
@@ -288,16 +272,15 @@ export default function GymSettingsPage() {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
+    <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
       <PageHeader
-        description="Manage your club information"
         title="Club Settings"
+        description="Manage your club information"
       >
         <Button
-          className="gap-2 rounded-xl"
-          data-show-text-mobile
-          disabled={saving}
           onClick={handleSave}
+          disabled={saving}
+          className="gap-2 rounded-xl"
         >
           {success ? (
             <>
@@ -305,35 +288,25 @@ export default function GymSettingsPage() {
               Saved
             </>
           ) : saving ? (
-            <>
-              <IconDeviceFloppy className="h-4 w-4" />
-              Saving...
-            </>
+            "Saving..."
           ) : (
-            <>
-              <IconDeviceFloppy className="h-4 w-4" />
-              Save Changes
-            </>
+            "Save Changes"
           )}
         </Button>
       </PageHeader>
 
       <div className="min-h-0 flex-1 overflow-auto">
-        <form
-          className="mx-auto max-w-2xl space-y-6 p-4"
-          id="gym-settings-form"
-          onSubmit={handleSave}
-        >
+        <div className="mx-auto max-w-2xl space-y-6 p-4">
           {error && (
-            <div className="rounded-xl bg-destructive/10 p-4 text-destructive text-sm">
+            <div className="bg-destructive/10 text-destructive rounded-xl p-4 text-sm">
               {error}
             </div>
           )}
 
-          {/* Gym Logo Section */}
+          {/* Club Logo Section */}
           <Card className="rounded-xl">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
+              <CardTitle className="text-base flex items-center gap-2">
                 <IconBuilding className="h-5 w-5" />
                 Club Logo
               </CardTitle>
@@ -344,30 +317,29 @@ export default function GymSettingsPage() {
                 <div className="relative">
                   {gymLogoPreview || gym.logoUrl ? (
                     <Image
-                      alt="Club logo"
-                      className="h-24 w-24 rounded-xl border-4 border-background object-cover shadow-lg"
-                      height={96}
                       src={gymLogoPreview || gym.logoUrl || ""}
+                      alt="Club logo"
                       width={96}
+                      height={96}
+                      className="h-24 w-24 rounded-xl border-4 border-background shadow-lg object-cover"
                     />
                   ) : (
-                    <div className="flex h-24 w-24 items-center justify-center rounded-xl border-4 border-background bg-muted shadow-lg">
-                      <span className="font-bold text-3xl">
+                    <div className="h-24 w-24 rounded-xl border-4 border-background shadow-lg bg-muted flex items-center justify-center">
+                      <span className="text-3xl font-bold">
                         {gymName[0]?.toUpperCase() || "G"}
                       </span>
                     </div>
                   )}
                   <button
                     {...getLogoRootProps()}
-                    className="absolute right-0 bottom-0 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-colors hover:bg-primary/90"
-                    type="button"
+                    className="absolute bottom-0 right-0 h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg hover:bg-primary/90 transition-colors cursor-pointer"
                   >
                     <input {...getLogoInputProps()} />
                     <IconCamera className="h-4 w-4" />
                   </button>
                 </div>
                 <div className="flex-1">
-                  <p className="text-muted-foreground text-sm">
+                  <p className="text-sm text-muted-foreground">
                     Click the camera icon to upload a new logo. Recommended
                     size: 512x512px
                   </p>
@@ -376,7 +348,7 @@ export default function GymSettingsPage() {
             </CardContent>
           </Card>
 
-          {/* Gym Information */}
+          {/* Club Information */}
           <Card className="rounded-xl">
             <CardHeader>
               <CardTitle className="text-base">Club Information</CardTitle>
@@ -386,31 +358,31 @@ export default function GymSettingsPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label className="text-sm" htmlFor="gymName">
+                <Label htmlFor="gymName" className="text-sm">
                   Club Name
                 </Label>
                 <Input
-                  className="h-11 rounded-xl"
                   id="gymName"
+                  value={gymName}
                   onChange={(e) => setGymName(e.target.value)}
                   placeholder="Club Name"
+                  className="rounded-xl h-11"
                   required
-                  value={gymName}
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-sm" htmlFor="gymWebsite">
+                <Label htmlFor="gymWebsite" className="text-sm">
                   Website
                 </Label>
                 <Input
-                  className="h-11 rounded-xl"
                   id="gymWebsite"
-                  onChange={(e) => setGymWebsite(e.target.value)}
-                  placeholder="https://example.com"
                   type="url"
                   value={gymWebsite}
+                  onChange={(e) => setGymWebsite(e.target.value)}
+                  placeholder="https://example.com"
+                  className="rounded-xl h-11"
                 />
-                <p className="text-muted-foreground text-xs">
+                <p className="text-xs text-muted-foreground">
                   Enter your club's website URL. This will be visible to all
                   members.
                 </p>
@@ -427,11 +399,11 @@ export default function GymSettingsPage() {
                   <CardDescription>Manage your club's coaches</CardDescription>
                 </div>
                 <Dialog
-                  onOpenChange={setIsAddCoachDialogOpen}
                   open={isAddCoachDialogOpen}
+                  onOpenChange={setIsAddCoachDialogOpen}
                 >
                   <DialogTrigger asChild>
-                    <Button className="gap-2 rounded-xl" size="sm">
+                    <Button size="sm" className="gap-2 rounded-xl">
                       <IconPlus className="h-4 w-4" />
                       Add Coach
                     </Button>
@@ -449,29 +421,29 @@ export default function GymSettingsPage() {
                         <div className="space-y-2">
                           <Label htmlFor="coachEmail">Email Address</Label>
                           <Input
-                            className="h-11 rounded-xl"
                             id="coachEmail"
-                            onChange={(e) => setCoachEmail(e.target.value)}
-                            placeholder="coach@example.com"
-                            required
                             type="email"
                             value={coachEmail}
+                            onChange={(e) => setCoachEmail(e.target.value)}
+                            placeholder="coach@example.com"
+                            className="rounded-xl h-11"
+                            required
                           />
                         </div>
                       </div>
                       <DialogFooter>
                         <Button
-                          className="rounded-xl"
-                          onClick={() => setIsAddCoachDialogOpen(false)}
                           type="button"
                           variant="outline"
+                          onClick={() => setIsAddCoachDialogOpen(false)}
+                          className="rounded-xl"
                         >
                           Cancel
                         </Button>
                         <Button
-                          className="rounded-xl"
-                          disabled={invitingCoach}
                           type="submit"
+                          disabled={invitingCoach}
+                          className="rounded-xl"
                         >
                           {invitingCoach ? "Sending..." : "Send Invitation"}
                         </Button>
@@ -485,13 +457,13 @@ export default function GymSettingsPage() {
               {loadingCoaches ? (
                 <div className="space-y-2">
                   {[1, 2, 3].map((i) => (
-                    <Skeleton className="h-16 w-full rounded-xl" key={i} />
+                    <Skeleton key={i} className="h-16 w-full rounded-xl" />
                   ))}
                 </div>
               ) : coaches.length === 0 ? (
-                <div className="py-8 text-center text-muted-foreground">
+                <div className="text-center py-8 text-muted-foreground">
                   <p>No coaches yet</p>
-                  <p className="mt-1 text-sm">
+                  <p className="text-sm mt-1">
                     Add coaches to help manage your club
                   </p>
                 </div>
@@ -500,8 +472,8 @@ export default function GymSettingsPage() {
                   <div className="space-y-2">
                     {coaches.map((coach) => (
                       <div
-                        className="flex items-center gap-3 rounded-xl border bg-card p-3 transition-colors hover:bg-muted/50"
                         key={coach.id}
+                        className="flex items-center gap-3 p-3 rounded-xl border bg-card hover:bg-muted/50 transition-colors"
                       >
                         <Avatar className="h-10 w-10">
                           <AvatarImage src={coach.avatarUrl || undefined} />
@@ -509,22 +481,22 @@ export default function GymSettingsPage() {
                             {getInitials(coach.name, coach.email)}
                           </AvatarFallback>
                         </Avatar>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate font-medium text-sm">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">
                             {coach.name || "No name"}
                           </p>
-                          <div className="flex items-center gap-2 text-muted-foreground text-xs">
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
                             <IconMail className="h-3 w-3" />
                             <span className="truncate">{coach.email}</span>
                           </div>
                           {coach.phone && (
-                            <div className="mt-1 flex items-center gap-2 text-muted-foreground text-xs">
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
                               <IconPhone className="h-3 w-3" />
                               <span>{coach.phone}</span>
                             </div>
                           )}
                         </div>
-                        <Badge className="rounded-lg" variant="secondary">
+                        <Badge variant="secondary" className="rounded-lg">
                           Coach
                         </Badge>
                       </div>
@@ -534,35 +506,7 @@ export default function GymSettingsPage() {
               )}
             </CardContent>
           </Card>
-
-          {/* Save Button for PC View */}
-          {!isMobile && (
-            <div className="flex justify-end pt-4">
-              <Button
-                className="gap-2 rounded-xl"
-                disabled={saving}
-                onClick={handleSave}
-              >
-                {success ? (
-                  <>
-                    <IconCheck className="h-4 w-4" />
-                    Saved
-                  </>
-                ) : saving ? (
-                  <>
-                    <IconDeviceFloppy className="h-4 w-4" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <IconDeviceFloppy className="h-4 w-4" />
-                    Save Changes
-                  </>
-                )}
-              </Button>
-            </div>
-          )}
-        </form>
+        </div>
       </div>
     </div>
   );

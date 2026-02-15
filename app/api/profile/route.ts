@@ -40,7 +40,7 @@ export async function GET() {
       "[API /profile GET] User found:",
       dbUser.name,
       "| onboarded:",
-      dbUser.onboarded
+      dbUser.onboarded,
     );
 
     return NextResponse.json({
@@ -64,7 +64,6 @@ export async function GET() {
         dateOfBirth: dbUser.dateOfBirth,
         avatarUrl: dbUser.avatarUrl,
         role: dbUser.role,
-        onboarded: dbUser.onboarded,
         notifPreferences: dbUser.notifPreferences || {},
       },
     });
@@ -72,7 +71,7 @@ export async function GET() {
     console.error("Profile fetch error:", error);
     return NextResponse.json(
       { error: "Failed to fetch profile" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -152,7 +151,6 @@ export async function PUT(request: Request) {
         allergies: updatedUser.allergies,
         avatarUrl: updatedUser.avatarUrl,
         role: updatedUser.role,
-        onboarded: updatedUser.onboarded,
         notifPreferences: updatedUser.notifPreferences,
       },
     });
@@ -160,7 +158,7 @@ export async function PUT(request: Request) {
     console.error("Profile update error:", error);
     return NextResponse.json(
       { error: "Failed to update profile" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

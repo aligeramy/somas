@@ -28,6 +28,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
@@ -54,37 +55,37 @@ export function AppSidebar({
       title: "Dashboard",
       url: "/dashboard",
       icon: IconDashboard,
-      roles: ["owner", "manager", "coach", "athlete"],
+      roles: ["owner", "coach", "athlete"],
     },
     {
       title: "Calendar",
       url: "/calendar",
       icon: IconCalendar,
-      roles: ["owner", "manager", "coach", "athlete"],
+      roles: ["owner", "coach", "athlete"],
     },
     {
       title: "Events",
       url: "/events",
       icon: IconCalendar,
-      roles: ["owner", "manager", "coach", "athlete"],
+      roles: ["owner", "coach", "athlete"],
     },
     {
       title: "Chat",
       url: "/chat",
       icon: IconMessageCircle,
-      roles: ["owner", "manager", "coach", "athlete"],
+      roles: ["owner", "coach", "athlete"],
     },
     {
       title: "Members",
       url: "/roster",
       icon: IconUsers,
-      roles: ["owner", "manager"],
+      roles: ["owner"],
     },
     {
       title: "Attendance",
       url: "/rsvp",
       icon: IconListCheck,
-      roles: ["owner", "manager", "coach", "athlete"],
+      roles: ["owner", "coach", "athlete"],
     },
   ].filter((item) => item.roles.includes(user.role));
 
@@ -93,13 +94,13 @@ export function AppSidebar({
       title: "Blog Posts",
       url: "/blog",
       icon: IconNews,
-      roles: ["owner", "manager", "coach", "athlete"],
+      roles: ["owner", "coach", "athlete"],
     },
     {
       title: "Notices",
       url: "/notices",
       icon: IconBell,
-      roles: ["owner", "manager", "coach", "athlete"],
+      roles: ["owner", "coach", "athlete"],
     },
     {
       title: "Profile",
@@ -113,7 +114,7 @@ export function AppSidebar({
             title: "Club Website",
             url: gymWebsite,
             icon: IconWorldWww,
-            roles: ["owner", "manager", "coach", "athlete"],
+            roles: ["owner", "coach", "athlete"],
             external: true,
           },
         ]
@@ -122,26 +123,26 @@ export function AppSidebar({
       title: "Email Management",
       url: "/admin/emails",
       icon: IconMail,
-      roles: ["owner", "manager"],
+      roles: ["owner"],
     },
     {
-      title: "Send cancellation emails",
-      url: "/admin/cancel-notify",
+      title: "Test Emails",
+      url: "/admin/test-emails",
       icon: IconMail,
-      roles: ["owner", "manager", "coach"],
+      roles: ["owner"],
     },
     {
       title: "Club Settings",
       url: "/gym-settings",
       icon: IconBuilding,
-      roles: ["owner", "manager"],
+      roles: ["owner"],
     },
   ].filter((item) => item.roles.includes(user.role));
 
+  const { isMobile, setOpenMobile } = useSidebar();
+
   const getGymInitials = (name: string | null) => {
-    if (!name) {
-      return "SOMAS";
-    }
+    if (!name) return "SOMAS";
     const initials = name
       .split(" ")
       .map((n) => n[0])
@@ -151,12 +152,18 @@ export function AppSidebar({
     return initials.slice(0, 5);
   };
 
+  const handleHeaderLinkClick = () => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  };
+
   return (
     <Sidebar
-      className="hidden lg:flex"
       collapsible="offcanvas"
-      suppressHydrationWarning
       variant="floating"
+      className="hidden lg:flex"
+      suppressHydrationWarning
       {...props}
     >
       <SidebarHeader>
@@ -166,16 +173,20 @@ export function AppSidebar({
               asChild
               className="data-[slot=sidebar-menu-button]:!p-2 h-auto"
             >
-              <Link className="flex items-center gap-3" href="/dashboard">
+              <Link
+                href="/dashboard"
+                className="flex items-center gap-3"
+                onClick={handleHeaderLinkClick}
+              >
                 <Avatar className="h-9 w-9 rounded-xl">
                   {gymLogo ? (
-                    <AvatarImage alt={gymName || "Club"} src={gymLogo} />
+                    <AvatarImage src={gymLogo} alt={gymName || "Club"} />
                   ) : null}
-                  <AvatarFallback className="rounded-xl bg-primary font-semibold text-primary-foreground">
+                  <AvatarFallback className="rounded-xl bg-primary text-primary-foreground font-semibold">
                     {getGymInitials(gymName)}
                   </AvatarFallback>
                 </Avatar>
-                <span className="truncate font-semibold text-base">
+                <span className="text-base font-semibold truncate">
                   {gymName || "SOMAS"}
                 </span>
               </Link>
@@ -185,7 +196,7 @@ export function AppSidebar({
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={navMain} />
-        <NavSecondary className="mt-auto" items={navSecondary} />
+        <NavSecondary items={navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
         <NavUser

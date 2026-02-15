@@ -6,20 +6,18 @@ import { LoginCredentialsEmail } from "@/emails/login-credentials";
 import { db } from "@/lib/db";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { getAppUrl, isOwnerOrManager } from "@/lib/utils";
+import { getAppUrl } from "@/lib/utils";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-// Password mapping for non-onboarded users (simple phrases)
+// Password mapping for non-onboarded users (all wrestler names)
 const USER_PASSWORDS: Record<string, string> = {
-  "b866a793-d050-4440-ab01-fa76a5502249": "admin123", // Pascal Tyrrell
-  "4edfaa2a-02c4-4ebb-b5e6-408973be66a1": "coach123", // Sabrina
-  "1dd9d2cb-54ce-4113-9d76-0776d2d4aa79": "volunteer123", // Alex Gaul
-  "a8543e21-c1fa-4f0f-ba0c-17359d866008": "athlete123", // Timea Dancisinova
-  "ae15e708-9aeb-4215-92f8-25af062f4b55": "peter123", // Peter Smith
-  "09c69b09-1b66-47dc-9393-32c436f4c734": "jack123", // Jack Ellery
-  "c9c4542e-ad41-40d1-a24c-50b51e84c9de": "lauren123", // Lauren Maquis
-  "6832441b-8005-4480-89b7-4160ed5773a8": "ali123", // Ali
+  "2bb0fc74-0d3a-4ca1-bc56-960cce122e7c": "therock", // Fariba Akbar
+  "7f7e141c-ee02-47f7-a136-8e931715a423": "johncena", // Tatiana Bell
+  "f294fb66-4c84-49b0-b602-b3d1c8b82d2b": "hulkhogan", // Mitra Jabbour
+  "0be52ade-8fb3-4140-a338-726a1ffcfac2": "austin", // Luke Drummond
+  "c2d420f0-e398-4be9-8dab-1c4d4388cd0b": "undertaker", // Mazin Turki
+  "3265fb61-ad5a-4a6c-b9ec-b6ed9b4c1535": "goldberg", // Erik Singer
 };
 
 interface EmailResult {
@@ -46,21 +44,21 @@ export async function POST(request: Request) {
       .where(eq(users.id, user.id))
       .limit(1);
 
-    if (!(dbUser && isOwnerOrManager(dbUser.role))) {
+    if (!dbUser || dbUser.role !== "owner") {
       return NextResponse.json(
         { error: "Forbidden - Admin only" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
     if (!dbUser.gymId) {
       return NextResponse.json(
-        { error: "User must belong to a gym" },
-        { status: 400 }
+        { error: "User must belong to a club" },
+        { status: 400 },
       );
     }
 
-    // Get gym info
+    // Get club info
     const [gym] = await db
       .select()
       .from(gyms)
@@ -68,12 +66,12 @@ export async function POST(request: Request) {
       .limit(1);
 
     if (!gym) {
-      return NextResponse.json({ error: "Gym not found" }, { status: 400 });
+      return NextResponse.json({ error: "Club not found" }, { status: 400 });
     }
 
     const { userIds, testEmail } = await request.json();
 
-    if (!(userIds && Array.isArray(userIds)) || userIds.length === 0) {
+    if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
       return NextResponse.json({ error: "No users selected" }, { status: 400 });
     }
 
@@ -81,17 +79,17 @@ export async function POST(request: Request) {
     if (testEmail && userIds.length > 1) {
       return NextResponse.json(
         { error: "Test email can only be sent for one user at a time" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    // Get selected users (only from same gym for security)
+    // Get selected users (only from same club for security)
     const selectedUsers = await db
       .select()
       .from(users)
       .where(inArray(users.id, userIds));
 
-    // Filter to only users in the same gym
+    // Filter to only users in the same club
     const gymUsers = selectedUsers.filter((u) => u.gymId === dbUser.gymId);
 
     const supabaseAdmin = createAdminClient();
@@ -109,7 +107,7 @@ export async function POST(request: Request) {
               ? error.message
               : "Invalid app URL configuration",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -134,30 +132,15 @@ export async function POST(request: Request) {
         // Check if user exists in Supabase Auth
         const { data: authUsers } = await supabaseAdmin.auth.admin.listUsers();
         const authUser = authUsers?.users?.find(
-          (u) => u.email === targetUser.email
+          (u) => u.email === targetUser.email,
         );
 
-        if (authUser) {
-          // Update existing user's password
-          const { error: updateError } =
-            await supabaseAdmin.auth.admin.updateUserById(authUser.id, {
-              password,
-            });
-
-          if (updateError) {
-            results.push({
-              email: targetUser.email,
-              success: false,
-              error: `Failed to update password: ${updateError.message}`,
-            });
-            continue;
-          }
-        } else {
+        if (!authUser) {
           // Create user in Supabase Auth if doesn't exist
           const { error: createError } =
             await supabaseAdmin.auth.admin.createUser({
               email: targetUser.email,
-              password,
+              password: password,
               email_confirm: true,
               user_metadata: { name: targetUser.name || null },
             });
@@ -167,6 +150,21 @@ export async function POST(request: Request) {
               email: targetUser.email,
               success: false,
               error: `Failed to create auth user: ${createError.message}`,
+            });
+            continue;
+          }
+        } else {
+          // Update existing user's password
+          const { error: updateError } =
+            await supabaseAdmin.auth.admin.updateUserById(authUser.id, {
+              password: password,
+            });
+
+          if (updateError) {
+            results.push({
+              email: targetUser.email,
+              success: false,
+              error: `Failed to update password: ${updateError.message}`,
             });
             continue;
           }
@@ -191,11 +189,11 @@ export async function POST(request: Request) {
             gymLogoUrl: gym.logoUrl,
             userName: targetUser.name || targetUser.email,
             email: targetUser.email, // Always show the actual user's email in the email content
-            password,
+            password: password,
             loginUrl,
           }),
           headers: {
-            "Message-ID": `<${messageId}@titansofmississauga.ca>`,
+            "Message-ID": `<${messageId}@softx.ca>`,
             "X-Entity-Ref-ID": messageId,
           },
         });
@@ -243,7 +241,7 @@ export async function POST(request: Request) {
     console.error("Error sending credentials:", error);
     return NextResponse.json(
       { error: "Failed to send credentials" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

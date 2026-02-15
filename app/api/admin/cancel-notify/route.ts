@@ -139,10 +139,7 @@ export async function GET(request: Request) {
       .from(eventOccurrences)
       .innerJoin(events, eq(eventOccurrences.eventId, events.id))
       .where(
-        and(
-          eq(events.gymId, gymId),
-          eq(eventOccurrences.status, "canceled")
-        )
+        and(eq(events.gymId, gymId), eq(eventOccurrences.status, "canceled"))
       )
       .orderBy(desc(eventOccurrences.date))
       .limit(1);
@@ -321,7 +318,7 @@ export async function POST(request: Request) {
     });
     const timeStr = `${formatTime(occurrenceData.event.startTime)} - ${formatTime(occurrenceData.event.endTime)}`;
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-    const from = `${process.env.RESEND_FROM_NAME || "SOMAS"} <${process.env.RESEND_FROM_EMAIL || "noreply@mail.titansofmississauga.ca"}>`;
+    const from = `${process.env.RESEND_FROM_NAME || "SOMAS"} <${process.env.RESEND_FROM_EMAIL || "noreply@mail.softx.ca"}>`;
     const subject = `${occurrenceData.event.title} has been canceled`;
 
     const ctx: CancelEmailContext = {

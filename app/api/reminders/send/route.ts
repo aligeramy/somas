@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import {
@@ -16,7 +16,6 @@ import { createClient } from "@/lib/supabase/server";
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 // Send reminder to pending RSVPs for a specific occurrence
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: route handler; refactor into helpers if needed
 export async function POST(request: Request) {
   try {
     const supabase = await createClient();
@@ -39,22 +38,10 @@ export async function POST(request: Request) {
     }
 
     // Only head coaches and coaches can send reminders
-    if (
-      dbUser.role !== "owner" &&
-      dbUser.role !== "manager" &&
-      dbUser.role !== "coach"
-    ) {
+    if (dbUser.role !== "owner" && dbUser.role !== "coach") {
       return NextResponse.json(
         { error: "Only head coaches and coaches can send reminders" },
-        { status: 403 }
-      );
-    }
-
-    const gymId = dbUser.gymId;
-    if (!gymId) {
-      return NextResponse.json(
-        { error: "User must belong to a gym" },
-        { status: 400 }
+        { status: 403 },
       );
     }
 
@@ -63,7 +50,7 @@ export async function POST(request: Request) {
     if (!occurrenceId) {
       return NextResponse.json(
         { error: "occurrenceId is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -81,14 +68,14 @@ export async function POST(request: Request) {
     if (!occurrenceData) {
       return NextResponse.json(
         { error: "Event occurrence not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
-    if (occurrenceData.event.gymId !== gymId) {
+    if (occurrenceData.event.gymId !== dbUser.gymId) {
       return NextResponse.json(
         { error: "Not authorized to send reminders for this event" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -96,18 +83,31 @@ export async function POST(request: Request) {
     const [gym] = await db
       .select()
       .from(gyms)
-      .where(eq(gyms.id, gymId))
+      // biome-ignore lint/style/noNonNullAssertion: gymId is required for coaches
+      .where(eq(gyms.id, dbUser.gymId!))
       .limit(1);
 
     if (!gym) {
-      return NextResponse.json({ error: "Gym not found" }, { status: 404 });
+      return NextResponse.json({ error: "Club not found" }, { status: 404 });
     }
 
-    // Get all gym members (athletes, coaches, owners, managers) who haven't RSVP'd
+    // Get all club members who can RSVP (athletes, coaches, owners)
     const allMembers = await db
-      .select()
+      .select({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        altEmail: users.altEmail,
+        notifPreferences: users.notifPreferences,
+      })
       .from(users)
-      .where(eq(users.gymId, gymId));
+      .where(
+        and(
+          // biome-ignore lint/style/noNonNullAssertion: gymId is required for coaches
+          eq(users.gymId, dbUser.gymId!),
+          inArray(users.role, ["athlete", "coach", "owner"]),
+        ),
+      );
 
     // Get existing RSVPs for this occurrence
     const existingRsvps = await db
@@ -117,8 +117,22 @@ export async function POST(request: Request) {
 
     const respondedUserIds = new Set(existingRsvps.map((r) => r.userId));
 
-    // Filter to pending users (or specific userIds if provided)
-    let targetUsers = allMembers.filter((m) => !respondedUserIds.has(m.id));
+    // Filter to pending users (or specific userIds if provided) and check reminders preference
+    let targetUsers = allMembers.filter((a) => {
+      // Check if user has reminders enabled
+      // Default to true if notifPreferences is null/undefined or reminders preference is not set
+      let remindersEnabled = true;
+      if (
+        a.notifPreferences &&
+        typeof a.notifPreferences === "object" &&
+        a.notifPreferences !== null &&
+        "reminders" in a.notifPreferences
+      ) {
+        remindersEnabled = a.notifPreferences.reminders !== false;
+      }
+
+      return !respondedUserIds.has(a.id) && remindersEnabled;
+    });
 
     if (userIds && userIds.length > 0) {
       targetUsers = targetUsers.filter((u) => userIds.includes(u.id));
@@ -132,13 +146,14 @@ export async function POST(request: Request) {
       });
     }
 
-    // Format date for email
+    // Format date for email - use UTC methods to avoid timezone issues
     const eventDate = new Date(occurrenceData.occurrence.date);
-    const dateStr = `${eventDate.getDate()} ${eventDate.toLocaleDateString("en-US", { month: "short" })}`;
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const dateStr = `${eventDate.getUTCDate()} ${monthNames[eventDate.getUTCMonth()]}`;
 
     const formatTime = (time: string) => {
       const [hours, minutes] = time.split(":");
-      const hour = Number.parseInt(hours, 10);
+      const hour = parseInt(hours, 10);
       const ampm = hour >= 12 ? "PM" : "AM";
       const displayHour = hour % 12 || 12;
       return `${displayHour}:${minutes} ${ampm}`;
@@ -153,6 +168,19 @@ export async function POST(request: Request) {
 
     for (const targetUser of targetUsers) {
       try {
+        // Double-check reminders preference (should already be filtered above, but extra safety)
+        let remindersEnabled = true;
+        if (
+          targetUser.notifPreferences &&
+          typeof targetUser.notifPreferences === "object" &&
+          targetUser.notifPreferences !== null &&
+          "reminders" in targetUser.notifPreferences
+        ) {
+          remindersEnabled = targetUser.notifPreferences.reminders !== false;
+        }
+
+        if (!remindersEnabled) continue;
+
         // Check if we already sent a manual reminder today
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -164,13 +192,13 @@ export async function POST(request: Request) {
         }
 
         await resend.emails.send({
-          from: `${process.env.RESEND_FROM_NAME || "SOMAS"} <${process.env.RESEND_FROM_EMAIL || "noreply@mail.titansofmississauga.ca"}>`,
+          from: `${process.env.RESEND_FROM_NAME || "SOMAS"} <${process.env.RESEND_FROM_EMAIL || "noreply@mail.softx.ca"}>`,
           to: recipients,
           subject: `RSVP needed for ${occurrenceData.event.title}`,
           react: RsvpReminderEmail({
             gymName: gym.name,
             gymLogoUrl: gym.logoUrl,
-            athleteName: targetUser.name || "there",
+            athleteName: targetUser.name || "Athlete",
             eventTitle: occurrenceData.event.title,
             eventDate: dateStr,
             eventTime: timeStr,
@@ -205,7 +233,7 @@ export async function POST(request: Request) {
     console.error("Send reminder error:", error);
     return NextResponse.json(
       { error: "Failed to send reminders" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

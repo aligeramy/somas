@@ -21,18 +21,21 @@ export async function GET() {
       .where(eq(users.id, user.id))
       .limit(1);
 
-    if (!dbUser?.gymId) {
+    if (!dbUser || !dbUser.gymId) {
       return NextResponse.json(
-        { error: "User must belong to a gym" },
-        { status: 400 }
+        { error: "User must belong to a club" },
+        { status: 400 },
       );
     }
 
-    // Get all channels for this gym
+    // Get all channels for this club
     const allGymChannels = await db
       .select()
       .from(channels)
       .where(eq(channels.gymId, dbUser.gymId));
+
+    // Owners and coaches can see all channels
+    const isOwnerOrCoach = dbUser.role === "owner" || dbUser.role === "coach";
 
     // Get channels where the user has sent messages (for DM and group filtering)
     const userMessageChannels = await db
@@ -42,24 +45,46 @@ export async function GET() {
 
     const userChannelIds = new Set(userMessageChannels.map((m) => m.channelId));
 
+    // For DM channels, we need to check if channel has any messages
+    const dmChannelsWithMessages = await db
+      .selectDistinct({ channelId: messages.channelId })
+      .from(messages)
+      .innerJoin(channels, eq(messages.channelId, channels.id))
+      .where(eq(channels.type, "dm"));
+
+    const dmChannelsWithMessagesSet = new Set(
+      dmChannelsWithMessages.map((m) => m.channelId),
+    );
+
     // Filter channels based on type and user participation (same logic as GET /api/chat/channels)
     const accessibleChannels = allGymChannels.filter((channel) => {
+      // Owners and coaches can see all channels
+      if (isOwnerOrCoach) {
+        return true;
+      }
+
       // Always show global channels
       if (channel.type === "global") {
         return true;
       }
 
-      // For DM channels: only show if user has sent messages OR channel name matches user's name/email
+      // For DM channels: only show if user is a participant
+      // User is a participant if:
+      // 1. They have sent messages in this channel, OR
+      // 2. Channel name matches their name/email AND channel has messages
       if (channel.type === "dm") {
         const userIsParticipant = userChannelIds.has(channel.id);
         const channelNameMatchesUser =
           channel.name === (dbUser.name || dbUser.email);
-        return userIsParticipant || channelNameMatchesUser;
+        const channelHasMessages = dmChannelsWithMessagesSet.has(channel.id);
+        return (
+          userIsParticipant || (channelNameMatchesUser && channelHasMessages)
+        );
       }
 
-      // For group channels: only show if user has sent messages
+      // Group channels should not be shown (they will be deleted)
       if (channel.type === "group") {
-        return userChannelIds.has(channel.id);
+        return false;
       }
 
       // For event channels: show if user has sent messages
@@ -83,8 +108,8 @@ export async function GET() {
       .where(
         and(
           eq(chatNotifications.userId, user.id),
-          isNull(chatNotifications.readAt)
-        )
+          isNull(chatNotifications.readAt),
+        ),
       )
       .groupBy(chatNotifications.channelId);
 
@@ -98,13 +123,13 @@ export async function GET() {
 
     // Calculate total unread chats (channels with unread messages that user can access)
     const totalUnreadChats = Array.from(countsMap.values()).filter(
-      (count) => count > 0
+      (count) => count > 0,
     ).length;
 
     // Calculate total unread messages
     const totalUnreadMessages = Array.from(countsMap.values()).reduce(
       (sum, count) => sum + count,
-      0
+      0,
     );
 
     // Return counts per channel and totals (only for accessible channels)
@@ -122,7 +147,7 @@ export async function GET() {
     console.error("Get unread counts error:", error);
     return NextResponse.json(
       { error: "Failed to get unread counts" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

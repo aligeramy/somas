@@ -3,7 +3,6 @@ import { NextResponse } from "next/server";
 import { users } from "@/drizzle/schema";
 import { db } from "@/lib/db";
 import { createClient } from "@/lib/supabase/server";
-import { isOwnerOrManager } from "@/lib/utils";
 
 export async function GET() {
   try {
@@ -23,21 +22,21 @@ export async function GET() {
       .where(eq(users.id, user.id))
       .limit(1);
 
-    if (!(dbUser && isOwnerOrManager(dbUser.role))) {
+    if (!dbUser || dbUser.role !== "owner") {
       return NextResponse.json(
         { error: "Forbidden - Admin only" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
     if (!dbUser.gymId) {
       return NextResponse.json(
-        { error: "User must belong to a gym" },
-        { status: 400 }
+        { error: "User must belong to a club" },
+        { status: 400 },
       );
     }
 
-    // Get all users in the same gym
+    // Get all users in the same club
     const gymUsers = await db
       .select({
         id: users.id,
@@ -56,7 +55,7 @@ export async function GET() {
     console.error("Error fetching users:", error);
     return NextResponse.json(
       { error: "Failed to fetch users" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

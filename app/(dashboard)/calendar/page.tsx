@@ -81,20 +81,19 @@ interface CoachAttendee {
 }
 
 // Color palette for events (for athletes view)
-// Using darker shades that work well in dark mode with white text
 const EVENT_COLORS = [
-  "bg-blue-600 dark:bg-blue-700",
-  "bg-purple-600 dark:bg-purple-700",
-  "bg-pink-600 dark:bg-pink-700",
-  "bg-indigo-600 dark:bg-indigo-700",
-  "bg-cyan-600 dark:bg-cyan-700",
-  "bg-teal-600 dark:bg-teal-700",
-  "bg-orange-600 dark:bg-orange-700",
-  "bg-amber-600 dark:bg-amber-700",
-  "bg-lime-600 dark:bg-lime-700",
-  "bg-emerald-600 dark:bg-emerald-700",
-  "bg-violet-600 dark:bg-violet-700",
-  "bg-fuchsia-600 dark:bg-fuchsia-700",
+  "bg-blue-500",
+  "bg-purple-500",
+  "bg-pink-500",
+  "bg-indigo-500",
+  "bg-cyan-500",
+  "bg-teal-500",
+  "bg-orange-500",
+  "bg-amber-500",
+  "bg-lime-500",
+  "bg-emerald-500",
+  "bg-violet-500",
+  "bg-fuchsia-500",
 ];
 
 export default function CalendarPage() {
@@ -110,7 +109,7 @@ export default function CalendarPage() {
   const [rsvpDialogOpen, setRsvpDialogOpen] = useState(false);
   const [updatingRsvp, setUpdatingRsvp] = useState<string | null>(null);
   const [cancelingOccurrence, setCancelingOccurrence] = useState<string | null>(
-    null
+    null,
   );
   const [coachAttendees, setCoachAttendees] = useState<
     Record<string, CoachAttendee[]>
@@ -126,9 +125,7 @@ export default function CalendarPage() {
         fetch("/api/user-info"),
       ]);
 
-      if (!(eventsRes.ok && rsvpsRes.ok)) {
-        throw new Error("Failed to load data");
-      }
+      if (!eventsRes.ok || !rsvpsRes.ok) throw new Error("Failed to load data");
 
       const eventsData = await eventsRes.json();
       const rsvpsData = await rsvpsRes.json();
@@ -151,6 +148,7 @@ export default function CalendarPage() {
           event.occurrences.forEach(
             (occ: { id: string; date: string; status: string }) => {
               const occDate = new Date(occ.date);
+              occDate.setHours(0, 0, 0, 0);
               const today = new Date();
               today.setHours(0, 0, 0, 0);
               // Only show future occurrences
@@ -165,9 +163,9 @@ export default function CalendarPage() {
                   },
                 });
               }
-            }
+            },
           );
-        }
+        },
       );
 
       setEvents(allOccurrences);
@@ -210,9 +208,7 @@ export default function CalendarPage() {
   }
 
   async function loadCoachAttendeesForOccurrences(occurrenceIds: string[]) {
-    if (occurrenceIds.length === 0) {
-      return;
-    }
+    if (occurrenceIds.length === 0) return;
     setLoadingAttendees(true);
     try {
       const attendeesMap: Record<string, CoachAttendee[]> = {};
@@ -228,9 +224,7 @@ export default function CalendarPage() {
               .filter(
                 (r: { status: string; user: { role?: string } }) =>
                   r.status === "going" &&
-                  (r.user?.role === "coach" ||
-                    r.user?.role === "owner" ||
-                    r.user?.role === "manager")
+                  (r.user?.role === "coach" || r.user?.role === "owner"),
               )
               .map(
                 (r: {
@@ -249,11 +243,11 @@ export default function CalendarPage() {
                   avatarUrl: r.user.avatarUrl,
                   phone: r.user.phone || null,
                   cellPhone: r.user.cellPhone || null,
-                })
+                }),
               );
             attendeesMap[occId] = coaches;
           }
-        })
+        }),
       );
 
       setCoachAttendees(attendeesMap);
@@ -279,11 +273,9 @@ export default function CalendarPage() {
 
   async function handleRSVP(
     occurrenceId: string,
-    status: "going" | "not_going"
+    status: "going" | "not_going",
   ) {
-    if (userInfo?.role !== "athlete") {
-      return;
-    }
+    if (userInfo?.role !== "athlete") return;
 
     try {
       setUpdatingRsvp(occurrenceId);
@@ -292,9 +284,7 @@ export default function CalendarPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ occurrenceId, status }),
       });
-      if (!response.ok) {
-        throw new Error("Failed to RSVP");
-      }
+      if (!response.ok) throw new Error("Failed to RSVP");
 
       const data = await response.json();
 
@@ -302,7 +292,7 @@ export default function CalendarPage() {
       if (data.rsvp) {
         setRsvps((prevRsvps) => {
           const existingIndex = prevRsvps.findIndex(
-            (r) => r.occurrenceId === occurrenceId
+            (r) => r.occurrenceId === occurrenceId,
           );
           if (existingIndex >= 0) {
             // Update existing RSVP
@@ -313,16 +303,17 @@ export default function CalendarPage() {
               occurrenceId: data.rsvp.occurrenceId,
             };
             return updated;
+          } else {
+            // Add new RSVP
+            return [
+              ...prevRsvps,
+              {
+                id: data.rsvp.id,
+                status: data.rsvp.status,
+                occurrenceId: data.rsvp.occurrenceId,
+              },
+            ];
           }
-          // Add new RSVP
-          return [
-            ...prevRsvps,
-            {
-              id: data.rsvp.id,
-              status: data.rsvp.status,
-              occurrenceId: data.rsvp.occurrenceId,
-            },
-          ];
         });
       }
     } catch (err) {
@@ -333,13 +324,7 @@ export default function CalendarPage() {
   }
 
   async function handleCancelOccurrence(occurrenceId: string) {
-    if (
-      userInfo?.role !== "coach" &&
-      userInfo?.role !== "owner" &&
-      userInfo?.role !== "manager"
-    ) {
-      return;
-    }
+    if (userInfo?.role !== "coach" && userInfo?.role !== "owner") return;
 
     try {
       setCancelingOccurrence(occurrenceId);
@@ -356,7 +341,7 @@ export default function CalendarPage() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ occurrenceId, notifyUsers: true }),
-        }
+        },
       );
 
       if (!response.ok) {
@@ -375,14 +360,10 @@ export default function CalendarPage() {
   }
 
   function formatTime(time: string | undefined | null) {
-    if (!time) {
-      return "";
-    }
+    if (!time) return "";
     const [hours, minutes] = time.split(":");
-    const hour = Number.parseInt(hours, 10);
-    if (Number.isNaN(hour)) {
-      return time;
-    }
+    const hour = parseInt(hours, 10);
+    if (Number.isNaN(hour)) return time;
     const ampm = hour >= 12 ? "PM" : "AM";
     const displayHour = hour % 12 || 12;
     return `${displayHour}:${minutes} ${ampm}`;
@@ -409,18 +390,7 @@ export default function CalendarPage() {
 
   const isAthlete = userInfo?.role === "athlete";
 
-  // Hash function to deterministically assign colors based on event ID
-  function hashString(str: string): number {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      const char = str.charCodeAt(i);
-      hash = (hash << 5) - hash + char;
-      hash &= hash; // Convert to 32-bit integer
-    }
-    return Math.abs(hash);
-  }
-
-  // Get unique events and assign colors deterministically
+  // Get unique events and assign colors
   const uniqueEvents = useMemo(() => {
     const eventMap = new Map<
       string,
@@ -428,8 +398,7 @@ export default function CalendarPage() {
     >();
     events.forEach((occ) => {
       if (!eventMap.has(occ.event.id)) {
-        // Use hash of event ID to ensure consistent color assignment
-        const colorIndex = hashString(occ.event.id) % EVENT_COLORS.length;
+        const colorIndex = eventMap.size % EVENT_COLORS.length;
         eventMap.set(occ.event.id, {
           id: occ.event.id,
           title: occ.event.title,
@@ -438,19 +407,19 @@ export default function CalendarPage() {
       }
     });
     return Array.from(eventMap.values());
-  }, [events, hashString]);
+  }, [events]);
 
   // Get color for an event
   function getEventColor(eventId: string): string {
     const event = uniqueEvents.find((e) => e.id === eventId);
-    return event?.color || "bg-slate-600 dark:bg-slate-700";
+    return event?.color || "bg-primary";
   }
 
   if (loading) {
     return (
-      <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
+      <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
         <PageHeader title="Calendar" />
-        <div className="flex flex-1 items-center justify-center">
+        <div className="flex-1 flex items-center justify-center">
           <div className="text-muted-foreground">Loading calendar...</div>
         </div>
       </div>
@@ -458,43 +427,43 @@ export default function CalendarPage() {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
+    <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
       <PageHeader
-        description="View all events and RSVP directly from the calendar"
         title="Calendar"
+        description="View all events and RSVP directly from the calendar"
       />
 
-      <div className="min-h-0 flex-1 overflow-auto p-4">
-        <div className="mx-auto max-w-5xl">
+      <div className="flex-1 overflow-auto min-h-0 p-4">
+        <div className="max-w-5xl mx-auto">
           {/* Calendar Header */}
-          <div className="mb-4 flex items-center justify-between">
+          <div className="flex items-center justify-between mb-4">
             <Button
-              className="h-10 w-10 rounded-xl"
-              onClick={previousMonth}
-              size="icon"
               variant="ghost"
+              size="icon"
+              onClick={previousMonth}
+              className="h-10 w-10 rounded-xl"
             >
               <IconChevronLeft className="h-5 w-5" />
             </Button>
-            <h2 className="font-semibold text-2xl">
+            <h2 className="text-2xl font-semibold">
               {format(month, "MMMM yyyy")}
             </h2>
             <Button
-              className="h-10 w-10 rounded-xl"
-              onClick={nextMonth}
-              size="icon"
               variant="ghost"
+              size="icon"
+              onClick={nextMonth}
+              className="h-10 w-10 rounded-xl"
             >
               <IconChevronRight className="h-5 w-5" />
             </Button>
           </div>
 
           {/* Weekday Headers */}
-          <div className="grid grid-cols-7 border-border border-b">
+          <div className="grid grid-cols-7 border-b border-border">
             {weekDays.map((day) => (
               <div
-                className="border-border border-r py-2 text-center font-medium text-muted-foreground text-xs last:border-r-0"
                 key={day}
+                className="text-center text-xs font-medium text-muted-foreground py-2 border-r border-border last:border-r-0"
               >
                 {day}
               </div>
@@ -502,7 +471,7 @@ export default function CalendarPage() {
           </div>
 
           {/* Calendar Grid */}
-          <div className="grid grid-cols-7 rounded-none border border-border">
+          <div className="grid grid-cols-7 border border-border rounded-none">
             {days.map((day, idx) => {
               const occurrences = getOccurrencesForDate(day);
               const isCurrent = isCurrentMonth(day);
@@ -528,12 +497,12 @@ export default function CalendarPage() {
                 dayClasses += "border-b-0 ";
               }
 
-              if (isCurrent) {
-                dayClasses +=
-                  "text-foreground bg-background hover:bg-muted/50 ";
-              } else {
+              if (!isCurrent) {
                 dayClasses +=
                   "text-muted-foreground/40 bg-muted/20 hover:bg-muted/40 ";
+              } else {
+                dayClasses +=
+                  "text-foreground bg-background hover:bg-muted/50 ";
               }
 
               if (isDayToday && isCurrent) {
@@ -550,8 +519,8 @@ export default function CalendarPage() {
 
               return (
                 <div
-                  className={dayClasses}
                   key={format(day, "yyyy-MM-dd")}
+                  className={dayClasses}
                   {...(hasEvents
                     ? {
                         onClick: () => handleDayClick(day),
@@ -566,11 +535,11 @@ export default function CalendarPage() {
                       }
                     : {})}
                 >
-                  <span className="mb-1 font-semibold text-sm">
+                  <span className="text-sm font-semibold mb-1">
                     {format(day, "d")}
                   </span>
                   {hasEvents && (
-                    <div className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-hidden">
+                    <div className="flex flex-col gap-0.5 flex-1 overflow-hidden min-h-0">
                       {occurrences.slice(0, 3).map((occ) => {
                         const rsvpStatus = isAthlete
                           ? getRSVPStatus(occ.id)
@@ -578,24 +547,24 @@ export default function CalendarPage() {
                         // For athletes, use event-specific colors; for others, use RSVP-based colors
                         const eventColor = isAthlete
                           ? getEventColor(occ.event.id)
-                          : "bg-slate-600 dark:bg-slate-700";
+                          : "bg-primary";
                         const bgColor =
                           occ.status === "canceled"
-                            ? "bg-destructive dark:bg-destructive/80"
+                            ? "bg-destructive"
                             : isAthlete
                               ? eventColor
                               : rsvpStatus === "going"
-                                ? "bg-emerald-600 dark:bg-emerald-700"
+                                ? "bg-emerald-500"
                                 : rsvpStatus === "not_going"
-                                  ? "bg-red-600 dark:bg-red-700"
-                                  : "bg-slate-600 dark:bg-slate-700";
+                                  ? "bg-red-500"
+                                  : "bg-primary";
                         return (
                           <div
-                            className={`rounded-sm px-1.5 py-0.5 text-[10px] ${bgColor} truncate font-medium text-white leading-tight`}
                             key={occ.id}
+                            className={`text-[10px] px-1.5 py-0.5 rounded-sm ${bgColor} text-white font-medium truncate leading-tight`}
                             title={occ.event.title}
                           >
-                            <span className="block truncate">
+                            <span className="truncate block">
                               {occ.event.title}
                             </span>
                           </div>
@@ -603,7 +572,7 @@ export default function CalendarPage() {
                       })}
                       {occurrences.length > 3 && (
                         <div
-                          className="truncate rounded-sm bg-muted-foreground/60 px-1.5 py-0.5 font-medium text-[10px] text-white leading-tight dark:bg-muted-foreground/30"
+                          className="text-[10px] px-1.5 py-0.5 rounded-sm bg-muted-foreground text-white font-medium truncate leading-tight"
                           title={`+${occurrences.length - 3} more`}
                         >
                           +{occurrences.length - 3} more
@@ -619,53 +588,53 @@ export default function CalendarPage() {
           {/* Legend */}
           <div className="mt-6 flex justify-center">
             {isAthlete && uniqueEvents.length > 0 ? (
-              <div className="inline-flex flex-wrap items-center justify-center gap-2">
+              <div className="inline-flex items-center gap-2 flex-wrap justify-center">
                 {uniqueEvents.map((event) => (
                   <div
-                    className="flex items-center gap-1.5 rounded-sm border border-border bg-muted/30 px-2 py-0.5"
                     key={event.id}
+                    className="flex items-center gap-1.5 px-2 py-0.5 rounded-sm border border-border bg-muted/30"
                     title={event.title}
                   >
                     <div
-                      className={`h-2.5 w-2.5 rounded-full ${event.color} shrink-0 border border-background`}
+                      className={`h-2.5 w-2.5 rounded-full ${event.color} border border-background shrink-0`}
                     />
-                    <span className="whitespace-nowrap text-foreground text-xs">
+                    <span className="text-xs text-foreground whitespace-nowrap">
                       {event.title}
                     </span>
                   </div>
                 ))}
-                <div className="flex items-center gap-1.5 rounded-sm border border-destructive/50 bg-destructive/10 px-2 py-0.5">
-                  <div className="h-2.5 w-2.5 shrink-0 rounded-full border border-background bg-destructive" />
-                  <span className="font-medium text-destructive text-xs">
+                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-sm border border-destructive/50 bg-destructive/10">
+                  <div className="h-2.5 w-2.5 rounded-full bg-destructive border border-background shrink-0" />
+                  <span className="text-xs font-medium text-destructive">
                     Canceled
                   </span>
                 </div>
               </div>
             ) : (
-              <div className="inline-flex flex-wrap items-center justify-center gap-2">
-                <div className="flex items-center gap-1.5 rounded-sm border border-border bg-muted/30 px-2 py-0.5">
-                  <div className="h-2.5 w-2.5 shrink-0 rounded-full border border-background bg-primary" />
-                  <span className="text-foreground text-xs">Event</span>
+              <div className="inline-flex items-center gap-2 flex-wrap justify-center">
+                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-sm border border-border bg-muted/30">
+                  <div className="h-2.5 w-2.5 rounded-full bg-primary border border-background shrink-0" />
+                  <span className="text-xs text-foreground">Event</span>
                 </div>
                 {isAthlete && (
                   <>
-                    <div className="flex items-center gap-1.5 rounded-sm border border-emerald-500/50 bg-emerald-500/10 px-2 py-0.5">
-                      <div className="h-2.5 w-2.5 shrink-0 rounded-full border border-background bg-emerald-500" />
-                      <span className="text-emerald-600 text-xs dark:text-emerald-400">
+                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-sm border border-emerald-500/50 bg-emerald-500/10">
+                      <div className="h-2.5 w-2.5 rounded-full bg-emerald-500 border border-background shrink-0" />
+                      <span className="text-xs text-emerald-600 dark:text-emerald-400">
                         Going
                       </span>
                     </div>
-                    <div className="flex items-center gap-1.5 rounded-sm border border-red-500/50 bg-red-500/10 px-2 py-0.5">
-                      <div className="h-2.5 w-2.5 shrink-0 rounded-full border border-background bg-red-500" />
-                      <span className="text-red-600 text-xs dark:text-red-400">
+                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-sm border border-red-500/50 bg-red-500/10">
+                      <div className="h-2.5 w-2.5 rounded-full bg-red-500 border border-background shrink-0" />
+                      <span className="text-xs text-red-600 dark:text-red-400">
                         Can't Go
                       </span>
                     </div>
                   </>
                 )}
-                <div className="flex items-center gap-1.5 rounded-sm border border-destructive/50 bg-destructive/10 px-2 py-0.5">
-                  <div className="h-2.5 w-2.5 shrink-0 rounded-full border border-background bg-destructive" />
-                  <span className="font-medium text-destructive text-xs">
+                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-sm border border-destructive/50 bg-destructive/10">
+                  <div className="h-2.5 w-2.5 rounded-full bg-destructive border border-background shrink-0" />
+                  <span className="text-xs font-medium text-destructive">
                     Canceled
                   </span>
                 </div>
@@ -676,8 +645,8 @@ export default function CalendarPage() {
       </div>
 
       {/* RSVP Dialog */}
-      <Dialog onOpenChange={setRsvpDialogOpen} open={rsvpDialogOpen}>
-        <DialogContent className="max-w-md rounded-xl">
+      <Dialog open={rsvpDialogOpen} onOpenChange={setRsvpDialogOpen}>
+        <DialogContent className="rounded-xl max-w-md">
           <DialogHeader>
             <DialogTitle>
               {selectedDate && format(selectedDate, "EEEE, MMMM d, yyyy")}
@@ -688,7 +657,7 @@ export default function CalendarPage() {
                 : `${selectedOccurrences.length} events on this day`}
             </DialogDescription>
           </DialogHeader>
-          <div className="max-h-[60vh] space-y-3 overflow-y-auto">
+          <div className="space-y-3 max-h-[60vh] overflow-y-auto">
             {selectedOccurrences.map((occ) => {
               const rsvpStatus = isAthlete ? getRSVPStatus(occ.id) : null;
               const isCanceled = occ.status === "canceled";
@@ -696,23 +665,21 @@ export default function CalendarPage() {
               const isCanceling = cancelingOccurrence === occ.id;
 
               const isCoachOrOwner =
-                userInfo?.role === "coach" ||
-                userInfo?.role === "owner" ||
-                userInfo?.role === "manager";
+                userInfo?.role === "coach" || userInfo?.role === "owner";
 
               return (
                 <div
-                  className={`rounded-xl border p-4 ${
-                    isCanceled ? "bg-muted opacity-50" : "bg-card"
-                  }`}
                   key={occ.id}
+                  className={`p-4 rounded-xl border ${
+                    isCanceled ? "opacity-50 bg-muted" : "bg-card"
+                  }`}
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <h3 className="mb-1 font-semibold text-sm">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-sm mb-1">
                         {occ.event.title}
                       </h3>
-                      <div className="flex items-center gap-2 text-muted-foreground text-xs">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <IconClock className="h-3 w-3" />
                         <span>
                           {formatTime(occ.event.startTime)} -{" "}
@@ -720,16 +687,16 @@ export default function CalendarPage() {
                         </span>
                       </div>
                       {isCanceled && (
-                        <Badge className="mt-2 text-xs" variant="destructive">
+                        <Badge variant="destructive" className="mt-2 text-xs">
                           Canceled
                         </Badge>
                       )}
                       {isAthlete && rsvpStatus && !isCanceled && (
                         <Badge
-                          className="mt-2 text-xs"
                           variant={
                             rsvpStatus === "going" ? "default" : "secondary"
                           }
+                          className="mt-2 text-xs"
                         >
                           {rsvpStatus === "going" ? "Going" : "Can't Go"}
                         </Badge>
@@ -738,15 +705,15 @@ export default function CalendarPage() {
                       {isAthlete &&
                         !isCanceled &&
                         coachAttendees[occ.id]?.length > 0 && (
-                          <div className="mt-3 border-t pt-3">
-                            <p className="mb-2 text-muted-foreground text-xs">
+                          <div className="mt-3 pt-3 border-t">
+                            <p className="text-xs text-muted-foreground mb-2">
                               Coaches attending:
                             </p>
                             <div className="space-y-2">
                               {coachAttendees[occ.id].map((coach) => (
                                 <div
-                                  className="group flex items-center gap-2"
                                   key={coach.id}
+                                  className="flex items-center gap-2 group"
                                 >
                                   <Avatar className="h-6 w-6">
                                     <AvatarImage
@@ -756,15 +723,15 @@ export default function CalendarPage() {
                                       {coach.name?.charAt(0) || "C"}
                                     </AvatarFallback>
                                   </Avatar>
-                                  <span className="flex-1 text-sm">
+                                  <span className="text-sm flex-1">
                                     {coach.name || coach.email}
                                   </span>
                                   <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                       <Button
-                                        className="h-7 w-7 opacity-0 transition-opacity group-hover:opacity-100"
-                                        size="icon"
                                         variant="ghost"
+                                        size="icon"
+                                        className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
                                       >
                                         <IconDotsVertical className="h-3 w-3" />
                                       </Button>
@@ -775,8 +742,8 @@ export default function CalendarPage() {
                                     >
                                       <DropdownMenuItem asChild>
                                         <Link
-                                          className="flex cursor-pointer items-center gap-2"
                                           href={`/chat?userId=${coach.id}`}
+                                          className="flex items-center gap-2 cursor-pointer"
                                         >
                                           <IconMessage className="h-4 w-4" />
                                           Chat
@@ -786,8 +753,8 @@ export default function CalendarPage() {
                                       {(coach.cellPhone || coach.phone) && (
                                         <DropdownMenuItem asChild>
                                           <a
-                                            className="flex cursor-pointer items-center gap-2"
                                             href={`tel:${coach.cellPhone || coach.phone}`}
+                                            className="flex items-center gap-2 cursor-pointer"
                                           >
                                             <IconPhone className="h-4 w-4" />
                                             Call
@@ -797,8 +764,8 @@ export default function CalendarPage() {
                                       {(coach.cellPhone || coach.phone) && (
                                         <DropdownMenuItem asChild>
                                           <a
-                                            className="flex cursor-pointer items-center gap-2"
                                             href={`sms:${coach.cellPhone || coach.phone}`}
+                                            className="flex items-center gap-2 cursor-pointer"
                                           >
                                             <IconMessage className="h-4 w-4" />
                                             Text
@@ -807,8 +774,8 @@ export default function CalendarPage() {
                                       )}
                                       <DropdownMenuItem asChild>
                                         <a
-                                          className="flex cursor-pointer items-center gap-2"
                                           href={`mailto:${coach.email}`}
+                                          className="flex items-center gap-2 cursor-pointer"
                                         >
                                           <IconMail className="h-4 w-4" />
                                           Email
@@ -822,41 +789,41 @@ export default function CalendarPage() {
                           </div>
                         )}
                       {isAthlete && loadingAttendees && (
-                        <div className="mt-3 border-t pt-3">
-                          <p className="text-muted-foreground text-xs">
+                        <div className="mt-3 pt-3 border-t">
+                          <p className="text-xs text-muted-foreground">
                             Loading coaches...
                           </p>
                         </div>
                       )}
                     </div>
-                    <div className="flex shrink-0 flex-col items-end gap-2">
+                    <div className="flex flex-col items-end gap-2 shrink-0">
                       {isAthlete && !isCanceled && (
                         <div className="flex items-center gap-2">
                           <Button
+                            size="sm"
+                            variant={
+                              rsvpStatus === "going" ? "default" : "outline"
+                            }
+                            onClick={() => handleRSVP(occ.id, "going")}
+                            disabled={isUpdating}
                             className={`h-8 rounded-lg ${
                               rsvpStatus === "going"
                                 ? "bg-emerald-600 hover:bg-emerald-700"
                                 : ""
                             }`}
-                            disabled={isUpdating}
-                            onClick={() => handleRSVP(occ.id, "going")}
-                            size="sm"
-                            variant={
-                              rsvpStatus === "going" ? "default" : "outline"
-                            }
                           >
                             <IconCheck className="h-3 w-3" />
                           </Button>
                           <Button
-                            className="h-8 rounded-lg"
-                            disabled={isUpdating}
-                            onClick={() => handleRSVP(occ.id, "not_going")}
                             size="sm"
                             variant={
                               rsvpStatus === "not_going"
                                 ? "secondary"
                                 : "outline"
                             }
+                            onClick={() => handleRSVP(occ.id, "not_going")}
+                            disabled={isUpdating}
+                            className="h-8 rounded-lg"
                           >
                             <IconX className="h-3 w-3" />
                           </Button>
@@ -864,10 +831,10 @@ export default function CalendarPage() {
                       )}
                       <div className="flex items-center gap-2">
                         <Button
-                          asChild
-                          className="h-8 gap-1 rounded-lg text-xs"
                           size="sm"
                           variant="ghost"
+                          asChild
+                          className="h-8 rounded-lg gap-1 text-xs"
                         >
                           <Link
                             href={`/events?eventId=${occ.event.id}&occurrenceId=${occ.id}`}
@@ -879,10 +846,10 @@ export default function CalendarPage() {
                         {isCoachOrOwner && (
                           <>
                             <Button
-                              asChild
-                              className="h-8 gap-1 rounded-lg text-xs"
                               size="sm"
                               variant="ghost"
+                              asChild
+                              className="h-8 rounded-lg gap-1 text-xs"
                             >
                               <Link href={`/events/${occ.event.id}/edit`}>
                                 <IconEdit className="h-3 w-3" />
@@ -891,11 +858,11 @@ export default function CalendarPage() {
                             </Button>
                             {!isCanceled && (
                               <Button
-                                className="h-8 gap-1 rounded-lg text-destructive text-xs hover:bg-destructive/10 hover:text-destructive"
-                                disabled={isCanceling}
-                                onClick={() => handleCancelOccurrence(occ.id)}
                                 size="sm"
                                 variant="ghost"
+                                onClick={() => handleCancelOccurrence(occ.id)}
+                                disabled={isCanceling}
+                                className="h-8 rounded-lg gap-1 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
                               >
                                 <IconBan className="h-3 w-3" />
                                 Cancel
@@ -912,9 +879,9 @@ export default function CalendarPage() {
           </div>
           <DialogFooter>
             <Button
-              className="rounded-xl"
-              onClick={() => setRsvpDialogOpen(false)}
               variant="outline"
+              onClick={() => setRsvpDialogOpen(false)}
+              className="rounded-xl"
             >
               Close
             </Button>

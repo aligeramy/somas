@@ -5,11 +5,9 @@ import {
   IconCamera,
   IconCheck,
   IconDeviceFloppy,
-  IconKey,
 } from "@tabler/icons-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useDropzone } from "react-dropzone";
-import { toast } from "sonner";
 import { PageHeader } from "@/components/page-header";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -20,14 +18,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -103,12 +93,6 @@ export default function ProfilePage() {
   const [pushNotif, setPushNotif] = useState(true);
   const [reminders, setReminders] = useState(true);
 
-  // Password change modal
-  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [changingPassword, setChangingPassword] = useState(false);
-
   // Avatar upload
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
@@ -158,19 +142,11 @@ export default function ProfilePage() {
       },
     });
 
-  useEffect(() => {
-    loadProfile();
-    loadGym();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  async function loadProfile() {
+  const loadProfile = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch("/api/profile");
-      if (!response.ok) {
-        throw new Error("Failed to load profile");
-      }
+      if (!response.ok) throw new Error("Failed to load profile");
       const data = await response.json();
       setProfile(data.user);
       setName(data.user.name || "");
@@ -183,7 +159,7 @@ export default function ProfilePage() {
       setEmergencyContactName(data.user.emergencyContactName || "");
       setEmergencyContactPhone(data.user.emergencyContactPhone || "");
       setEmergencyContactRelationship(
-        data.user.emergencyContactRelationship || ""
+        data.user.emergencyContactRelationship || "",
       );
       setEmergencyContactEmail(data.user.emergencyContactEmail || "");
       setMedicalConditions(data.user.medicalConditions || "");
@@ -197,11 +173,11 @@ export default function ProfilePage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
-  async function loadGym() {
+  const loadGym = useCallback(async () => {
     try {
-      const response = await fetch("/api/gym");
+      const response = await fetch("/api/club");
       if (response.ok) {
         const data = await response.json();
         setGym(data.gym);
@@ -209,18 +185,20 @@ export default function ProfilePage() {
       }
     } catch (_err) {
       // Not an error if user is not head coach
-      console.log("Gym not accessible (user may not be head coach)");
+      console.log("Club not accessible (user may not be head coach)");
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    loadProfile();
+    loadGym();
+  }, [loadGym, loadProfile]);
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setSuccess(false);
     setSaving(true);
-
-    // Dispatch event for SiteHeader
-    window.dispatchEvent(new CustomEvent("profile-save-start"));
 
     try {
       let avatarUrl = profile?.avatarUrl || null;
@@ -230,9 +208,7 @@ export default function ProfilePage() {
         const {
           data: { user: authUser },
         } = await supabase.auth.getUser();
-        if (!authUser) {
-          throw new Error("Not authenticated");
-        }
+        if (!authUser) throw new Error("Not authenticated");
 
         const fileExt = avatarFile.name.split(".").pop();
         const fileName = `${authUser.id}-${Date.now()}.${fileExt}`;
@@ -278,27 +254,23 @@ export default function ProfilePage() {
           notifPreferences: {
             email: emailNotif,
             push: pushNotif,
-            reminders,
+            reminders: reminders,
           },
         }),
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to save profile");
-      }
+      if (!response.ok) throw new Error("Failed to save profile");
 
-      // Update gym settings if user is head coach
+      // Update club settings if user is head coach
       if (profile?.role === "owner" && gym) {
         let logoUrl = gym.logoUrl || null;
 
-        // Upload gym logo if provided
+        // Upload club logo if provided
         if (gymLogoFile) {
           const {
             data: { user: authUser },
           } = await supabase.auth.getUser();
-          if (!authUser) {
-            throw new Error("Not authenticated");
-          }
+          if (!authUser) throw new Error("Not authenticated");
 
           const fileExt = gymLogoFile.name.split(".").pop();
           const fileName = `${authUser.id}-${Date.now()}.${fileExt}`;
@@ -321,7 +293,7 @@ export default function ProfilePage() {
           logoUrl = publicUrl;
         }
 
-        const gymResponse = await fetch("/api/gym", {
+        const gymResponse = await fetch("/api/club", {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -330,24 +302,17 @@ export default function ProfilePage() {
           }),
         });
 
-        if (!gymResponse.ok) {
-          throw new Error("Failed to save gym settings");
-        }
+        if (!gymResponse.ok) throw new Error("Failed to save club settings");
         await loadGym();
       }
 
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
       await loadProfile(); // Reload to get updated data
-
-      // Dispatch event for SiteHeader
-      window.dispatchEvent(new CustomEvent("profile-save-success"));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save");
-      window.dispatchEvent(new CustomEvent("profile-save-error"));
     } finally {
       setSaving(false);
-      window.dispatchEvent(new CustomEvent("profile-save-end"));
     }
   }
 
@@ -361,52 +326,6 @@ export default function ProfilePage() {
         .slice(0, 2);
     }
     return email[0].toUpperCase();
-  }
-
-  async function handleChangePassword(e: React.FormEvent) {
-    e.preventDefault();
-
-    // Validation
-    if (!(newPassword && confirmPassword)) {
-      toast.error("Please fill in all fields");
-      return;
-    }
-
-    if (newPassword.length < 8) {
-      toast.error("Password must be at least 8 characters long");
-      return;
-    }
-
-    if (newPassword !== confirmPassword) {
-      toast.error("New passwords do not match");
-      return;
-    }
-
-    setChangingPassword(true);
-
-    try {
-      // Update password - Supabase handles authentication internally
-      const { error: updateError } = await supabase.auth.updateUser({
-        password: newPassword,
-      });
-
-      if (updateError) {
-        toast.error(updateError.message);
-        return;
-      }
-
-      // Success - close modal and reset form
-      setIsPasswordModalOpen(false);
-      setNewPassword("");
-      setConfirmPassword("");
-      toast.success("Password changed successfully");
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to change password"
-      );
-    } finally {
-      setChangingPassword(false);
-    }
   }
 
   if (loading) {
@@ -432,16 +351,15 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
+    <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
       <PageHeader
-        description={isMobile ? undefined : "Manage your account settings"}
         title="Profile"
+        description={isMobile ? undefined : "Manage your account settings"}
       >
         <Button
-          className="gap-2 rounded-sm"
-          data-show-text-mobile
-          disabled={saving}
           onClick={handleSave}
+          disabled={saving}
+          className="gap-2 rounded-sm"
         >
           {success ? (
             <>
@@ -462,11 +380,10 @@ export default function ProfilePage() {
         </Button>
       </PageHeader>
 
-      <div className="min-h-0 flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto min-h-0">
         <form
-          className={`${isMobile ? "px-0 pb-4" : "mx-auto max-w-2xl space-y-6 p-4"}`}
-          id="profile-form"
           onSubmit={handleSave}
+          className={`${isMobile ? "px-0 pb-4" : "mx-auto max-w-2xl space-y-6 p-4"}`}
         >
           {error && (
             <div
@@ -478,104 +395,82 @@ export default function ProfilePage() {
 
           {/* Avatar Section */}
           {isMobile ? (
-            <div className="border-border border-b bg-background px-4 py-2">
+            <div className="bg-background border-b border-border pb-6 pt-4 px-4">
               <div className="flex items-center gap-4">
                 <div className="relative">
                   <Avatar className="h-16 w-16 border-2 border-background">
                     <AvatarImage
                       src={avatarPreview || profile.avatarUrl || undefined}
                     />
-                    <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/5 text-lg">
+                    <AvatarFallback className="text-lg bg-gradient-to-br from-primary/20 to-primary/5">
                       {getInitials(profile.name, profile.email)}
                     </AvatarFallback>
                   </Avatar>
                   <button
                     {...getAvatarRootProps()}
-                    className="absolute right-0 bottom-0 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md transition-colors hover:bg-primary/90"
-                    type="button"
+                    className="absolute bottom-0 right-0 h-7 w-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md hover:bg-primary/90 transition-colors cursor-pointer"
                   >
                     <input {...getAvatarInputProps()} />
                     <IconCamera className="h-3.5 w-3.5" />
                   </button>
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-semibold text-base">
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-base truncate">
                     {profile.name || "Unnamed"}
                   </p>
-                  <p className="truncate text-muted-foreground text-sm">
+                  <p className="text-sm text-muted-foreground truncate">
                     {profile.email}
                   </p>
-                  <p className="mt-0.5 text-muted-foreground text-xs capitalize">
+                  <p className="text-xs text-muted-foreground capitalize mt-0.5">
                     {profile.role === "owner" ? "Head Coach" : profile.role}
                   </p>
                 </div>
-                <Button
-                  className="gap-2 rounded-sm"
-                  onClick={() => setIsPasswordModalOpen(true)}
-                  type="button"
-                  variant="outline"
-                >
-                  <IconKey className="h-4 w-4" />
-                  Change Password
-                </Button>
               </div>
             </div>
           ) : (
             <Card className="rounded-xl">
-              <CardContent className="py-6">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-4">
-                    <div className="relative">
-                      <Avatar className="h-20 w-20 border-4 border-background shadow-lg">
-                        <AvatarImage
-                          src={avatarPreview || profile.avatarUrl || undefined}
-                        />
-                        <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/5 text-xl">
-                          {getInitials(profile.name, profile.email)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <button
-                        {...getAvatarRootProps()}
-                        className="absolute right-0 bottom-0 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-colors hover:bg-primary/90"
-                        type="button"
-                      >
-                        <input {...getAvatarInputProps()} />
-                        <IconCamera className="h-4 w-4" />
-                      </button>
-                    </div>
-                    <div>
-                      <p className="font-semibold text-lg">
-                        {profile.name || "Unnamed"}
-                      </p>
-                      <p className="text-muted-foreground text-sm">
-                        {profile.email}
-                      </p>
-                      <p className="mt-1 text-muted-foreground text-xs capitalize">
-                        {profile.role === "owner" ? "Head Coach" : profile.role}
-                      </p>
-                    </div>
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-4">
+                  <div className="relative">
+                    <Avatar className="h-20 w-20 border-4 border-background shadow-lg">
+                      <AvatarImage
+                        src={avatarPreview || profile.avatarUrl || undefined}
+                      />
+                      <AvatarFallback className="text-xl bg-gradient-to-br from-primary/20 to-primary/5">
+                        {getInitials(profile.name, profile.email)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <button
+                      {...getAvatarRootProps()}
+                      className="absolute bottom-0 right-0 h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg hover:bg-primary/90 transition-colors cursor-pointer"
+                    >
+                      <input {...getAvatarInputProps()} />
+                      <IconCamera className="h-4 w-4" />
+                    </button>
                   </div>
-                  <Button
-                    className="gap-2 rounded-xl"
-                    onClick={() => setIsPasswordModalOpen(true)}
-                    type="button"
-                    variant="outline"
-                  >
-                    <IconKey className="h-4 w-4" />
-                    Change Password
-                  </Button>
+                  <div>
+                    <p className="font-semibold text-lg">
+                      {profile.name || "Unnamed"}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {profile.email}
+                    </p>
+                    <p className="text-xs text-muted-foreground capitalize mt-1">
+                      {profile.role === "owner" ? "Head Coach" : profile.role}
+                    </p>
+                  </div>
                 </div>
               </CardContent>
             </Card>
           )}
 
-          {/* Gym Settings (for head coaches only) */}
+          {/* Club Settings (for head coaches only) */}
           {profile?.role === "owner" && gym && (
             <>
               {isMobile ? (
                 <div className="mt-4">
                   <div className="px-4 py-2">
-                    <h3 className="flex items-center gap-2 font-semibold text-foreground text-sm">
+                    <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
                       <IconBuilding className="h-4 w-4" />
                       Club Settings
                     </h3>
@@ -585,22 +480,22 @@ export default function ProfilePage() {
                     <div className="flex items-center gap-3">
                       <div className="relative">
                         {gymLogoPreview || gym.logoUrl ? (
+                          // biome-ignore lint/performance/noImgElement: Dynamic logo URL from upload or database
                           <img
+                            src={gymLogoPreview || gym.logoUrl || ""}
                             alt="Club logo"
                             className="h-16 w-16 rounded-lg border-2 border-background object-cover"
-                            src={gymLogoPreview || gym.logoUrl || ""}
                           />
                         ) : (
-                          <div className="flex h-16 w-16 items-center justify-center rounded-lg border-2 border-background bg-muted">
-                            <span className="font-bold text-2xl">
+                          <div className="h-16 w-16 rounded-lg border-2 border-background bg-muted flex items-center justify-center">
+                            <span className="text-2xl font-bold">
                               {gymName[0]?.toUpperCase() || "G"}
                             </span>
                           </div>
                         )}
                         <button
                           {...getLogoRootProps()}
-                          className="absolute right-0 bottom-0 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md transition-colors hover:bg-primary/90"
-                          type="button"
+                          className="absolute bottom-0 right-0 h-6 w-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md hover:bg-primary/90 transition-colors cursor-pointer"
                         >
                           <input {...getLogoInputProps()} />
                           <IconCamera className="h-3 w-3" />
@@ -608,18 +503,18 @@ export default function ProfilePage() {
                       </div>
                       <div className="flex-1 space-y-2">
                         <Label
-                          className="text-muted-foreground text-xs"
                           htmlFor="gymName"
+                          className="text-xs text-muted-foreground"
                         >
                           Club Name
                         </Label>
                         <Input
-                          className="h-11 rounded-sm"
                           id="gymName"
+                          value={gymName}
                           onChange={(e) => setGymName(e.target.value)}
                           placeholder="Club Name"
+                          className="rounded-sm h-11"
                           required
-                          value={gymName}
                         />
                       </div>
                     </div>
@@ -628,7 +523,7 @@ export default function ProfilePage() {
               ) : (
                 <Card className="rounded-xl">
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-base">
+                    <CardTitle className="text-base flex items-center gap-2">
                       <IconBuilding className="h-5 w-5" />
                       Club Settings
                     </CardTitle>
@@ -637,42 +532,42 @@ export default function ProfilePage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {/* Gym Logo and Name Section */}
+                    {/* Club Logo and Name Section */}
                     <div className="flex items-end gap-4">
                       <div className="relative">
                         {gymLogoPreview || gym.logoUrl ? (
+                          // biome-ignore lint/performance/noImgElement: Dynamic logo URL from upload or database
                           <img
-                            alt="Club logo"
-                            className="h-24 w-24 rounded-xl border-4 border-background object-cover shadow-lg"
                             src={gymLogoPreview || gym.logoUrl || ""}
+                            alt="Club logo"
+                            className="h-24 w-24 rounded-xl border-4 border-background shadow-lg object-cover"
                           />
                         ) : (
-                          <div className="flex h-24 w-24 items-center justify-center rounded-xl border-4 border-background bg-muted shadow-lg">
-                            <span className="font-bold text-3xl">
+                          <div className="h-24 w-24 rounded-xl border-4 border-background shadow-lg bg-muted flex items-center justify-center">
+                            <span className="text-3xl font-bold">
                               {gymName[0]?.toUpperCase() || "G"}
                             </span>
                           </div>
                         )}
                         <button
                           {...getLogoRootProps()}
-                          className="absolute right-0 bottom-0 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-colors hover:bg-primary/90"
-                          type="button"
+                          className="absolute bottom-0 right-0 h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg hover:bg-primary/90 transition-colors cursor-pointer"
                         >
                           <input {...getLogoInputProps()} />
                           <IconCamera className="h-4 w-4" />
                         </button>
                       </div>
                       <div className="flex-1 space-y-2">
-                        <Label className="text-sm" htmlFor="gymName">
+                        <Label htmlFor="gymName" className="text-sm">
                           Club Name
                         </Label>
                         <Input
-                          className="h-11 rounded-xl"
                           id="gymName"
+                          value={gymName}
                           onChange={(e) => setGymName(e.target.value)}
                           placeholder="Club Name"
+                          className="rounded-xl h-11"
                           required
-                          value={gymName}
                         />
                       </div>
                     </div>
@@ -687,7 +582,7 @@ export default function ProfilePage() {
           {isMobile ? (
             <div className="mt-4">
               <div className="px-4 py-2">
-                <h3 className="font-semibold text-foreground text-sm">
+                <h3 className="text-sm font-semibold text-foreground">
                   Personal Information
                 </h3>
               </div>
@@ -695,124 +590,124 @@ export default function ProfilePage() {
               <div className="space-y-4 px-4 py-4">
                 <div className="space-y-2">
                   <Label
-                    className="text-muted-foreground text-xs"
                     htmlFor="name"
+                    className="text-xs text-muted-foreground"
                   >
                     Athlete Name
                   </Label>
                   <Input
-                    className="h-11 rounded-sm"
                     id="name"
+                    value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="John Doe"
-                    value={name}
+                    className="rounded-sm h-11"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label
-                    className="text-muted-foreground text-xs"
                     htmlFor="address"
+                    className="text-xs text-muted-foreground"
                   >
                     Athlete Address
                   </Label>
                   <Input
-                    autoComplete="off"
-                    className="h-11 rounded-sm"
+                    ref={addressInputRef}
                     id="address"
+                    value={address}
                     onChange={(e) => setAddress(e.target.value)}
                     placeholder="123 Main St, City, Country"
-                    ref={addressInputRef}
-                    value={address}
+                    className="rounded-sm h-11"
+                    autoComplete="off"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label
-                    className="text-muted-foreground text-xs"
                     htmlFor="altEmail"
+                    className="text-xs text-muted-foreground"
                   >
                     Alternate Email
                   </Label>
                   <Input
-                    className="h-11 rounded-sm"
                     id="altEmail"
-                    onChange={(e) => setAltEmail(e.target.value)}
-                    placeholder="Enter alternate email (optional)"
                     type="email"
                     value={altEmail}
+                    onChange={(e) => setAltEmail(e.target.value)}
+                    placeholder="Enter alternate email (optional)"
+                    className="rounded-sm h-11"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label
-                    className="text-muted-foreground text-xs"
                     htmlFor="phone"
+                    className="text-xs text-muted-foreground"
                   >
                     Main Phone
                   </Label>
                   <Input
-                    className="h-11 rounded-sm"
                     id="phone"
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="+1 (555) 000-0000"
                     type="tel"
                     value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="+1 (555) 000-0000"
+                    className="rounded-sm h-11"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label
-                    className="text-muted-foreground text-xs"
                     htmlFor="homePhone"
+                    className="text-xs text-muted-foreground"
                   >
                     Home Phone Number
                   </Label>
                   <Input
-                    className="h-11 rounded-sm"
                     id="homePhone"
-                    onChange={(e) => setHomePhone(e.target.value)}
-                    placeholder="+1 (555) 000-0000"
                     type="tel"
                     value={homePhone}
+                    onChange={(e) => setHomePhone(e.target.value)}
+                    placeholder="+1 (555) 000-0000"
+                    className="rounded-sm h-11"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label
-                    className="text-muted-foreground text-xs"
                     htmlFor="workPhone"
+                    className="text-xs text-muted-foreground"
                   >
                     Work Phone Number
                   </Label>
                   <Input
-                    className="h-11 rounded-sm"
                     id="workPhone"
-                    onChange={(e) => setWorkPhone(e.target.value)}
-                    placeholder="+1 (555) 000-0000"
                     type="tel"
                     value={workPhone}
+                    onChange={(e) => setWorkPhone(e.target.value)}
+                    placeholder="+1 (555) 000-0000"
+                    className="rounded-sm h-11"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label
-                    className="text-muted-foreground text-xs"
                     htmlFor="cellPhone"
+                    className="text-xs text-muted-foreground"
                   >
                     Cell Number
                   </Label>
                   <Input
-                    className="h-11 rounded-sm"
                     id="cellPhone"
-                    onChange={(e) => setCellPhone(e.target.value)}
-                    placeholder="+1 (555) 000-0000"
                     type="tel"
                     value={cellPhone}
+                    onChange={(e) => setCellPhone(e.target.value)}
+                    placeholder="+1 (555) 000-0000"
+                    className="rounded-sm h-11"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-muted-foreground text-xs">
+                  <Label className="text-xs text-muted-foreground">
                     Email Address
                   </Label>
                   <Input
-                    className="h-11 rounded-sm bg-muted"
-                    disabled
                     value={profile.email}
+                    disabled
+                    className="rounded-sm h-11 bg-muted"
                   />
                 </div>
               </div>
@@ -827,104 +722,104 @@ export default function ProfilePage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label className="text-sm" htmlFor="name">
+                  <Label htmlFor="name" className="text-sm">
                     Athlete Name
                   </Label>
                   <Input
-                    className="h-11 rounded-xl"
                     id="name"
+                    value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="John Doe"
-                    value={name}
+                    className="rounded-xl h-11"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-sm" htmlFor="address">
+                  <Label htmlFor="address" className="text-sm">
                     Athlete Address
                   </Label>
                   <Input
-                    autoComplete="off"
-                    className="h-11 rounded-xl"
+                    ref={addressInputRef}
                     id="address"
+                    value={address}
                     onChange={(e) => setAddress(e.target.value)}
                     placeholder="123 Main St, City, Country"
-                    ref={addressInputRef}
-                    value={address}
+                    className="rounded-xl h-11"
+                    autoComplete="off"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-sm" htmlFor="altEmail">
+                  <Label htmlFor="altEmail" className="text-sm">
                     Alternate Email
                   </Label>
                   <Input
-                    className="h-11 rounded-xl"
                     id="altEmail"
-                    onChange={(e) => setAltEmail(e.target.value)}
-                    placeholder="Enter alternate email (optional)"
                     type="email"
                     value={altEmail}
+                    onChange={(e) => setAltEmail(e.target.value)}
+                    placeholder="Enter alternate email (optional)"
+                    className="rounded-xl h-11"
                   />
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label className="text-sm" htmlFor="phone">
+                    <Label htmlFor="phone" className="text-sm">
                       Main Phone
                     </Label>
                     <Input
-                      className="h-11 rounded-xl"
                       id="phone"
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder="+1 (555) 000-0000"
                       type="tel"
                       value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="+1 (555) 000-0000"
+                      className="rounded-xl h-11"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm" htmlFor="homePhone">
+                    <Label htmlFor="homePhone" className="text-sm">
                       Home Phone Number
                     </Label>
                     <Input
-                      className="h-11 rounded-xl"
                       id="homePhone"
-                      onChange={(e) => setHomePhone(e.target.value)}
-                      placeholder="+1 (555) 000-0000"
                       type="tel"
                       value={homePhone}
+                      onChange={(e) => setHomePhone(e.target.value)}
+                      placeholder="+1 (555) 000-0000"
+                      className="rounded-xl h-11"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm" htmlFor="workPhone">
+                    <Label htmlFor="workPhone" className="text-sm">
                       Work Phone Number
                     </Label>
                     <Input
-                      className="h-11 rounded-xl"
                       id="workPhone"
-                      onChange={(e) => setWorkPhone(e.target.value)}
-                      placeholder="+1 (555) 000-0000"
                       type="tel"
                       value={workPhone}
+                      onChange={(e) => setWorkPhone(e.target.value)}
+                      placeholder="+1 (555) 000-0000"
+                      className="rounded-xl h-11"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm" htmlFor="cellPhone">
+                    <Label htmlFor="cellPhone" className="text-sm">
                       Cell Number
                     </Label>
                     <Input
-                      className="h-11 rounded-xl"
                       id="cellPhone"
-                      onChange={(e) => setCellPhone(e.target.value)}
-                      placeholder="+1 (555) 000-0000"
                       type="tel"
                       value={cellPhone}
+                      onChange={(e) => setCellPhone(e.target.value)}
+                      placeholder="+1 (555) 000-0000"
+                      className="rounded-xl h-11"
                     />
                   </div>
                 </div>
                 <div className="space-y-2">
                   <Label className="text-sm">Email Address</Label>
                   <Input
-                    className="h-11 rounded-xl bg-muted"
-                    disabled
                     value={profile.email}
+                    disabled
+                    className="rounded-xl h-11 bg-muted"
                   />
                 </div>
               </CardContent>
@@ -935,7 +830,7 @@ export default function ProfilePage() {
           {isMobile ? (
             <div className="mt-4">
               <div className="px-4 py-2">
-                <h3 className="font-semibold text-foreground text-sm">
+                <h3 className="text-sm font-semibold text-foreground">
                   Emergency Contact
                 </h3>
               </div>
@@ -943,66 +838,66 @@ export default function ProfilePage() {
               <div className="space-y-4 px-4 py-4">
                 <div className="space-y-2">
                   <Label
-                    className="text-muted-foreground text-xs"
                     htmlFor="emergencyContactName"
+                    className="text-xs text-muted-foreground"
                   >
                     Emergency Contact Name
                   </Label>
                   <Input
-                    className="h-11 rounded-sm"
                     id="emergencyContactName"
+                    value={emergencyContactName}
                     onChange={(e) => setEmergencyContactName(e.target.value)}
                     placeholder="Jane Doe"
-                    value={emergencyContactName}
+                    className="rounded-sm h-11"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label
-                    className="text-muted-foreground text-xs"
                     htmlFor="emergencyContactPhone"
+                    className="text-xs text-muted-foreground"
                   >
                     Emergency Contact Phone
                   </Label>
                   <Input
-                    className="h-11 rounded-sm"
                     id="emergencyContactPhone"
-                    onChange={(e) => setEmergencyContactPhone(e.target.value)}
-                    placeholder="+1 (555) 000-0000"
                     type="tel"
                     value={emergencyContactPhone}
+                    onChange={(e) => setEmergencyContactPhone(e.target.value)}
+                    placeholder="+1 (555) 000-0000"
+                    className="rounded-sm h-11"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label
-                    className="text-muted-foreground text-xs"
                     htmlFor="emergencyContactRelationship"
+                    className="text-xs text-muted-foreground"
                   >
                     Relationship to Athlete
                   </Label>
                   <Input
-                    className="h-11 rounded-sm"
                     id="emergencyContactRelationship"
+                    value={emergencyContactRelationship}
                     onChange={(e) =>
                       setEmergencyContactRelationship(e.target.value)
                     }
                     placeholder="Parent, Guardian, etc."
-                    value={emergencyContactRelationship}
+                    className="rounded-sm h-11"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label
-                    className="text-muted-foreground text-xs"
                     htmlFor="emergencyContactEmail"
+                    className="text-xs text-muted-foreground"
                   >
                     Emergency Contact Email Address
                   </Label>
                   <Input
-                    className="h-11 rounded-sm"
                     id="emergencyContactEmail"
-                    onChange={(e) => setEmergencyContactEmail(e.target.value)}
-                    placeholder="contact@example.com"
                     type="email"
                     value={emergencyContactEmail}
+                    onChange={(e) => setEmergencyContactEmail(e.target.value)}
+                    placeholder="contact@example.com"
+                    className="rounded-sm h-11"
                   />
                 </div>
               </div>
@@ -1015,60 +910,60 @@ export default function ProfilePage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label className="text-sm" htmlFor="emergencyContactName">
+                  <Label htmlFor="emergencyContactName" className="text-sm">
                     Emergency Contact Name
                   </Label>
                   <Input
-                    className="h-11 rounded-xl"
                     id="emergencyContactName"
+                    value={emergencyContactName}
                     onChange={(e) => setEmergencyContactName(e.target.value)}
                     placeholder="Jane Doe"
-                    value={emergencyContactName}
+                    className="rounded-xl h-11"
                   />
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label className="text-sm" htmlFor="emergencyContactPhone">
+                    <Label htmlFor="emergencyContactPhone" className="text-sm">
                       Emergency Contact Phone
                     </Label>
                     <Input
-                      className="h-11 rounded-xl"
                       id="emergencyContactPhone"
-                      onChange={(e) => setEmergencyContactPhone(e.target.value)}
-                      placeholder="+1 (555) 000-0000"
                       type="tel"
                       value={emergencyContactPhone}
+                      onChange={(e) => setEmergencyContactPhone(e.target.value)}
+                      placeholder="+1 (555) 000-0000"
+                      className="rounded-xl h-11"
                     />
                   </div>
                   <div className="space-y-2">
                     <Label
-                      className="text-sm"
                       htmlFor="emergencyContactRelationship"
+                      className="text-sm"
                     >
                       Relationship to Athlete
                     </Label>
                     <Input
-                      className="h-11 rounded-xl"
                       id="emergencyContactRelationship"
+                      value={emergencyContactRelationship}
                       onChange={(e) =>
                         setEmergencyContactRelationship(e.target.value)
                       }
                       placeholder="Parent, Guardian, etc."
-                      value={emergencyContactRelationship}
+                      className="rounded-xl h-11"
                     />
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-sm" htmlFor="emergencyContactEmail">
+                  <Label htmlFor="emergencyContactEmail" className="text-sm">
                     Emergency Contact Email Address
                   </Label>
                   <Input
-                    className="h-11 rounded-xl"
                     id="emergencyContactEmail"
-                    onChange={(e) => setEmergencyContactEmail(e.target.value)}
-                    placeholder="contact@example.com"
                     type="email"
                     value={emergencyContactEmail}
+                    onChange={(e) => setEmergencyContactEmail(e.target.value)}
+                    placeholder="contact@example.com"
+                    className="rounded-xl h-11"
                   />
                 </div>
               </CardContent>
@@ -1079,7 +974,7 @@ export default function ProfilePage() {
           {isMobile ? (
             <div className="mt-4">
               <div className="px-4 py-2">
-                <h3 className="font-semibold text-foreground text-sm">
+                <h3 className="text-sm font-semibold text-foreground">
                   Medical Information
                 </h3>
               </div>
@@ -1087,47 +982,47 @@ export default function ProfilePage() {
               <div className="space-y-4 px-4 py-4">
                 <div className="space-y-2">
                   <Label
-                    className="text-muted-foreground text-xs"
                     htmlFor="medicalConditions"
+                    className="text-xs text-muted-foreground"
                   >
                     Medical Conditions
                   </Label>
                   <Input
-                    className="h-11 rounded-sm"
                     id="medicalConditions"
+                    value={medicalConditions}
                     onChange={(e) => setMedicalConditions(e.target.value)}
                     placeholder="e.g., Diabetes, Asthma, etc. (or None)"
-                    value={medicalConditions}
+                    className="rounded-sm h-11"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label
-                    className="text-muted-foreground text-xs"
                     htmlFor="medications"
+                    className="text-xs text-muted-foreground"
                   >
                     Current Medications
                   </Label>
                   <Input
-                    className="h-11 rounded-sm"
                     id="medications"
+                    value={medications}
                     onChange={(e) => setMedications(e.target.value)}
                     placeholder="List any medications currently being taken (or None)"
-                    value={medications}
+                    className="rounded-sm h-11"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label
-                    className="text-muted-foreground text-xs"
                     htmlFor="allergies"
+                    className="text-xs text-muted-foreground"
                   >
                     Allergies
                   </Label>
                   <Input
-                    className="h-11 rounded-sm"
                     id="allergies"
+                    value={allergies}
                     onChange={(e) => setAllergies(e.target.value)}
                     placeholder="e.g., Latex, Peanuts, etc. (or None)"
-                    value={allergies}
+                    className="rounded-sm h-11"
                   />
                 </div>
               </div>
@@ -1143,39 +1038,39 @@ export default function ProfilePage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label className="text-sm" htmlFor="medicalConditions">
+                  <Label htmlFor="medicalConditions" className="text-sm">
                     Medical Conditions
                   </Label>
                   <Input
-                    className="h-11 rounded-xl"
                     id="medicalConditions"
+                    value={medicalConditions}
                     onChange={(e) => setMedicalConditions(e.target.value)}
                     placeholder="e.g., Diabetes, Asthma, etc. (or None)"
-                    value={medicalConditions}
+                    className="rounded-xl h-11"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-sm" htmlFor="medications">
+                  <Label htmlFor="medications" className="text-sm">
                     Current Medications
                   </Label>
                   <Input
-                    className="h-11 rounded-xl"
                     id="medications"
+                    value={medications}
                     onChange={(e) => setMedications(e.target.value)}
                     placeholder="List any medications currently being taken (or None)"
-                    value={medications}
+                    className="rounded-xl h-11"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-sm" htmlFor="allergies">
+                  <Label htmlFor="allergies" className="text-sm">
                     Allergies
                   </Label>
                   <Input
-                    className="h-11 rounded-xl"
                     id="allergies"
+                    value={allergies}
                     onChange={(e) => setAllergies(e.target.value)}
                     placeholder="e.g., Latex, Peanuts, etc. (or None)"
-                    value={allergies}
+                    className="rounded-xl h-11"
                   />
                 </div>
               </CardContent>
@@ -1186,16 +1081,16 @@ export default function ProfilePage() {
           {isMobile ? (
             <div className="mt-4">
               <div className="px-4 py-2">
-                <h3 className="font-semibold text-foreground text-sm">
+                <h3 className="text-sm font-semibold text-foreground">
                   Notifications
                 </h3>
               </div>
               <Separator />
               <div className="space-y-0 divide-y divide-border">
-                <div className="flex items-center justify-between px-4 py-3">
-                  <div className="min-w-0 flex-1">
+                <div className="px-4 py-3 flex items-center justify-between">
+                  <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm">Email Notifications</p>
-                    <p className="mt-0.5 text-muted-foreground text-xs">
+                    <p className="text-xs text-muted-foreground mt-0.5">
                       Receive updates via email
                     </p>
                   </div>
@@ -1204,19 +1099,19 @@ export default function ProfilePage() {
                     onCheckedChange={setEmailNotif}
                   />
                 </div>
-                <div className="flex items-center justify-between px-4 py-3">
-                  <div className="min-w-0 flex-1">
+                <div className="px-4 py-3 flex items-center justify-between">
+                  <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm">Push Notifications</p>
-                    <p className="mt-0.5 text-muted-foreground text-xs">
+                    <p className="text-xs text-muted-foreground mt-0.5">
                       Receive push notifications on your device
                     </p>
                   </div>
                   <Switch checked={pushNotif} onCheckedChange={setPushNotif} />
                 </div>
-                <div className="flex items-center justify-between px-4 py-3">
-                  <div className="min-w-0 flex-1">
+                <div className="px-4 py-3 flex items-center justify-between">
+                  <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm">Event Reminders</p>
-                    <p className="mt-0.5 text-muted-foreground text-xs">
+                    <p className="text-xs text-muted-foreground mt-0.5">
                       Get reminded 2 hours before events
                     </p>
                   </div>
@@ -1233,10 +1128,10 @@ export default function ProfilePage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-center justify-between rounded-xl bg-muted/50 p-3">
+                <div className="flex items-center justify-between p-3 rounded-xl bg-muted/50">
                   <div>
                     <p className="font-medium text-sm">Email Notifications</p>
-                    <p className="text-muted-foreground text-xs">
+                    <p className="text-xs text-muted-foreground">
                       Receive updates via email
                     </p>
                   </div>
@@ -1245,19 +1140,19 @@ export default function ProfilePage() {
                     onCheckedChange={setEmailNotif}
                   />
                 </div>
-                <div className="flex items-center justify-between rounded-xl bg-muted/50 p-3">
+                <div className="flex items-center justify-between p-3 rounded-xl bg-muted/50">
                   <div>
                     <p className="font-medium text-sm">Push Notifications</p>
-                    <p className="text-muted-foreground text-xs">
+                    <p className="text-xs text-muted-foreground">
                       Receive push notifications on your device
                     </p>
                   </div>
                   <Switch checked={pushNotif} onCheckedChange={setPushNotif} />
                 </div>
-                <div className="flex items-center justify-between rounded-xl bg-muted/50 p-3">
+                <div className="flex items-center justify-between p-3 rounded-xl bg-muted/50">
                   <div>
                     <p className="font-medium text-sm">Event Reminders</p>
-                    <p className="text-muted-foreground text-xs">
+                    <p className="text-xs text-muted-foreground">
                       Get reminded 2 hours before events
                     </p>
                   </div>
@@ -1266,95 +1161,8 @@ export default function ProfilePage() {
               </CardContent>
             </Card>
           )}
-
-          {/* Save Button for PC View */}
-          {!isMobile && (
-            <div className="flex justify-end pt-4">
-              <Button
-                className="gap-2 rounded-xl"
-                disabled={saving}
-                onClick={handleSave}
-              >
-                {success ? (
-                  <>
-                    <IconCheck className="h-4 w-4" />
-                    Saved
-                  </>
-                ) : saving ? (
-                  <>
-                    <IconDeviceFloppy className="h-4 w-4" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <IconDeviceFloppy className="h-4 w-4" />
-                    Save Changes
-                  </>
-                )}
-              </Button>
-            </div>
-          )}
         </form>
       </div>
-
-      {/* Password Change Modal */}
-      <Dialog onOpenChange={setIsPasswordModalOpen} open={isPasswordModalOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Change Password</DialogTitle>
-            <DialogDescription>
-              Enter a new password for your account (minimum 8 characters)
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleChangePassword}>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="newPassword">New Password</Label>
-                <Input
-                  autoComplete="new-password"
-                  className="h-11 rounded-xl"
-                  id="newPassword"
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Enter new password (min. 8 characters)"
-                  required
-                  type="password"
-                  value={newPassword}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm New Password</Label>
-                <Input
-                  autoComplete="new-password"
-                  className="h-11 rounded-xl"
-                  id="confirmPassword"
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Confirm new password"
-                  required
-                  type="password"
-                  value={confirmPassword}
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button
-                disabled={changingPassword}
-                onClick={() => {
-                  setIsPasswordModalOpen(false);
-                  setNewPassword("");
-                  setConfirmPassword("");
-                }}
-                type="button"
-                variant="outline"
-              >
-                Cancel
-              </Button>
-              <Button disabled={changingPassword} type="submit">
-                {changingPassword ? "Changing..." : "Change Password"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

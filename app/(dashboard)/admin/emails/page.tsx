@@ -66,15 +66,13 @@ export default function AdminEmailsPage() {
 
   useEffect(() => {
     fetchUsers();
-    // fetchUsers is intentionally not in dependencies - it should only run on mount
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchUsers]);
 
   async function fetchUsers() {
     try {
       const response = await fetch("/api/admin/users");
-      if (!response.ok) {
-        throw new Error("Failed to fetch users");
-      }
+      if (!response.ok) throw new Error("Failed to fetch users");
       const data = await response.json();
       setUsers(data.users);
     } catch (error) {
@@ -115,9 +113,7 @@ export default function AdminEmailsPage() {
   }
 
   async function sendEmails(type: "welcome" | "reset") {
-    if (selectedUsers.size === 0) {
-      return;
-    }
+    if (selectedUsers.size === 0) return;
 
     setSending(true);
     setResults(null);
@@ -151,7 +147,7 @@ export default function AdminEmailsPage() {
   const failCount = results?.filter((r) => !r.success).length || 0;
 
   return (
-    <div className="flex flex-col gap-6 p-4 pb-24 md:p-6 lg:pb-6">
+    <div className="flex flex-col gap-6 p-4 md:p-6 pb-24 lg:pb-6">
       <PageHeader title="Email Management" />
 
       {/* Action Bar */}
@@ -167,29 +163,29 @@ export default function AdminEmailsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col gap-3 sm:flex-row">
+          <div className="flex flex-col sm:flex-row gap-3">
             <Button
-              className="flex-1 sm:flex-none"
-              disabled={sending || selectedCount === 0}
               onClick={() => sendEmails("welcome")}
+              disabled={sending || selectedCount === 0}
+              className="flex-1 sm:flex-none"
             >
               {sending ? (
-                <IconLoader2 className="mr-2 h-4 w-4 animate-spin" />
+                <IconLoader2 className="h-4 w-4 mr-2 animate-spin" />
               ) : (
-                <IconMailForward className="mr-2 h-4 w-4" />
+                <IconMailForward className="h-4 w-4 mr-2" />
               )}
               Send Welcome Email ({selectedCount})
             </Button>
             <Button
-              className="flex-1 sm:flex-none"
-              disabled={sending || selectedCount === 0}
               onClick={() => sendEmails("reset")}
+              disabled={sending || selectedCount === 0}
               variant="outline"
+              className="flex-1 sm:flex-none"
             >
               {sending ? (
-                <IconLoader2 className="mr-2 h-4 w-4 animate-spin" />
+                <IconLoader2 className="h-4 w-4 mr-2 animate-spin" />
               ) : (
-                <IconKey className="mr-2 h-4 w-4" />
+                <IconKey className="h-4 w-4 mr-2" />
               )}
               Send Password Reset ({selectedCount})
             </Button>
@@ -197,8 +193,8 @@ export default function AdminEmailsPage() {
 
           {/* Results */}
           {results && (
-            <div className="mt-4 rounded-lg bg-muted/50 p-4">
-              <div className="mb-2 flex items-center gap-4">
+            <div className="mt-4 p-4 rounded-lg bg-muted/50">
+              <div className="flex items-center gap-4 mb-2">
                 {successCount > 0 && (
                   <span className="flex items-center gap-1 text-green-600">
                     <IconCheck className="h-4 w-4" />
@@ -213,8 +209,8 @@ export default function AdminEmailsPage() {
                 )}
               </div>
               {failCount > 0 && (
-                <div className="text-muted-foreground text-sm">
-                  <p className="mb-1 font-medium text-red-600">
+                <div className="text-sm text-muted-foreground">
+                  <p className="font-medium text-red-600 mb-1">
                     Failed emails:
                   </p>
                   {results
@@ -234,19 +230,19 @@ export default function AdminEmailsPage() {
       {/* Filters */}
       <Card>
         <CardContent className="pt-6">
-          <div className="flex flex-col gap-3 sm:flex-row">
+          <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
-              <IconSearch className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <IconSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                className="pl-9"
-                onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search by name or email..."
                 value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
               />
             </div>
-            <Select onValueChange={setRoleFilter} value={roleFilter}>
+            <Select value={roleFilter} onValueChange={setRoleFilter}>
               <SelectTrigger className="w-full sm:w-[140px]">
-                <IconFilter className="mr-2 h-4 w-4" />
+                <IconFilter className="h-4 w-4 mr-2" />
                 <SelectValue placeholder="Role" />
               </SelectTrigger>
               <SelectContent>
@@ -256,7 +252,7 @@ export default function AdminEmailsPage() {
                 <SelectItem value="athlete">Athlete</SelectItem>
               </SelectContent>
             </Select>
-            <Select onValueChange={setOnboardedFilter} value={onboardedFilter}>
+            <Select value={onboardedFilter} onValueChange={setOnboardedFilter}>
               <SelectTrigger className="w-full sm:w-[160px]">
                 <SelectValue placeholder="Onboarded" />
               </SelectTrigger>
@@ -291,12 +287,12 @@ export default function AdminEmailsPage() {
                   <TableRow>
                     <TableHead className="w-12">
                       <Checkbox
-                        aria-label="Select all"
                         checked={
                           filteredUsers.length > 0 &&
                           selectedUsers.size === filteredUsers.length
                         }
                         onCheckedChange={toggleSelectAll}
+                        aria-label="Select all"
                       />
                     </TableHead>
                     <TableHead>Name</TableHead>
@@ -309,25 +305,25 @@ export default function AdminEmailsPage() {
                 <TableBody>
                   {filteredUsers.length === 0 ? (
                     <TableRow>
-                      <TableCell className="py-8 text-center" colSpan={6}>
+                      <TableCell colSpan={6} className="text-center py-8">
                         <p className="text-muted-foreground">No users found</p>
                       </TableCell>
                     </TableRow>
                   ) : (
                     filteredUsers.map((user) => (
                       <TableRow
-                        className={
-                          user.onboarded
-                            ? ""
-                            : "bg-amber-50/50 dark:bg-amber-950/20"
-                        }
                         key={user.id}
+                        className={
+                          !user.onboarded
+                            ? "bg-amber-50/50 dark:bg-amber-950/20"
+                            : ""
+                        }
                       >
                         <TableCell>
                           <Checkbox
-                            aria-label={`Select ${user.name || user.email}`}
                             checked={selectedUsers.has(user.id)}
                             onCheckedChange={() => toggleUser(user.id)}
+                            aria-label={`Select ${user.name || user.email}`}
                           />
                         </TableCell>
                         <TableCell className="font-medium">
@@ -338,11 +334,13 @@ export default function AdminEmailsPage() {
                         <TableCell>{user.email}</TableCell>
                         <TableCell>
                           <Badge
-                            variant={(() => {
-                              if (user.role === "owner") return "default";
-                              if (user.role === "coach") return "secondary";
-                              return "outline";
-                            })()}
+                            variant={
+                              user.role === "owner"
+                                ? "default"
+                                : user.role === "coach"
+                                  ? "secondary"
+                                  : "outline"
+                            }
                           >
                             {user.role}
                           </Badge>
@@ -350,15 +348,15 @@ export default function AdminEmailsPage() {
                         <TableCell>
                           {user.onboarded ? (
                             <Badge
-                              className="border-green-600 text-green-600"
                               variant="outline"
+                              className="text-green-600 border-green-600"
                             >
                               Onboarded
                             </Badge>
                           ) : (
                             <Badge
-                              className="border-amber-600 text-amber-600"
                               variant="outline"
+                              className="text-amber-600 border-amber-600"
                             >
                               Pending
                             </Badge>

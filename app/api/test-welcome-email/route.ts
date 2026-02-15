@@ -111,7 +111,7 @@ export async function POST(request: Request) {
         setupUrl,
       }),
       headers: {
-        "Message-ID": `<${messageId}@titansofmississauga.ca>`,
+        "Message-ID": `<${messageId}@softx.ca>`,
         "X-Entity-Ref-ID": messageId,
       },
     });

@@ -49,7 +49,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Get gym info
+    // Get club info
     const [gym] = await db
       .select()
       .from(gyms)
@@ -57,7 +57,7 @@ export async function POST(request: Request) {
       .limit(1);
 
     if (!gym) {
-      return NextResponse.json({ error: "Gym not found" }, { status: 404 });
+      return NextResponse.json({ error: "Club not found" }, { status: 404 });
     }
 
     const supabaseAdmin = createAdminClient();
@@ -128,7 +128,7 @@ export async function POST(request: Request) {
         setupUrl,
       }),
       headers: {
-        "Message-ID": `<${messageId}@titansofmississauga.ca>`,
+        "Message-ID": `<${messageId}@softx.ca>`,
         "X-Entity-Ref-ID": messageId,
       },
     });

@@ -34,7 +34,7 @@ export function MobileEventActions({
   onOpenChange: (open: boolean) => void;
   onRsvpUpdate?: (
     occurrenceId: string,
-    status: "going" | "not_going" | null
+    status: "going" | "not_going" | null,
   ) => void;
 }) {
   const router = useRouter();
@@ -42,9 +42,7 @@ export function MobileEventActions({
   const [rsvping, setRsvping] = useState(false);
 
   async function handleCancel() {
-    if (canceling) {
-      return;
-    }
+    if (canceling) return;
     setCanceling(true);
     try {
       const response = await fetch(`/api/events/${eventId}/cancel`, {
@@ -55,9 +53,7 @@ export function MobileEventActions({
           restore: isCanceled,
         }),
       });
-      if (!response.ok) {
-        throw new Error("Failed to cancel");
-      }
+      if (!response.ok) throw new Error("Failed to cancel");
       router.refresh();
       onOpenChange(false);
     } catch (err) {
@@ -69,9 +65,7 @@ export function MobileEventActions({
   }
 
   async function handleRsvp(status: "going" | "not_going") {
-    if (rsvping || isCanceled) {
-      return;
-    }
+    if (rsvping || isCanceled) return;
     setRsvping(true);
     // Optimistically update parent state immediately
     if (onRsvpUpdate) {
@@ -86,9 +80,7 @@ export function MobileEventActions({
           status,
         }),
       });
-      if (!response.ok) {
-        throw new Error("Failed to RSVP");
-      }
+      if (!response.ok) throw new Error("Failed to RSVP");
       router.refresh();
       onOpenChange(false);
     } catch (err) {
@@ -103,33 +95,32 @@ export function MobileEventActions({
     }
   }
 
-  const isCoachOrOwner =
-    userRole === "owner" || userRole === "coach" || userRole === "manager";
+  const isCoachOrOwner = userRole === "owner" || userRole === "coach";
   const showRsvpOptions = isCoachOrOwner && !isCanceled;
 
   return (
-    <Drawer onOpenChange={onOpenChange} open={open}>
+    <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerContent className="max-h-[85vh]">
         {/* Compact Header with Event Name on Left, Go to Event on Right */}
-        <div className="border-b px-4 pt-4 pb-3">
+        <div className="px-4 pt-4 pb-3 border-b">
           <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0 flex-1">
-              <DrawerTitle className="truncate font-semibold text-base">
+            <div className="flex-1 min-w-0">
+              <DrawerTitle className="text-base font-semibold truncate">
                 {eventTitle}
               </DrawerTitle>
               {isCanceled && (
-                <p className="mt-0.5 text-destructive text-xs">Canceled</p>
+                <p className="text-xs text-destructive mt-0.5">Canceled</p>
               )}
             </div>
             <Button
+              size="sm"
               className="shrink-0 gap-2 px-4 py-2.5"
               onClick={() => {
                 onOpenChange(false);
                 router.push(
-                  `/events?eventId=${eventId}&occurrenceId=${occurrenceId}`
+                  `/events?eventId=${eventId}&occurrenceId=${occurrenceId}`,
                 );
               }}
-              size="sm"
             >
               <IconArrowRight className="h-4 w-4" />
               Go to Event
@@ -138,46 +129,46 @@ export function MobileEventActions({
         </div>
 
         <div
-          className="space-y-2.5 overflow-y-auto px-4 py-3"
+          className="px-4 py-3 space-y-2.5 overflow-y-auto"
           style={{
-            paddingBottom: "calc(1.5rem + env(safe-area-inset-bottom, 0))",
+            paddingBottom: `calc(1.5rem + env(safe-area-inset-bottom, 0))`,
           }}
         >
           {/* RSVP Actions (for coaches/owners) */}
           {showRsvpOptions && (
             <div className="flex gap-2">
               <Button
-                className={`h-10 flex-1 justify-center gap-2 px-4 py-2.5 transition-opacity ${
+                variant="outline"
+                size="sm"
+                className={`flex-1 justify-center gap-2 px-4 py-2.5 h-10 transition-opacity ${
                   currentRsvpStatus === "going"
-                    ? "border-emerald-500 bg-emerald-500 text-white hover:bg-emerald-600 dark:border-emerald-600 dark:bg-emerald-600 dark:text-white dark:hover:bg-emerald-700"
+                    ? "bg-emerald-500 text-white border-emerald-500 hover:bg-emerald-600 dark:bg-emerald-600 dark:text-white dark:border-emerald-600 dark:hover:bg-emerald-700"
                     : currentRsvpStatus === "not_going"
-                      ? "border-emerald-200 bg-emerald-50 text-emerald-600 opacity-60 hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-400 dark:hover:bg-emerald-950/70"
-                      : "border-emerald-200 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-400 dark:hover:bg-emerald-950/70"
+                      ? "bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-950/50 dark:text-emerald-400 dark:border-emerald-800 dark:hover:bg-emerald-950/70 opacity-60"
+                      : "bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-950/50 dark:text-emerald-400 dark:border-emerald-800 dark:hover:bg-emerald-950/70"
                 }`}
-                disabled={rsvping}
                 onClick={() => {
                   handleRsvp("going");
                 }}
-                size="sm"
-                variant="outline"
+                disabled={rsvping}
               >
                 <IconCheck className="h-4 w-4" />
                 Going
               </Button>
               <Button
-                className={`h-10 flex-1 justify-center gap-2 px-4 py-2.5 transition-opacity ${
+                variant="outline"
+                size="sm"
+                className={`flex-1 justify-center gap-2 px-4 py-2.5 h-10 transition-opacity ${
                   currentRsvpStatus === "not_going"
-                    ? "border-red-500 bg-red-500 text-white hover:bg-red-600 dark:border-red-600 dark:bg-red-600 dark:text-white dark:hover:bg-red-700"
+                    ? "bg-red-500 text-white border-red-500 hover:bg-red-600 dark:bg-red-600 dark:text-white dark:border-red-600 dark:hover:bg-red-700"
                     : currentRsvpStatus === "going"
-                      ? "border-red-200 bg-red-50 text-red-600 opacity-60 hover:bg-red-100 dark:border-red-800 dark:bg-red-950/50 dark:text-red-400 dark:hover:bg-red-950/70"
-                      : "border-red-200 bg-red-50 text-red-600 hover:bg-red-100 dark:border-red-800 dark:bg-red-950/50 dark:text-red-400 dark:hover:bg-red-950/70"
+                      ? "bg-red-50 text-red-600 border-red-200 hover:bg-red-100 dark:bg-red-950/50 dark:text-red-400 dark:border-red-800 dark:hover:bg-red-950/70 opacity-60"
+                      : "bg-red-50 text-red-600 border-red-200 hover:bg-red-100 dark:bg-red-950/50 dark:text-red-400 dark:border-red-800 dark:hover:bg-red-950/70"
                 }`}
-                disabled={rsvping}
                 onClick={() => {
                   handleRsvp("not_going");
                 }}
-                size="sm"
-                variant="outline"
+                disabled={rsvping}
               >
                 <IconX className="h-4 w-4" />
                 Can't Go
@@ -191,29 +182,29 @@ export function MobileEventActions({
               {showRsvpOptions && <Separator className="my-2.5" />}
               <div className="flex gap-2">
                 <Button
-                  className="h-10 flex-1 justify-center gap-2 px-4 py-2.5"
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 justify-center gap-2 px-4 py-2.5 h-10"
                   onClick={() => {
                     onOpenChange(false);
                     router.push(`/events/${eventId}/edit`);
                   }}
-                  size="sm"
-                  variant="outline"
                 >
                   <IconEdit className="h-4 w-4" />
                   Edit Event
                 </Button>
                 <Button
-                  className={`h-10 flex-1 justify-center gap-2 px-4 py-2.5 ${
+                  variant="outline"
+                  size="sm"
+                  className={`flex-1 justify-center gap-2 px-4 py-2.5 h-10 ${
                     isCanceled
                       ? ""
-                      : "border-destructive/20 bg-red-50 text-destructive focus:bg-red-100 focus:text-destructive dark:bg-red-950/20 dark:focus:bg-red-950/30"
+                      : "text-destructive focus:text-destructive border-destructive/20 bg-red-50 dark:bg-red-950/20 focus:bg-red-100 dark:focus:bg-red-950/30"
                   }`}
-                  disabled={canceling}
                   onClick={() => {
                     handleCancel();
                   }}
-                  size="sm"
-                  variant="outline"
+                  disabled={canceling}
                 >
                   {isCanceled ? (
                     <>

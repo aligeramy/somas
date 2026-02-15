@@ -1,6 +1,6 @@
-import { and, asc, desc, eq, gte, sql } from "drizzle-orm";
+import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { NextResponse } from "next/server";
-import { eventOccurrences, events, users } from "@/drizzle/schema";
+import { channels, eventOccurrences, events, users } from "@/drizzle/schema";
 import { db } from "@/lib/db";
 import { createClient } from "@/lib/supabase/server";
 
@@ -21,19 +21,15 @@ export async function POST(request: Request) {
       .where(eq(users.id, user.id))
       .limit(1);
 
-    if (!dbUser?.gymId) {
+    if (!dbUser || !dbUser.gymId) {
       return NextResponse.json(
-        { error: "User must belong to a gym" },
-        { status: 400 }
+        { error: "User must belong to a club" },
+        { status: 400 },
       );
     }
 
-    // Only head coaches, managers, and coaches can create events
-    if (
-      dbUser.role !== "owner" &&
-      dbUser.role !== "manager" &&
-      dbUser.role !== "coach"
-    ) {
+    // Only head coaches and coaches can create events
+    if (dbUser.role !== "owner" && dbUser.role !== "coach") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -59,9 +55,7 @@ export async function POST(request: Request) {
           if (Array.isArray(parsed)) {
             reminderDays = parsed
               .map((n) =>
-                typeof n === "number"
-                  ? Math.round(n)
-                  : Number.parseInt(String(n), 10)
+                typeof n === "number" ? Math.round(n) : parseInt(String(n), 10),
               )
               .filter((n) => !Number.isNaN(n));
           }
@@ -71,18 +65,16 @@ export async function POST(request: Request) {
       } else if (Array.isArray(reminderDaysRaw)) {
         reminderDays = reminderDaysRaw
           .map((n) =>
-            typeof n === "number"
-              ? Math.round(n)
-              : Number.parseInt(String(n), 10)
+            typeof n === "number" ? Math.round(n) : parseInt(String(n), 10),
           )
           .filter((n) => !Number.isNaN(n));
       }
     }
 
-    if (!(title && startTime && endTime)) {
+    if (!title || !startTime || !endTime) {
       return NextResponse.json(
         { error: "Title, start time, and end time are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -97,7 +89,7 @@ export async function POST(request: Request) {
       if (endDateTime <= startDateTime) {
         return NextResponse.json(
           { error: "The 'End on date' must be after the start date and time" },
-          { status: 400 }
+          { status: 400 },
         );
       }
     }
@@ -135,15 +127,48 @@ export async function POST(request: Request) {
       startTime,
       occurrenceStartDate,
       recurrenceEndDate ? new Date(recurrenceEndDate) : null,
-      recurrenceCount
+      recurrenceCount,
     );
+
+    // Create group chat channel for this event
+    try {
+      // Check if channel already exists (shouldn't happen, but be safe)
+      const [existingChannel] = await db
+        .select()
+        .from(channels)
+        .where(
+          and(
+            eq(channels.gymId, dbUser.gymId),
+            eq(channels.eventId, event.id),
+            eq(channels.type, "group"),
+          ),
+        )
+        .limit(1);
+
+      if (!existingChannel) {
+        const [newChannel] = await db
+          .insert(channels)
+          .values({
+            gymId: dbUser.gymId,
+            name: `${title} Chat`,
+            type: "group",
+            eventId: event.id,
+          })
+          .returning();
+        console.log("Created event chat channel:", newChannel.id);
+      } else {
+        console.log("Event chat channel already exists:", existingChannel.id);
+      }
+    } catch (channelError) {
+      console.error("Failed to create event chat channel:", channelError);
+    }
 
     return NextResponse.json({ success: true, event });
   } catch (error) {
     console.error("Event creation error:", error);
     return NextResponse.json(
       { error: "Failed to create event" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -154,12 +179,11 @@ async function generateEventOccurrences(
   startTime: string,
   startDate: Date,
   recurrenceEndDate?: Date | null,
-  recurrenceCount?: number | null
+  recurrenceCount?: number | null,
 ) {
-  const occurrences = [];
+  const occurrences: { eventId: string; date: Date; status: "scheduled" }[] = [];
   let endDate = new Date(startDate);
 
-  // Determine end date based on recurrence settings
   if (recurrenceEndDate) {
     endDate = new Date(recurrenceEndDate);
   } else if (recurrenceCount) {
@@ -169,13 +193,10 @@ async function generateEventOccurrences(
     endDate.setFullYear(endDate.getFullYear() + 1);
   }
 
-  // For non-recurring events, create a single occurrence
   if (!recurrenceRule) {
     const [hours, minutes] = startTime.split(":").map(Number);
     const occurrenceDate = new Date(startDate);
     occurrenceDate.setHours(hours, minutes, 0, 0);
-
-    // Always create an occurrence for 1-day events, regardless of date
     await db
       .insert(eventOccurrences)
       .values({
@@ -187,9 +208,7 @@ async function generateEventOccurrences(
     return;
   }
 
-  // Parse RRULE
   let frequency = "WEEKLY";
-
   if (recurrenceRule.includes("FREQ=DAILY")) {
     frequency = "DAILY";
   } else if (recurrenceRule.includes("FREQ=WEEKLY")) {
@@ -198,30 +217,17 @@ async function generateEventOccurrences(
     frequency = "MONTHLY";
   }
 
-  // Always use the selected date as the first occurrence
-  // This respects the user's date selection regardless of recurrence pattern
   const currentDate = new Date(startDate);
-
-  // Store the original day of month for monthly recurrence
-  // This helps handle month-end dates correctly
   const originalDayOfMonth = startDate.getDate();
-
-  // Generate occurrences
   let count = 0;
   const now = new Date();
   let isFirstOccurrence = true;
 
   while (currentDate <= endDate) {
-    if (recurrenceCount && count >= recurrenceCount) {
-      break;
-    }
-
+    if (recurrenceCount && count >= recurrenceCount) break;
     const [hours, minutes] = startTime.split(":").map(Number);
     const occurrenceDate = new Date(currentDate);
     occurrenceDate.setHours(hours, minutes, 0, 0);
-
-    // Always include the first occurrence (selected start date) regardless of time
-    // For subsequent occurrences, only include if they're in the future
     if (isFirstOccurrence || occurrenceDate >= now) {
       occurrences.push({
         eventId,
@@ -231,36 +237,25 @@ async function generateEventOccurrences(
       count++;
       isFirstOccurrence = false;
     }
-
     if (frequency === "DAILY") {
       currentDate.setDate(currentDate.getDate() + 1);
     } else if (frequency === "WEEKLY") {
       currentDate.setDate(currentDate.getDate() + 7);
     } else if (frequency === "MONTHLY") {
-      // Safely add one month, handling month-end dates correctly
       const currentMonth = currentDate.getMonth();
       const currentYear = currentDate.getFullYear();
-
-      // Calculate next month and year
       let nextMonth = currentMonth + 1;
       let nextYear = currentYear;
-
       if (nextMonth > 11) {
         nextMonth = 0;
         nextYear += 1;
       }
-
-      // Get the last day of the target month
       const lastDayOfNextMonth = new Date(nextYear, nextMonth + 1, 0).getDate();
-
-      // Use the original day, or the last day of the month if original day doesn't exist
       const dayToUse = Math.min(originalDayOfMonth, lastDayOfNextMonth);
-
       currentDate.setFullYear(nextYear, nextMonth, dayToUse);
     }
   }
 
-  // Bulk create occurrences
   if (occurrences.length > 0) {
     await db.insert(eventOccurrences).values(occurrences).onConflictDoNothing();
   }
@@ -285,8 +280,8 @@ export async function GET(_request: Request) {
 
     if (!dbUser?.gymId) {
       return NextResponse.json(
-        { error: "User must belong to a gym" },
-        { status: 400 }
+        { error: "User must belong to a club" },
+        { status: 400 },
       );
     }
 
@@ -305,8 +300,6 @@ export async function GET(_request: Request) {
       .where(eq(events.gymId, dbUser.gymId))
       .orderBy(desc(events.createdAt));
 
-    // Get occurrences for each event
-    // Filter by date only (not datetime) to match calendar page behavior
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -318,13 +311,13 @@ export async function GET(_request: Request) {
           .where(
             and(
               eq(eventOccurrences.eventId, event.id),
-              gte(eventOccurrences.date, today)
-            )
+              sql`DATE(${eventOccurrences.date}) >= DATE(${sql.raw(`'${today.toISOString().split("T")[0]}'`)}::date)`,
+            ),
           )
           .orderBy(asc(eventOccurrences.date))
           .limit(10);
         return { ...event, occurrences: occurrencesList };
-      })
+      }),
     );
 
     return NextResponse.json({ events: eventsWithOccurrences });
@@ -332,7 +325,7 @@ export async function GET(_request: Request) {
     console.error("Event fetch error:", error);
     return NextResponse.json(
       { error: "Failed to fetch events" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

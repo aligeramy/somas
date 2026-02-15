@@ -1,4 +1,4 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import {
@@ -16,7 +16,6 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 // This endpoint should be called by a cron job (e.g., Vercel Cron, GitHub Actions, etc.)
 // It processes all events and sends reminders based on reminderDays settings
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: cron handler with nested loops; refactor into helpers if needed
 export async function GET(request: Request) {
   try {
     // Optional: Add authentication/authorization check
@@ -44,8 +43,8 @@ export async function GET(request: Request) {
         and(
           eq(eventOccurrences.status, "scheduled"),
           sql`${events.reminderDays} IS NOT NULL`,
-          sql`array_length(${events.reminderDays}, 1) > 0`
-        )
+          sql`array_length(${events.reminderDays}, 1) > 0`,
+        ),
       );
 
     // Group occurrences by event
@@ -73,26 +72,33 @@ export async function GET(request: Request) {
 
     // Process each event
     for (const [, { event, occurrences }] of eventsMap) {
-      if (!event.reminderDays || event.reminderDays.length === 0) {
-        continue;
-      }
+      if (!event.reminderDays || event.reminderDays.length === 0) continue;
 
-      // Get gym info
+      // Get club info
       const [gym] = await db
         .select()
         .from(gyms)
         .where(eq(gyms.id, event.gymId))
         .limit(1);
 
-      if (!gym) {
-        continue;
-      }
+      if (!gym) continue;
 
-      // Get all gym members (athletes, coaches, owners, managers) for reminders
-      const members = await db
-        .select()
+      // Get all club members who can RSVP (athletes, coaches, owners)
+      const clubMembers = await db
+        .select({
+          id: users.id,
+          name: users.name,
+          email: users.email,
+          altEmail: users.altEmail,
+          notifPreferences: users.notifPreferences,
+        })
         .from(users)
-        .where(eq(users.gymId, event.gymId));
+        .where(
+          and(
+            eq(users.gymId, event.gymId),
+            inArray(users.role, ["athlete", "coach", "owner"]),
+          ),
+        );
 
       // Process each occurrence
       for (const occurrence of occurrences) {
@@ -112,27 +118,22 @@ export async function GET(request: Request) {
             const minutes = Math.round(reminderValue * 24 * 60); // Convert to minutes
             reminderDateTime = new Date(occurrenceDateTime);
             reminderDateTime.setMinutes(
-              reminderDateTime.getMinutes() - minutes
+              reminderDateTime.getMinutes() - minutes,
             );
             reminderType = minutes === 30 ? "30_min" : `${minutes}_min`;
           } else {
             // For day-based reminders, send at start of day
             reminderDateTime = new Date(occurrenceDate);
             reminderDateTime.setDate(
-              reminderDateTime.getDate() - reminderValue
+              reminderDateTime.getDate() - reminderValue,
             );
             reminderDateTime.setHours(0, 0, 0, 0);
 
             // Determine reminder type
-            if (reminderValue === 7) {
-              reminderType = "7_day";
-            } else if (reminderValue === 3) {
-              reminderType = "3_day";
-            } else if (reminderValue === 1) {
-              reminderType = "1_day";
-            } else {
-              reminderType = `${reminderValue}_day`;
-            }
+            if (reminderValue === 7) reminderType = "7_day";
+            else if (reminderValue === 3) reminderType = "3_day";
+            else if (reminderValue === 1) reminderType = "1_day";
+            else reminderType = `${reminderValue}_day`;
           }
 
           // Check if we should send this reminder now
@@ -157,9 +158,7 @@ export async function GET(request: Request) {
               reminderDay.getTime() === today.getTime() && timeDiff > 0;
           }
 
-          if (!shouldSend) {
-            continue;
-          }
+          if (!shouldSend) continue;
 
           // Get existing RSVPs for this occurrence
           const existingRsvps = await db
@@ -169,17 +168,38 @@ export async function GET(request: Request) {
 
           const respondedUserIds = new Set(existingRsvps.map((r) => r.userId));
 
-          // Send reminders to all gym members who haven't RSVP'd yet
-          const targetMembers = members.filter(
-            (m) => !respondedUserIds.has(m.id)
-          );
+          // Send reminders to all club members (or only those who RSVP'd going)
+          // Filter by RSVP status and check if reminders are enabled
+          const targetMembers = clubMembers.filter((a) => {
+            // Check if user has reminders enabled
+            // Default to true if notifPreferences is null/undefined or reminders preference is not set
+            let remindersEnabled = true;
+            if (
+              a.notifPreferences &&
+              typeof a.notifPreferences === "object" &&
+              a.notifPreferences !== null &&
+              "reminders" in a.notifPreferences
+            ) {
+              remindersEnabled = a.notifPreferences.reminders !== false;
+            }
 
-          // Format date and time
-          const dateStr = `${occurrenceDate.getDate()} ${occurrenceDate.toLocaleDateString("en-US", { month: "short" })}`;
+            // Filter by RSVP status
+            const hasRsvp =
+              !respondedUserIds.has(a.id) ||
+              existingRsvps.find(
+                (r) => r.userId === a.id && r.status === "going",
+              );
+
+            return remindersEnabled && hasRsvp;
+          });
+
+          // Format date and time - use UTC methods to avoid timezone issues
+          const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+          const dateStr = `${occurrenceDate.getUTCDate()} ${monthNames[occurrenceDate.getUTCMonth()]}`;
 
           const formatTime = (time: string) => {
             const [hours, minutes] = time.split(":");
-            const hour = Number.parseInt(hours, 10);
+            const hour = parseInt(hours, 10);
             const ampm = hour >= 12 ? "PM" : "AM";
             const displayHour = hour % 12 || 12;
             return `${displayHour}:${minutes} ${ampm}`;
@@ -189,11 +209,22 @@ export async function GET(request: Request) {
           const appUrl =
             process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
-          // Send emails
+          // Send emails (only to members with reminders enabled)
           for (const member of targetMembers) {
-            if (!member.email) {
-              continue;
+            if (!member.email) continue;
+
+            // Double-check reminders preference (should already be filtered above, but extra safety)
+            let remindersEnabled = true;
+            if (
+              member.notifPreferences &&
+              typeof member.notifPreferences === "object" &&
+              member.notifPreferences !== null &&
+              "reminders" in member.notifPreferences
+            ) {
+              remindersEnabled = member.notifPreferences.reminders !== false;
             }
+
+            if (!remindersEnabled) continue;
 
             try {
               // Check if we already sent this reminder
@@ -204,8 +235,8 @@ export async function GET(request: Request) {
                   and(
                     eq(reminderLogs.occurrenceId, occurrence.id),
                     eq(reminderLogs.userId, member.id),
-                    eq(reminderLogs.reminderType, reminderType)
-                  )
+                    eq(reminderLogs.reminderType, reminderType),
+                  ),
                 )
                 .limit(1);
 
@@ -220,13 +251,13 @@ export async function GET(request: Request) {
               }
 
               await resend.emails.send({
-                from: `${process.env.RESEND_FROM_NAME || "SOMAS"} <${process.env.RESEND_FROM_EMAIL || "noreply@mail.titansofmississauga.ca"}>`,
+                from: `${process.env.RESEND_FROM_NAME || "SOMAS"} <${process.env.RESEND_FROM_EMAIL || "noreply@mail.softx.ca"}>`,
                 to: recipients,
                 subject: `${event.title} - ${getReminderSubject(reminderType)}`,
                 react: EventReminderEmail({
                   gymName: gym.name,
                   gymLogoUrl: gym.logoUrl,
-                  athleteName: member.name || "there",
+                  athleteName: member.name || "Member",
                   eventTitle: event.title,
                   eventDate: dateStr,
                   eventTime: timeStr,
@@ -245,7 +276,10 @@ export async function GET(request: Request) {
 
               results.sent++;
             } catch (err) {
-              console.error(`Failed to send reminder to ${member.email}:`, err);
+              console.error(
+                `Failed to send reminder to ${member.email}:`,
+                err,
+              );
               results.errors.push(member.email || "unknown");
             }
           }
@@ -264,7 +298,7 @@ export async function GET(request: Request) {
     console.error("Process reminders error:", error);
     return NextResponse.json(
       { error: "Failed to process reminders", details: String(error) },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

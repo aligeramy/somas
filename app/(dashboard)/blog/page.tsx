@@ -2,7 +2,6 @@
 
 import { IconEdit, IconPhoto, IconPlus, IconTrash } from "@tabler/icons-react";
 import { format } from "date-fns";
-import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useDropzone } from "react-dropzone";
@@ -64,14 +63,12 @@ export default function BlogPage() {
   const [editingPost, setEditingPost] = useState<BlogPost | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [postToDelete, setPostToDelete] = useState<string | null>(null);
 
   // Form state
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [type, setType] = useState<"about" | "schedule" | "event" | "general">(
-    "general"
+    "general",
   );
   const [eventId, setEventId] = useState<string>("");
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -101,9 +98,7 @@ export default function BlogPage() {
     try {
       setLoading(true);
       const response = await fetch("/api/blog");
-      if (!response.ok) {
-        throw new Error("Failed to load posts");
-      }
+      if (!response.ok) throw new Error("Failed to load posts");
       const data = await response.json();
       setPosts(data.posts || []);
     } catch (err) {
@@ -130,24 +125,6 @@ export default function BlogPage() {
     loadEvents();
   }, [loadPosts, loadEvents]);
 
-  useEffect(() => {
-    const handleOpenCreatePost = () => {
-      setEditingPost(null);
-      setTitle("");
-      setContent("");
-      setType("general");
-      setEventId("");
-      setImageFile(null);
-      setImagePreview(null);
-      setIsCreateDialogOpen(true);
-    };
-
-    window.addEventListener("blog-open-create-post", handleOpenCreatePost);
-    return () => {
-      window.removeEventListener("blog-open-create-post", handleOpenCreatePost);
-    };
-  }, []);
-
   function openCreateDialog() {
     setEditingPost(null);
     setTitle("");
@@ -171,7 +148,7 @@ export default function BlogPage() {
   }
 
   async function handleSave() {
-    if (!(title.trim() && content.trim())) {
+    if (!title.trim() || !content.trim()) {
       setError("Title and content are required");
       return;
     }
@@ -187,9 +164,7 @@ export default function BlogPage() {
         const {
           data: { user },
         } = await supabase.auth.getUser();
-        if (!user) {
-          throw new Error("Not authenticated");
-        }
+        if (!user) throw new Error("Not authenticated");
 
         const fileExt = imageFile.name.split(".").pop();
         const fileName = `${user.id}-${Date.now()}.${fileExt}`;
@@ -242,169 +217,144 @@ export default function BlogPage() {
   }
 
   async function handleDelete(postId: string) {
-    setPostToDelete(postId);
-    setDeleteDialogOpen(true);
-  }
-
-  async function confirmDelete() {
-    if (!postToDelete) {
-      return;
-    }
+    if (!confirm("Are you sure you want to delete this post?")) return;
 
     try {
-      const response = await fetch(`/api/blog/${postToDelete}`, {
+      const response = await fetch(`/api/blog/${postId}`, {
         method: "DELETE",
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to delete post");
-      }
+      if (!response.ok) throw new Error("Failed to delete post");
       await loadPosts();
-      setDeleteDialogOpen(false);
-      setPostToDelete(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to delete post");
+      alert(err instanceof Error ? err.message : "Failed to delete post");
     }
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
+    <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
       <PageHeader
-        description="Share information with your team"
         title="Blog Posts"
+        description="Share information with your team"
       >
-        <Button
-          className="rounded-sm"
-          data-show-text-mobile
-          onClick={openCreateDialog}
-        >
+        <Button onClick={openCreateDialog} className="rounded-xl">
           <IconPlus className="mr-2 h-4 w-4" />
           New Post
         </Button>
       </PageHeader>
 
-      <div className="min-h-0 flex-1 overflow-auto">
-        <div className="mx-auto max-w-4xl space-y-6 p-4">
+      <div className="flex-1 overflow-auto min-h-0">
+        <div className="max-w-4xl mx-auto space-y-6 p-4">
           {error && (
-            <div className="rounded-xl bg-destructive/10 p-4 text-destructive text-sm">
+            <div className="bg-destructive/10 text-destructive rounded-xl p-4 text-sm">
               {error}
             </div>
           )}
 
-          {(() => {
-            if (loading) {
-              return (
-                <div className="space-y-4">
-                  {[1, 2, 3].map((i) => (
-                    <Card className="rounded-xl" key={i}>
-                      <CardContent className="p-6">
-                        <div className="animate-pulse space-y-3">
-                          <div className="h-6 w-3/4 rounded bg-muted" />
-                          <div className="h-4 w-full rounded bg-muted" />
-                          <div className="h-4 w-2/3 rounded bg-muted" />
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              );
-            }
-
-            if (posts.length === 0) {
-              return (
-                <Card className="rounded-xl">
-                  <CardContent className="pt-6 text-center text-muted-foreground">
-                    <p>No posts yet</p>
-                    <p className="mt-1 text-sm">
-                      Create your first post to share information with your team
-                    </p>
+          {loading ? (
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <Card key={i} className="rounded-xl">
+                  <CardContent className="p-6">
+                    <div className="animate-pulse space-y-3">
+                      <div className="h-6 w-3/4 bg-muted rounded" />
+                      <div className="h-4 w-full bg-muted rounded" />
+                      <div className="h-4 w-2/3 bg-muted rounded" />
+                    </div>
                   </CardContent>
                 </Card>
-              );
-            }
-
-            return (
-              <div className="space-y-4">
-                {posts.map((post) => (
-                  <Card className="rounded-xl" key={post.id}>
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="mb-2 flex items-center gap-2">
-                            <Badge className="rounded-lg" variant="outline">
-                              {post.type}
+              ))}
+            </div>
+          ) : posts.length === 0 ? (
+            <Card className="rounded-xl">
+              <CardContent className="pt-6 text-center text-muted-foreground">
+                <p>No posts yet</p>
+                <p className="text-sm mt-1">
+                  Create your first post to share information with your team
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              {posts.map((post) => (
+                <Card key={post.id} className="rounded-xl">
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Badge variant="outline" className="rounded-lg">
+                            {post.type}
+                          </Badge>
+                          {post.eventId && (
+                            <Badge variant="secondary" className="rounded-lg">
+                              Event Post
                             </Badge>
-                            {post.eventId && (
-                              <Badge className="rounded-lg" variant="secondary">
-                                Event Post
-                              </Badge>
-                            )}
-                          </div>
-                          <CardTitle className="text-xl">
-                            <Link
-                              className="hover:underline"
-                              href={`/blog/${post.id}`}
-                            >
-                              {post.title}
-                            </Link>
-                          </CardTitle>
-                          <CardDescription className="mt-1">
-                            by {post.author.name || "Unknown"} •{" "}
-                            {format(new Date(post.createdAt), "MMM d, yyyy")}
-                          </CardDescription>
+                          )}
                         </div>
-                        <div className="flex gap-2">
-                          <Button
-                            className="h-8 w-8"
-                            onClick={() => openEditDialog(post)}
-                            size="icon"
-                            variant="ghost"
+                        <CardTitle className="text-xl">
+                          <Link
+                            href={`/blog/${post.id}`}
+                            className="hover:underline"
                           >
-                            <IconEdit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            className="h-8 w-8 text-destructive"
-                            onClick={() => handleDelete(post.id)}
-                            size="icon"
-                            variant="ghost"
-                          >
-                            <IconTrash className="h-4 w-4" />
-                          </Button>
-                        </div>
+                            {post.title}
+                          </Link>
+                        </CardTitle>
+                        <CardDescription className="mt-1">
+                          by {post.author.name || "Unknown"} •{" "}
+                          {format(new Date(post.createdAt), "MMM d, yyyy")}
+                        </CardDescription>
                       </div>
-                    </CardHeader>
-                    <CardContent>
-                      {post.imageUrl && (
-                        <Image
-                          alt={post.title}
-                          className="mb-4 max-h-64 w-full rounded-xl object-cover"
-                          height={250}
-                          src={post.imageUrl}
-                          width={400}
-                        />
-                      )}
-                      <div
-                        className="prose prose-sm dark:prose-invert line-clamp-3 max-w-none"
-                        dangerouslySetInnerHTML={{ __html: post.content }}
+                      <div className="flex gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => openEditDialog(post)}
+                          className="h-8 w-8"
+                        >
+                          <IconEdit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDelete(post.id)}
+                          className="h-8 w-8 text-destructive"
+                        >
+                          <IconTrash className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    {post.imageUrl && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      // biome-ignore lint/performance/noImgElement: Dynamic URL from user content
+                      <img
+                        src={post.imageUrl}
+                        alt={post.title}
+                        className="w-full max-h-64 object-cover rounded-xl mb-4"
                       />
-                      <Link
-                        className="mt-2 inline-block text-primary text-sm hover:underline"
-                        href={`/blog/${post.id}`}
-                      >
-                        Read more →
-                      </Link>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            );
-          })()}
+                    )}
+                    <div
+                      className="prose prose-sm dark:prose-invert max-w-none line-clamp-3"
+                      dangerouslySetInnerHTML={{ __html: post.content }}
+                    />
+                    <Link
+                      href={`/blog/${post.id}`}
+                      className="text-sm text-primary hover:underline mt-2 inline-block"
+                    >
+                      Read more →
+                    </Link>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
       {/* Create/Edit Dialog */}
-      <Dialog onOpenChange={setIsCreateDialogOpen} open={isCreateDialogOpen}>
-        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto rounded-xl">
+      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <DialogContent className="rounded-xl max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {editingPost ? "Edit Post" : "Create New Post"}
@@ -415,27 +365,27 @@ export default function BlogPage() {
           </DialogHeader>
           <div className="space-y-4 py-4">
             {error && (
-              <div className="rounded-xl bg-destructive/10 p-3 text-destructive text-sm">
+              <div className="bg-destructive/10 text-destructive rounded-xl p-3 text-sm">
                 {error}
               </div>
             )}
             <div className="space-y-2">
               <Label htmlFor="title">Title *</Label>
               <Input
-                className="rounded-xl"
                 id="title"
+                value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Post title"
-                value={title}
+                className="rounded-xl"
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="type">Type *</Label>
               <Select
+                value={type}
                 onValueChange={(v) =>
                   setType(v as "about" | "schedule" | "event" | "general")
                 }
-                value={type}
               >
                 <SelectTrigger className="rounded-xl">
                   <SelectValue />
@@ -451,7 +401,7 @@ export default function BlogPage() {
             {type === "event" && (
               <div className="space-y-2">
                 <Label htmlFor="eventId">Link to Event (Optional)</Label>
-                <Select onValueChange={setEventId} value={eventId}>
+                <Select value={eventId} onValueChange={setEventId}>
                   <SelectTrigger className="rounded-xl">
                     <SelectValue placeholder="Select an event" />
                   </SelectTrigger>
@@ -469,16 +419,16 @@ export default function BlogPage() {
             <div className="space-y-2">
               <Label htmlFor="content">Content *</Label>
               <RichTextEditor
+                value={content}
                 onChange={setContent}
                 placeholder="Write your post content here..."
-                value={content}
               />
             </div>
             <div className="space-y-2">
               <Label>Image (Optional)</Label>
               <div
                 {...getRootProps()}
-                className={`cursor-pointer rounded-xl border border-dashed p-6 text-center transition-colors ${
+                className={`border border-dashed rounded-xl p-6 text-center cursor-pointer transition-colors ${
                   isDragActive
                     ? "border-primary bg-primary/5"
                     : "border-muted-foreground/25 hover:border-muted-foreground/50"
@@ -487,21 +437,21 @@ export default function BlogPage() {
                 <input {...getInputProps()} />
                 {imagePreview ? (
                   <div className="space-y-2">
-                    <Image
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    {/* biome-ignore lint/performance/noImgElement: Preview image from file upload */}
+                    <img
+                      src={imagePreview}
                       alt="Preview"
                       className="mx-auto max-h-48 rounded-lg"
-                      height={150}
-                      src={imagePreview}
-                      width={200}
                     />
-                    <p className="text-muted-foreground text-sm">
+                    <p className="text-sm text-muted-foreground">
                       Click or drag to replace
                     </p>
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    <IconPhoto className="mx-auto h-8 w-8 text-muted-foreground" />
-                    <p className="text-muted-foreground text-sm">
+                    <IconPhoto className="h-8 w-8 mx-auto text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">
                       {isDragActive
                         ? "Drop the image here"
                         : "Drag & drop an image here, or click to select"}
@@ -513,45 +463,22 @@ export default function BlogPage() {
           </div>
           <DialogFooter>
             <Button
-              className="rounded-xl"
+              variant="outline"
               onClick={() => setIsCreateDialogOpen(false)}
-              variant="outline"
-            >
-              Cancel
-            </Button>
-            <Button
               className="rounded-xl"
-              disabled={saving}
-              onClick={handleSave}
-            >
-              {(() => {
-                if (saving) return "Saving...";
-                if (editingPost) return "Update Post";
-                return "Create Post";
-              })()}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog onOpenChange={setDeleteDialogOpen} open={deleteDialogOpen}>
-        <DialogContent className="rounded-xl">
-          <DialogHeader>
-            <DialogTitle>Delete Post</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete this post? This action cannot be
-              undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              onClick={() => setDeleteDialogOpen(false)}
-              variant="outline"
             >
               Cancel
             </Button>
-            <Button onClick={confirmDelete} variant="destructive">
-              Delete
+            <Button
+              onClick={handleSave}
+              disabled={saving}
+              className="rounded-xl"
+            >
+              {saving
+                ? "Saving..."
+                : editingPost
+                  ? "Update Post"
+                  : "Create Post"}
             </Button>
           </DialogFooter>
         </DialogContent>

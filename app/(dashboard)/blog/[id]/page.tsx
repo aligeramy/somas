@@ -1,7 +1,6 @@
 import { IconArrowLeft } from "@tabler/icons-react";
 import { format } from "date-fns";
 import { and, eq } from "drizzle-orm";
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
@@ -75,48 +74,48 @@ export default async function BlogPostPage({
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
-      <PageHeader description="" title="Blog Post">
-        <Button asChild className="rounded-xl" size="sm" variant="ghost">
+    <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
+      <PageHeader title="Blog Post" description="">
+        <Button variant="ghost" size="sm" asChild className="rounded-xl">
           <Link href="/blog">
-            <IconArrowLeft className="mr-2 h-4 w-4" />
+            <IconArrowLeft className="h-4 w-4 mr-2" />
             Back to Blog
           </Link>
         </Button>
       </PageHeader>
 
-      <div className="min-h-0 flex-1 overflow-auto">
-        <div className="mx-auto max-w-4xl space-y-6 p-4">
+      <div className="flex-1 overflow-auto min-h-0">
+        <div className="max-w-4xl mx-auto space-y-6 p-4">
           <Card className="rounded-xl">
             <CardHeader>
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <div className="mb-2 flex items-center gap-2">
-                    <Badge className="rounded-lg" variant="outline">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Badge variant="outline" className="rounded-lg">
                       {post.type}
                     </Badge>
                     {post.eventId && (
-                      <Badge className="rounded-lg" variant="secondary">
+                      <Badge variant="secondary" className="rounded-lg">
                         Event Post
                       </Badge>
                     )}
                   </div>
-                  <CardTitle className="mb-2 text-2xl">{post.title}</CardTitle>
-                  <div className="mt-3 flex items-center gap-3">
+                  <CardTitle className="text-2xl mb-2">{post.title}</CardTitle>
+                  <div className="flex items-center gap-3 mt-3">
                     <Avatar className="h-8 w-8 rounded-xl">
                       <AvatarImage src={post.author.avatarUrl || undefined} />
                       <AvatarFallback className="rounded-xl text-xs">
                         {getInitials(post.author.name)}
                       </AvatarFallback>
                     </Avatar>
-                    <div className="text-muted-foreground text-sm">
+                    <div className="text-sm text-muted-foreground">
                       <span className="font-medium">
                         {post.author.name || "Unknown"}
                       </span>
                       {" • "}
                       {format(
                         new Date(post.createdAt),
-                        "MMM d, yyyy 'at' h:mm a"
+                        "MMM d, yyyy 'at' h:mm a",
                       )}
                     </div>
                   </div>
@@ -125,12 +124,15 @@ export default async function BlogPostPage({
             </CardHeader>
             <CardContent>
               {post.imageUrl && (
-                <Image
-                  alt={post.title}
-                  className="mb-6 max-h-96 w-full rounded-xl object-cover"
-                  height={400}
+                // eslint-disable-next-line @next/next/no-img-element
+                // biome-ignore lint/performance/noImgElement: Dynamic URL from user content
+                // biome-ignore lint/correctness/useImageSize: Dynamic image from CMS
+                <img
                   src={post.imageUrl}
+                  alt={post.title}
                   width={800}
+                  height={400}
+                  className="mb-6 max-h-96 w-full rounded-xl object-cover"
                 />
               )}
               <div

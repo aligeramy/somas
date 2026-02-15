@@ -52,9 +52,9 @@ export default async function DashboardLayout({
     pathname.endsWith("/profile-setup");
 
   // Check if user exists in our database with retry logic
-  let dbUser;
+  let dbUser: typeof users.$inferSelect | undefined;
   let retries = 3;
-  let _lastError: any = null;
+  let _lastError: unknown = null;
 
   while (retries > 0) {
     try {
@@ -65,18 +65,19 @@ export default async function DashboardLayout({
         .limit(1);
       dbUser = result[0];
       break;
-    } catch (error: any) {
+    } catch (error: unknown) {
       _lastError = error;
       retries--;
 
       // Check if it's a retryable error
+      const errorObj = error as { code?: string; message?: string };
       const isRetryable =
-        error?.code === "ECONNRESET" ||
-        error?.code === "ETIMEDOUT" ||
-        error?.code === "ECONNREFUSED" ||
-        error?.message?.includes("timeout") ||
-        error?.message?.includes("connection") ||
-        error?.message?.includes("ECONN");
+        errorObj?.code === "ECONNRESET" ||
+        errorObj?.code === "ETIMEDOUT" ||
+        errorObj?.code === "ECONNREFUSED" ||
+        errorObj?.message?.includes("timeout") ||
+        errorObj?.message?.includes("connection") ||
+        errorObj?.message?.includes("ECONN");
 
       if (!isRetryable || retries === 0) {
         console.error("Database query error in dashboard layout:", error);
@@ -117,7 +118,7 @@ export default async function DashboardLayout({
       if (!isOnboardingPage) {
         redirect("/profile-setup");
       }
-    } catch (createError: any) {
+    } catch (createError: unknown) {
       console.error("Failed to create user record:", createError);
       // If creation fails (e.g., duplicate key), try to fetch again
       try {
@@ -169,7 +170,7 @@ export default async function DashboardLayout({
       }
     } catch (error) {
       // Silently fail if gym fetch fails
-      console.error("Failed to fetch gym website:", error);
+      console.error("Failed to fetch club website:", error);
     }
   }
 

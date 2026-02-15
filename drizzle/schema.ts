@@ -332,6 +332,32 @@ export const reminderLogs = pgTable(
   })
 );
 
+// ChatEmailLog table - tracks when emails were sent for chat notifications
+export const chatEmailLogs = pgTable(
+  "ChatEmailLog",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("userId").notNull(),
+    channelId: uuid("channelId").notNull(),
+    sentAt: timestamp("sentAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdChannelIdIdx: index("ChatEmailLog_userId_channelId_idx").on(
+      table.userId,
+      table.channelId,
+    ),
+    userIdSentAtIdx: index("ChatEmailLog_userId_sentAt_idx").on(
+      table.userId,
+      table.sentAt,
+    ),
+    channelIdIdx: index("ChatEmailLog_channelId_idx").on(table.channelId),
+    uniqueUserChannel: unique("ChatEmailLog_userId_channelId_key").on(
+      table.userId,
+      table.channelId,
+    ),
+  }),
+);
+
 // Relations
 export const usersRelations = relations(users, ({ one, many }) => ({
   gym: one(gyms, {
@@ -351,6 +377,7 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   blogPosts: many(blogPosts),
   notices: many(notices),
   chatNotifications: many(chatNotifications),
+  chatEmailLogs: many(chatEmailLogs),
 }));
 
 export const gymsRelations = relations(gyms, ({ one, many }) => ({
@@ -367,6 +394,7 @@ export const gymsRelations = relations(gyms, ({ one, many }) => ({
   messages: many(messages),
   blogPosts: many(blogPosts),
   notices: many(notices),
+  chatEmailLogs: many(chatEmailLogs),
 }));
 
 export const eventsRelations = relations(events, ({ one, many }) => ({
@@ -512,3 +540,14 @@ export const chatNotificationsRelations = relations(
     }),
   })
 );
+
+export const chatEmailLogsRelations = relations(chatEmailLogs, ({ one }) => ({
+  user: one(users, {
+    fields: [chatEmailLogs.userId],
+    references: [users.id],
+  }),
+  channel: one(channels, {
+    fields: [chatEmailLogs.channelId],
+    references: [channels.id],
+  }),
+}));

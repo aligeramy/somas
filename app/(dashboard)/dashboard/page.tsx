@@ -4,7 +4,7 @@ import {
   IconPlus,
   IconUsers,
 } from "@tabler/icons-react";
-import { and, asc, desc, eq, gte, inArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -31,135 +31,6 @@ import {
 import { db } from "@/lib/db";
 import { createClient } from "@/lib/supabase/server";
 
-async function getAthleteDashboardData(
-  dbUser: any,
-  gymLogo: string | null,
-  gymName: string | null
-) {
-  // Get upcoming events for athlete
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const upcomingOccurrences = await db
-    .select({
-      occurrence: eventOccurrences,
-      event: events,
-    })
-    .from(eventOccurrences)
-    .innerJoin(events, eq(eventOccurrences.eventId, events.id))
-    .where(
-      and(
-        eq(events.gymId, dbUser.gymId),
-        gte(eventOccurrences.date, today),
-        eq(eventOccurrences.status, "scheduled")
-      )
-    )
-    .orderBy(asc(eventOccurrences.date))
-    .limit(10);
-
-  // Get user's RSVPs
-  const userRsvps = await db
-    .select()
-    .from(rsvps)
-    .where(eq(rsvps.userId, dbUser.id));
-
-  const rsvpMap = new Map(userRsvps.map((r) => [r.occurrenceId, r.status]));
-
-  // Get RSVPs for each upcoming occurrence with user data including roles
-  const occurrenceIds = upcomingOccurrences.map(
-    ({ occurrence }) => occurrence.id
-  );
-  const occurrenceRsvps =
-    occurrenceIds.length > 0
-      ? await db
-          .select({
-            occurrenceId: rsvps.occurrenceId,
-            status: rsvps.status,
-            user: {
-              id: users.id,
-              name: users.name,
-              email: users.email,
-              avatarUrl: users.avatarUrl,
-              role: users.role,
-            },
-          })
-          .from(rsvps)
-          .innerJoin(users, eq(rsvps.userId, users.id))
-          .where(inArray(rsvps.occurrenceId, occurrenceIds))
-      : [];
-
-  // Group RSVPs by occurrence
-  const rsvpsByOccurrence = new Map<
-    string,
-    (typeof occurrenceRsvps)[number][]
-  >();
-  for (const rsvp of occurrenceRsvps) {
-    if (!rsvpsByOccurrence.has(rsvp.occurrenceId)) {
-      rsvpsByOccurrence.set(rsvp.occurrenceId, []);
-    }
-    rsvpsByOccurrence.get(rsvp.occurrenceId)?.push(rsvp);
-  }
-
-  // Combine occurrence data with RSVPs
-  const occurrencesWithRsvp = upcomingOccurrences.map(
-    ({ occurrence, event }) => {
-      const rsvps = rsvpsByOccurrence.get(occurrence.id) || [];
-      const userRsvp = rsvpMap.get(occurrence.id);
-
-      // Separate by status
-      const goingAthletes = rsvps.filter(
-        (r: (typeof occurrenceRsvps)[number]) =>
-          r.status === "going" && r.user.role === "athlete"
-      );
-      const notGoingAthletes = rsvps.filter(
-        (r: (typeof occurrenceRsvps)[number]) =>
-          r.status === "not_going" && r.user.role === "athlete"
-      );
-
-      return {
-        id: occurrence.id,
-        date: occurrence.date,
-        endTime: event.endTime,
-        startTime: event.startTime,
-        status: occurrence.status,
-        title: event.title,
-        description: event.description,
-        location: event.location,
-        userRsvp: userRsvp || null,
-        goingAthletes,
-        notGoingAthletes,
-        goingAthletesCount: goingAthletes.length,
-        notGoingAthletesCount: notGoingAthletes.length,
-      };
-    }
-  );
-
-  // Get active notice
-  const [activeNotice] = await db
-    .select({
-      id: notices.id,
-      title: notices.title,
-      content: notices.content,
-      author: {
-        name: users.name,
-        avatarUrl: users.avatarUrl,
-      },
-    })
-    .from(notices)
-    .innerJoin(users, eq(notices.authorId, users.id))
-    .where(and(eq(notices.gymId, dbUser.gymId), eq(notices.active, true)))
-    .limit(1);
-
-  return {
-    activeNotice: activeNotice || null,
-    gymLogo,
-    gymName,
-    isOnboarded: dbUser.onboarded,
-    occurrences: occurrencesWithRsvp,
-    userName: dbUser.name,
-  };
-}
-
 export default async function DashboardPage() {
   const supabase = await createClient();
   const {
@@ -176,7 +47,7 @@ export default async function DashboardPage() {
     .where(eq(users.id, authUser.id))
     .limit(1);
 
-  if (!dbUser?.gymId) {
+  if (!dbUser || !dbUser.gymId) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center p-8">
         <p className="text-muted-foreground">
@@ -186,7 +57,7 @@ export default async function DashboardPage() {
     );
   }
 
-  // Get gym info for logo
+  // Get club info for logo
   const [gym] = await db
     .select()
     .from(gyms)
@@ -212,9 +83,9 @@ export default async function DashboardPage() {
       .where(
         and(
           eq(events.gymId, dbUser.gymId),
-          gte(eventOccurrences.date, today),
-          eq(eventOccurrences.status, "scheduled")
-        )
+          sql`DATE(${eventOccurrences.date}) >= DATE(${sql.raw(`'${today.toISOString().split('T')[0]}'`)}::date)`,
+          eq(eventOccurrences.status, "scheduled"),
+        ),
       )
       .orderBy(asc(eventOccurrences.date))
       .limit(10);
@@ -229,7 +100,7 @@ export default async function DashboardPage() {
 
     // Get RSVPs for each upcoming occurrence with user data including roles
     const occurrenceIds = upcomingOccurrences.map(
-      ({ occurrence }) => occurrence.id
+      ({ occurrence }) => occurrence.id,
     );
     const occurrenceRsvps =
       occurrenceIds.length > 0
@@ -270,11 +141,7 @@ export default async function DashboardPage() {
           goingAthletes: [],
         };
         // Separate coaches and athletes
-        if (
-          rsvp.user.role === "coach" ||
-          rsvp.user.role === "owner" ||
-          rsvp.user.role === "manager"
-        ) {
+        if (rsvp.user.role === "coach" || rsvp.user.role === "owner") {
           current.goingCoaches.push({
             id: rsvp.user.id,
             name: rsvp.user.name,
@@ -312,7 +179,7 @@ export default async function DashboardPage() {
           goingCoaches: rsvpData.goingCoaches,
           goingAthletesCount: rsvpData.goingAthletes.length,
         };
-      }
+      },
     );
 
     // Get active notice for athletes
@@ -334,12 +201,12 @@ export default async function DashboardPage() {
 
     return (
       <AthleteDashboard
+        userName={dbUser.name}
+        occurrences={occurrencesWithRsvp}
         activeNotice={activeNotice || null}
+        _isOnboarded={dbUser.onboarded}
         gymLogo={gymLogo}
         gymName={gymName}
-        isOnboarded={dbUser.onboarded}
-        occurrences={occurrencesWithRsvp}
-        userName={dbUser.name}
       />
     );
   }
@@ -366,7 +233,10 @@ export default async function DashboardPage() {
     .from(eventOccurrences)
     .innerJoin(events, eq(eventOccurrences.eventId, events.id))
     .where(
-      and(eq(events.gymId, dbUser.gymId), gte(eventOccurrences.date, today))
+      and(
+        eq(events.gymId, dbUser.gymId),
+        sql`DATE(${eventOccurrences.date}) >= DATE(${sql.raw(`'${today.toISOString().split("T")[0]}'`)}::date)`,
+      ),
     )
     .orderBy(asc(eventOccurrences.date))
     .limit(10);
@@ -377,12 +247,15 @@ export default async function DashboardPage() {
     .innerJoin(eventOccurrences, eq(rsvps.occurrenceId, eventOccurrences.id))
     .innerJoin(events, eq(eventOccurrences.eventId, events.id))
     .where(
-      and(eq(events.gymId, dbUser.gymId), gte(eventOccurrences.date, today))
+      and(
+        eq(events.gymId, dbUser.gymId),
+        sql`DATE(${eventOccurrences.date}) >= DATE(${sql.raw(`'${today.toISOString().split('T')[0]}'`)}::date)`,
+      ),
     );
 
   // Get RSVPs for each upcoming occurrence with user data including roles
   const occurrenceIds = upcomingOccurrences.map(
-    ({ occurrence }) => occurrence.id
+    ({ occurrence }) => occurrence.id,
   );
   const occurrenceRsvps =
     occurrenceIds.length > 0
@@ -456,11 +329,7 @@ export default async function DashboardPage() {
     if (rsvp.status === "going") {
       current.going.push(rsvp.user);
       // Separate coaches and athletes
-      if (
-        rsvp.user.role === "coach" ||
-        rsvp.user.role === "owner" ||
-        rsvp.user.role === "manager"
-      ) {
+      if (rsvp.user.role === "coach" || rsvp.user.role === "owner") {
         current.goingCoaches.push({
           id: rsvp.user.id,
           name: rsvp.user.name,
@@ -493,7 +362,7 @@ export default async function DashboardPage() {
     if (rsvp.user.id === dbUser.id) {
       currentUserRsvpMap.set(
         rsvp.occurrenceId,
-        rsvp.status as "going" | "not_going"
+        rsvp.status as "going" | "not_going",
       );
     }
   });
@@ -572,11 +441,7 @@ export default async function DashboardPage() {
   };
 
   // For coaches, use the new list view dashboard
-  if (
-    dbUser.role === "coach" ||
-    dbUser.role === "owner" ||
-    dbUser.role === "manager"
-  ) {
+  if (dbUser.role === "coach" || dbUser.role === "owner") {
     const occurrencesWithRsvp = upcomingOccurrences.map(
       ({ occurrence, event }) => {
         const rsvpData = rsvpsByOccurrence.get(occurrence.id) || {
@@ -614,26 +479,25 @@ export default async function DashboardPage() {
           })),
           notGoingAthletesCount: rsvpData.notGoingAthletes.length,
         };
-      }
+      },
     );
 
     return (
       <CoachDashboard
+        userName={dbUser.name}
+        occurrences={occurrencesWithRsvp}
         activeNotice={activeNotice || null}
+        isOnboarded={dbUser.onboarded}
         gymLogo={gymLogo}
         gymName={gymName}
-        isOnboarded={dbUser.onboarded}
-        occurrences={occurrencesWithRsvp}
-        userName={dbUser.name}
         userRole={dbUser.role}
       />
     );
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden dark:bg-[#000000]">
+    <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden dark:bg-[#000000]">
       <PageHeader
-        description="Here's what's happening with your team"
         title={
           <div className="flex items-center gap-3">
             <Avatar className="h-8 w-8">
@@ -647,9 +511,10 @@ export default async function DashboardPage() {
             </span>
           </div>
         }
+        description="Here's what's happening with your team"
       >
         <PWAInstallButton />
-        <Button asChild className="gap-2 rounded-sm" size="sm">
+        <Button size="sm" className="gap-2 rounded-sm" asChild>
           <Link href="/events/new">
             <IconPlus className="h-4 w-4" />
             New Event
@@ -659,17 +524,17 @@ export default async function DashboardPage() {
 
       <Suspense fallback={<DashboardSkeleton />}>
         <DashboardContent
-          activeNotice={activeNotice || null}
-          currentUserRsvpMap={currentUserRsvpMap}
           dbUser={dbUser}
-          gymLogo={gymLogo}
-          gymName={gymName}
-          isOnboarded={dbUser.onboarded}
-          latestPosts={latestPosts}
-          rsvpsByOccurrence={rsvpsByOccurrence}
           stats={stats}
           upcomingOccurrences={upcomingOccurrences}
+          rsvpsByOccurrence={rsvpsByOccurrence}
+          activeNotice={activeNotice || null}
+          latestPosts={latestPosts}
           userRole={dbUser.role}
+          currentUserRsvpMap={currentUserRsvpMap}
+          isOnboarded={dbUser.onboarded}
+          gymLogo={gymLogo}
+          gymName={gymName}
         />
       </Suspense>
 
@@ -681,15 +546,15 @@ export default async function DashboardPage() {
 
 function DashboardSkeleton() {
   return (
-    <div className="min-h-0 flex-1 overflow-auto">
+    <div className="flex-1 overflow-auto min-h-0">
       <div className="space-y-6">
         {/* Stats */}
-        <div className="hidden grid-cols-3 gap-2 sm:gap-4 lg:grid">
+        <div className="hidden lg:grid grid-cols-3 gap-2 sm:gap-4">
           {[1, 2, 3].map((i) => (
-            <Card className="rounded-xl border-0 shadow-sm" key={i}>
+            <Card key={i} className="rounded-xl border-0 shadow-sm">
               <CardContent className="p-5">
-                <Skeleton className="mb-3 h-10 w-10 rounded-xl" />
-                <Skeleton className="mb-2 h-8 w-16" />
+                <Skeleton className="h-10 w-10 rounded-xl mb-3" />
+                <Skeleton className="h-8 w-16 mb-2" />
                 <Skeleton className="h-4 w-24" />
               </CardContent>
             </Card>
@@ -710,8 +575,8 @@ function DashboardSkeleton() {
               <div className="space-y-2">
                 {[1, 2, 3].map((i) => (
                   <div
-                    className="flex items-center gap-3 rounded-xl p-3"
                     key={i}
+                    className="flex items-center gap-3 p-3 rounded-xl"
                   >
                     <Skeleton className="h-12 w-12 rounded-xl" />
                     <div className="flex-1 space-y-2">
@@ -736,8 +601,8 @@ function DashboardSkeleton() {
               <div className="space-y-2">
                 {[1, 2, 3].map((i) => (
                   <div
-                    className="flex items-center gap-3 rounded-xl p-3"
                     key={i}
+                    className="flex items-center gap-3 p-3 rounded-xl"
                   >
                     <Skeleton className="h-16 w-16 rounded-lg" />
                     <div className="flex-1 space-y-2">
@@ -838,22 +703,22 @@ function DashboardContent({
   gymName: string | null;
 }) {
   return (
-    <div className="min-h-0 flex-1 overflow-auto dark:bg-[#000000]">
-      <div className="space-y-4 px-4 pb-4 md:space-y-6 md:px-6">
+    <div className="flex-1 overflow-auto min-h-0 dark:bg-[#000000]">
+      <div className="space-y-4 md:space-y-6 px-4 md:px-6 pb-4">
         {/* Active Notice */}
         {activeNotice && (
           <Card className="rounded-xl border border-primary/20 bg-primary/5">
             <CardContent className="px-4 py-3 md:py-2">
-              <div className="min-w-0 flex-1 space-y-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="font-semibold text-sm leading-tight md:text-sm">
+              <div className="flex-1 min-w-0 space-y-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="font-semibold text-sm md:text-sm leading-tight">
                     {activeNotice.title}
                   </h3>
-                  <Badge className="rounded-lg text-xs" variant="default">
+                  <Badge variant="default" className="rounded-lg text-xs">
                     Notice
                   </Badge>
                 </div>
-                <p className="line-clamp-2 text-muted-foreground text-sm">
+                <p className="text-sm text-muted-foreground line-clamp-2">
                   {activeNotice.content}
                 </p>
               </div>
@@ -862,19 +727,19 @@ function DashboardContent({
         )}
 
         {/* Stats */}
-        <div className="hidden grid-cols-3 gap-2 sm:gap-4 lg:grid">
+        <div className="hidden lg:grid grid-cols-3 gap-2 sm:gap-4">
           {stats.map((stat) => (
-            <Card className="rounded-xl border shadow-sm" key={stat.label}>
+            <Card key={stat.label} className="rounded-xl border shadow-sm">
               <CardContent className="p-3 sm:p-5">
                 <div
-                  className={`inline-flex h-8 w-8 items-center justify-center rounded-xl sm:h-10 sm:w-10 ${stat.color} mb-2 sm:mb-3`}
+                  className={`inline-flex items-center justify-center h-8 w-8 sm:h-10 sm:w-10 rounded-xl ${stat.color} mb-2 sm:mb-3`}
                 >
                   <stat.icon className="h-4 w-4 sm:h-5 sm:w-5" />
                 </div>
-                <p className="font-semibold text-2xl tracking-tight sm:text-3xl">
+                <p className="text-2xl sm:text-3xl font-semibold tracking-tight">
                   {stat.value}
                 </p>
-                <p className="mt-1 text-muted-foreground text-xs sm:text-sm">
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1">
                   {stat.label}
                 </p>
               </CardContent>
@@ -882,37 +747,37 @@ function DashboardContent({
           ))}
         </div>
 
-        {/* Gym Logo - Mobile Only */}
+        {/* Club Logo - Mobile Only */}
         {gymLogo && (
-          <div className="flex justify-center py-2 lg:hidden">
+          <div className="lg:hidden flex justify-center py-2">
             <Image
-              alt={gymName || "Club"}
-              className="h-auto w-[150px]"
-              height={150}
               src={gymLogo}
+              alt={gymName || "Club"}
               width={150}
+              height={150}
+              className="w-[150px] h-auto"
             />
           </div>
         )}
 
         {/* Content Grid */}
-        <div className="grid gap-2 md:gap-4 lg:grid-cols-2 lg:gap-6">
+        <div className="grid gap-2 md:gap-4 lg:gap-6 lg:grid-cols-2">
           {/* Upcoming Events */}
           <DashboardEventsList
-            currentUserRsvpMap={currentUserRsvpMap}
-            rsvpsByOccurrence={rsvpsByOccurrence}
             upcomingOccurrences={upcomingOccurrences}
+            rsvpsByOccurrence={rsvpsByOccurrence}
             userRole={userRole}
+            currentUserRsvpMap={currentUserRsvpMap}
           />
 
           {/* Show link to blog only when there are no posts */}
           {latestPosts.length === 0 && (
             <div className="flex justify-center">
               <Button
+                variant="outline"
+                size="sm"
                 asChild
                 className="rounded-lg md:rounded-xl"
-                size="sm"
-                variant="outline"
               >
                 <Link href="/blog">View blog in dashboard</Link>
               </Button>

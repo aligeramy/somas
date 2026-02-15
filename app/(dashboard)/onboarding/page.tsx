@@ -1,8 +1,8 @@
 "use client";
 
-import { IconLoader2 } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useDropzone } from "react-dropzone";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -21,173 +21,60 @@ export default function OnboardingPage() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const addressInputRef = useRef<HTMLInputElement>(null);
 
   useGooglePlacesAutocomplete(addressInputRef, (address) => {
     setAddress(address);
   });
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [sessionReady, setSessionReady] = useState(false);
-  const supabaseRef = useRef(createClient());
-  const retryCountRef = useRef(0);
+  const supabase = createClient();
 
-  // Wait for Supabase session to be ready before doing anything
   useEffect(() => {
-    const supabase = supabaseRef.current;
-    let timeoutId: NodeJS.Timeout;
-    let hasSetReady = false;
+    loadUserProfile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadUserProfile]);
 
-    // Check initial session state immediately
-    const checkSession = async () => {
-      try {
-        const {
-          data: { session },
-          error,
-        } = await supabase.auth.getSession();
-
-        if (error) {
-          console.error("[Onboarding] Error getting session:", error);
-          // If there's an error but we have a session, proceed anyway
-          if (session && !hasSetReady) {
-            hasSetReady = true;
-            clearTimeout(timeoutId);
-            setSessionReady(true);
-          }
-          return;
-        }
-
-        if (session && !hasSetReady) {
-          hasSetReady = true;
-          clearTimeout(timeoutId);
-          setSessionReady(true);
-        }
-      } catch (err) {
-        console.error("[Onboarding] Exception checking session:", err);
-      }
-    };
-
-    // Check session immediately
-    checkSession();
-
-    // Set a shorter timeout - if session isn't ready after 2 seconds, show form anyway
-    // This prevents infinite waiting if there's an issue
-    timeoutId = setTimeout(() => {
-      if (!hasSetReady) {
-        console.log("[Onboarding] Session check timeout, proceeding anyway");
-        hasSetReady = true;
-        setSessionReady(true);
-      }
-    }, 2000);
-
-    // Listen for auth state changes - this is crucial for post-login redirects
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      if (
-        event === "SIGNED_IN" ||
-        event === "TOKEN_REFRESHED" ||
-        event === "INITIAL_SESSION"
-      ) {
-        if (session && !hasSetReady) {
-          hasSetReady = true;
-          clearTimeout(timeoutId);
-          setSessionReady(true);
-        }
-      } else if (event === "SIGNED_OUT") {
-        // Only redirect if we're sure the user is signed out
-        // Don't redirect during initial load to prevent false positives
-        if (hasSetReady) {
-          clearTimeout(timeoutId);
-          router.push("/login");
-        }
-      }
-    });
-
-    return () => {
-      clearTimeout(timeoutId);
-      subscription.unsubscribe();
-    };
-  }, [router]);
-
-  const loadUserProfile = useCallback(async () => {
-    if (!sessionReady) {
-      return;
-    }
-
+  async function loadUserProfile() {
     try {
       setLoadingProfile(true);
       const response = await fetch("/api/profile");
-
-      if (response.status === 401) {
-        if (retryCountRef.current < 5) {
-          // Session not ready yet, retry after a short delay
-          retryCountRef.current += 1;
-          setTimeout(() => {
-            loadUserProfile();
-          }, 1000);
-          return;
-        }
-        // After retries exhausted, just show the form anyway
-        // The user can still submit - session should be ready by then
-        console.log(
-          "[Onboarding] Could not load profile after retries, showing form anyway"
-        );
-        retryCountRef.current = 0;
-        setLoadingProfile(false);
-        return;
-      }
-
       if (response.ok) {
         const data = await response.json();
-
-        // If user is already onboarded, redirect to dashboard
-        if (data.user.onboarded) {
-          router.push("/dashboard");
-          return;
-        }
-
         // Pre-populate fields if user already has data (from import)
-        if (data.user.name) {
-          setName(data.user.name);
-        }
-        if (data.user.phone) {
-          setPhone(data.user.phone);
-        }
-        if (data.user.address) {
-          setAddress(data.user.address);
-        }
-        retryCountRef.current = 0; // Reset on success
-      } else if (response.status === 404) {
-        // User not found in database - this is okay, they can still fill out the form
-        retryCountRef.current = 0;
+        if (data.user.name) setName(data.user.name);
+        if (data.user.phone) setPhone(data.user.phone);
+        if (data.user.address) setAddress(data.user.address);
+        if (data.user.avatarUrl) setAvatarPreview(data.user.avatarUrl);
       }
     } catch (_err) {
-      // Retry on error if we haven't exceeded retry limit
-      if (retryCountRef.current < 5) {
-        retryCountRef.current += 1;
-        setTimeout(() => {
-          loadUserProfile();
-        }, 1000);
-        return;
-      }
-      // After retries, just show the form - user can still submit
-      console.log(
-        "[Onboarding] Could not load existing profile, showing form anyway"
-      );
-      retryCountRef.current = 0;
+      // Ignore errors, user might not exist yet
+      console.log("Could not load existing profile");
     } finally {
       setLoadingProfile(false);
     }
-  }, [sessionReady, router]);
+  }
 
-  // Load profile when session becomes ready
-  useEffect(() => {
-    if (sessionReady) {
-      loadUserProfile();
-    }
-  }, [sessionReady, loadUserProfile]);
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    accept: {
+      "image/*": [".png", ".jpg", ".jpeg", ".gif", ".webp"],
+    },
+    maxFiles: 1,
+    onDrop: (acceptedFiles) => {
+      if (acceptedFiles.length > 0) {
+        const file = acceptedFiles[0];
+        setAvatarFile(file);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setAvatarPreview(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+      }
+    },
+  });
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -195,6 +82,40 @@ export default function OnboardingPage() {
     setLoading(true);
 
     try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        router.push("/login");
+        return;
+      }
+
+      let avatarUrl = null;
+
+      // Upload avatar if provided
+      if (avatarFile) {
+        const fileExt = avatarFile.name.split(".").pop();
+        const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+        const filePath = `avatars/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("avatars")
+          .upload(filePath, avatarFile, {
+            cacheControl: "3600",
+            upsert: false,
+          });
+
+        if (uploadError) {
+          throw new Error(`Failed to upload avatar: ${uploadError.message}`);
+        }
+
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from("avatars").getPublicUrl(filePath);
+        avatarUrl = publicUrl;
+      }
+
       // Update user profile
       const response = await fetch("/api/profile-setup", {
         method: "POST",
@@ -203,6 +124,7 @@ export default function OnboardingPage() {
           name,
           phone: phone || null,
           address: address || null,
+          avatarUrl,
         }),
       });
 
@@ -219,25 +141,16 @@ export default function OnboardingPage() {
     }
   }
 
-  // Show loading state while waiting for session
-  if (!sessionReady) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <IconLoader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-muted-foreground">Loading your session...</p>
-        </div>
-      </div>
-    );
-  }
-
   if (loadingProfile) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <IconLoader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
+      <div className="flex min-h-screen items-center justify-center p-4 md:p-6">
+        <Card className="w-full max-w-2xl">
+          <CardContent className="pt-6">
+            <div className="animate-pulse text-muted-foreground text-center">
+              Loading...
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -253,9 +166,9 @@ export default function OnboardingPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form className="space-y-6" onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
-              <div className="rounded-md bg-destructive/10 p-3 text-destructive text-sm">
+              <div className="bg-destructive/10 text-destructive rounded-md p-3 text-sm">
                 {error}
               </div>
             )}
@@ -264,10 +177,10 @@ export default function OnboardingPage() {
               <Label htmlFor="name">Name *</Label>
               <Input
                 id="name"
+                value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Enter your name"
                 required
-                value={name}
               />
             </div>
 
@@ -275,29 +188,67 @@ export default function OnboardingPage() {
               <Label htmlFor="phone">Phone</Label>
               <Input
                 id="phone"
+                value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="Enter your phone number"
                 type="tel"
-                value={phone}
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="address">Address</Label>
               <Input
-                autoComplete="off"
+                ref={addressInputRef}
                 id="address"
+                value={address}
                 onChange={(e) => setAddress(e.target.value)}
                 placeholder="Enter your address"
-                ref={addressInputRef}
-                value={address}
+                autoComplete="off"
               />
             </div>
 
+            <div className="space-y-2">
+              <Label>Profile Photo (Optional)</Label>
+              <div
+                {...getRootProps()}
+                className={`border border-dashed rounded-lg p-6 md:p-8 text-center cursor-pointer transition-colors ${
+                  isDragActive
+                    ? "border-primary bg-primary/5"
+                    : "border-muted-foreground/25 hover:border-muted-foreground/50"
+                }`}
+              >
+                <input {...getInputProps()} />
+                {avatarPreview ? (
+                  <div className="space-y-2">
+                    {/* biome-ignore lint/performance/noImgElement: Preview image from file upload */}
+                    <img
+                      src={avatarPreview}
+                      alt="Avatar preview"
+                      className="mx-auto max-h-32 rounded-full"
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      Click or drag to replace
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">
+                      {isDragActive
+                        ? "Drop the photo here"
+                        : "Drag & drop a photo here, or click to select"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      PNG, JPG, GIF up to 5MB
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
             <Button
-              className="w-full"
-              disabled={loading || !name}
               type="submit"
+              disabled={loading || !name}
+              className="w-full"
             >
               {loading ? "Saving..." : "Complete Profile"}
             </Button>

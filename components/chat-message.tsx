@@ -9,14 +9,20 @@ interface ChatMessageItemProps {
   message: ChatMessage;
   isOwnMessage: boolean;
   showHeader: boolean;
+  isToday?: boolean;
 }
 
 export function ChatMessageItem({
   message,
   isOwnMessage,
   showHeader,
+  isToday = true,
 }: ChatMessageItemProps) {
   const isPending = message.status === "pending";
+  const messageDate = new Date(message.createdAt);
+  const timeDisplay = isToday
+    ? format(messageDate, "h:mm a")
+    : format(messageDate, "MMM d");
 
   return (
     <div
@@ -42,7 +48,7 @@ export function ChatMessageItem({
           >
             <span className="font-medium">{message.user.name}</span>
             <span className="text-foreground/50 text-xs">
-              {format(new Date(message.createdAt), "h:mm a")}
+              {timeDisplay}
             </span>
           </div>
         )}
@@ -57,6 +63,7 @@ export function ChatMessageItem({
         >
           {message.attachmentUrl && message.attachmentType === "image" && (
             // eslint-disable-next-line @next/next/no-img-element
+            // biome-ignore lint/performance/noImgElement: Dynamic attachment URL from user upload
             <img
               alt="Attachment"
               className="max-w-[200px] rounded-lg"

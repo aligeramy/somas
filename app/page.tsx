@@ -73,25 +73,25 @@ export default async function HomePage() {
 
   return (
     <DarkModeWrapper>
-      <div className="relative flex min-h-screen flex-col">
+      <div className="flex min-h-screen flex-col relative">
         <LandingHeader />
 
         {/* Hero Section */}
-        <section className="relative z-10 flex flex-col items-center justify-center gap-8 px-4 py-20 md:py-32">
+        <section className="flex flex-col items-center justify-center gap-8 px-4 py-20 md:py-32 relative z-10">
           <LaserFlowBg />
-          <div className="relative z-10 flex max-w-3xl flex-col items-center gap-6 text-center">
-            <h1 className="font-bold text-5xl tracking-tight md:text-6xl lg:text-7xl">
+          <div className="flex flex-col items-center gap-6 text-center max-w-3xl relative z-10">
+            <h1 className="text-5xl font-bold tracking-tight md:text-6xl lg:text-7xl">
               SOMAS
             </h1>
-            <p className="max-w-2xl text-muted-foreground text-xl md:text-2xl">
-              Gym Management & Athlete Coordination Platform
+            <p className="text-muted-foreground text-xl md:text-2xl max-w-2xl">
+              SOMAS
             </p>
-            <p className="max-w-xl text-lg text-muted-foreground md:text-xl">
+            <p className="text-muted-foreground text-lg md:text-xl max-w-xl">
               The modern platform for club management and athlete coordination.
               Streamline scheduling, communication, and team operations.
             </p>
-            <div className="mt-4 flex flex-col gap-4 sm:flex-row">
-              <Button asChild className="text-base" size="lg">
+            <div className="flex flex-col sm:flex-row gap-4 mt-4">
+              <Button asChild size="lg" className="text-base">
                 <Link href="/login">Sign In</Link>
               </Button>
             </div>
@@ -100,24 +100,24 @@ export default async function HomePage() {
 
         {/* Features Section */}
         <section
-          className="relative z-10 bg-muted/30 px-4 py-16 md:py-24"
           id="features"
+          className="px-4 py-16 md:py-24 bg-muted/30 relative z-10"
         >
           <div className="mx-auto max-w-6xl">
-            <div className="mb-12 text-center">
-              <h2 className="mb-4 font-bold text-3xl tracking-tight md:text-4xl">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl font-bold tracking-tight md:text-4xl mb-4">
                 Everything you need to manage your club
               </h2>
-              <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
+              <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
                 Powerful features designed to help coaches and head coaches
                 coordinate with athletes efficiently.
               </p>
             </div>
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {features.map((feature) => {
                 const Icon = feature.icon;
                 return (
-                  <Card className="border-border/50" key={feature.title}>
+                  <Card key={feature.title} className="border-border/50">
                     <CardHeader>
                       <div className="mb-2">
                         <Icon className="h-8 w-8 text-primary" />
@@ -137,17 +137,17 @@ export default async function HomePage() {
         </section>
 
         {/* CTA Section */}
-        <section className="relative z-10 px-4 py-16 md:py-24" id="about">
+        <section id="about" className="px-4 py-16 md:py-24 relative z-10">
           <div className="mx-auto max-w-4xl text-center">
-            <h2 className="mb-4 font-bold text-3xl tracking-tight md:text-4xl">
+            <h2 className="text-3xl font-bold tracking-tight md:text-4xl mb-4">
               Ready to get started?
             </h2>
-            <p className="mx-auto mb-8 max-w-2xl text-lg text-muted-foreground">
-              Join clubs and coaches who are already using SOMAS to streamline
-              their operations and improve athlete coordination.
+            <p className="text-muted-foreground text-lg mb-8 max-w-2xl mx-auto">
+              Join clubs and coaches who are already using SOMAS
+              to streamline their operations and improve athlete coordination.
             </p>
-            <div className="flex flex-col justify-center gap-4 sm:flex-row">
-              <Button asChild className="text-base" size="lg">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button asChild size="lg" className="text-base">
                 <Link href="/login">Sign In</Link>
               </Button>
             </div>

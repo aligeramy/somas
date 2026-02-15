@@ -25,10 +25,10 @@ export async function GET(_request: Request) {
       .where(eq(users.id, user.id))
       .limit(1);
 
-    if (!dbUser?.gymId) {
+    if (!dbUser || !dbUser.gymId) {
       return NextResponse.json(
-        { error: "User must belong to a gym" },
-        { status: 400 }
+        { error: "User must belong to a club" },
+        { status: 400 },
       );
     }
 
@@ -54,7 +54,7 @@ export async function GET(_request: Request) {
     console.error("Notice fetch error:", error);
     return NextResponse.json(
       { error: "Failed to fetch notice" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -76,28 +76,24 @@ export async function POST(request: Request) {
       .where(eq(users.id, user.id))
       .limit(1);
 
-    if (!dbUser?.gymId) {
+    if (!dbUser || !dbUser.gymId) {
       return NextResponse.json(
-        { error: "User must belong to a gym" },
-        { status: 400 }
+        { error: "User must belong to a club" },
+        { status: 400 },
       );
     }
 
-    // Only head coaches, managers, and coaches can create notices
-    if (
-      dbUser.role !== "owner" &&
-      dbUser.role !== "manager" &&
-      dbUser.role !== "coach"
-    ) {
+    // Only head coaches and coaches can create notices
+    if (dbUser.role !== "owner" && dbUser.role !== "coach") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const { title, content, sendEmail } = await request.json();
 
-    if (!(title && content)) {
+    if (!title || !content) {
       return NextResponse.json(
         { error: "Title and content are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -116,14 +112,14 @@ export async function POST(request: Request) {
         title,
         content,
         active: true,
-        sendEmail,
+        sendEmail: sendEmail || false,
       })
       .returning();
 
     // Send email if requested
     if (sendEmail) {
       try {
-        // Get all gym members (including altEmail)
+        // Get all club members (including altEmail)
         const gymMembers = await db
           .select({
             email: users.email,
@@ -133,7 +129,7 @@ export async function POST(request: Request) {
           .from(users)
           .where(eq(users.gymId, dbUser.gymId));
 
-        // Get gym info
+        // Get club info
         const { gyms } = await import("@/drizzle/schema");
         const [gym] = await db
           .select()
@@ -148,9 +144,7 @@ export async function POST(request: Request) {
         const emailPromises = gymMembers
           .filter((member) => member.email)
           .map((member) => {
-            if (!member.email) {
-              return Promise.resolve({ error: "No email" });
-            }
+            if (!member.email) return Promise.resolve({ error: "No email" });
             // Build recipient list including altEmail
             const recipients = [member.email];
             if (member.altEmail) {
@@ -158,7 +152,7 @@ export async function POST(request: Request) {
             }
             return resend.emails
               .send({
-                from: `${process.env.RESEND_FROM_NAME || "SOMAS"} <${process.env.RESEND_FROM_EMAIL || "noreply@mail.titansofmississauga.ca"}>`,
+                from: `${process.env.RESEND_FROM_NAME || "SOMAS"} <${process.env.RESEND_FROM_EMAIL || "noreply@mail.softx.ca"}>`,
                 to: recipients,
                 subject: `Notice: ${title}`,
                 react: NoticeEmail({
@@ -167,13 +161,13 @@ export async function POST(request: Request) {
                   userName: member.name || "Team Member",
                   noticeTitle: title,
                   noticeContent: content,
-                  authorName,
+                  authorName: authorName,
                 }),
               })
               .catch((error) => {
                 console.error(
                   `Failed to send notice email to ${member.email}:`,
-                  error
+                  error,
                 );
                 return { error: member.email };
               });
@@ -192,7 +186,7 @@ export async function POST(request: Request) {
     console.error("Notice creation error:", error);
     return NextResponse.json(
       { error: "Failed to create notice" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -214,19 +208,15 @@ export async function PUT(request: Request) {
       .where(eq(users.id, user.id))
       .limit(1);
 
-    if (!dbUser?.gymId) {
+    if (!dbUser || !dbUser.gymId) {
       return NextResponse.json(
-        { error: "User must belong to a gym" },
-        { status: 400 }
+        { error: "User must belong to a club" },
+        { status: 400 },
       );
     }
 
     // Only head coaches and coaches can update notices
-    if (
-      dbUser.role !== "owner" &&
-      dbUser.role !== "manager" &&
-      dbUser.role !== "coach"
-    ) {
+    if (dbUser.role !== "owner" && dbUser.role !== "coach") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -235,7 +225,7 @@ export async function PUT(request: Request) {
     if (id === undefined || active === undefined) {
       return NextResponse.json(
         { error: "ID and active status are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -258,7 +248,7 @@ export async function PUT(request: Request) {
     console.error("Notice update error:", error);
     return NextResponse.json(
       { error: "Failed to update notice" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

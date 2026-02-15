@@ -3,7 +3,6 @@ import { NextResponse } from "next/server";
 import { gyms, users } from "@/drizzle/schema";
 import { db } from "@/lib/db";
 import { createClient } from "@/lib/supabase/server";
-import { isOwnerOrManager } from "@/lib/utils";
 
 export async function GET() {
   try {
@@ -22,15 +21,15 @@ export async function GET() {
       .where(eq(users.id, user.id))
       .limit(1);
 
-    if (!dbUser?.gymId) {
+    if (!dbUser || !dbUser.gymId) {
       return NextResponse.json(
-        { error: "User must belong to a gym" },
-        { status: 400 }
+        { error: "User must belong to a club" },
+        { status: 400 },
       );
     }
 
-    // Only head coaches/managers can view/edit gym
-    if (!isOwnerOrManager(dbUser.role)) {
+    // Only head coaches can view/edit club
+    if (dbUser.role !== "owner") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -41,13 +40,16 @@ export async function GET() {
       .limit(1);
 
     if (!gym) {
-      return NextResponse.json({ error: "Gym not found" }, { status: 404 });
+      return NextResponse.json({ error: "Club not found" }, { status: 404 });
     }
 
     return NextResponse.json({ gym });
   } catch (error) {
-    console.error("Gym fetch error:", error);
-    return NextResponse.json({ error: "Failed to fetch gym" }, { status: 500 });
+    console.error("Club fetch error:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch club" },
+      { status: 500 },
+    );
   }
 }
 
@@ -68,15 +70,15 @@ export async function PUT(request: Request) {
       .where(eq(users.id, user.id))
       .limit(1);
 
-    if (!dbUser?.gymId) {
+    if (!dbUser || !dbUser.gymId) {
       return NextResponse.json(
-        { error: "User must belong to a gym" },
-        { status: 400 }
+        { error: "User must belong to a club" },
+        { status: 400 },
       );
     }
 
-    // Only head coaches/managers can edit gym
-    if (!isOwnerOrManager(dbUser.role)) {
+    // Only head coaches can edit club
+    if (dbUser.role !== "owner") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -114,10 +116,10 @@ export async function PUT(request: Request) {
 
     return NextResponse.json({ gym: updatedGym });
   } catch (error) {
-    console.error("Gym update error:", error);
+    console.error("Club update error:", error);
     return NextResponse.json(
       { error: "Failed to update gym" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
