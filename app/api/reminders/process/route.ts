@@ -245,27 +245,8 @@ export async function GET(request: Request) {
 
               results.sent++;
             } catch (err) {
-<<<<<<< Updated upstream
-              <<<<<<< Updated upstream
-              console.error(`Failed to send reminder to $member.email:`, err)
-              =======
-              console.error(
-                `Failed to send reminder to $member.email:`,
-                err
-              )
-              >>>>>>> Stashed changes
-              results.errors.push(member.email || "unknown")
-=======
-<<<<<<< Updated upstream
               console.error(`Failed to send reminder to ${member.email}:`, err);
-=======
-              console.error(
-                `Failed to send reminder to ${member.email}:`,
-                err
-              );
->>>>>>> Stashed changes
               results.errors.push(member.email || "unknown");
->>>>>>> Stashed changes
             }
           }
 
