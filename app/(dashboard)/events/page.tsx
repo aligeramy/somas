@@ -285,6 +285,7 @@ export default function EventsPage() {
   const [rsvpLoading, setRsvpLoading] = useState(false);
   const [showPastEvents, setShowPastEvents] = useState(false);
   const [sendingReminder, setSendingReminder] = useState(false);
+  const [remindingUserId, setRemindingUserId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
   const [mobileView, setMobileView] = useState<
     "events" | "occurrences" | "details" | "chat"
@@ -836,7 +837,9 @@ export default function EventsPage() {
   // Load RSVP summaries for owner/coach view when event is selected
   const loadOccurrenceSummaries = useCallback(async () => {
     if (
-      (currentUserRole === "owner" || currentUserRole === "coach") &&
+      (currentUserRole === "owner" ||
+        currentUserRole === "coach" ||
+        currentUserRole === "manager") &&
       selectedEvent
     ) {
       const occurrenceIds = selectedEvent.occurrences.map((occ) => occ.id);
@@ -1143,7 +1146,11 @@ export default function EventsPage() {
       if (!response.ok) throw new Error("Failed to edit RSVP");
       await loadOccurrenceRsvps(selectedOccurrence.id);
       // Reload summaries for owner/coach view
-      if (currentUserRole === "owner" || currentUserRole === "coach") {
+      if (
+        currentUserRole === "owner" ||
+        currentUserRole === "coach" ||
+        currentUserRole === "manager"
+      ) {
         await loadOccurrenceSummaries();
       }
     } catch (err) {
@@ -1180,7 +1187,11 @@ export default function EventsPage() {
       }
 
       // Reload summaries for owner/coach view
-      if (currentUserRole === "owner" || currentUserRole === "coach") {
+      if (
+        currentUserRole === "owner" ||
+        currentUserRole === "coach" ||
+        currentUserRole === "manager"
+      ) {
         await loadOccurrenceSummaries();
       }
 
@@ -1275,6 +1286,29 @@ export default function EventsPage() {
       alert("Failed to send reminders");
     } finally {
       setSendingReminder(false);
+    }
+  }
+
+  async function handleSendReminderToUser(userId: string) {
+    if (!selectedOccurrence) return;
+    setRemindingUserId(userId);
+    try {
+      const response = await fetch("/api/reminders/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          occurrenceId: selectedOccurrence.id,
+          userIds: [userId],
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+      alert(data.sent ? "Reminder email sent." : "No reminder sent.");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to send reminder");
+    } finally {
+      setRemindingUserId(null);
     }
   }
 
@@ -1450,11 +1484,15 @@ export default function EventsPage() {
   const goingUsers = occurrenceRsvps.filter((r) => r.status === "going");
   const notGoingUsers = occurrenceRsvps.filter((r) => r.status === "not_going");
   const respondedIds = new Set(occurrenceRsvps.map((r) => r.id));
-  // Only include coaches/owners and athletes in notAnsweredUsers (filter out any other roles)
+  // Only include coaches/owners/managers and athletes in notAnsweredUsers (filter out any other roles)
   const notAnsweredUsers = gymMembers.filter((m) => {
     const role = m.role;
     const isCoachOrAthlete =
-      role === "coach" || role === "owner" || role === "athlete" || !role;
+      role === "coach" ||
+      role === "owner" ||
+      role === "manager" ||
+      role === "athlete" ||
+      !role;
     return isCoachOrAthlete && !respondedIds.has(m.id);
   });
 
@@ -1847,17 +1885,29 @@ export default function EventsPage() {
                     userId: string,
                     userRole?: string,
                   ): boolean => {
-                    if (userRole === "coach" || userRole === "owner")
+                    if (
+                      userRole === "coach" ||
+                      userRole === "owner" ||
+                      userRole === "manager"
+                    )
                       return true;
                     const member = gymMembers.find((m) => m.id === userId);
-                    return member?.role === "coach" || member?.role === "owner";
+                    return (
+                      member?.role === "coach" ||
+                      member?.role === "owner" ||
+                      member?.role === "manager"
+                    );
                   };
                   const isAthlete = (
                     userId: string,
                     userRole?: string,
                   ): boolean => {
                     if (userRole === "athlete") return true;
-                    if (userRole === "coach" || userRole === "owner")
+                    if (
+                      userRole === "coach" ||
+                      userRole === "owner" ||
+                      userRole === "manager"
+                    )
                       return false;
                     const member = gymMembers.find((m) => m.id === userId);
                     return member?.role === "athlete" || !member?.role;
@@ -1875,7 +1925,10 @@ export default function EventsPage() {
                     isAthlete(u.id, u.role),
                   );
                   const pendingCoaches = gymMembers.filter((m) => {
-                    const isCoach = m.role === "coach" || m.role === "owner";
+                    const isCoach =
+                      m.role === "coach" ||
+                      m.role === "owner" ||
+                      m.role === "manager";
                     return isCoach && !rsvpedUserIds.has(m.id);
                   });
                   const pendingAthletes = gymMembers.filter((m) => {
@@ -2324,7 +2377,8 @@ export default function EventsPage() {
                                     </p>
                                     {/* RSVP counts for coaches/owners */}
                                     {(currentUserRole === "owner" ||
-                                      currentUserRole === "coach") && (
+                                      currentUserRole === "coach" ||
+                                      currentUserRole === "manager") && (
                                       <div
                                         className={`flex items-center gap-2 mt-1 ${
                                           isSelected ? "opacity-90" : ""
@@ -2531,11 +2585,17 @@ export default function EventsPage() {
                         userId: string,
                         userRole?: string,
                       ): boolean => {
-                        if (userRole === "coach" || userRole === "owner")
+                        if (
+                          userRole === "coach" ||
+                          userRole === "owner" ||
+                          userRole === "manager"
+                        )
                           return true;
                         const member = gymMembers.find((m) => m.id === userId);
                         return (
-                          member?.role === "coach" || member?.role === "owner"
+                          member?.role === "coach" ||
+                          member?.role === "owner" ||
+                          member?.role === "manager"
                         );
                       };
 
@@ -2544,7 +2604,11 @@ export default function EventsPage() {
                         userRole?: string,
                       ): boolean => {
                         if (userRole === "athlete") return true;
-                        if (userRole === "coach" || userRole === "owner")
+                        if (
+                          userRole === "coach" ||
+                          userRole === "owner" ||
+                          userRole === "manager"
+                        )
                           return false;
                         const member = gymMembers.find((m) => m.id === userId);
                         return member?.role === "athlete" || !member?.role;
@@ -2581,7 +2645,9 @@ export default function EventsPage() {
                       const pendingCoaches = gymMembers
                         .filter((m) => {
                           const isCoach =
-                            m.role === "coach" || m.role === "owner";
+                            m.role === "coach" ||
+                            m.role === "owner" ||
+                            m.role === "manager";
                           return isCoach && !rsvpedUserIds.has(m.id);
                         })
                         .map((m) => ({
@@ -3306,17 +3372,31 @@ export default function EventsPage() {
     // Get IDs of users who have RSVP'd
     const rsvpedUserIds = new Set(occurrenceRsvpsForAthlete.map((r) => r.id));
 
-    // Helper function to determine if user is coach/owner (use role from RSVP first, then gymMembers)
+    // Helper function to determine if user is coach/owner/manager (use role from RSVP first, then gymMembers)
     const isCoachOrOwner = (userId: string, userRole?: string): boolean => {
-      if (userRole === "coach" || userRole === "owner") return true;
+      if (
+        userRole === "coach" ||
+        userRole === "owner" ||
+        userRole === "manager"
+      )
+        return true;
       const member = gymMembers.find((m) => m.id === userId);
-      return member?.role === "coach" || member?.role === "owner";
+      return (
+        member?.role === "coach" ||
+        member?.role === "owner" ||
+        member?.role === "manager"
+      );
     };
 
     // Helper function to determine if user is athlete (use role from RSVP first, then gymMembers)
     const isAthlete = (userId: string, userRole?: string): boolean => {
       if (userRole === "athlete") return true;
-      if (userRole === "coach" || userRole === "owner") return false;
+      if (
+        userRole === "coach" ||
+        userRole === "owner" ||
+        userRole === "manager"
+      )
+        return false;
       const member = gymMembers.find((m) => m.id === userId);
       return member?.role === "athlete" || !member?.role;
     };
@@ -3357,10 +3437,13 @@ export default function EventsPage() {
       });
 
     // Pending coaches: those who haven't RSVP'd at all (not in rsvpedUserIds)
-    // Only include coaches/owners, and always include current user if they're a coach/owner
+    // Only include coaches/owners/managers, and always include current user if they're a coach/owner/manager
     const pendingCoaches = gymMembers
       .filter((m) => {
-        const isCoach = m.role === "coach" || m.role === "owner";
+        const isCoach =
+          m.role === "coach" ||
+          m.role === "owner" ||
+          m.role === "manager";
         return isCoach && !rsvpedUserIds.has(m.id);
       })
       .map((m) => ({
@@ -4494,6 +4577,26 @@ export default function EventsPage() {
                                                       Email
                                                     </a>
                                                   </DropdownMenuItem>
+                                                  <DropdownMenuSeparator />
+                                                  <DropdownMenuItem
+                                                    className="gap-2"
+                                                    disabled={
+                                                      remindingUserId ===
+                                                      coach.id
+                                                    }
+                                                    onClick={(e) => {
+                                                      e.preventDefault();
+                                                      handleSendReminderToUser(
+                                                        coach.id,
+                                                      );
+                                                    }}
+                                                  >
+                                                    <IconBell className="h-4 w-4" />
+                                                    {remindingUserId ===
+                                                    coach.id
+                                                      ? "Sending..."
+                                                      : "Send reminder email"}
+                                                  </DropdownMenuItem>
                                                 </DropdownMenuContent>
                                               </DropdownMenu>
                                             </div>
@@ -4584,6 +4687,26 @@ export default function EventsPage() {
                                                       <IconMail className="h-4 w-4" />
                                                       Email
                                                     </a>
+                                                  </DropdownMenuItem>
+                                                  <DropdownMenuSeparator />
+                                                  <DropdownMenuItem
+                                                    className="gap-2"
+                                                    disabled={
+                                                      remindingUserId ===
+                                                      athlete.id
+                                                    }
+                                                    onClick={(e) => {
+                                                      e.preventDefault();
+                                                      handleSendReminderToUser(
+                                                        athlete.id,
+                                                      );
+                                                    }}
+                                                  >
+                                                    <IconBell className="h-4 w-4" />
+                                                    {remindingUserId ===
+                                                    athlete.id
+                                                      ? "Sending..."
+                                                      : "Send reminder email"}
                                                   </DropdownMenuItem>
                                                 </DropdownMenuContent>
                                               </DropdownMenu>
@@ -5006,7 +5129,8 @@ export default function EventsPage() {
                     <div className="flex items-center gap-2 mt-3">
                       {/* Left side: Going/Not Going buttons */}
                       {(currentUserRole === "coach" ||
-                        currentUserRole === "owner") &&
+                        currentUserRole === "owner" ||
+                        currentUserRole === "manager") &&
                         selectedOccurrence.status !== "canceled" &&
                         eventDetailTab === "details" && (
                           <div className="flex items-center gap-2 flex-1">
@@ -5565,10 +5689,16 @@ function UserList({
   const isMobile = useIsMobile();
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
-  // Filter to only include coaches/owners and athletes (exclude any other roles)
+  // Filter to only include coaches/owners/managers and athletes (exclude any other roles)
   const filteredUsers = users.filter((u) => {
     const role = u.role;
-    return role === "coach" || role === "owner" || role === "athlete" || !role;
+    return (
+      role === "coach" ||
+      role === "owner" ||
+      role === "manager" ||
+      role === "athlete" ||
+      !role
+    );
   });
 
   const selectedUser = selectedUserId
@@ -5583,9 +5713,10 @@ function UserList({
     );
   }
 
-  // Separate coaches and athletes
+  // Separate coaches (including owners and managers) and athletes
   const coaches = filteredUsers.filter(
-    (u) => u.role === "coach" || u.role === "owner",
+    (u) =>
+      u.role === "coach" || u.role === "owner" || u.role === "manager",
   );
   const athletes = filteredUsers.filter((u) => u.role === "athlete" || !u.role);
 
@@ -5674,7 +5805,8 @@ function UserList({
                         </Link>
                       </DropdownMenuItem>
                       {(currentUserRole === "owner" ||
-                        currentUserRole === "coach") &&
+                        currentUserRole === "coach" ||
+                        currentUserRole === "manager") &&
                         user.status === null && (
                           <>
                             <DropdownMenuSeparator />
@@ -5807,7 +5939,8 @@ function UserList({
                           </Link>
                         </DropdownMenuItem>
                         {(currentUserRole === "owner" ||
-                          currentUserRole === "coach") &&
+                          currentUserRole === "coach" ||
+                          currentUserRole === "manager") &&
                           user.status === null && (
                             <>
                               <DropdownMenuSeparator />
@@ -5909,7 +6042,9 @@ function UserList({
                   <span>View Profile</span>
                 </Link>
               </Button>
-              {(currentUserRole === "owner" || currentUserRole === "coach") &&
+              {(currentUserRole === "owner" ||
+                currentUserRole === "coach" ||
+                currentUserRole === "manager") &&
                 selectedUser.status === null && (
                   <>
                     {(selectedUser.phone || selectedUser.cellPhone) && (

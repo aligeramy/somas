@@ -21,10 +21,10 @@ export async function GET(request: Request) {
       .where(eq(users.id, user.id))
       .limit(1);
 
-    if (!dbUser || !dbUser.gymId) {
+    if (!(dbUser && dbUser.gymId)) {
       return NextResponse.json(
         { error: "User must belong to a club" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -58,18 +58,20 @@ export async function GET(request: Request) {
       .where(
         dbUser.role === "athlete"
           ? eq(users.gymId, dbUser.gymId) // Will filter in code below
-          : eq(users.gymId, dbUser.gymId),
+          : eq(users.gymId, dbUser.gymId)
       )
       .orderBy(asc(users.createdAt));
 
-    // Filter: Athletes can only see coaches/owners (unless forEvents=true)
+    // Filter: Athletes can only see coaches/owners/managers (unless forEvents=true)
     // Filter out the current user to prevent self-DMs (except for forEvents=true
     // where we need the current user in the RSVP "All" tab)
     const filteredRoster =
       dbUser.role === "athlete" && !forEvents
         ? roster.filter(
             (user) =>
-              (user.role === "coach" || user.role === "owner") &&
+              (user.role === "coach" ||
+                user.role === "owner" ||
+                user.role === "manager") &&
               user.id !== dbUser.id,
           )
         : forEvents
@@ -81,7 +83,7 @@ export async function GET(request: Request) {
     console.error("Roster fetch error:", error);
     return NextResponse.json(
       { error: "Failed to fetch roster" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

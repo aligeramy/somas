@@ -1,5 +1,6 @@
-import { and, eq, ne, gte } from "drizzle-orm";
+import { and, eq, gte, ne } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { Resend } from "resend";
 import {
   channels,
   chatEmailLogs,
@@ -8,13 +9,274 @@ import {
   messages,
   users,
 } from "@/drizzle/schema";
+import { ChatNotificationEmail } from "@/emails/chat-notification";
 import { db } from "@/lib/db";
 import { sendPushNotification } from "@/lib/push-notifications";
 import { createClient } from "@/lib/supabase/server";
-import { Resend } from "resend";
-import { ChatNotificationEmail } from "@/emails/chat-notification";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function verifyPostChannelAccess(
+  channel: { id: string; type: string; name: string | null; gymId: string },
+  channelId: string,
+  dbUser: {
+    id: string;
+    name: string | null;
+    email: string | null;
+    role: string | null;
+  },
+  userId: string
+): Promise<NextResponse | null> {
+  const isOwnerOrCoach = dbUser.role === "owner" || dbUser.role === "coach";
+  if (channel.type === "global") {
+    return null;
+  }
+  if (channel.type === "group") {
+    return null;
+  }
+  if (channel.type === "dm") {
+    if (isOwnerOrCoach) {
+      return null;
+    }
+    const userHasMessages = await db
+      .select()
+      .from(messages)
+      .where(
+        and(eq(messages.channelId, channelId), eq(messages.senderId, userId))
+      )
+      .limit(1);
+    const channelNameMatchesUser =
+      channel.name === (dbUser.name || dbUser.email);
+    if (userHasMessages.length > 0 || channelNameMatchesUser) {
+      return null;
+    }
+    console.log("[POST /api/chat/messages] Access denied to DM channel:", {
+      channelId,
+      channelName: channel.name,
+      userName: dbUser.name,
+      userEmail: dbUser.email,
+    });
+    return NextResponse.json({ error: "Access denied" }, { status: 403 });
+  }
+  return null;
+}
+
+async function sendChatNotificationEmails(params: {
+  usersToEmail: {
+    id: string;
+    name: string | null;
+    email: string | null;
+    altEmail: string | null;
+  }[];
+  channel: { id: string; type: string; name: string | null };
+  gym: { name: string; logoUrl: string | null };
+  dbUser: { name: string | null };
+  content: string;
+}): Promise<void> {
+  const { usersToEmail: list, channel, gym, dbUser, content } = params;
+  const senderName = dbUser.name || "Someone";
+  const channelName =
+    channel.type === "dm" ? senderName : channel.name || "Chat";
+  const messagePreview =
+    content.length > 100 ? `${content.substring(0, 100)}...` : content;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const chatUrl = `${appUrl}/chat?channel=${channel.id}`;
+
+  for (const targetUser of list) {
+    try {
+      if (!targetUser.email) {
+        continue;
+      }
+      const recipients = [targetUser.email];
+      if (targetUser.altEmail) {
+        recipients.push(targetUser.altEmail);
+      }
+      await resend.emails.send({
+        from: `${process.env.RESEND_FROM_NAME || "SOMAS"} <${process.env.RESEND_FROM_EMAIL || "noreply@mail.softx.ca"}>`,
+        to: recipients,
+        subject:
+          channel.type === "dm"
+            ? `${senderName} sent you a message`
+            : `${senderName} sent a message in ${channelName}`,
+        react: ChatNotificationEmail({
+          gymName: gym.name,
+          gymLogoUrl: gym.logoUrl,
+          recipientName: targetUser.name || targetUser.email,
+          senderName,
+          channelName,
+          channelType: channel.type as "dm" | "group" | "global",
+          messagePreview,
+          chatUrl,
+        }),
+      });
+
+      const existingLog = await db
+        .select()
+        .from(chatEmailLogs)
+        .where(
+          and(
+            eq(chatEmailLogs.userId, targetUser.id),
+            eq(chatEmailLogs.channelId, channel.id)
+          )
+        )
+        .limit(1);
+
+      if (existingLog.length > 0) {
+        await db
+          .update(chatEmailLogs)
+          .set({ sentAt: new Date() })
+          .where(
+            and(
+              eq(chatEmailLogs.userId, targetUser.id),
+              eq(chatEmailLogs.channelId, channel.id)
+            )
+          );
+      } else {
+        await db.insert(chatEmailLogs).values({
+          userId: targetUser.id,
+          channelId: channel.id,
+        });
+      }
+
+      console.log(
+        `[POST /api/chat/messages] Email sent to ${targetUser.email}`
+      );
+      await delay(600);
+    } catch (error) {
+      console.error(
+        `[POST /api/chat/messages] Error sending email to ${targetUser.email}:`,
+        error
+      );
+      await delay(600);
+    }
+  }
+}
+
+async function createNotificationsAndSendEmails(params: {
+  channel: { id: string; type: string; name: string | null };
+  newMessage: { id: string };
+  targetUsers: {
+    id: string;
+    name: string | null;
+    email: string | null;
+    altEmail: string | null;
+    pushToken: string | null;
+    notifPreferences: unknown;
+  }[];
+  dbUser: { gymId: string | null; name: string | null };
+  content: string;
+  userId: string;
+}): Promise<void> {
+  const { channel, newMessage, targetUsers, dbUser, content, userId } = params;
+
+  const notificationRecords = targetUsers.map((targetUser) => ({
+    userId: targetUser.id,
+    channelId: channel.id,
+    messageId: newMessage.id,
+    readAt: null,
+  }));
+
+  if (notificationRecords.length > 0) {
+    try {
+      await db.insert(chatNotifications).values(notificationRecords);
+    } catch (notifError) {
+      console.error(
+        "[POST /api/chat/messages] Error inserting notification records:",
+        notifError
+      );
+    }
+  }
+
+  const pushTokens = targetUsers
+    .filter((u) => !!u.pushToken)
+    .map((u) => u.pushToken as string);
+
+  if (pushTokens.length > 0 && channel.id && newMessage.id) {
+    const senderName = dbUser.name || "Someone";
+    const channelName =
+      channel.type === "dm" ? senderName : channel.name || "Chat";
+    const messagePreview =
+      content.length > 50 ? `${content.substring(0, 50)}...` : content;
+    sendPushNotification(
+      pushTokens,
+      channel.type === "dm" ? senderName : `${senderName} in ${channelName}`,
+      messagePreview,
+      {
+        type: "chat",
+        channelId: String(channel.id),
+        messageId: String(newMessage.id),
+      }
+    ).catch((error) => {
+      console.error(
+        "[POST /api/chat/messages] Error sending push notifications:",
+        error
+      );
+    });
+  }
+
+  if (targetUsers.length === 0 || !channel.id || !dbUser.gymId) {
+    return;
+  }
+
+  const [gym] = await db
+    .select()
+    .from(gyms)
+    .where(eq(gyms.id, dbUser.gymId))
+    .limit(1);
+
+  if (!(gym && resend)) {
+    return;
+  }
+
+  const twentyFourHoursAgo = new Date();
+  twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
+  const emailLogs = await db
+    .select()
+    .from(chatEmailLogs)
+    .where(
+      and(
+        eq(chatEmailLogs.channelId, channel.id),
+        gte(chatEmailLogs.sentAt, twentyFourHoursAgo)
+      )
+    );
+  const recentEmailRecipients = new Set(emailLogs.map((log) => log.userId));
+
+  const usersToEmail = targetUsers.filter((u) => {
+    let emailNotifEnabled = true;
+    if (
+      u.notifPreferences &&
+      typeof u.notifPreferences === "object" &&
+      u.notifPreferences !== null &&
+      "email" in u.notifPreferences
+    ) {
+      emailNotifEnabled =
+        (u.notifPreferences as { email?: boolean }).email !== false;
+    }
+    return (
+      !!u.email &&
+      emailNotifEnabled &&
+      !recentEmailRecipients.has(u.id) &&
+      u.id !== userId
+    );
+  });
+
+  if (usersToEmail.length > 0) {
+    sendChatNotificationEmails({
+      usersToEmail,
+      channel,
+      gym,
+      dbUser,
+      content,
+    }).catch((error) => {
+      console.error(
+        "[POST /api/chat/messages] Error in email sending batch:",
+        error
+      );
+    });
+  }
+}
 
 export async function GET(request: Request) {
   try {
@@ -33,7 +295,7 @@ export async function GET(request: Request) {
     if (!channelId) {
       return NextResponse.json(
         { error: "Channel ID is required" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -76,8 +338,8 @@ export async function GET(request: Request) {
           .where(
             and(
               eq(messages.channelId, channelId),
-              eq(messages.senderId, user.id),
-            ),
+              eq(messages.senderId, user.id)
+            )
           )
           .limit(1);
 
@@ -128,7 +390,7 @@ export async function GET(request: Request) {
     console.error("Messages fetch error:", error);
     return NextResponse.json(
       { error: "Failed to fetch messages" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -155,14 +417,14 @@ export async function POST(request: Request) {
       .where(eq(users.id, user.id))
       .limit(1);
 
-    if (!dbUser || !dbUser.gymId) {
+    if (!dbUser?.gymId) {
       console.log("[POST /api/chat/messages] User has no gym:", {
         dbUser: !!dbUser,
         gymId: dbUser?.gymId,
       });
       return NextResponse.json(
         { error: "User must belong to a club" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -176,14 +438,14 @@ export async function POST(request: Request) {
       hasAttachment: !!attachmentUrl,
     });
 
-    if (!channelId || !content) {
+    if (!(channelId && content)) {
       console.log("[POST /api/chat/messages] Missing required fields:", {
         channelId: !!channelId,
         content: !!content,
       });
       return NextResponse.json(
         { error: "Channel ID and content are required" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -202,56 +464,19 @@ export async function POST(request: Request) {
           channel: !!channel,
           channelGymId: channel?.gymId,
           userGymId: dbUser.gymId,
-        },
+        }
       );
       return NextResponse.json({ error: "Channel not found" }, { status: 404 });
     }
 
-    // Additional security check: verify user has access to this channel type
-    // Owners and coaches have access to all channels in their club
-    const isOwnerOrCoach = dbUser.role === "owner" || dbUser.role === "coach";
-
-    if (channel.type === "global") {
-      // Global channels are accessible to all club members - already verified above
-    } else if (channel.type === "dm") {
-      // Owners and coaches can access all DM channels
-      if (!isOwnerOrCoach) {
-        // For athletes: check if user has sent messages OR channel name matches user's name/email
-        const userHasMessages = await db
-          .select()
-          .from(messages)
-          .where(
-            and(
-              eq(messages.channelId, channelId),
-              eq(messages.senderId, user.id),
-            ),
-          )
-          .limit(1);
-
-        const channelNameMatchesUser =
-          channel.name === (dbUser.name || dbUser.email);
-
-        if (userHasMessages.length === 0 && !channelNameMatchesUser) {
-          console.log(
-            "[POST /api/chat/messages] Access denied to DM channel:",
-            {
-              channelId,
-              channelName: channel.name,
-              userName: dbUser.name,
-              userEmail: dbUser.email,
-            },
-          );
-          return NextResponse.json({ error: "Access denied" }, { status: 403 });
-        }
-      }
-    } else if (channel.type === "group") {
-      // Owners and coaches can access all group channels
-      // For POST requests: allow all club members to send messages (sending is how you join a group)
-      // The GET handler will still restrict reading messages until they've participated
-      if (!isOwnerOrCoach) {
-        // Allow sending - this is how users join group channels
-        // No need to check for previous messages since sending the first message grants access
-      }
+    const accessError = await verifyPostChannelAccess(
+      channel,
+      channelId,
+      dbUser,
+      user.id
+    );
+    if (accessError) {
+      return accessError;
     }
 
     console.log("[POST /api/chat/messages] Channel found:", {
@@ -300,23 +525,23 @@ export async function POST(request: Request) {
 
     if (!messageWithSender) {
       console.error(
-        "[POST /api/chat/messages] Failed to fetch created message",
+        "[POST /api/chat/messages] Failed to fetch created message"
       );
       return NextResponse.json(
         { error: "Failed to fetch created message" },
-        { status: 500 },
+        { status: 500 }
       );
     }
 
     console.log(
-      "[POST /api/chat/messages] Message with sender fetched successfully",
+      "[POST /api/chat/messages] Message with sender fetched successfully"
     );
 
     // Get all users who should receive notifications for this channel
     // For DM channels, get the other participant
     // For group/global channels, get all club members except the sender
     console.log(
-      "[POST /api/chat/messages] Fetching target users for notifications",
+      "[POST /api/chat/messages] Fetching target users for notifications"
     );
     // Select users including notifPreferences to check email notification preferences
     // Note: pushEnabled doesn't exist in schema, so we only check pushToken
@@ -333,13 +558,13 @@ export async function POST(request: Request) {
       .where(
         and(
           eq(users.gymId, dbUser.gymId),
-          ne(users.id, user.id), // Exclude sender
-        ),
+          ne(users.id, user.id) // Exclude sender
+        )
       );
 
     console.log(
       "[POST /api/chat/messages] Found target users (before filtering):",
-      targetUsers.length,
+      targetUsers.length
     );
 
     // For DM channels, filter to only the other participant
@@ -347,11 +572,11 @@ export async function POST(request: Request) {
     if (channel.type === "dm") {
       console.log(
         "[POST /api/chat/messages] Filtering for DM channel, channel name:",
-        channel.name,
+        channel.name
       );
       const beforeFilter = targetUsers.length;
       targetUsers = targetUsers.filter(
-        (u) => (u.name && u.name === channel.name) || u.email === channel.name,
+        (u) => (u.name && u.name === channel.name) || u.email === channel.name
       );
       console.log("[POST /api/chat/messages] Filtered DM users:", {
         before: beforeFilter,
@@ -359,255 +584,29 @@ export async function POST(request: Request) {
       });
     }
 
-    // Create notification records for all target users
-    console.log(
-      "[POST /api/chat/messages] Creating notification records for",
-      targetUsers.length,
-      "users",
-    );
-    const notificationRecords = targetUsers.map((targetUser) => ({
-      userId: targetUser.id,
-      channelId: channel.id,
-      messageId: newMessage.id,
-      readAt: null,
-    }));
-
-    if (notificationRecords.length > 0) {
-      try {
-        console.log("[POST /api/chat/messages] Inserting notification records");
-        await db.insert(chatNotifications).values(notificationRecords);
-        console.log(
-          "[POST /api/chat/messages] Notification records inserted successfully",
-        );
-      } catch (notifError) {
-        console.error(
-          "[POST /api/chat/messages] Error inserting notification records:",
-          notifError,
-        );
-        // Don't fail the whole request if notifications fail
-      }
-    } else {
-      console.log(
-        "[POST /api/chat/messages] No notification records to insert",
+    createNotificationsAndSendEmails({
+      channel,
+      newMessage,
+      targetUsers,
+      dbUser,
+      content,
+      userId: user.id,
+    }).catch((error) => {
+      console.error(
+        "[POST /api/chat/messages] Error in notifications/emails:",
+        error
       );
-    }
-
-    // Send push notifications (but not email) to users with push tokens enabled
-    // Note: We're not checking notifPreferences here to avoid Drizzle's null JSONB issue
-    // Default behavior is to allow push notifications unless explicitly disabled
-    console.log(
-      "[POST /api/chat/messages] Filtering users for push notifications",
-    );
-    const pushTokens = targetUsers
-      .filter((u) => {
-        // Only filter by pushToken - pushEnabled field doesn't exist in schema
-        return !!u.pushToken;
-      })
-      .map((u) => u.pushToken as string);
+    });
 
     console.log(
-      "[POST /api/chat/messages] Push tokens found:",
-      pushTokens.length,
-    );
-
-    if (pushTokens.length > 0 && channel.id && newMessage.id) {
-      const senderName = dbUser.name || "Someone";
-      const channelName =
-        channel.type === "dm" ? senderName : channel.name || "Chat";
-      const messagePreview =
-        content.length > 50 ? `${content.substring(0, 50)}...` : content;
-
-      console.log("[POST /api/chat/messages] Sending push notifications:", {
-        tokens: pushTokens.length,
-        title:
-          channel.type === "dm"
-            ? senderName
-            : `${senderName} in ${channelName}`,
-        preview: `${messagePreview.substring(0, 20)}...`,
-      });
-
-      // Send push notification asynchronously (don't wait for it)
-      sendPushNotification(
-        pushTokens,
-        channel.type === "dm" ? senderName : `${senderName} in ${channelName}`,
-        messagePreview,
-        {
-          type: "chat",
-          channelId: String(channel.id),
-          messageId: String(newMessage.id),
-        },
-      ).catch((error) => {
-        console.error(
-          "[POST /api/chat/messages] Error sending push notifications:",
-          error,
-        );
-      });
-    } else {
-      console.log("[POST /api/chat/messages] Skipping push notifications:", {
-        hasTokens: pushTokens.length > 0,
-        hasChannelId: !!channel.id,
-        hasMessageId: !!newMessage.id,
-      });
-    }
-
-    // Send email notifications with 24-hour rate limiting
-    console.log("[POST /api/chat/messages] Processing email notifications");
-    if (targetUsers.length > 0 && channel.id) {
-      // Get gym info for email
-      const [gym] = await db
-        .select()
-        .from(gyms)
-        .where(eq(gyms.id, dbUser.gymId))
-        .limit(1);
-
-      if (gym) {
-        const senderName = dbUser.name || "Someone";
-        const channelName =
-          channel.type === "dm" ? senderName : channel.name || "Chat";
-        const messagePreview =
-          content.length > 100 ? `${content.substring(0, 100)}...` : content;
-        const appUrl =
-          process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-        const chatUrl = `${appUrl}/chat?channel=${channel.id}`;
-
-        // Check which users should receive emails (haven't received one in last 24 hours)
-        const twentyFourHoursAgo = new Date();
-        twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
-
-        const emailLogs = await db
-          .select()
-          .from(chatEmailLogs)
-          .where(
-            and(
-              eq(chatEmailLogs.channelId, channel.id),
-              gte(chatEmailLogs.sentAt, twentyFourHoursAgo)
-            )
-          );
-
-        const recentEmailRecipients = new Set(
-          emailLogs.map((log) => log.userId)
-        );
-
-        const usersToEmail = targetUsers.filter((u) => {
-          // Check if user has email notifications enabled
-          // Default to true if notifPreferences is null/undefined or email preference is not set
-          let emailNotifEnabled = true;
-          if (
-            u.notifPreferences &&
-            typeof u.notifPreferences === "object" &&
-            u.notifPreferences !== null &&
-            "email" in u.notifPreferences
-          ) {
-            emailNotifEnabled = u.notifPreferences.email !== false;
-          }
-
-          return (
-            u.email &&
-            emailNotifEnabled &&
-            !recentEmailRecipients.has(u.id) &&
-            u.id !== user.id // Don't email the sender
-          );
-        });
-
-        console.log(
-          "[POST /api/chat/messages] Users to email:",
-          usersToEmail.length,
-          "out of",
-          targetUsers.length
-        );
-
-        // Send emails asynchronously (don't wait for them)
-        if (usersToEmail.length > 0 && resend) {
-          Promise.all(
-            usersToEmail.map(async (targetUser) => {
-              try {
-                if (!targetUser.email) return;
-
-                // Build recipient list including altEmail
-                const recipients = [targetUser.email];
-                if (targetUser.altEmail) {
-                  recipients.push(targetUser.altEmail);
-                }
-
-                await resend.emails.send({
-                  from: `${process.env.RESEND_FROM_NAME || "SOMAS"} <${process.env.RESEND_FROM_EMAIL || "noreply@mail.softx.ca"}>`,
-                  to: recipients,
-                  subject:
-                    channel.type === "dm"
-                      ? `${senderName} sent you a message`
-                      : `${senderName} sent a message in ${channelName}`,
-                  react: ChatNotificationEmail({
-                    gymName: gym.name,
-                    gymLogoUrl: gym.logoUrl,
-                    recipientName: targetUser.name || targetUser.email,
-                    senderName,
-                    channelName,
-                    channelType: channel.type as "dm" | "group" | "global",
-                    messagePreview,
-                    chatUrl,
-                  }),
-                });
-
-                // Log the email send - update existing or insert new
-                const existingLog = await db
-                  .select()
-                  .from(chatEmailLogs)
-                  .where(
-                    and(
-                      eq(chatEmailLogs.userId, targetUser.id),
-                      eq(chatEmailLogs.channelId, channel.id)
-                    )
-                  )
-                  .limit(1);
-
-                if (existingLog.length > 0) {
-                  // Update existing log
-                  await db
-                    .update(chatEmailLogs)
-                    .set({ sentAt: new Date() })
-                    .where(
-                      and(
-                        eq(chatEmailLogs.userId, targetUser.id),
-                        eq(chatEmailLogs.channelId, channel.id)
-                      )
-                    );
-                } else {
-                  // Insert new log
-                  await db.insert(chatEmailLogs).values({
-                    userId: targetUser.id,
-                    channelId: channel.id,
-                  });
-                }
-
-                console.log(
-                  `[POST /api/chat/messages] Email sent to ${targetUser.email}`
-                );
-              } catch (error) {
-                console.error(
-                  `[POST /api/chat/messages] Error sending email to ${targetUser.email}:`,
-                  error
-                );
-              }
-            })
-          ).catch((error) => {
-            console.error(
-              "[POST /api/chat/messages] Error in email sending batch:",
-              error
-            );
-          });
-        }
-      }
-    }
-
-    console.log(
-      "[POST /api/chat/messages] Message created successfully, returning response",
+      "[POST /api/chat/messages] Message created successfully, returning response"
     );
     return NextResponse.json({ message: messageWithSender });
   } catch (error) {
     console.error("[POST /api/chat/messages] Message creation error:", error);
     console.error(
       "[POST /api/chat/messages] Error stack:",
-      error instanceof Error ? error.stack : "No stack trace",
+      error instanceof Error ? error.stack : "No stack trace"
     );
     console.error("[POST /api/chat/messages] Error details:", {
       name: error instanceof Error ? error.name : "Unknown",
@@ -615,7 +614,7 @@ export async function POST(request: Request) {
     });
     return NextResponse.json(
       { error: "Failed to send message" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
