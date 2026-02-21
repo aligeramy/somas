@@ -294,7 +294,9 @@ export default function EditEventPage() {
           endTime,
           recurrenceRule: recurrenceRule || null,
           recurrenceEndDate:
-            endType === "date" && endDate ? endDate.toISOString() : null,
+            endType === "date" && endDate
+              ? format(endDate, "yyyy-MM-dd")
+              : null,
           recurrenceCount:
             endType === "count" ? Number.parseInt(occurrenceCount, 10) : null,
           reminderDays,

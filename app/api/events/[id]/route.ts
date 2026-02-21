@@ -12,6 +12,15 @@ import {
 import { db } from "@/lib/db";
 import { createClient } from "@/lib/supabase/server";
 
+/** Normalize recurrence end date to end-of-day UTC so "end by Nov 15" includes Nov 15. */
+function recurrenceEndDateToEndOfDay(value: string): Date {
+  const d = new Date(value);
+  const y = d.getUTCFullYear();
+  const m = d.getUTCMonth();
+  const day = d.getUTCDate();
+  return new Date(Date.UTC(y, m, day, 23, 59, 59, 999));
+}
+
 // GET - Get single event with occurrences
 export async function GET(
   _request: Request,
@@ -305,7 +314,7 @@ export async function PUT(
       const [hours, minutes] = startTime.split(":").map(Number);
       startDateTime.setHours(hours, minutes, 0, 0);
 
-      const endDateTime = new Date(recurrenceEndDate);
+      const endDateTime = recurrenceEndDateToEndOfDay(recurrenceEndDate);
 
       if (endDateTime <= startDateTime) {
         return NextResponse.json(
@@ -431,7 +440,9 @@ export async function PUT(
         recurrenceRule,
         startTime,
         occurrenceStartDate,
-        recurrenceEndDate ? new Date(recurrenceEndDate) : null,
+        recurrenceEndDate
+          ? recurrenceEndDateToEndOfDay(recurrenceEndDate)
+          : null,
         recurrenceCount,
       );
     }

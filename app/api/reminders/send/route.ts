@@ -51,10 +51,10 @@ async function sendManualReminderEmails(
       if (!hasRemindersEnabled(targetUser.notifPreferences)) {
         continue;
       }
-      const recipients = [targetUser.email];
-      if (targetUser.altEmail) {
-        recipients.push(targetUser.altEmail);
-      }
+      const recipients = [targetUser.email, targetUser.altEmail].filter(
+        (e): e is string => typeof e === "string" && e.length > 0
+      );
+      if (recipients.length === 0) continue;
       await resend.emails.send({
         from: `${process.env.RESEND_FROM_NAME || "SOMAS"} <${process.env.RESEND_FROM_EMAIL || "noreply@mail.softx.ca"}>`,
         to: recipients,
@@ -81,7 +81,7 @@ async function sendManualReminderEmails(
       await delay(600);
     } catch (err) {
       console.error(`Failed to send reminder to ${targetUser.email}:`, err);
-      errors.push(targetUser.email);
+      errors.push(targetUser.email ?? "unknown");
       await delay(600);
     }
   }

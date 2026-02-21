@@ -4,6 +4,15 @@ import { channels, eventOccurrences, events, users } from "@/drizzle/schema";
 import { db } from "@/lib/db";
 import { createClient } from "@/lib/supabase/server";
 
+/** Normalize recurrence end date to end-of-day UTC so "end by Nov 15" includes Nov 15. */
+function recurrenceEndDateToEndOfDay(value: string): Date {
+  const d = new Date(value);
+  const y = d.getUTCFullYear();
+  const m = d.getUTCMonth();
+  const day = d.getUTCDate();
+  return new Date(Date.UTC(y, m, day, 23, 59, 59, 999));
+}
+
 export async function POST(request: Request) {
   try {
     const supabase = await createClient();
@@ -21,10 +30,10 @@ export async function POST(request: Request) {
       .where(eq(users.id, user.id))
       .limit(1);
 
-    if (!dbUser || !dbUser.gymId) {
+    if (!(dbUser && dbUser.gymId)) {
       return NextResponse.json(
         { error: "User must belong to a club" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -55,7 +64,9 @@ export async function POST(request: Request) {
           if (Array.isArray(parsed)) {
             reminderDays = parsed
               .map((n) =>
-                typeof n === "number" ? Math.round(n) : parseInt(String(n), 10),
+                typeof n === "number"
+                  ? Math.round(n)
+                  : Number.parseInt(String(n), 10)
               )
               .filter((n) => !Number.isNaN(n));
           }
@@ -65,16 +76,18 @@ export async function POST(request: Request) {
       } else if (Array.isArray(reminderDaysRaw)) {
         reminderDays = reminderDaysRaw
           .map((n) =>
-            typeof n === "number" ? Math.round(n) : parseInt(String(n), 10),
+            typeof n === "number"
+              ? Math.round(n)
+              : Number.parseInt(String(n), 10)
           )
           .filter((n) => !Number.isNaN(n));
       }
     }
 
-    if (!title || !startTime || !endTime) {
+    if (!(title && startTime && endTime)) {
       return NextResponse.json(
         { error: "Title, start time, and end time are required" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -84,12 +97,12 @@ export async function POST(request: Request) {
       const [hours, minutes] = startTime.split(":").map(Number);
       startDateTime.setHours(hours, minutes, 0, 0);
 
-      const endDateTime = new Date(recurrenceEndDate);
+      const endDateTime = recurrenceEndDateToEndOfDay(recurrenceEndDate);
 
       if (endDateTime <= startDateTime) {
         return NextResponse.json(
           { error: "The 'End on date' must be after the start date and time" },
-          { status: 400 },
+          { status: 400 }
         );
       }
     }
@@ -126,7 +139,9 @@ export async function POST(request: Request) {
       normalizedRecurrenceRule,
       startTime,
       occurrenceStartDate,
-      recurrenceEndDate ? new Date(recurrenceEndDate) : null,
+      recurrenceEndDate
+        ? recurrenceEndDateToEndOfDay(recurrenceEndDate)
+        : null,
       recurrenceCount,
     );
 
@@ -140,12 +155,14 @@ export async function POST(request: Request) {
           and(
             eq(channels.gymId, dbUser.gymId),
             eq(channels.eventId, event.id),
-            eq(channels.type, "group"),
-          ),
+            eq(channels.type, "group")
+          )
         )
         .limit(1);
 
-      if (!existingChannel) {
+      if (existingChannel) {
+        console.log("Event chat channel already exists:", existingChannel.id);
+      } else {
         const [newChannel] = await db
           .insert(channels)
           .values({
@@ -156,8 +173,6 @@ export async function POST(request: Request) {
           })
           .returning();
         console.log("Created event chat channel:", newChannel.id);
-      } else {
-        console.log("Event chat channel already exists:", existingChannel.id);
       }
     } catch (channelError) {
       console.error("Failed to create event chat channel:", channelError);
@@ -168,7 +183,7 @@ export async function POST(request: Request) {
     console.error("Event creation error:", error);
     return NextResponse.json(
       { error: "Failed to create event" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -179,9 +194,10 @@ async function generateEventOccurrences(
   startTime: string,
   startDate: Date,
   recurrenceEndDate?: Date | null,
-  recurrenceCount?: number | null,
+  recurrenceCount?: number | null
 ) {
-  const occurrences: { eventId: string; date: Date; status: "scheduled" }[] = [];
+  const occurrences: { eventId: string; date: Date; status: "scheduled" }[] =
+    [];
   let endDate = new Date(startDate);
 
   if (recurrenceEndDate) {
@@ -281,7 +297,7 @@ export async function GET(_request: Request) {
     if (!dbUser?.gymId) {
       return NextResponse.json(
         { error: "User must belong to a club" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -311,13 +327,13 @@ export async function GET(_request: Request) {
           .where(
             and(
               eq(eventOccurrences.eventId, event.id),
-              sql`DATE(${eventOccurrences.date}) >= DATE(${sql.raw(`'${today.toISOString().split("T")[0]}'`)}::date)`,
-            ),
+              sql`DATE(${eventOccurrences.date}) >= DATE(${sql.raw(`'${today.toISOString().split("T")[0]}'`)}::date)`
+            )
           )
           .orderBy(asc(eventOccurrences.date))
           .limit(10);
         return { ...event, occurrences: occurrencesList };
-      }),
+      })
     );
 
     return NextResponse.json({ events: eventsWithOccurrences });
@@ -325,7 +341,7 @@ export async function GET(_request: Request) {
     console.error("Event fetch error:", error);
     return NextResponse.json(
       { error: "Failed to fetch events" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
