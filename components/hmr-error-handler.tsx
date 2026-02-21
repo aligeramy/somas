@@ -11,7 +11,7 @@ export function HmrErrorHandler() {
     // Handle unhandled promise rejections (HMR ping errors)
     const handleRejection = (event: PromiseRejectionEvent) => {
       const error = event.reason;
-      
+
       // Suppress HMR ping errors - these are harmless
       if (
         error instanceof Error &&
@@ -25,14 +25,14 @@ export function HmrErrorHandler() {
         }
         return;
       }
-      
+
       // Let other errors through normally
     };
 
     // Handle general errors
     const handleError = (event: ErrorEvent) => {
       const error = event.error;
-      
+
       // Suppress HMR ping errors
       if (
         error instanceof Error &&

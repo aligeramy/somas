@@ -51,8 +51,8 @@ async function removePascalSelfDM() {
       .where(
         or(
           eq(users.email, "pascal.tyrrell@gmail.com"),
-          eq(users.name, "Pascal Tyrrell"),
-        ),
+          eq(users.name, "Pascal Tyrrell")
+        )
       )
       .limit(1)
       .then((results) => results[0]);
@@ -63,12 +63,14 @@ async function removePascalSelfDM() {
       pascalUser = allUsers.find(
         (u) =>
           u.email?.toLowerCase().includes("pascal") ||
-          u.name?.toLowerCase().includes("pascal"),
+          u.name?.toLowerCase().includes("pascal")
       );
     }
 
     if (!pascalUser) {
-      console.error("Could not find Pascal user. Please check the user exists.");
+      console.error(
+        "Could not find Pascal user. Please check the user exists."
+      );
       const allUsers = await db.select().from(users);
       console.log("Available users:");
       allUsers.forEach((u) => {
@@ -78,7 +80,7 @@ async function removePascalSelfDM() {
     }
 
     console.log(
-      `Found Pascal user: ${pascalUser.name || pascalUser.email} (${pascalUser.id})`,
+      `Found Pascal user: ${pascalUser.name || pascalUser.email} (${pascalUser.id})`
     );
 
     const pascalName = pascalUser.name || "";
@@ -95,14 +97,13 @@ async function removePascalSelfDM() {
       .where(
         and(
           eq(channels.type, "dm"),
-          or(
-            eq(channels.name, pascalName),
-            eq(channels.name, pascalEmail),
-          ),
-        ),
+          or(eq(channels.name, pascalName), eq(channels.name, pascalEmail))
+        )
       );
 
-    console.log(`Found ${pascalDmChannels.length} DM channels with Pascal's name/email`);
+    console.log(
+      `Found ${pascalDmChannels.length} DM channels with Pascal's name/email`
+    );
 
     // Check which of these channels Pascal has sent messages in (self-DMs)
     const selfDMChannels: typeof pascalDmChannels = [];
@@ -113,8 +114,8 @@ async function removePascalSelfDM() {
         .where(
           and(
             eq(messages.channelId, channel.id),
-            eq(messages.senderId, pascalUser.id),
-          ),
+            eq(messages.senderId, pascalUser.id)
+          )
         );
 
       // Check if this is a self-DM:
@@ -131,7 +132,7 @@ async function removePascalSelfDM() {
         allMessages.every((m) => m.senderId === pascalUser.id);
 
       console.log(
-        `  Channel: ${channel.name} (${channel.id}) - Pascal messages: ${pascalMessages.length}, Total messages: ${allMessages.length}, Only Pascal: ${onlyPascalMessages}`,
+        `  Channel: ${channel.name} (${channel.id}) - Pascal messages: ${pascalMessages.length}, Total messages: ${allMessages.length}, Only Pascal: ${onlyPascalMessages}`
       );
 
       // If Pascal has sent messages AND channel name matches Pascal, it's a self-DM
@@ -139,7 +140,7 @@ async function removePascalSelfDM() {
       if (pascalMessages.length > 0) {
         selfDMChannels.push(channel);
         console.log(
-          `  ✓ Identified as self-DM: ${channel.name} (${channel.id}) - Pascal sent ${pascalMessages.length} message(s)`,
+          `  ✓ Identified as self-DM: ${channel.name} (${channel.id}) - Pascal sent ${pascalMessages.length} message(s)`
         );
       }
     }
@@ -159,12 +160,12 @@ async function removePascalSelfDM() {
 
     // Delete messages in these channels first
     const channelIdsToDelete = selfDMChannels.map((c) => c.id);
-    const deletedMessages = await db
+    const _deletedMessages = await db
       .delete(messages)
       .where(inArray(messages.channelId, channelIdsToDelete));
 
     console.log(
-      `\nDeleted messages from ${selfDMChannels.length} self-DM channels`,
+      `\nDeleted messages from ${selfDMChannels.length} self-DM channels`
     );
 
     // Delete chat notifications for these channels
@@ -172,15 +173,13 @@ async function removePascalSelfDM() {
       .delete(schema.chatNotifications)
       .where(inArray(schema.chatNotifications.channelId, channelIdsToDelete));
 
-    console.log(
-      `Deleted notifications for ${selfDMChannels.length} channels`,
-    );
+    console.log(`Deleted notifications for ${selfDMChannels.length} channels`);
 
     // Delete the channels
     await db.delete(channels).where(inArray(channels.id, channelIdsToDelete));
 
     console.log(
-      `\nSuccessfully deleted ${selfDMChannels.length} Pascal self-DM channels`,
+      `\nSuccessfully deleted ${selfDMChannels.length} Pascal self-DM channels`
     );
     console.log("\nCleanup complete!");
   } catch (error) {

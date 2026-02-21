@@ -10,7 +10,7 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function PUT(
   request: Request,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
@@ -29,10 +29,10 @@ export async function PUT(
       .where(eq(users.id, user.id))
       .limit(1);
 
-    if (!dbUser || !dbUser.gymId) {
+    if (!dbUser?.gymId) {
       return NextResponse.json(
         { error: "User must belong to a club" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -59,7 +59,7 @@ export async function PUT(
       .set({
         title,
         content,
-        sendEmail: sendEmail || false,
+        sendEmail,
         updatedAt: new Date(),
       })
       .where(eq(notices.id, id))
@@ -93,7 +93,9 @@ export async function PUT(
         const emailPromises = gymMembers
           .filter((member) => member.email)
           .map((member) => {
-            if (!member.email) return Promise.resolve({ error: "No email" });
+            if (!member.email) {
+              return Promise.resolve({ error: "No email" });
+            }
             // Build recipient list including altEmail
             const recipients = [member.email];
             if (member.altEmail) {
@@ -110,13 +112,13 @@ export async function PUT(
                   userName: member.name || "Team Member",
                   noticeTitle: title,
                   noticeContent: content,
-                  authorName: authorName,
+                  authorName,
                 }),
               })
               .catch((error) => {
                 console.error(
                   `Failed to send notice email to ${member.email}:`,
-                  error,
+                  error
                 );
                 return { error: member.email };
               });
@@ -135,14 +137,14 @@ export async function PUT(
     console.error("Notice update error:", error);
     return NextResponse.json(
       { error: "Failed to update notice" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
 
 export async function DELETE(
   _request: Request,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
@@ -161,10 +163,10 @@ export async function DELETE(
       .where(eq(users.id, user.id))
       .limit(1);
 
-    if (!dbUser || !dbUser.gymId) {
+    if (!dbUser?.gymId) {
       return NextResponse.json(
         { error: "User must belong to a club" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -191,7 +193,7 @@ export async function DELETE(
     console.error("Notice deletion error:", error);
     return NextResponse.json(
       { error: "Failed to delete notice" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

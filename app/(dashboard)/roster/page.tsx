@@ -78,7 +78,9 @@ interface User {
 
 export default function RosterPage() {
   const formatRoleDisplay = (role: string) => {
-    if (role === "owner") return "Head Coach";
+    if (role === "owner") {
+      return "Head Coach";
+    }
     return role.charAt(0).toUpperCase() + role.slice(1);
   };
 
@@ -170,7 +172,7 @@ export default function RosterPage() {
       setError(
         err instanceof Error
           ? err.message
-          : "An error occurred while fetching roster",
+          : "An error occurred while fetching roster"
       );
     } finally {
       setLoading(false);
@@ -216,7 +218,7 @@ export default function RosterPage() {
       }
 
       setSuccess(
-        `Successfully sent ${result.invitations} invitation(s). ${result.errors > 0 ? `${result.errors} error(s) occurred.` : ""}`,
+        `Successfully sent ${result.invitations} invitation(s). ${result.errors > 0 ? `${result.errors} error(s) occurred.` : ""}`
       );
       setIsImportRosterDialogOpen(false);
       fetchRoster();
@@ -303,7 +305,9 @@ export default function RosterPage() {
   }
 
   async function handleSaveEdit() {
-    if (!editingMember) return;
+    if (!editingMember) {
+      return;
+    }
     setSaving(true);
     setError(null);
 
@@ -348,7 +352,9 @@ export default function RosterPage() {
   }
 
   async function handleDeleteMember() {
-    if (!deletingMember) return;
+    if (!deletingMember) {
+      return;
+    }
     setDeleting(true);
 
     try {
@@ -374,20 +380,20 @@ export default function RosterPage() {
   const isOwner = currentUserRole === "owner";
 
   return (
-    <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
+    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
       <PageHeader
-        title="Roster Management"
         description="Manage your club's coaches and athletes"
+        title="Roster Management"
       >
         <Dialog
-          open={isImportRosterDialogOpen}
           onOpenChange={setIsImportRosterDialogOpen}
+          open={isImportRosterDialogOpen}
         >
           <DialogTrigger asChild>
             <Button
-              variant="outline"
-              size="icon"
               className="rounded-xl sm:size-auto sm:gap-2 sm:rounded-xl sm:px-4"
+              size="icon"
+              variant="outline"
             >
               <IconUpload className="h-4 w-4 sm:mr-2" />
               <span className="hidden sm:inline">Import</span>
@@ -402,34 +408,34 @@ export default function RosterPage() {
             </DialogHeader>
             <div
               {...getRootProps()}
-              className={`border border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${
+              className={`cursor-pointer rounded-xl border border-dashed p-8 text-center transition-colors ${
                 isDragActive
                   ? "border-primary bg-primary/5"
                   : "border-muted-foreground/25 hover:border-muted-foreground/50"
               }`}
             >
               <input {...getInputProps()} />
-              <p className="text-sm text-muted-foreground">
+              <p className="text-muted-foreground text-sm">
                 {isDragActive
                   ? "Drop the file here"
                   : "Drag & drop a CSV or JSON file here, or click to select"}
               </p>
-              <p className="text-xs text-muted-foreground mt-2">
+              <p className="mt-2 text-muted-foreground text-xs">
                 CSV/JSON files only. Include 'email' and 'role' columns.
               </p>
             </div>
             {loading && (
-              <div className="mt-4 text-center text-sm text-muted-foreground">
+              <div className="mt-4 text-center text-muted-foreground text-sm">
                 Processing...
               </div>
             )}
             {error && (
-              <div className="bg-destructive/10 text-destructive rounded-xl p-3 text-sm">
+              <div className="rounded-xl bg-destructive/10 p-3 text-destructive text-sm">
                 {error}
               </div>
             )}
             {success && (
-              <div className="bg-green-500/10 text-green-600 rounded-xl p-3 text-sm">
+              <div className="rounded-xl bg-green-500/10 p-3 text-green-600 text-sm">
                 {success}
               </div>
             )}
@@ -437,7 +443,6 @@ export default function RosterPage() {
         </Dialog>
 
         <Dialog
-          open={isAddMemberDialogOpen}
           onOpenChange={(open) => {
             setIsAddMemberDialogOpen(open);
             if (!open) {
@@ -457,80 +462,81 @@ export default function RosterPage() {
               setSuccess(null);
             }
           }}
+          open={isAddMemberDialogOpen}
         >
           <DialogTrigger asChild>
             <Button
+              className="rounded-xl sm:size-auto sm:gap-2 sm:rounded-xl sm:px-4"
               size="icon"
-              className="rounded-xl sm:rounded-xl sm:size-auto sm:px-4 sm:gap-2"
             >
               <IconPlus className="h-4 w-4 sm:mr-2" />
               <span className="hidden sm:inline">Add Member</span>
             </Button>
           </DialogTrigger>
-          <DialogContent className="rounded-none! max-w-none! w-screen! h-screen! max-h-screen! m-0! p-0! inset-0! translate-x-0! translate-y-0! top-0! left-0! flex flex-col">
-            <div className="flex-1 min-h-0 flex flex-col">
-              <DialogHeader className="shrink-0 px-6 pt-6 pb-4 border-b dark:border-border/70 bg-background">
+          <DialogContent className="inset-0! top-0! left-0! m-0! flex h-screen! max-h-screen! w-screen! max-w-none! translate-x-0! translate-y-0! flex-col rounded-none! p-0!">
+            <div className="flex min-h-0 flex-1 flex-col">
+              <DialogHeader className="shrink-0 border-b bg-background px-6 pt-6 pb-4 dark:border-border/70">
                 <DialogTitle className="text-2xl">Add New Member</DialogTitle>
                 <DialogDescription>
                   Invite a single coach or athlete by email.
                 </DialogDescription>
               </DialogHeader>
-              <div className="flex-1 min-h-0 overflow-y-auto">
-                <div className="p-6 pb-24 max-w-5xl mx-auto">
+              <div className="min-h-0 flex-1 overflow-y-auto">
+                <div className="mx-auto max-w-5xl p-6 pb-24">
                   <form
+                    className="space-y-8"
                     id="add-member-form"
                     onSubmit={handleManualInvite}
-                    className="space-y-8"
                   >
                     {error && (
-                      <div className="bg-destructive/10 text-destructive rounded-xl p-4 text-sm">
+                      <div className="rounded-xl bg-destructive/10 p-4 text-destructive text-sm">
                         {error}
                       </div>
                     )}
                     {success && (
-                      <div className="bg-green-500/10 text-green-600 rounded-xl p-4 text-sm">
+                      <div className="rounded-xl bg-green-500/10 p-4 text-green-600 text-sm">
                         {success}
                       </div>
                     )}
 
                     {/* Basic Information */}
-                    <div className="bg-muted/30 rounded-xl p-6">
-                      <h3 className="font-semibold text-lg mb-6 text-foreground">
+                    <div className="rounded-xl bg-muted/30 p-6">
+                      <h3 className="mb-6 font-semibold text-foreground text-lg">
                         Basic Information
                       </h3>
                       <div className="grid grid-cols-2 gap-6">
                         <div className="space-y-2">
                           <Label htmlFor="email">Email *</Label>
                           <Input
+                            className="h-11 rounded-xl"
                             id="email"
-                            type="email"
-                            value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             placeholder="user@example.com"
-                            className="h-11 rounded-xl"
                             required
+                            type="email"
+                            value={email}
                           />
                         </div>
 
                         <div className="space-y-2">
                           <Label htmlFor="name">Name</Label>
                           <Input
+                            className="h-11 rounded-xl"
                             id="name"
-                            type="text"
-                            value={name}
                             onChange={(e) => setName(e.target.value)}
                             placeholder="Full name"
-                            className="h-11 rounded-xl"
+                            type="text"
+                            value={name}
                           />
                         </div>
 
                         <div className="space-y-2">
                           <Label htmlFor="role">Role</Label>
                           <Select
-                            value={role}
                             onValueChange={(value) =>
                               setRole(value as "coach" | "athlete")
                             }
+                            value={role}
                           >
                             <SelectTrigger className="h-11 rounded-xl">
                               <SelectValue />
@@ -545,92 +551,92 @@ export default function RosterPage() {
                     </div>
 
                     {/* Contact Information */}
-                    <div className="bg-muted/30 rounded-xl p-6">
-                      <h3 className="font-semibold text-lg mb-6 text-foreground">
+                    <div className="rounded-xl bg-muted/30 p-6">
+                      <h3 className="mb-6 font-semibold text-foreground text-lg">
                         Contact Information
                       </h3>
                       <div className="grid grid-cols-2 gap-6">
                         <div className="space-y-2">
                           <Label htmlFor="phone">Primary Phone</Label>
                           <Input
+                            className="h-11 rounded-xl"
                             id="phone"
-                            type="tel"
-                            value={phone}
                             onChange={(e) => setPhone(e.target.value)}
                             placeholder="Phone number"
-                            className="h-11 rounded-xl"
+                            type="tel"
+                            value={phone}
                           />
                         </div>
 
                         <div className="space-y-2">
                           <Label htmlFor="address">Address</Label>
                           <Input
-                            ref={addressInputRef}
+                            autoComplete="off"
+                            className="h-11 rounded-xl"
                             id="address"
-                            type="text"
-                            value={address}
                             onChange={(e) => setAddress(e.target.value)}
                             placeholder="Street address"
-                            className="h-11 rounded-xl"
-                            autoComplete="off"
+                            ref={addressInputRef}
+                            type="text"
+                            value={address}
                           />
                         </div>
 
                         <div className="space-y-2">
                           <Label htmlFor="cellPhone">Cell Phone</Label>
                           <Input
+                            className="h-11 rounded-xl"
                             id="cellPhone"
-                            type="tel"
-                            value={cellPhone}
                             onChange={(e) => setCellPhone(e.target.value)}
                             placeholder="Cell phone"
-                            className="h-11 rounded-xl"
+                            type="tel"
+                            value={cellPhone}
                           />
                         </div>
 
                         <div className="space-y-2">
                           <Label htmlFor="homePhone">Home Phone</Label>
                           <Input
+                            className="h-11 rounded-xl"
                             id="homePhone"
-                            type="tel"
-                            value={homePhone}
                             onChange={(e) => setHomePhone(e.target.value)}
                             placeholder="Home phone"
-                            className="h-11 rounded-xl"
+                            type="tel"
+                            value={homePhone}
                           />
                         </div>
 
                         <div className="space-y-2">
                           <Label htmlFor="workPhone">Work Phone</Label>
                           <Input
+                            className="h-11 rounded-xl"
                             id="workPhone"
-                            type="tel"
-                            value={workPhone}
                             onChange={(e) => setWorkPhone(e.target.value)}
                             placeholder="Work phone"
-                            className="h-11 rounded-xl"
+                            type="tel"
+                            value={workPhone}
                           />
                         </div>
                       </div>
                     </div>
 
                     {/* Emergency Contact */}
-                    <div className="bg-muted/30 rounded-xl p-6">
-                      <h3 className="font-semibold text-lg mb-6 text-foreground">
+                    <div className="rounded-xl bg-muted/30 p-6">
+                      <h3 className="mb-6 font-semibold text-foreground text-lg">
                         Emergency Contact
                       </h3>
                       <div className="grid grid-cols-2 gap-6">
                         <div className="space-y-2">
                           <Label htmlFor="emergencyContactName">Name</Label>
                           <Input
+                            className="h-11 rounded-xl"
                             id="emergencyContactName"
-                            type="text"
-                            value={emergencyContactName}
                             onChange={(e) =>
                               setEmergencyContactName(e.target.value)
                             }
                             placeholder="Emergency contact name"
-                            className="h-11 rounded-xl"
+                            type="text"
+                            value={emergencyContactName}
                           />
                         </div>
 
@@ -639,42 +645,42 @@ export default function RosterPage() {
                             Relationship
                           </Label>
                           <Input
+                            className="h-11 rounded-xl"
                             id="emergencyContactRelationship"
-                            type="text"
-                            value={emergencyContactRelationship}
                             onChange={(e) =>
                               setEmergencyContactRelationship(e.target.value)
                             }
                             placeholder="e.g., Parent, Spouse"
-                            className="h-11 rounded-xl"
+                            type="text"
+                            value={emergencyContactRelationship}
                           />
                         </div>
 
                         <div className="space-y-2">
                           <Label htmlFor="emergencyContactPhone">Phone</Label>
                           <Input
+                            className="h-11 rounded-xl"
                             id="emergencyContactPhone"
-                            type="tel"
-                            value={emergencyContactPhone}
                             onChange={(e) =>
                               setEmergencyContactPhone(e.target.value)
                             }
                             placeholder="Emergency contact phone"
-                            className="h-11 rounded-xl"
+                            type="tel"
+                            value={emergencyContactPhone}
                           />
                         </div>
 
                         <div className="space-y-2">
                           <Label htmlFor="emergencyContactEmail">Email</Label>
                           <Input
+                            className="h-11 rounded-xl"
                             id="emergencyContactEmail"
-                            type="email"
-                            value={emergencyContactEmail}
                             onChange={(e) =>
                               setEmergencyContactEmail(e.target.value)
                             }
                             placeholder="Emergency contact email"
-                            className="h-11 rounded-xl"
+                            type="email"
+                            value={emergencyContactEmail}
                           />
                         </div>
                       </div>
@@ -682,20 +688,20 @@ export default function RosterPage() {
                   </form>
                 </div>
               </div>
-              <div className="shrink-0 px-6 py-4 border-t dark:border-border/70 bg-background sticky bottom-0 z-10">
+              <div className="sticky bottom-0 z-10 shrink-0 border-t bg-background px-6 py-4 dark:border-border/70">
                 <div className="flex justify-end gap-3">
                   <Button
-                    variant="outline"
-                    onClick={() => setIsAddMemberDialogOpen(false)}
                     className="rounded-xl"
+                    onClick={() => setIsAddMemberDialogOpen(false)}
+                    variant="outline"
                   >
                     Cancel
                   </Button>
                   <Button
-                    type="submit"
-                    form="add-member-form"
-                    disabled={loading || !email}
                     className="rounded-xl"
+                    disabled={loading || !email}
+                    form="add-member-form"
+                    type="submit"
                   >
                     {loading ? "Sending..." : "Send Invitation"}
                   </Button>
@@ -706,13 +712,13 @@ export default function RosterPage() {
         </Dialog>
       </PageHeader>
 
-      <div className="flex-1 overflow-hidden min-h-0">
+      <div className="min-h-0 flex-1 overflow-hidden">
         <div className="h-full overflow-auto">
           <div className="space-y-4">
             {loading && roster.length === 0 ? (
               <Card className="rounded-none sm:rounded-xl">
                 <CardHeader>
-                  <Skeleton className="h-6 w-48 mb-2" />
+                  <Skeleton className="mb-2 h-6 w-48" />
                   <Skeleton className="h-4 w-64" />
                 </CardHeader>
                 <CardContent>
@@ -720,8 +726,8 @@ export default function RosterPage() {
                     <div className="space-y-2">
                       {[1, 2, 3, 4, 5].map((i) => (
                         <div
+                          className="flex items-center justify-between rounded-xl p-3"
                           key={i}
-                          className="flex items-center justify-between p-3 rounded-xl"
                         >
                           <div className="flex items-center gap-3">
                             <Skeleton className="h-12 w-12 rounded-xl" />
@@ -747,22 +753,22 @@ export default function RosterPage() {
                 </CardContent>
               </Card>
             ) : (
-              <div className="w-full h-full flex flex-col">
-                <div className="flex-1 min-h-0 overflow-hidden">
+              <div className="flex h-full w-full flex-col">
+                <div className="min-h-0 flex-1 overflow-hidden">
                   <ScrollArea className="h-full">
                     <div>
                       {/* Coaches Section */}
                       {roster.filter(
-                        (m) => m.role === "coach" || m.role === "owner",
+                        (m) => m.role === "coach" || m.role === "owner"
                       ).length > 0 && (
                         <div className="my-8 lg:mb-6">
-                          <div className="flex items-center gap-3 px-4 lg:px-6 mb-5 lg:mb-3">
-                            <h3 className="font-semibold text-base text-foreground lg:text-sm lg:text-muted-foreground shrink-0">
+                          <div className="mb-5 flex items-center gap-3 px-4 lg:mb-3 lg:px-6">
+                            <h3 className="shrink-0 font-semibold text-base text-foreground lg:text-muted-foreground lg:text-sm">
                               Coaches (
                               {
                                 roster.filter(
                                   (m) =>
-                                    m.role === "coach" || m.role === "owner",
+                                    m.role === "coach" || m.role === "owner"
                                 ).length
                               }
                               )
@@ -773,24 +779,24 @@ export default function RosterPage() {
                           <div className="lg:hidden">
                             {roster
                               .filter(
-                                (m) => m.role === "coach" || m.role === "owner",
+                                (m) => m.role === "coach" || m.role === "owner"
                               )
                               .map((member) => (
                                 <button
+                                  className="flex w-full items-center gap-3 border-border/50 border-b px-4 py-3 transition-colors last:border-b-0 active:bg-muted/50 dark:border-border/70"
                                   key={member.id}
-                                  type="button"
                                   onClick={() => {
                                     setSelectedMember(member);
                                     setIsMemberDrawerOpen(true);
                                   }}
-                                  className="w-full px-4 py-3 flex items-center gap-3 active:bg-muted/50 transition-colors border-b border-border/50 dark:border-border/70 last:border-b-0"
+                                  type="button"
                                 >
-                                  <Avatar className="h-11 w-11 rounded-full shrink-0">
+                                  <Avatar className="h-11 w-11 shrink-0 rounded-full">
                                     <AvatarImage
-                                      src={member.avatarUrl || undefined}
                                       alt={member.name || member.email}
+                                      src={member.avatarUrl || undefined}
                                     />
-                                    <AvatarFallback className="rounded-full text-sm font-medium">
+                                    <AvatarFallback className="rounded-full font-medium text-sm">
                                       {member.name
                                         ? member.name
                                             .split(" ")
@@ -801,23 +807,23 @@ export default function RosterPage() {
                                         : member.email.charAt(0).toUpperCase()}
                                     </AvatarFallback>
                                   </Avatar>
-                                  <div className="flex-1 min-w-0 text-left">
-                                    <div className="flex items-center gap-2 mb-0.5">
-                                      <span className="font-medium text-sm truncate">
+                                  <div className="min-w-0 flex-1 text-left">
+                                    <div className="mb-0.5 flex items-center gap-2">
+                                      <span className="truncate font-medium text-sm">
                                         {member.name || "Unnamed"}
                                       </span>
                                       <Badge
+                                        className="h-4 shrink-0 rounded-full px-1.5 py-0 font-medium text-[9px]"
                                         variant={
                                           member.role === "owner"
                                             ? "default"
                                             : "secondary"
                                         }
-                                        className="rounded-full text-[9px] px-1.5 py-0 shrink-0 font-medium h-4"
                                       >
                                         {formatRoleDisplay(member.role)}
                                       </Badge>
                                     </div>
-                                    <p className="text-xs text-muted-foreground truncate">
+                                    <p className="truncate text-muted-foreground text-xs">
                                       {member.email}
                                     </p>
                                   </div>
@@ -844,23 +850,23 @@ export default function RosterPage() {
                                 {roster
                                   .filter(
                                     (m) =>
-                                      m.role === "coach" || m.role === "owner",
+                                      m.role === "coach" || m.role === "owner"
                                   )
                                   .map((member) => (
-                                    <TableRow key={member.id} className="group">
+                                    <TableRow className="group" key={member.id}>
                                       <TableCell>
                                         <Link
-                                          href={`/roster/${member.id}`}
                                           className="flex items-center gap-3 hover:underline"
+                                          href={`/roster/${member.id}`}
                                         >
-                                          <Avatar className="h-8 w-8 rounded-lg shrink-0">
+                                          <Avatar className="h-8 w-8 shrink-0 rounded-lg">
                                             <AvatarImage
+                                              alt={member.name || member.email}
                                               src={
                                                 member.avatarUrl || undefined
                                               }
-                                              alt={member.name || member.email}
                                             />
-                                            <AvatarFallback className="rounded-lg text-xs font-semibold">
+                                            <AvatarFallback className="rounded-lg font-semibold text-xs">
                                               {member.name
                                                 ? member.name
                                                     .split(" ")
@@ -874,37 +880,37 @@ export default function RosterPage() {
                                             </AvatarFallback>
                                           </Avatar>
                                           <div className="min-w-0">
-                                            <div className="font-medium text-sm flex items-center gap-2">
+                                            <div className="flex items-center gap-2 font-medium text-sm">
                                               {member.name || "Unnamed"}
                                               <Badge
+                                                className="rounded-md px-1.5 py-0 text-[10px]"
                                                 variant={
                                                   member.role === "owner"
                                                     ? "default"
                                                     : "secondary"
                                                 }
-                                                className="rounded-md text-[10px] px-1.5 py-0"
                                               >
                                                 {formatRoleDisplay(member.role)}
                                               </Badge>
                                             </div>
                                             <button
-                                              type="button"
+                                              className="m-0 block cursor-pointer truncate border-0 bg-transparent p-0 text-left text-muted-foreground text-xs hover:text-foreground hover:underline"
                                               onClick={(e) => {
                                                 e.stopPropagation();
                                                 window.location.href = `mailto:${member.email}`;
                                               }}
-                                              className="text-xs text-muted-foreground hover:text-foreground hover:underline truncate block cursor-pointer text-left bg-transparent border-0 p-0 m-0"
+                                              type="button"
                                             >
                                               {member.email}
                                             </button>
                                             {member.altEmail && (
                                               <button
-                                                type="button"
+                                                className="m-0 block cursor-pointer truncate border-0 bg-transparent p-0 text-left text-muted-foreground/70 text-xs hover:text-foreground hover:underline"
                                                 onClick={(e) => {
                                                   e.stopPropagation();
                                                   window.location.href = `mailto:${member.altEmail}`;
                                                 }}
-                                                className="text-xs text-muted-foreground/70 hover:text-foreground hover:underline truncate block cursor-pointer text-left bg-transparent border-0 p-0 m-0"
+                                                type="button"
                                               >
                                                 {member.altEmail}
                                               </button>
@@ -915,15 +921,15 @@ export default function RosterPage() {
                                       <TableCell>
                                         {member.phone ? (
                                           <a
+                                            className="flex items-center gap-1.5 text-muted-foreground text-sm hover:text-foreground hover:underline"
                                             href={`tel:${member.phone.replace(/\D/g, "")}`}
                                             onClick={(e) => e.stopPropagation()}
-                                            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground hover:underline"
                                           >
                                             <IconPhone className="h-3.5 w-3.5 shrink-0" />
                                             <span>{member.phone}</span>
                                           </a>
                                         ) : (
-                                          <span className="text-sm text-muted-foreground">
+                                          <span className="text-muted-foreground text-sm">
                                             —
                                           </span>
                                         )}
@@ -931,20 +937,20 @@ export default function RosterPage() {
                                       <TableCell className="text-right">
                                         <div className="flex items-center justify-end gap-2">
                                           <a
+                                            className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted transition-colors hover:bg-primary/10"
                                             href={`mailto:${member.email}`}
                                             onClick={(e) => e.stopPropagation()}
-                                            className="h-8 w-8 rounded-lg bg-muted hover:bg-primary/10 flex items-center justify-center transition-colors"
                                             title="Email"
                                           >
                                             <IconMail className="h-4 w-4 text-muted-foreground" />
                                           </a>
                                           {member.phone && (
                                             <a
+                                              className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted transition-colors hover:bg-primary/10"
                                               href={`tel:${member.phone.replace(/\D/g, "")}`}
                                               onClick={(e) =>
                                                 e.stopPropagation()
                                               }
-                                              className="h-8 w-8 rounded-lg bg-muted hover:bg-primary/10 flex items-center justify-center transition-colors"
                                               title="Call"
                                             >
                                               <IconPhone className="h-4 w-4 text-muted-foreground" />
@@ -956,12 +962,12 @@ export default function RosterPage() {
                                             <DropdownMenu>
                                               <DropdownMenuTrigger asChild>
                                                 <Button
-                                                  variant="ghost"
-                                                  size="icon"
                                                   className="h-8 w-8"
                                                   onClick={(e) =>
                                                     e.stopPropagation()
                                                   }
+                                                  size="icon"
+                                                  variant="ghost"
                                                 >
                                                   <IconDotsVertical className="h-4 w-4" />
                                                 </Button>
@@ -971,11 +977,11 @@ export default function RosterPage() {
                                                 className="rounded-xl"
                                               >
                                                 <DropdownMenuItem
+                                                  className="gap-2"
                                                   onClick={(e) => {
                                                     e.stopPropagation();
                                                     openEditDialog(member);
                                                   }}
-                                                  className="gap-2"
                                                 >
                                                   <IconEdit className="h-4 w-4" />
                                                   Edit Member
@@ -985,13 +991,13 @@ export default function RosterPage() {
                                                     <>
                                                       <DropdownMenuSeparator />
                                                       <DropdownMenuItem
+                                                        className="gap-2 text-destructive focus:text-destructive"
                                                         onClick={(e) => {
                                                           e.stopPropagation();
                                                           openDeleteDialog(
-                                                            member,
+                                                            member
                                                           );
                                                         }}
-                                                        className="gap-2 text-destructive focus:text-destructive"
                                                       >
                                                         <IconTrash className="h-4 w-4" />
                                                         Remove from Club
@@ -1015,8 +1021,8 @@ export default function RosterPage() {
                       {roster.filter((m) => m.role === "athlete").length >
                         0 && (
                         <div>
-                          <div className="flex items-center gap-3 px-4 lg:px-6 mb-5 lg:mb-3">
-                            <h3 className="font-semibold text-base text-foreground lg:text-sm lg:text-muted-foreground shrink-0">
+                          <div className="mb-5 flex items-center gap-3 px-4 lg:mb-3 lg:px-6">
+                            <h3 className="shrink-0 font-semibold text-base text-foreground lg:text-muted-foreground lg:text-sm">
                               Athletes (
                               {
                                 roster.filter((m) => m.role === "athlete")
@@ -1032,20 +1038,20 @@ export default function RosterPage() {
                               .filter((m) => m.role === "athlete")
                               .map((member) => (
                                 <button
+                                  className="flex w-full items-center gap-3 border-border/50 border-b px-4 py-3 transition-colors last:border-b-0 active:bg-muted/50 dark:border-border/70"
                                   key={member.id}
-                                  type="button"
                                   onClick={() => {
                                     setSelectedMember(member);
                                     setIsMemberDrawerOpen(true);
                                   }}
-                                  className="w-full px-4 py-3 flex items-center gap-3 active:bg-muted/50 transition-colors border-b border-border/50 dark:border-border/70 last:border-b-0"
+                                  type="button"
                                 >
-                                  <Avatar className="h-11 w-11 rounded-full shrink-0">
+                                  <Avatar className="h-11 w-11 shrink-0 rounded-full">
                                     <AvatarImage
-                                      src={member.avatarUrl || undefined}
                                       alt={member.name || member.email}
+                                      src={member.avatarUrl || undefined}
                                     />
-                                    <AvatarFallback className="rounded-full text-sm font-medium">
+                                    <AvatarFallback className="rounded-full font-medium text-sm">
                                       {member.name
                                         ? member.name
                                             .split(" ")
@@ -1056,11 +1062,11 @@ export default function RosterPage() {
                                         : member.email.charAt(0).toUpperCase()}
                                     </AvatarFallback>
                                   </Avatar>
-                                  <div className="flex-1 min-w-0 text-left">
-                                    <span className="font-medium text-sm truncate block mb-0.5">
+                                  <div className="min-w-0 flex-1 text-left">
+                                    <span className="mb-0.5 block truncate font-medium text-sm">
                                       {member.name || "Unnamed"}
                                     </span>
-                                    <p className="text-xs text-muted-foreground truncate">
+                                    <p className="truncate text-muted-foreground text-xs">
                                       {member.email}
                                     </p>
                                   </div>
@@ -1090,20 +1096,20 @@ export default function RosterPage() {
                                 {roster
                                   .filter((m) => m.role === "athlete")
                                   .map((member) => (
-                                    <TableRow key={member.id} className="group">
+                                    <TableRow className="group" key={member.id}>
                                       <TableCell>
                                         <Link
-                                          href={`/roster/${member.id}`}
                                           className="flex items-center gap-3 hover:underline"
+                                          href={`/roster/${member.id}`}
                                         >
-                                          <Avatar className="h-8 w-8 rounded-lg shrink-0">
+                                          <Avatar className="h-8 w-8 shrink-0 rounded-lg">
                                             <AvatarImage
+                                              alt={member.name || member.email}
                                               src={
                                                 member.avatarUrl || undefined
                                               }
-                                              alt={member.name || member.email}
                                             />
-                                            <AvatarFallback className="rounded-lg text-xs font-semibold">
+                                            <AvatarFallback className="rounded-lg font-semibold text-xs">
                                               {member.name
                                                 ? member.name
                                                     .split(" ")
@@ -1121,23 +1127,23 @@ export default function RosterPage() {
                                               {member.name || "Unnamed"}
                                             </div>
                                             <button
-                                              type="button"
+                                              className="m-0 block cursor-pointer truncate border-0 bg-transparent p-0 text-left text-muted-foreground text-xs hover:text-foreground hover:underline"
                                               onClick={(e) => {
                                                 e.stopPropagation();
                                                 window.location.href = `mailto:${member.email}`;
                                               }}
-                                              className="text-xs text-muted-foreground hover:text-foreground hover:underline truncate block cursor-pointer text-left bg-transparent border-0 p-0 m-0"
+                                              type="button"
                                             >
                                               {member.email}
                                             </button>
                                             {member.altEmail && (
                                               <button
-                                                type="button"
+                                                className="m-0 block cursor-pointer truncate border-0 bg-transparent p-0 text-left text-muted-foreground/70 text-xs hover:text-foreground hover:underline"
                                                 onClick={(e) => {
                                                   e.stopPropagation();
                                                   window.location.href = `mailto:${member.altEmail}`;
                                                 }}
-                                                className="text-xs text-muted-foreground/70 hover:text-foreground hover:underline truncate block cursor-pointer text-left bg-transparent border-0 p-0 m-0"
+                                                type="button"
                                               >
                                                 {member.altEmail}
                                               </button>
@@ -1149,11 +1155,11 @@ export default function RosterPage() {
                                         <div className="flex flex-col gap-1 text-sm">
                                           {member.cellPhone && (
                                             <a
+                                              className="flex items-center gap-1 text-muted-foreground hover:text-foreground hover:underline"
                                               href={`tel:${member.cellPhone.replace(/\D/g, "")}`}
                                               onClick={(e) =>
                                                 e.stopPropagation()
                                               }
-                                              className="flex items-center gap-1 text-muted-foreground hover:text-foreground hover:underline"
                                             >
                                               <IconPhone className="h-3 w-3 shrink-0" />
                                               <span>
@@ -1163,11 +1169,11 @@ export default function RosterPage() {
                                           )}
                                           {member.homePhone && (
                                             <a
+                                              className="flex items-center gap-1 text-muted-foreground hover:text-foreground hover:underline"
                                               href={`tel:${member.homePhone.replace(/\D/g, "")}`}
                                               onClick={(e) =>
                                                 e.stopPropagation()
                                               }
-                                              className="flex items-center gap-1 text-muted-foreground hover:text-foreground hover:underline"
                                             >
                                               <IconPhone className="h-3 w-3 shrink-0" />
                                               <span>
@@ -1177,11 +1183,11 @@ export default function RosterPage() {
                                           )}
                                           {member.workPhone && (
                                             <a
+                                              className="flex items-center gap-1 text-muted-foreground hover:text-foreground hover:underline"
                                               href={`tel:${member.workPhone.replace(/\D/g, "")}`}
                                               onClick={(e) =>
                                                 e.stopPropagation()
                                               }
-                                              className="flex items-center gap-1 text-muted-foreground hover:text-foreground hover:underline"
                                             >
                                               <IconPhone className="h-3 w-3 shrink-0" />
                                               <span>
@@ -1194,24 +1200,26 @@ export default function RosterPage() {
                                             !member.homePhone &&
                                             !member.workPhone && (
                                               <a
+                                                className="flex items-center gap-1 text-muted-foreground hover:text-foreground hover:underline"
                                                 href={`tel:${member.phone.replace(/\D/g, "")}`}
                                                 onClick={(e) =>
                                                   e.stopPropagation()
                                                 }
-                                                className="flex items-center gap-1 text-muted-foreground hover:text-foreground hover:underline"
                                               >
                                                 <IconPhone className="h-3 w-3 shrink-0" />
                                                 <span>{member.phone}</span>
                                               </a>
                                             )}
-                                          {!member.cellPhone &&
-                                            !member.homePhone &&
-                                            !member.workPhone &&
-                                            !member.phone && (
-                                              <span className="text-muted-foreground">
-                                                —
-                                              </span>
-                                            )}
+                                          {!(
+                                            member.cellPhone ||
+                                            member.homePhone ||
+                                            member.workPhone ||
+                                            member.phone
+                                          ) && (
+                                            <span className="text-muted-foreground">
+                                              —
+                                            </span>
+                                          )}
                                         </div>
                                       </TableCell>
                                       <TableCell>
@@ -1232,11 +1240,11 @@ export default function RosterPage() {
                                             </span>
                                             {member.emergencyContactPhone && (
                                               <a
+                                                className="flex items-center gap-1 text-muted-foreground hover:text-foreground hover:underline"
                                                 href={`tel:${member.emergencyContactPhone.replace(/\D/g, "")}`}
                                                 onClick={(e) =>
                                                   e.stopPropagation()
                                                 }
-                                                className="flex items-center gap-1 text-muted-foreground hover:text-foreground hover:underline"
                                               >
                                                 <IconPhone className="h-3 w-3 shrink-0" />
                                                 <span>
@@ -1246,11 +1254,11 @@ export default function RosterPage() {
                                             )}
                                             {member.emergencyContactEmail && (
                                               <a
+                                                className="flex items-center gap-1 text-muted-foreground hover:text-foreground hover:underline"
                                                 href={`mailto:${member.emergencyContactEmail}`}
                                                 onClick={(e) =>
                                                   e.stopPropagation()
                                                 }
-                                                className="flex items-center gap-1 text-muted-foreground hover:text-foreground hover:underline"
                                               >
                                                 <IconMail className="h-3 w-3 shrink-0" />
                                                 <span className="truncate">
@@ -1260,7 +1268,7 @@ export default function RosterPage() {
                                             )}
                                           </div>
                                         ) : (
-                                          <span className="text-sm text-muted-foreground">
+                                          <span className="text-muted-foreground text-sm">
                                             —
                                           </span>
                                         )}
@@ -1268,9 +1276,9 @@ export default function RosterPage() {
                                       <TableCell className="text-right">
                                         <div className="flex items-center justify-end gap-2">
                                           <a
+                                            className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted transition-colors hover:bg-primary/10"
                                             href={`mailto:${member.email}`}
                                             onClick={(e) => e.stopPropagation()}
-                                            className="h-8 w-8 rounded-lg bg-muted hover:bg-primary/10 flex items-center justify-center transition-colors"
                                             title="Email"
                                           >
                                             <IconMail className="h-4 w-4 text-muted-foreground" />
@@ -1278,11 +1286,11 @@ export default function RosterPage() {
                                           {(member.cellPhone ||
                                             member.phone) && (
                                             <a
+                                              className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted transition-colors hover:bg-primary/10"
                                               href={`tel:${(member.cellPhone || member.phone || "").replace(/\D/g, "")}`}
                                               onClick={(e) =>
                                                 e.stopPropagation()
                                               }
-                                              className="h-8 w-8 rounded-lg bg-muted hover:bg-primary/10 flex items-center justify-center transition-colors"
                                               title="Call"
                                             >
                                               <IconPhone className="h-4 w-4 text-muted-foreground" />
@@ -1294,12 +1302,12 @@ export default function RosterPage() {
                                             <DropdownMenu>
                                               <DropdownMenuTrigger asChild>
                                                 <Button
-                                                  variant="ghost"
-                                                  size="icon"
                                                   className="h-8 w-8"
                                                   onClick={(e) =>
                                                     e.stopPropagation()
                                                   }
+                                                  size="icon"
+                                                  variant="ghost"
                                                 >
                                                   <IconDotsVertical className="h-4 w-4" />
                                                 </Button>
@@ -1309,11 +1317,11 @@ export default function RosterPage() {
                                                 className="rounded-xl"
                                               >
                                                 <DropdownMenuItem
+                                                  className="gap-2"
                                                   onClick={(e) => {
                                                     e.stopPropagation();
                                                     openEditDialog(member);
                                                   }}
-                                                  className="gap-2"
                                                 >
                                                   <IconEdit className="h-4 w-4" />
                                                   Edit Member
@@ -1323,13 +1331,13 @@ export default function RosterPage() {
                                                     <>
                                                       <DropdownMenuSeparator />
                                                       <DropdownMenuItem
+                                                        className="gap-2 text-destructive focus:text-destructive"
                                                         onClick={(e) => {
                                                           e.stopPropagation();
                                                           openDeleteDialog(
-                                                            member,
+                                                            member
                                                           );
                                                         }}
-                                                        className="gap-2 text-destructive focus:text-destructive"
                                                       >
                                                         <IconTrash className="h-4 w-4" />
                                                         Remove from Club
@@ -1358,7 +1366,7 @@ export default function RosterPage() {
       </div>
 
       {/* Edit Member Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+      <Dialog onOpenChange={setIsEditDialogOpen} open={isEditDialogOpen}>
         <DialogContent className="rounded-xl">
           <DialogHeader>
             <DialogTitle>Edit Member</DialogTitle>
@@ -1369,85 +1377,85 @@ export default function RosterPage() {
           <ScrollArea className="max-h-[70vh]">
             <div className="space-y-4 py-4 pr-4">
               {error && (
-                <div className="bg-destructive/10 text-destructive rounded-xl p-3 text-sm">
+                <div className="rounded-xl bg-destructive/10 p-3 text-destructive text-sm">
                   {error}
                 </div>
               )}
               <div className="space-y-2">
                 <Label>Athlete Name</Label>
                 <Input
-                  value={editForm.name}
+                  className="h-11 rounded-xl"
                   onChange={(e) =>
                     setEditForm({ ...editForm, name: e.target.value })
                   }
                   placeholder="Full name"
-                  className="h-11 rounded-xl"
+                  value={editForm.name}
                 />
               </div>
               <div className="space-y-2">
                 <Label>Athlete Address</Label>
                 <Input
-                  ref={editAddressInputRef}
-                  value={editForm.address}
+                  autoComplete="off"
+                  className="h-11 rounded-xl"
                   onChange={(e) =>
                     setEditForm({ ...editForm, address: e.target.value })
                   }
                   placeholder="Address"
-                  className="h-11 rounded-xl"
-                  autoComplete="off"
+                  ref={editAddressInputRef}
+                  value={editForm.address}
                 />
               </div>
               <div className="space-y-2">
                 <Label>Alternate Email</Label>
                 <Input
-                  type="email"
-                  value={editForm.altEmail}
+                  className="h-11 rounded-xl"
                   onChange={(e) =>
                     setEditForm({ ...editForm, altEmail: e.target.value })
                   }
                   placeholder="Alternate email address"
-                  className="h-11 rounded-xl"
+                  type="email"
+                  value={editForm.altEmail}
                 />
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Home Phone Number</Label>
                   <Input
-                    value={editForm.homePhone}
+                    className="h-11 rounded-xl"
                     onChange={(e) =>
                       setEditForm({ ...editForm, homePhone: e.target.value })
                     }
                     placeholder="Home phone"
-                    className="h-11 rounded-xl"
+                    value={editForm.homePhone}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label>Work Phone Number</Label>
                   <Input
-                    value={editForm.workPhone}
+                    className="h-11 rounded-xl"
                     onChange={(e) =>
                       setEditForm({ ...editForm, workPhone: e.target.value })
                     }
                     placeholder="Work phone"
-                    className="h-11 rounded-xl"
+                    value={editForm.workPhone}
                   />
                 </div>
               </div>
               <div className="space-y-2">
                 <Label>Cell Number</Label>
                 <Input
-                  value={editForm.cellPhone}
+                  className="h-11 rounded-xl"
                   onChange={(e) =>
                     setEditForm({ ...editForm, cellPhone: e.target.value })
                   }
                   placeholder="Cell phone"
-                  className="h-11 rounded-xl"
+                  value={editForm.cellPhone}
                 />
               </div>
               <div className="space-y-2">
                 <Label>Emergency Contact Name</Label>
                 <Input
-                  value={editForm.emergencyContactName}
+                  className="h-11 rounded-xl"
                   onChange={(e) =>
                     setEditForm({
                       ...editForm,
@@ -1455,14 +1463,14 @@ export default function RosterPage() {
                     })
                   }
                   placeholder="Emergency contact name"
-                  className="h-11 rounded-xl"
+                  value={editForm.emergencyContactName}
                 />
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Emergency Contact Phone</Label>
                   <Input
-                    value={editForm.emergencyContactPhone}
+                    className="h-11 rounded-xl"
                     onChange={(e) =>
                       setEditForm({
                         ...editForm,
@@ -1470,13 +1478,13 @@ export default function RosterPage() {
                       })
                     }
                     placeholder="Emergency contact phone"
-                    className="h-11 rounded-xl"
+                    value={editForm.emergencyContactPhone}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label>Relationship to Athlete</Label>
                   <Input
-                    value={editForm.emergencyContactRelationship}
+                    className="h-11 rounded-xl"
                     onChange={(e) =>
                       setEditForm({
                         ...editForm,
@@ -1484,15 +1492,14 @@ export default function RosterPage() {
                       })
                     }
                     placeholder="Parent, Guardian, etc."
-                    className="h-11 rounded-xl"
+                    value={editForm.emergencyContactRelationship}
                   />
                 </div>
               </div>
               <div className="space-y-2">
                 <Label>Emergency Contact Email Address</Label>
                 <Input
-                  type="email"
-                  value={editForm.emergencyContactEmail}
+                  className="h-11 rounded-xl"
                   onChange={(e) =>
                     setEditForm({
                       ...editForm,
@@ -1500,17 +1507,18 @@ export default function RosterPage() {
                     })
                   }
                   placeholder="Emergency contact email"
-                  className="h-11 rounded-xl"
+                  type="email"
+                  value={editForm.emergencyContactEmail}
                 />
               </div>
               {isOwner && editingMember?.role !== "owner" && (
                 <div className="space-y-2">
                   <Label>Role</Label>
                   <Select
-                    value={editForm.role}
                     onValueChange={(value) =>
                       setEditForm({ ...editForm, role: value })
                     }
+                    value={editForm.role}
                   >
                     <SelectTrigger className="h-11 rounded-xl">
                       <SelectValue />
@@ -1526,11 +1534,11 @@ export default function RosterPage() {
                 <div className="space-y-2">
                   <Label>Role</Label>
                   <Input
-                    value="Head Coach"
-                    disabled
                     className="h-11 rounded-xl bg-muted"
+                    disabled
+                    value="Head Coach"
                   />
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-muted-foreground text-xs">
                     Head Coach role cannot be changed
                   </p>
                 </div>
@@ -1539,16 +1547,16 @@ export default function RosterPage() {
           </ScrollArea>
           <DialogFooter>
             <Button
-              variant="outline"
-              onClick={() => setIsEditDialogOpen(false)}
               className="rounded-xl"
+              onClick={() => setIsEditDialogOpen(false)}
+              variant="outline"
             >
               Cancel
             </Button>
             <Button
-              onClick={handleSaveEdit}
-              disabled={saving}
               className="rounded-xl"
+              disabled={saving}
+              onClick={handleSaveEdit}
             >
               {saving ? "Saving..." : "Save Changes"}
             </Button>
@@ -1557,7 +1565,7 @@ export default function RosterPage() {
       </Dialog>
 
       {/* Delete Member Dialog */}
-      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+      <Dialog onOpenChange={setIsDeleteDialogOpen} open={isDeleteDialogOpen}>
         <DialogContent className="rounded-xl">
           <DialogHeader>
             <DialogTitle className="text-destructive">
@@ -1571,17 +1579,17 @@ export default function RosterPage() {
           </DialogHeader>
           <DialogFooter>
             <Button
-              variant="outline"
-              onClick={() => setIsDeleteDialogOpen(false)}
               className="rounded-xl"
+              onClick={() => setIsDeleteDialogOpen(false)}
+              variant="outline"
             >
               Cancel
             </Button>
             <Button
-              variant="destructive"
-              onClick={handleDeleteMember}
-              disabled={deleting}
               className="rounded-xl"
+              disabled={deleting}
+              onClick={handleDeleteMember}
+              variant="destructive"
             >
               {deleting ? "Removing..." : "Remove Member"}
             </Button>
@@ -1592,19 +1600,19 @@ export default function RosterPage() {
       {/* Mobile Member Actions Drawer */}
       {selectedMember && (
         <MobileMemberActions
-          member={selectedMember}
-          userRole={currentUserRole}
           isOwner={isOwner}
-          open={isMemberDrawerOpen}
-          onOpenChange={setIsMemberDrawerOpen}
-          onEdit={() => {
-            setIsMemberDrawerOpen(false);
-            openEditDialog(selectedMember);
-          }}
+          member={selectedMember}
           onDelete={() => {
             setIsMemberDrawerOpen(false);
             openDeleteDialog(selectedMember);
           }}
+          onEdit={() => {
+            setIsMemberDrawerOpen(false);
+            openEditDialog(selectedMember);
+          }}
+          onOpenChange={setIsMemberDrawerOpen}
+          open={isMemberDrawerOpen}
+          userRole={currentUserRole}
         />
       )}
     </div>

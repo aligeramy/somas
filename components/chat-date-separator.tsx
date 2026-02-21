@@ -11,9 +11,9 @@ export function ChatDateSeparator({ date }: ChatDateSeparatorProps) {
   const formattedDate = format(date, "MMM d");
 
   return (
-    <div className="flex items-center gap-3 my-4">
+    <div className="my-4 flex items-center gap-3">
       <Separator className="flex-1" />
-      <span className="text-xs text-muted-foreground font-medium">
+      <span className="font-medium text-muted-foreground text-xs">
         {formattedDate}
       </span>
       <Separator className="flex-1" />

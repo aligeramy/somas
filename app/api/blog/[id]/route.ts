@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export async function GET(
   _request: Request,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
@@ -25,10 +25,10 @@ export async function GET(
       .where(eq(users.id, user.id))
       .limit(1);
 
-    if (!dbUser || !dbUser.gymId) {
+    if (!dbUser?.gymId) {
       return NextResponse.json(
         { error: "User must belong to a club" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -61,14 +61,14 @@ export async function GET(
     console.error("Blog post fetch error:", error);
     return NextResponse.json(
       { error: "Failed to fetch blog post" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
 
 export async function PUT(
   request: Request,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
@@ -107,10 +107,10 @@ export async function PUT(
       }
     }
 
-    if (!dbUser || !dbUser.gymId) {
+    if (!dbUser?.gymId) {
       return NextResponse.json(
         { error: "User must belong to a club" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -196,7 +196,7 @@ export async function PUT(
 
 export async function DELETE(
   _request: Request,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
@@ -234,10 +234,10 @@ export async function DELETE(
       }
     }
 
-    if (!dbUser || !dbUser.gymId) {
+    if (!dbUser?.gymId) {
       return NextResponse.json(
         { error: "User must belong to a club" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 

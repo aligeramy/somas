@@ -16,7 +16,7 @@ envFile.split("\n").forEach((line) => {
 const supabaseUrl = envVars.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = envVars.SUPABASE_SERVICE_ROLE_KEY;
 
-if (!supabaseUrl || !supabaseServiceKey) {
+if (!(supabaseUrl && supabaseServiceKey)) {
   throw new Error("Missing Supabase environment variables");
 }
 
@@ -65,40 +65,40 @@ async function updatePasswords() {
     const email = USER_EMAILS[userId];
     const authUser = authUsers.users.find((u) => u.email === email);
 
-    if (!authUser) {
+    if (authUser) {
+      // Update existing user's password
+      const { error: updateError } =
+        await supabaseAdmin.auth.admin.updateUserById(authUser.id, {
+          password,
+        });
+
+      if (updateError) {
+        console.error(
+          `❌ Failed to update password for ${email}:`,
+          updateError.message
+        );
+        results.push({ email, success: false, error: updateError.message });
+      } else {
+        console.log(`✅ Updated password for: ${email} (${password})`);
+        results.push({ email, success: true });
+      }
+    } else {
       console.log(`⚠️  User not found in Auth: ${email}`);
       // Create user if doesn't exist
       const { error: createError } = await supabaseAdmin.auth.admin.createUser({
-        email: email,
-        password: password,
+        email,
+        password,
         email_confirm: true,
       });
 
       if (createError) {
         console.error(
           `❌ Failed to create user ${email}:`,
-          createError.message,
+          createError.message
         );
         results.push({ email, success: false, error: createError.message });
       } else {
         console.log(`✅ Created and set password for: ${email} (${password})`);
-        results.push({ email, success: true });
-      }
-    } else {
-      // Update existing user's password
-      const { error: updateError } =
-        await supabaseAdmin.auth.admin.updateUserById(authUser.id, {
-          password: password,
-        });
-
-      if (updateError) {
-        console.error(
-          `❌ Failed to update password for ${email}:`,
-          updateError.message,
-        );
-        results.push({ email, success: false, error: updateError.message });
-      } else {
-        console.log(`✅ Updated password for: ${email} (${password})`);
         results.push({ email, success: true });
       }
     }

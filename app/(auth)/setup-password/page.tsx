@@ -237,17 +237,24 @@ function SetupPasswordForm() {
               )}
               <CardTitle>
                 {(() => {
-                  if (linkSent && !error) return "Email Sent";
-                  if (isLinkExpired || error) return "Link Expired";
+                  if (linkSent && !error) {
+                    return "Email Sent";
+                  }
+                  if (isLinkExpired || error) {
+                    return "Link Expired";
+                  }
                   return "Password Setup Required";
                 })()}
               </CardTitle>
             </div>
             <CardDescription
               className={(() => {
-                if (linkSent && !error)
+                if (linkSent && !error) {
                   return "text-green-600 dark:text-green-400";
-                if (error) return "text-destructive";
+                }
+                if (error) {
+                  return "text-destructive";
+                }
                 return "";
               })()}
             >
@@ -258,7 +265,9 @@ function SetupPasswordForm() {
           </CardHeader>
           <CardContent className="space-y-4">
             {(() => {
-              if (linkSent && !error) return null;
+              if (linkSent && !error) {
+                return null;
+              }
               if (email) {
                 return (
                   <Button
@@ -307,9 +316,12 @@ function SetupPasswordForm() {
           <CardTitle>Set Up Your Password</CardTitle>
           <CardDescription>
             {(() => {
-              if (isAuthenticated)
+              if (isAuthenticated) {
                 return `Create a secure password for ${email || "your account"}`;
-              if (email) return `Create a secure password for ${email}`;
+              }
+              if (email) {
+                return `Create a secure password for ${email}`;
+              }
               return "Create a secure password for your account";
             })()}
           </CardDescription>

@@ -21,10 +21,10 @@ export async function GET(request: Request) {
       .where(eq(users.id, user.id))
       .limit(1);
 
-    if (!dbUser || !dbUser.gymId) {
+    if (!dbUser?.gymId) {
       return NextResponse.json(
         { error: "User must belong to a gym" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -41,7 +41,7 @@ export async function GET(request: Request) {
 
     if (!existingGlobal) {
       await db.insert(channels).values({
-        gymId: gymId,
+        gymId,
         name: "Club Chat",
         type: "global",
         eventId: null,
@@ -57,8 +57,8 @@ export async function GET(request: Request) {
           and(
             eq(channels.gymId, gymId),
             eq(channels.eventId, eventId),
-            eq(channels.type, "group"),
-          ),
+            eq(channels.type, "group")
+          )
         )
         .limit(1);
 
@@ -74,10 +74,10 @@ export async function GET(request: Request) {
 
         try {
           await db.insert(channels).values({
-            gymId: gymId,
+            gymId,
             name: channelName,
             type: "group",
-            eventId: eventId,
+            eventId,
           });
         } catch (insertError) {
           // Channel might have been created by another request, ignore error
@@ -93,7 +93,7 @@ export async function GET(request: Request) {
       .where(
         eventId
           ? and(eq(channels.gymId, gymId), eq(channels.eventId, eventId))
-          : eq(channels.gymId, gymId),
+          : eq(channels.gymId, gymId)
       )
       .orderBy(channels.createdAt);
 
@@ -132,7 +132,7 @@ export async function GET(request: Request) {
         const userIsParticipant = userChannelIds.has(channel.id);
         const channelNameMatchesUser =
           channel.name === (dbUser.name || dbUser.email);
-        
+
         // Show DM if user has sent messages OR if channel name matches user
         return userIsParticipant || channelNameMatchesUser;
       }
@@ -153,8 +153,12 @@ export async function GET(request: Request) {
 
     // Sort channels: global first, then others
     const sortedChannels = [...filteredChannels].sort((a, b) => {
-      if (a.type === "global") return -1;
-      if (b.type === "global") return 1;
+      if (a.type === "global") {
+        return -1;
+      }
+      if (b.type === "global") {
+        return 1;
+      }
       return 0;
     });
 
@@ -163,7 +167,7 @@ export async function GET(request: Request) {
     console.error("Channels fetch error:", error);
     return NextResponse.json(
       { error: "Failed to fetch channels" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -185,10 +189,10 @@ export async function POST(request: Request) {
       .where(eq(users.id, user.id))
       .limit(1);
 
-    if (!dbUser || !dbUser.gymId) {
+    if (!dbUser?.gymId) {
       return NextResponse.json(
         { error: "User must belong to a gym" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -204,14 +208,14 @@ export async function POST(request: Request) {
         .select()
         .from(channels)
         .where(
-          and(eq(channels.gymId, dbUser.gymId), eq(channels.type, "global")),
+          and(eq(channels.gymId, dbUser.gymId), eq(channels.type, "global"))
         )
         .limit(1);
 
       if (existing) {
         return NextResponse.json(
           { error: "Global channel already exists" },
-          { status: 400 },
+          { status: 400 }
         );
       }
     }
@@ -226,8 +230,8 @@ export async function POST(request: Request) {
           and(
             eq(channels.gymId, dbUser.gymId),
             eq(channels.eventId, eventId),
-            eq(channels.type, "group"),
-          ),
+            eq(channels.type, "group")
+          )
         )
         .limit(1);
 
@@ -243,7 +247,7 @@ export async function POST(request: Request) {
           gymId: dbUser.gymId,
           name: name || "Event Chat",
           type: "group",
-          eventId: eventId,
+          eventId,
         })
         .returning();
 
@@ -255,7 +259,7 @@ export async function POST(request: Request) {
       if (!userId) {
         return NextResponse.json(
           { error: "User ID is required for DM" },
-          { status: 400 },
+          { status: 400 }
         );
       }
 
@@ -263,7 +267,7 @@ export async function POST(request: Request) {
       if (userId === user.id) {
         return NextResponse.json(
           { error: "Cannot create a direct message with yourself" },
-          { status: 400 },
+          { status: 400 }
         );
       }
 
@@ -285,7 +289,7 @@ export async function POST(request: Request) {
       if (!otherUser || otherUser.gymId !== dbUser.gymId) {
         return NextResponse.json(
           { error: "User not found or not in same gym" },
-          { status: 400 },
+          { status: 400 }
         );
       }
 
@@ -304,11 +308,8 @@ export async function POST(request: Request) {
           and(
             eq(channels.gymId, dbUser.gymId),
             eq(channels.type, "dm"),
-            or(
-              eq(channels.name, dmName),
-              eq(channels.name, currentUserName),
-            ),
-          ),
+            or(eq(channels.name, dmName), eq(channels.name, currentUserName))
+          )
         );
 
       if (existingDMs.length > 0) {
@@ -340,7 +341,7 @@ export async function POST(request: Request) {
 
         // Fallback: return first channel if name matches (for edge cases)
         const nameMatchChannel = existingDMs.find(
-          (ch) => ch.name === dmName || ch.name === currentUserName,
+          (ch) => ch.name === dmName || ch.name === currentUserName
         );
         if (nameMatchChannel) {
           return NextResponse.json({ channel: nameMatchChannel });
@@ -365,19 +366,19 @@ export async function POST(request: Request) {
     if (type === "group") {
       return NextResponse.json(
         { error: "Group chats are only available for events" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
     return NextResponse.json(
       { error: "Invalid channel type" },
-      { status: 400 },
+      { status: 400 }
     );
   } catch (error) {
     console.error("Channel creation error:", error);
     return NextResponse.json(
       { error: "Failed to create channel" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

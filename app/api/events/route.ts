@@ -30,7 +30,7 @@ export async function POST(request: Request) {
       .where(eq(users.id, user.id))
       .limit(1);
 
-    if (!(dbUser && dbUser.gymId)) {
+    if (!dbUser?.gymId) {
       return NextResponse.json(
         { error: "User must belong to a club" },
         { status: 400 }
@@ -139,10 +139,8 @@ export async function POST(request: Request) {
       normalizedRecurrenceRule,
       startTime,
       occurrenceStartDate,
-      recurrenceEndDate
-        ? recurrenceEndDateToEndOfDay(recurrenceEndDate)
-        : null,
-      recurrenceCount,
+      recurrenceEndDate ? recurrenceEndDateToEndOfDay(recurrenceEndDate) : null,
+      recurrenceCount
     );
 
     // Create group chat channel for this event
@@ -240,7 +238,9 @@ async function generateEventOccurrences(
   let isFirstOccurrence = true;
 
   while (currentDate <= endDate) {
-    if (recurrenceCount && count >= recurrenceCount) break;
+    if (recurrenceCount && count >= recurrenceCount) {
+      break;
+    }
     const [hours, minutes] = startTime.split(":").map(Number);
     const occurrenceDate = new Date(currentDate);
     occurrenceDate.setHours(hours, minutes, 0, 0);

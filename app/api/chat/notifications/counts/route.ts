@@ -21,10 +21,10 @@ export async function GET() {
       .where(eq(users.id, user.id))
       .limit(1);
 
-    if (!dbUser || !dbUser.gymId) {
+    if (!dbUser?.gymId) {
       return NextResponse.json(
         { error: "User must belong to a club" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -53,7 +53,7 @@ export async function GET() {
       .where(eq(channels.type, "dm"));
 
     const dmChannelsWithMessagesSet = new Set(
-      dmChannelsWithMessages.map((m) => m.channelId),
+      dmChannelsWithMessages.map((m) => m.channelId)
     );
 
     // Filter channels based on type and user participation (same logic as GET /api/chat/channels)
@@ -108,8 +108,8 @@ export async function GET() {
       .where(
         and(
           eq(chatNotifications.userId, user.id),
-          isNull(chatNotifications.readAt),
-        ),
+          isNull(chatNotifications.readAt)
+        )
       )
       .groupBy(chatNotifications.channelId);
 
@@ -123,13 +123,13 @@ export async function GET() {
 
     // Calculate total unread chats (channels with unread messages that user can access)
     const totalUnreadChats = Array.from(countsMap.values()).filter(
-      (count) => count > 0,
+      (count) => count > 0
     ).length;
 
     // Calculate total unread messages
     const totalUnreadMessages = Array.from(countsMap.values()).reduce(
       (sum, count) => sum + count,
-      0,
+      0
     );
 
     // Return counts per channel and totals (only for accessible channels)
@@ -147,7 +147,7 @@ export async function GET() {
     console.error("Get unread counts error:", error);
     return NextResponse.json(
       { error: "Failed to get unread counts" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

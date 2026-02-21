@@ -4,8 +4,8 @@ import { IconPhoto, IconSend, IconX } from "@tabler/icons-react";
 import { isSameDay, startOfDay } from "date-fns";
 import { useCallback, useEffect, useState } from "react";
 import { useDropzone } from "react-dropzone";
-import { ChatMessageItem } from "@/components/chat-message";
 import { ChatDateSeparator } from "@/components/chat-date-separator";
+import { ChatMessageItem } from "@/components/chat-message";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -62,9 +62,11 @@ export function RealtimeChat({
   const handleMessage = useCallback(
     (msgs: ChatMessage[]) => {
       setLoading(false);
-      if (onMessage) onMessage(msgs);
+      if (onMessage) {
+        onMessage(msgs);
+      }
     },
-    [onMessage],
+    [onMessage]
   );
 
   const { messages, sendMessage } = useRealtimeChat({
@@ -82,10 +84,10 @@ export function RealtimeChat({
     const timer = setTimeout(() => {
       if (scrollRef.current) {
         const scrollArea = scrollRef.current.closest(
-          '[data-slot="scroll-area"]',
+          '[data-slot="scroll-area"]'
         );
         const viewport = scrollArea?.querySelector(
-          '[data-slot="scroll-area-viewport"]',
+          '[data-slot="scroll-area-viewport"]'
         ) as HTMLElement;
         if (viewport) {
           viewport.scrollTop = viewport.scrollHeight;
@@ -102,10 +104,10 @@ export function RealtimeChat({
       setTimeout(() => {
         if (scrollRef.current) {
           const scrollArea = scrollRef.current.closest(
-            '[data-slot="scroll-area"]',
+            '[data-slot="scroll-area"]'
           );
           const viewport = scrollArea?.querySelector(
-            '[data-slot="scroll-area-viewport"]',
+            '[data-slot="scroll-area-viewport"]'
           ) as HTMLElement;
           if (viewport) {
             viewport.scrollTop = viewport.scrollHeight;
@@ -134,7 +136,9 @@ export function RealtimeChat({
   });
 
   const handleSend = async () => {
-    if (!input.trim() && !imageFile) return;
+    if (!(input.trim() || imageFile)) {
+      return;
+    }
 
     try {
       let attachmentUrl: string | undefined;
@@ -146,7 +150,9 @@ export function RealtimeChat({
         const {
           data: { user },
         } = await supabase.auth.getUser();
-        if (!user) throw new Error("Not authenticated");
+        if (!user) {
+          throw new Error("Not authenticated");
+        }
 
         const fileExt = imageFile.name.split(".").pop();
         const fileName = `${user.id}-${Date.now()}.${fileExt}`;
@@ -175,7 +181,7 @@ export function RealtimeChat({
         input.trim() || "",
         attachmentUrl,
         attachmentType,
-        tempId,
+        tempId
       );
       setInput("");
       setImageFile(null);
@@ -185,10 +191,10 @@ export function RealtimeChat({
       setTimeout(() => {
         if (scrollRef.current) {
           const scrollArea = scrollRef.current.closest(
-            '[data-slot="scroll-area"]',
+            '[data-slot="scroll-area"]'
           );
           const viewport = scrollArea?.querySelector(
-            '[data-slot="scroll-area-viewport"]',
+            '[data-slot="scroll-area-viewport"]'
           ) as HTMLElement;
           if (viewport) {
             viewport.scrollTop = viewport.scrollHeight;
@@ -227,8 +233,8 @@ export function RealtimeChat({
         m.content === msg.content &&
         m.user.id === msg.user.id &&
         Math.abs(
-          new Date(m.createdAt).getTime() - new Date(msg.createdAt).getTime(),
-        ) < 3000,
+          new Date(m.createdAt).getTime() - new Date(msg.createdAt).getTime()
+        ) < 3000
     );
     if (!realVersionExists) {
       acc.push(msg);
@@ -238,7 +244,7 @@ export function RealtimeChat({
 
   // Sort messages by createdAt to ensure proper ordering
   const sortedMessages = deduplicatedMessages.sort(
-    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
   );
 
   // Group messages by sender and time, and add date separators
@@ -275,7 +281,7 @@ export function RealtimeChat({
       prevMsg.user.id !== msg.user.id ||
       new Date(msg.createdAt).getTime() -
         new Date(prevMsg.createdAt).getTime() >
-        300000; // 5 minutes
+        300_000; // 5 minutes
 
     groupedMessagesWithSeparators.push({
       ...msg,
@@ -285,20 +291,20 @@ export function RealtimeChat({
   });
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className="flex h-full flex-col overflow-hidden">
       {/* Chat Header */}
-      <div className="border-b p-4 shrink-0">
+      <div className="shrink-0 border-b p-4">
         <h2 className="font-semibold text-lg">{roomName}</h2>
       </div>
 
       {/* Messages Area */}
-      <ScrollArea className="flex-1 min-h-0 overflow-hidden">
+      <ScrollArea className="min-h-0 flex-1 overflow-hidden">
         <div className="p-4" ref={scrollRef}>
           {loading ? (
             <div className="flex flex-col gap-4">
               {/* Skeleton messages */}
               {[1, 2, 3].map((i) => (
-                <div key={i} className="flex gap-3">
+                <div className="flex gap-3" key={i}>
                   <Skeleton className="h-10 w-10 rounded-full" />
                   <div className="flex-1 space-y-2">
                     <Skeleton className="h-4 w-24" />
@@ -308,10 +314,10 @@ export function RealtimeChat({
               ))}
             </div>
           ) : sortedMessages.length === 0 ? (
-            <div className="flex items-center justify-center min-h-[200px]">
+            <div className="flex min-h-[200px] items-center justify-center">
               <div className="text-center text-muted-foreground">
                 <p>No messages yet</p>
-                <p className="text-sm mt-2">Start the conversation!</p>
+                <p className="mt-2 text-sm">Start the conversation!</p>
               </div>
             </div>
           ) : (
@@ -320,8 +326,8 @@ export function RealtimeChat({
                 if (item.isDateSeparator) {
                   return (
                     <ChatDateSeparator
-                      key={`date-separator-${item.date.getTime()}`}
                       date={item.date}
+                      key={`date-separator-${item.date.getTime()}`}
                     />
                   );
                 }
@@ -334,11 +340,11 @@ export function RealtimeChat({
 
                 return (
                   <ChatMessageItem
+                    isOwnMessage={isOwnMessage}
+                    isToday={isToday}
                     key={message.id}
                     message={message}
-                    isOwnMessage={isOwnMessage}
                     showHeader={message.showHeader}
-                    isToday={isToday}
                   />
                 );
               })}
@@ -349,22 +355,22 @@ export function RealtimeChat({
 
       {/* Image Preview */}
       {imagePreview && (
-        <div className="border-t p-2 bg-muted/50 shrink-0">
+        <div className="shrink-0 border-t bg-muted/50 p-2">
           <div className="relative inline-block">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             {/* biome-ignore lint/performance/noImgElement: Preview image from file upload */}
             <img
-              src={imagePreview}
               alt="Preview"
               className="max-h-32 rounded-lg"
+              src={imagePreview}
             />
             <button
-              type="button"
+              className="absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full bg-destructive text-destructive-foreground"
               onClick={() => {
                 setImagePreview(null);
                 setImageFile(null);
               }}
-              className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center"
+              type="button"
             >
               <IconX className="h-4 w-4" />
             </button>
@@ -373,31 +379,31 @@ export function RealtimeChat({
       )}
 
       {/* Input Area */}
-      <div className="border-t p-4 bg-background shrink-0">
-        <div className="flex gap-2 items-end">
+      <div className="shrink-0 border-t bg-background p-4">
+        <div className="flex items-end gap-2">
           <div {...getRootProps()} className="cursor-pointer">
             <input {...getInputProps()} />
             <Button
+              className={cn("h-10 w-10", isDragActive && "bg-primary/10")}
+              size="icon"
               type="button"
               variant="ghost"
-              size="icon"
-              className={cn("h-10 w-10", isDragActive && "bg-primary/10")}
             >
               <IconPhoto className="h-5 w-5" />
             </Button>
           </div>
           <Input
-            value={input}
+            className="flex-1 rounded-xl"
+            disabled={uploading}
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={handleKeyPress}
             placeholder="Type a message..."
-            className="flex-1 rounded-xl"
-            disabled={uploading}
+            value={input}
           />
           <Button
-            onClick={handleSend}
-            disabled={(!input.trim() && !imageFile) || uploading}
             className="rounded-xl"
+            disabled={!(input.trim() || imageFile) || uploading}
+            onClick={handleSend}
           >
             <IconSend className="h-4 w-4" />
           </Button>

@@ -47,14 +47,14 @@ export async function POST(request: Request) {
     if (!dbUser || dbUser.role !== "owner") {
       return NextResponse.json(
         { error: "Forbidden - Admin only" },
-        { status: 403 },
+        { status: 403 }
       );
     }
 
     if (!dbUser.gymId) {
       return NextResponse.json(
         { error: "User must belong to a club" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -71,7 +71,7 @@ export async function POST(request: Request) {
 
     const { userIds, testEmail } = await request.json();
 
-    if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
+    if (!(userIds && Array.isArray(userIds)) || userIds.length === 0) {
       return NextResponse.json({ error: "No users selected" }, { status: 400 });
     }
 
@@ -79,7 +79,7 @@ export async function POST(request: Request) {
     if (testEmail && userIds.length > 1) {
       return NextResponse.json(
         { error: "Test email can only be sent for one user at a time" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -107,7 +107,7 @@ export async function POST(request: Request) {
               ? error.message
               : "Invalid app URL configuration",
         },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -132,15 +132,30 @@ export async function POST(request: Request) {
         // Check if user exists in Supabase Auth
         const { data: authUsers } = await supabaseAdmin.auth.admin.listUsers();
         const authUser = authUsers?.users?.find(
-          (u) => u.email === targetUser.email,
+          (u) => u.email === targetUser.email
         );
 
-        if (!authUser) {
+        if (authUser) {
+          // Update existing user's password
+          const { error: updateError } =
+            await supabaseAdmin.auth.admin.updateUserById(authUser.id, {
+              password,
+            });
+
+          if (updateError) {
+            results.push({
+              email: targetUser.email,
+              success: false,
+              error: `Failed to update password: ${updateError.message}`,
+            });
+            continue;
+          }
+        } else {
           // Create user in Supabase Auth if doesn't exist
           const { error: createError } =
             await supabaseAdmin.auth.admin.createUser({
               email: targetUser.email,
-              password: password,
+              password,
               email_confirm: true,
               user_metadata: { name: targetUser.name || null },
             });
@@ -150,21 +165,6 @@ export async function POST(request: Request) {
               email: targetUser.email,
               success: false,
               error: `Failed to create auth user: ${createError.message}`,
-            });
-            continue;
-          }
-        } else {
-          // Update existing user's password
-          const { error: updateError } =
-            await supabaseAdmin.auth.admin.updateUserById(authUser.id, {
-              password: password,
-            });
-
-          if (updateError) {
-            results.push({
-              email: targetUser.email,
-              success: false,
-              error: `Failed to update password: ${updateError.message}`,
             });
             continue;
           }
@@ -189,7 +189,7 @@ export async function POST(request: Request) {
             gymLogoUrl: gym.logoUrl,
             userName: targetUser.name || targetUser.email,
             email: targetUser.email, // Always show the actual user's email in the email content
-            password: password,
+            password,
             loginUrl,
           }),
           headers: {
@@ -241,7 +241,7 @@ export async function POST(request: Request) {
     console.error("Error sending credentials:", error);
     return NextResponse.json(
       { error: "Failed to send credentials" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

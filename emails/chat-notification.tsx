@@ -38,44 +38,44 @@ export function ChatNotificationEmail({
 
   return (
     <BaseLayout
-      preview={getSubject()}
-      gymName={gymName}
       gymLogoUrl={gymLogoUrl}
+      gymName={gymName}
+      preview={getSubject()}
     >
-      <Heading className="text-2xl font-bold text-zinc-900 mb-6 text-center">
+      <Heading className="mb-6 text-center font-bold text-2xl text-zinc-900">
         New Message
       </Heading>
 
-      <Text className="text-base text-zinc-900 mb-4">
+      <Text className="mb-4 text-base text-zinc-900">
         Hey {recipientName.split(" ")[0] || "there"},
       </Text>
 
-      <Text className="text-[15px] text-gray-600 leading-6 mb-6">
+      <Text className="mb-6 text-[15px] text-gray-600 leading-6">
         {channelType === "dm"
           ? `${senderName} sent you a message`
           : `${senderName} sent a message in ${channelName}`}
       </Text>
 
       {/* Message Preview Card */}
-      <Section className="bg-gray-50 rounded-xl p-4 mb-6">
-        <Text className="text-sm text-gray-500 mb-2 m-0 font-medium">
+      <Section className="mb-6 rounded-xl bg-gray-50 p-4">
+        <Text className="m-0 mb-2 font-medium text-gray-500 text-sm">
           {getChannelDisplayName()}
         </Text>
-        <Text className="text-base text-zinc-900 m-0 leading-6">
+        <Text className="m-0 text-base text-zinc-900 leading-6">
           {messagePreview}
         </Text>
       </Section>
 
-      <Section className="text-center mb-6">
+      <Section className="mb-6 text-center">
         <Button
-          className="bg-zinc-900 rounded-lg text-white text-[15px] font-semibold no-underline text-center py-3.5 px-7"
+          className="rounded-lg bg-zinc-900 px-7 py-3.5 text-center font-semibold text-[15px] text-white no-underline"
           href={chatUrl}
         >
           View Message
         </Button>
       </Section>
 
-      <Text className="text-[13px] text-gray-400 text-center m-0">
+      <Text className="m-0 text-center text-[13px] text-gray-400">
         You're receiving this email because you have unread messages. You'll
         receive at most one email per day per conversation.
       </Text>

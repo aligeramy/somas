@@ -36,7 +36,7 @@ export function MobileBottomNav({
   gymWebsite,
 }: MobileBottomNavProps) {
   const pathname = usePathname();
-  const router = useRouter();
+  const _router = useRouter();
   const [moreOpen, setMoreOpen] = useState(false);
 
   const handleLogout = async () => {

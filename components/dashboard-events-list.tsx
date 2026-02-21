@@ -16,20 +16,20 @@ import {
 } from "@/components/ui/popover";
 import { useIsMobile } from "@/hooks/use-mobile";
 
-type OccurrenceType = {
+interface OccurrenceType {
   id: string;
   date: Date | string;
   status: string;
   [key: string]: unknown;
-};
+}
 
-type EventType = {
+interface EventType {
   id: string;
   title: string;
   startTime: string | null;
   endTime: string | null;
   [key: string]: unknown;
-};
+}
 
 interface DashboardEventsListProps {
   upcomingOccurrences: Array<{ occurrence: OccurrenceType; event: EventType }>;
@@ -89,11 +89,14 @@ export function DashboardEventsList({
   }
 
   function formatDate(dateValue: Date | string | null) {
-    if (!dateValue) return { day: "", month: "", weekday: "" };
+    if (!dateValue) {
+      return { day: "", month: "", weekday: "" };
+    }
     const date =
       typeof dateValue === "string" ? new Date(dateValue) : dateValue;
-    if (Number.isNaN(date.getTime()))
+    if (Number.isNaN(date.getTime())) {
       return { day: "", month: "", weekday: "" };
+    }
     return {
       day: date.getDate().toString(),
       month: date.toLocaleDateString("en-US", { month: "short" }).toUpperCase(),
@@ -102,10 +105,14 @@ export function DashboardEventsList({
   }
 
   function formatTime(time: string | null) {
-    if (!time) return "";
+    if (!time) {
+      return "";
+    }
     const [hours, minutes] = time.split(":");
-    const hour = parseInt(hours, 10);
-    if (Number.isNaN(hour)) return time;
+    const hour = Number.parseInt(hours, 10);
+    if (Number.isNaN(hour)) {
+      return time;
+    }
     const ampm = hour >= 12 ? "PM" : "AM";
     const displayHour = hour % 12 || 12;
     return `${displayHour}:${minutes} ${ampm}`;
@@ -122,10 +129,10 @@ export function DashboardEventsList({
   return (
     <>
       <Card
-        className={`rounded-xl ${isMobile ? "border-0 shadow-none bg-transparent" : ""}`}
+        className={`rounded-xl ${isMobile ? "border-0 bg-transparent shadow-none" : ""}`}
       >
         <CardHeader
-          className={`${isMobile ? "px-0 pt-0 pb-1 -mt-1" : "px-4 pb-2"}`}
+          className={`${isMobile ? "-mt-1 px-0 pt-0 pb-1" : "px-4 pb-2"}`}
         >
           <div className="flex items-center justify-between">
             <CardTitle
@@ -134,14 +141,14 @@ export function DashboardEventsList({
               Upcoming Events
             </CardTitle>
             <Button
-              variant="ghost"
-              size="sm"
               asChild
               className={`text-muted-foreground ${isMobile ? "rounded-lg text-sm" : "rounded-xl"}`}
+              size="sm"
+              variant="ghost"
             >
               <Link href="/events">
                 {isMobile ? "All" : "View all"}
-                <IconChevronRight className="h-4 w-4 ml-1" />
+                <IconChevronRight className="ml-1 h-4 w-4" />
               </Link>
             </Button>
           </div>
@@ -153,15 +160,15 @@ export function DashboardEventsList({
                 className={`mx-auto mb-3 text-muted-foreground/30 ${isMobile ? "h-12 w-12" : "h-10 w-10"}`}
               />
               <p
-                className={`text-muted-foreground mb-4 ${isMobile ? "text-base" : "text-sm"}`}
+                className={`mb-4 text-muted-foreground ${isMobile ? "text-base" : "text-sm"}`}
               >
                 No upcoming events
               </p>
               <Button
-                variant="outline"
-                size="sm"
                 asChild
                 className={isMobile ? "rounded-lg" : "rounded-xl"}
+                size="sm"
+                variant="outline"
               >
                 <Link href="/events/new">Create an event</Link>
               </Button>
@@ -194,55 +201,55 @@ export function DashboardEventsList({
 
                 return (
                   <div
-                    key={occurrence.id}
                     className={`group relative ${
                       isMobile
-                        ? `bg-card border border-border rounded-2xl shadow-sm overflow-hidden active:scale-[0.98] transition-transform ${
+                        ? `overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-transform active:scale-[0.98] ${
                             isCanceled ? "opacity-60" : ""
                           }`
-                        : `flex items-start gap-3 py-2 px-2 rounded-xl hover:bg-muted/50 transition-colors ${
+                        : `flex items-start gap-3 rounded-xl px-2 py-2 transition-colors hover:bg-muted/50 ${
                             isCanceled ? "opacity-50" : ""
                           }`
                     }`}
+                    key={occurrence.id}
                   >
                     <Link
-                      href={`/events?eventId=${event.id}&occurrenceId=${occurrence.id}`}
                       className={
                         isMobile
                           ? "block"
-                          : "flex items-start gap-3 flex-1 min-w-0"
+                          : "flex min-w-0 flex-1 items-start gap-3"
                       }
+                      href={`/events?eventId=${event.id}&occurrenceId=${occurrence.id}`}
                       onClick={handleEventClick}
                     >
                       {isMobile ? (
                         <div className="p-4">
                           <div className="flex items-start gap-4">
                             {/* Date Badge - Mobile */}
-                            <div className="h-16 w-16 rounded-2xl flex flex-col items-center justify-center shrink-0 bg-[#000000] dark:bg-[#ffffff]">
-                              <span className="text-xl font-bold leading-none text-[#ffffff] dark:text-[#000000]">
+                            <div className="flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-2xl bg-[#000000] dark:bg-[#ffffff]">
+                              <span className="font-bold text-[#ffffff] text-xl leading-none dark:text-[#000000]">
                                 {dateInfo.day}
                               </span>
-                              <span className="text-[10px] font-semibold text-[#ffffff] dark:text-[#000000] mt-1 uppercase tracking-wide">
+                              <span className="mt-1 font-semibold text-[#ffffff] text-[10px] uppercase tracking-wide dark:text-[#000000]">
                                 {dateInfo.month}
                               </span>
                             </div>
 
                             {/* Content - Mobile */}
-                            <div className="flex-1 min-w-0 pt-1">
-                              <div className="flex items-start justify-between gap-2 mb-1">
-                                <p className="font-semibold text-base leading-tight line-clamp-2">
+                            <div className="min-w-0 flex-1 pt-1">
+                              <div className="mb-1 flex items-start justify-between gap-2">
+                                <p className="line-clamp-2 font-semibold text-base leading-tight">
                                   {event.title}
                                 </p>
                                 {isCanceled && (
                                   <Badge
+                                    className="shrink-0 rounded-md text-[10px]"
                                     variant="destructive"
-                                    className="text-[10px] rounded-md shrink-0"
                                   >
                                     Canceled
                                   </Badge>
                                 )}
                               </div>
-                              <p className="text-sm text-muted-foreground mb-3">
+                              <p className="mb-3 text-muted-foreground text-sm">
                                 {formatTime(event.startTime)} -{" "}
                                 {formatTime(event.endTime)}
                               </p>
@@ -250,22 +257,22 @@ export function DashboardEventsList({
                               {(goingCoaches.length > 0 ||
                                 goingAthletes.length > 0 ||
                                 rsvpData.notGoing.length > 0) && (
-                                <div className="flex items-center gap-2 pt-2 border-t border-border/50">
+                                <div className="flex items-center gap-2 border-border/50 border-t pt-2">
                                   {/* Coaches badges - stacked together */}
                                   {(goingCoaches.length > 0 ||
                                     rsvpData.notGoing.filter(
                                       (user) =>
                                         user.role === "coach" ||
-                                        user.role === "owner",
+                                        user.role === "owner"
                                     ).length > 0) && (
                                     <Popover>
                                       <PopoverTrigger asChild>
                                         <button
-                                          type="button"
-                                          className="flex items-center -space-x-2 shrink-0 cursor-pointer"
-                                          onClick={(e) => e.stopPropagation()}
                                           aria-label={`View coaches for ${event.title}`}
+                                          className="flex shrink-0 cursor-pointer items-center -space-x-2"
+                                          onClick={(e) => e.stopPropagation()}
                                           suppressHydrationWarning
+                                          type="button"
                                         >
                                           {[
                                             ...goingCoaches.map((c) => ({
@@ -276,7 +283,7 @@ export function DashboardEventsList({
                                               .filter(
                                                 (u) =>
                                                   u.role === "coach" ||
-                                                  u.role === "owner",
+                                                  u.role === "owner"
                                               )
                                               .map((c) => ({
                                                 id: c.id,
@@ -288,19 +295,19 @@ export function DashboardEventsList({
                                             .slice(0, 3)
                                             .map((coach, index) => (
                                               <Badge
-                                                key={coach.id}
-                                                variant="secondary"
-                                                className={`h-7 w-7 rounded-full p-0 flex items-center justify-center shrink-0 border-2 border-background text-white ${
+                                                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 border-background p-0 text-white ${
                                                   coach.status === "going"
                                                     ? "bg-emerald-500"
                                                     : "bg-red-500"
                                                 }`}
+                                                key={coach.id}
                                                 style={{ zIndex: 10 - index }}
+                                                variant="secondary"
                                               >
-                                                <span className="text-[10px] font-semibold">
+                                                <span className="font-semibold text-[10px]">
                                                   {getInitials(
                                                     coach.name,
-                                                    coach.email,
+                                                    coach.email
                                                   )}
                                                 </span>
                                               </Badge>
@@ -309,16 +316,16 @@ export function DashboardEventsList({
                                             rsvpData.notGoing.filter(
                                               (u) =>
                                                 u.role === "coach" ||
-                                                u.role === "owner",
+                                                u.role === "owner"
                                             ).length >
                                             3 && (
-                                            <div className="h-7 w-7 rounded-full border-2 border-background bg-muted flex items-center justify-center shrink-0 text-[10px] font-semibold">
+                                            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 border-background bg-muted font-semibold text-[10px]">
                                               +
                                               {goingCoaches.length +
                                                 rsvpData.notGoing.filter(
                                                   (u) =>
                                                     u.role === "coach" ||
-                                                    u.role === "owner",
+                                                    u.role === "owner"
                                                 ).length -
                                                 3}
                                             </div>
@@ -332,23 +339,23 @@ export function DashboardEventsList({
                                         <div className="space-y-3">
                                           {goingCoaches.length > 0 && (
                                             <div>
-                                              <p className="text-xs font-semibold text-muted-foreground mb-2">
+                                              <p className="mb-2 font-semibold text-muted-foreground text-xs">
                                                 Going ({goingCoaches.length})
                                               </p>
                                               <div className="flex flex-wrap gap-2">
                                                 {goingCoaches.map((coach) => (
                                                   <div
-                                                    key={coach.id}
                                                     className="flex items-center gap-2"
+                                                    key={coach.id}
                                                   >
                                                     <Badge
+                                                      className="flex h-8 w-8 items-center justify-center rounded-full border-transparent bg-emerald-500 p-0 text-white"
                                                       variant="secondary"
-                                                      className="h-8 w-8 rounded-full p-0 flex items-center justify-center border-transparent bg-emerald-500 text-white"
                                                     >
-                                                      <span className="text-xs font-medium">
+                                                      <span className="font-medium text-xs">
                                                         {getInitials(
                                                           coach.name,
-                                                          coach.email,
+                                                          coach.email
                                                         )}
                                                       </span>
                                                     </Badge>
@@ -364,16 +371,16 @@ export function DashboardEventsList({
                                           {rsvpData.notGoing.filter(
                                             (u) =>
                                               u.role === "coach" ||
-                                              u.role === "owner",
+                                              u.role === "owner"
                                           ).length > 0 && (
                                             <div>
-                                              <p className="text-xs font-semibold text-muted-foreground mb-2">
+                                              <p className="mb-2 font-semibold text-muted-foreground text-xs">
                                                 Not Going (
                                                 {
                                                   rsvpData.notGoing.filter(
                                                     (u) =>
                                                       u.role === "coach" ||
-                                                      u.role === "owner",
+                                                      u.role === "owner"
                                                   ).length
                                                 }
                                                 )
@@ -383,21 +390,21 @@ export function DashboardEventsList({
                                                   .filter(
                                                     (u) =>
                                                       u.role === "coach" ||
-                                                      u.role === "owner",
+                                                      u.role === "owner"
                                                   )
                                                   .map((coach) => (
                                                     <div
-                                                      key={coach.id}
                                                       className="flex items-center gap-2"
+                                                      key={coach.id}
                                                     >
                                                       <Badge
+                                                        className="flex h-8 w-8 items-center justify-center rounded-full border-transparent bg-red-500 p-0 text-white"
                                                         variant="secondary"
-                                                        className="h-8 w-8 rounded-full p-0 flex items-center justify-center border-transparent bg-red-500 text-white"
                                                       >
-                                                        <span className="text-xs font-medium">
+                                                        <span className="font-medium text-xs">
                                                           {getInitials(
                                                             coach.name,
-                                                            coach.email,
+                                                            coach.email
                                                           )}
                                                         </span>
                                                       </Badge>
@@ -417,16 +424,16 @@ export function DashboardEventsList({
                                   {/* Athletes avatars - stacked with expand */}
                                   {(goingAthletes.length > 0 ||
                                     rsvpData.notGoing.filter(
-                                      (user) => user.role === "athlete",
+                                      (user) => user.role === "athlete"
                                     ).length > 0) && (
                                     <>
                                       {(goingCoaches.length > 0 ||
                                         rsvpData.notGoing.filter(
                                           (user) =>
                                             user.role === "coach" ||
-                                            user.role === "owner",
+                                            user.role === "owner"
                                         ).length > 0) && (
-                                        <span className="text-muted-foreground shrink-0 text-sm">
+                                        <span className="shrink-0 text-muted-foreground text-sm">
                                           •
                                         </span>
                                       )}
@@ -434,11 +441,11 @@ export function DashboardEventsList({
                                       <Popover>
                                         <PopoverTrigger asChild>
                                           <button
-                                            type="button"
-                                            className="flex items-center -space-x-2 shrink-0 cursor-pointer"
-                                            onClick={(e) => e.stopPropagation()}
                                             aria-label={`View athletes for ${event.title}`}
+                                            className="flex shrink-0 cursor-pointer items-center -space-x-2"
+                                            onClick={(e) => e.stopPropagation()}
                                             suppressHydrationWarning
+                                            type="button"
                                           >
                                             {[
                                               ...goingAthletes.map((a) => ({
@@ -447,7 +454,7 @@ export function DashboardEventsList({
                                               })),
                                               ...rsvpData.notGoing
                                                 .filter(
-                                                  (u) => u.role === "athlete",
+                                                  (u) => u.role === "athlete"
                                                 )
                                                 .map((a) => ({
                                                   id: a.id,
@@ -460,12 +467,12 @@ export function DashboardEventsList({
                                               .slice(0, 3)
                                               .map((athlete, index) => (
                                                 <Avatar
-                                                  key={athlete.id}
-                                                  className={`h-7 w-7 border-2 border-background shrink-0 ${
+                                                  className={`h-7 w-7 shrink-0 border-2 border-background ${
                                                     athlete.status === "going"
                                                       ? "border-emerald-500"
                                                       : "border-red-500"
                                                   }`}
+                                                  key={athlete.id}
                                                   style={{ zIndex: 10 - index }}
                                                 >
                                                   <AvatarImage
@@ -474,24 +481,24 @@ export function DashboardEventsList({
                                                       undefined
                                                     }
                                                   />
-                                                  <AvatarFallback className="text-[10px] bg-muted font-semibold">
+                                                  <AvatarFallback className="bg-muted font-semibold text-[10px]">
                                                     {getInitials(
                                                       athlete.name,
-                                                      athlete.email,
+                                                      athlete.email
                                                     )}
                                                   </AvatarFallback>
                                                 </Avatar>
                                               ))}
                                             {goingAthletes.length +
                                               rsvpData.notGoing.filter(
-                                                (u) => u.role === "athlete",
+                                                (u) => u.role === "athlete"
                                               ).length >
                                               3 && (
-                                              <div className="h-7 w-7 rounded-full border-2 border-background bg-muted flex items-center justify-center shrink-0 text-[10px] font-semibold">
+                                              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 border-background bg-muted font-semibold text-[10px]">
                                                 +
                                                 {goingAthletes.length +
                                                   rsvpData.notGoing.filter(
-                                                    (u) => u.role === "athlete",
+                                                    (u) => u.role === "athlete"
                                                   ).length -
                                                   3}
                                               </div>
@@ -505,15 +512,15 @@ export function DashboardEventsList({
                                           <div className="space-y-3">
                                             {goingAthletes.length > 0 && (
                                               <div>
-                                                <p className="text-xs font-semibold text-muted-foreground mb-2">
+                                                <p className="mb-2 font-semibold text-muted-foreground text-xs">
                                                   Going ({goingAthletes.length})
                                                 </p>
                                                 <div className="flex flex-wrap gap-2">
                                                   {goingAthletes.map(
                                                     (athlete) => (
                                                       <div
+                                                        className="flex items-center gap-2 rounded-lg bg-emerald-500/10 px-2 py-1.5"
                                                         key={athlete.id}
-                                                        className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-emerald-500/10"
                                                       >
                                                         <Avatar className="h-8 w-8 border-0">
                                                           <AvatarImage
@@ -522,10 +529,10 @@ export function DashboardEventsList({
                                                               undefined
                                                             }
                                                           />
-                                                          <AvatarFallback className="text-xs bg-muted">
+                                                          <AvatarFallback className="bg-muted text-xs">
                                                             {getInitials(
                                                               athlete.name,
-                                                              athlete.email,
+                                                              athlete.email
                                                             )}
                                                           </AvatarFallback>
                                                         </Avatar>
@@ -534,21 +541,21 @@ export function DashboardEventsList({
                                                             athlete.email}
                                                         </span>
                                                       </div>
-                                                    ),
+                                                    )
                                                   )}
                                                 </div>
                                               </div>
                                             )}
                                             {rsvpData.notGoing.filter(
-                                              (u) => u.role === "athlete",
+                                              (u) => u.role === "athlete"
                                             ).length > 0 && (
                                               <div>
-                                                <p className="text-xs font-semibold text-muted-foreground mb-2">
+                                                <p className="mb-2 font-semibold text-muted-foreground text-xs">
                                                   Not Going (
                                                   {
                                                     rsvpData.notGoing.filter(
                                                       (u) =>
-                                                        u.role === "athlete",
+                                                        u.role === "athlete"
                                                     ).length
                                                   }
                                                   )
@@ -557,12 +564,12 @@ export function DashboardEventsList({
                                                   {rsvpData.notGoing
                                                     .filter(
                                                       (u) =>
-                                                        u.role === "athlete",
+                                                        u.role === "athlete"
                                                     )
                                                     .map((athlete) => (
                                                       <div
+                                                        className="flex items-center gap-2 rounded-lg bg-red-500/10 px-2 py-1.5"
                                                         key={athlete.id}
-                                                        className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-red-500/10"
                                                       >
                                                         <Avatar className="h-8 w-8 border-0">
                                                           <AvatarImage
@@ -571,10 +578,10 @@ export function DashboardEventsList({
                                                               undefined
                                                             }
                                                           />
-                                                          <AvatarFallback className="text-xs bg-muted">
+                                                          <AvatarFallback className="bg-muted text-xs">
                                                             {getInitials(
                                                               athlete.name,
-                                                              athlete.email,
+                                                              athlete.email
                                                             )}
                                                           </AvatarFallback>
                                                         </Avatar>
@@ -600,12 +607,12 @@ export function DashboardEventsList({
                       ) : (
                         <>
                           {/* Desktop Layout */}
-                          <div className="h-12 w-12 rounded-xl flex flex-col items-center justify-center shrink-0 bg-[#000000] dark:bg-[#ffffff]">
-                            <span className="text-sm font-bold leading-none text-[#ffffff] dark:text-[#000000]">
+                          <div className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-xl bg-[#000000] dark:bg-[#ffffff]">
+                            <span className="font-bold text-[#ffffff] text-sm leading-none dark:text-[#000000]">
                               {dateInfo.day}
                             </span>
                             <span
-                              className="text-[9px]! font-medium text-[#ffffff] dark:text-[#000000] mt-0.5"
+                              className="mt-0.5 font-medium text-[#ffffff] text-[9px]! dark:text-[#000000]"
                               style={{
                                 fontSize: "9px",
                                 WebkitTextSizeAdjust: "none",
@@ -615,11 +622,11 @@ export function DashboardEventsList({
                               {dateInfo.month}
                             </span>
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-sm truncate">
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate font-medium text-sm">
                               {event.title}
                             </p>
-                            <p className="text-xs text-muted-foreground truncate mt-0.5">
+                            <p className="mt-0.5 truncate text-muted-foreground text-xs">
                               {formatTime(event.startTime)} -{" "}
                               {formatTime(event.endTime)}
                             </p>
@@ -627,22 +634,22 @@ export function DashboardEventsList({
                             {(goingCoaches.length > 0 ||
                               goingAthletes.length > 0 ||
                               rsvpData.notGoing.length > 0) && (
-                              <div className="flex items-center gap-1.5 mt-2 overflow-hidden">
+                              <div className="mt-2 flex items-center gap-1.5 overflow-hidden">
                                 {/* Coaches badges - stacked together */}
                                 {(goingCoaches.length > 0 ||
                                   rsvpData.notGoing.filter(
                                     (user) =>
                                       user.role === "coach" ||
-                                      user.role === "owner",
+                                      user.role === "owner"
                                   ).length > 0) && (
                                   <Popover>
                                     <PopoverTrigger asChild>
                                       <button
-                                        type="button"
-                                        className="flex items-center -space-x-2 shrink-0 cursor-pointer"
-                                        onClick={(e) => e.stopPropagation()}
                                         aria-label={`View coaches for ${event.title}`}
+                                        className="flex shrink-0 cursor-pointer items-center -space-x-2"
+                                        onClick={(e) => e.stopPropagation()}
                                         suppressHydrationWarning
+                                        type="button"
                                       >
                                         {[
                                           ...goingCoaches.map((c) => ({
@@ -653,7 +660,7 @@ export function DashboardEventsList({
                                             .filter(
                                               (u) =>
                                                 u.role === "coach" ||
-                                                u.role === "owner",
+                                                u.role === "owner"
                                             )
                                             .map((c) => ({
                                               id: c.id,
@@ -665,19 +672,19 @@ export function DashboardEventsList({
                                           .slice(0, 3)
                                           .map((coach, index) => (
                                             <Badge
-                                              key={coach.id}
-                                              variant="secondary"
-                                              className={`h-6 w-6 rounded-full p-0 flex items-center justify-center shrink-0 border-transparent text-white ${
+                                              className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-transparent p-0 text-white ${
                                                 coach.status === "going"
                                                   ? "bg-emerald-500"
                                                   : "bg-red-500"
                                               }`}
+                                              key={coach.id}
                                               style={{ zIndex: 10 - index }}
+                                              variant="secondary"
                                             >
-                                              <span className="text-[9px] font-medium">
+                                              <span className="font-medium text-[9px]">
                                                 {getInitials(
                                                   coach.name,
-                                                  coach.email,
+                                                  coach.email
                                                 )}
                                               </span>
                                             </Badge>
@@ -686,16 +693,16 @@ export function DashboardEventsList({
                                           rsvpData.notGoing.filter(
                                             (u) =>
                                               u.role === "coach" ||
-                                              u.role === "owner",
+                                              u.role === "owner"
                                           ).length >
                                           3 && (
-                                          <div className="h-6 w-6 rounded-full border-2 border-background bg-muted flex items-center justify-center shrink-0 text-[9px] font-medium">
+                                          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-background bg-muted font-medium text-[9px]">
                                             +
                                             {goingCoaches.length +
                                               rsvpData.notGoing.filter(
                                                 (u) =>
                                                   u.role === "coach" ||
-                                                  u.role === "owner",
+                                                  u.role === "owner"
                                               ).length -
                                               3}
                                           </div>
@@ -709,23 +716,23 @@ export function DashboardEventsList({
                                       <div className="space-y-3">
                                         {goingCoaches.length > 0 && (
                                           <div>
-                                            <p className="text-xs font-semibold text-muted-foreground mb-2">
+                                            <p className="mb-2 font-semibold text-muted-foreground text-xs">
                                               Going ({goingCoaches.length})
                                             </p>
                                             <div className="flex flex-wrap gap-2">
                                               {goingCoaches.map((coach) => (
                                                 <div
-                                                  key={coach.id}
                                                   className="flex items-center gap-2"
+                                                  key={coach.id}
                                                 >
                                                   <Badge
+                                                    className="flex h-8 w-8 items-center justify-center rounded-full border-transparent bg-emerald-500 p-0 text-white"
                                                     variant="secondary"
-                                                    className="h-8 w-8 rounded-full p-0 flex items-center justify-center border-transparent bg-emerald-500 text-white"
                                                   >
-                                                    <span className="text-xs font-medium">
+                                                    <span className="font-medium text-xs">
                                                       {getInitials(
                                                         coach.name,
-                                                        coach.email,
+                                                        coach.email
                                                       )}
                                                     </span>
                                                   </Badge>
@@ -740,16 +747,16 @@ export function DashboardEventsList({
                                         {rsvpData.notGoing.filter(
                                           (u) =>
                                             u.role === "coach" ||
-                                            u.role === "owner",
+                                            u.role === "owner"
                                         ).length > 0 && (
                                           <div>
-                                            <p className="text-xs font-semibold text-muted-foreground mb-2">
+                                            <p className="mb-2 font-semibold text-muted-foreground text-xs">
                                               Not Going (
                                               {
                                                 rsvpData.notGoing.filter(
                                                   (u) =>
                                                     u.role === "coach" ||
-                                                    u.role === "owner",
+                                                    u.role === "owner"
                                                 ).length
                                               }
                                               )
@@ -759,21 +766,21 @@ export function DashboardEventsList({
                                                 .filter(
                                                   (u) =>
                                                     u.role === "coach" ||
-                                                    u.role === "owner",
+                                                    u.role === "owner"
                                                 )
                                                 .map((coach) => (
                                                   <div
-                                                    key={coach.id}
                                                     className="flex items-center gap-2"
+                                                    key={coach.id}
                                                   >
                                                     <Badge
+                                                      className="flex h-8 w-8 items-center justify-center rounded-full border-transparent bg-red-500 p-0 text-white"
                                                       variant="secondary"
-                                                      className="h-8 w-8 rounded-full p-0 flex items-center justify-center border-transparent bg-red-500 text-white"
                                                     >
-                                                      <span className="text-xs font-medium">
+                                                      <span className="font-medium text-xs">
                                                         {getInitials(
                                                           coach.name,
-                                                          coach.email,
+                                                          coach.email
                                                         )}
                                                       </span>
                                                     </Badge>
@@ -793,16 +800,16 @@ export function DashboardEventsList({
                                 {/* Athletes avatars - stacked with expand */}
                                 {(goingAthletes.length > 0 ||
                                   rsvpData.notGoing.filter(
-                                    (user) => user.role === "athlete",
+                                    (user) => user.role === "athlete"
                                   ).length > 0) && (
                                   <>
                                     {(goingCoaches.length > 0 ||
                                       rsvpData.notGoing.filter(
                                         (user) =>
                                           user.role === "coach" ||
-                                          user.role === "owner",
+                                          user.role === "owner"
                                       ).length > 0) && (
-                                      <span className="text-muted-foreground shrink-0">
+                                      <span className="shrink-0 text-muted-foreground">
                                         •
                                       </span>
                                     )}
@@ -810,11 +817,11 @@ export function DashboardEventsList({
                                     <Popover>
                                       <PopoverTrigger asChild>
                                         <button
-                                          type="button"
-                                          className="flex items-center -space-x-2 shrink-0 cursor-pointer"
-                                          onClick={(e) => e.stopPropagation()}
                                           aria-label={`View athletes for ${event.title}`}
+                                          className="flex shrink-0 cursor-pointer items-center -space-x-2"
+                                          onClick={(e) => e.stopPropagation()}
                                           suppressHydrationWarning
+                                          type="button"
                                         >
                                           {[
                                             ...goingAthletes.map((a) => ({
@@ -823,7 +830,7 @@ export function DashboardEventsList({
                                             })),
                                             ...rsvpData.notGoing
                                               .filter(
-                                                (u) => u.role === "athlete",
+                                                (u) => u.role === "athlete"
                                               )
                                               .map((a) => ({
                                                 id: a.id,
@@ -836,12 +843,12 @@ export function DashboardEventsList({
                                             .slice(0, 3)
                                             .map((athlete, index) => (
                                               <Avatar
-                                                key={athlete.id}
-                                                className={`h-6 w-6 border-2 border-background shrink-0 ${
+                                                className={`h-6 w-6 shrink-0 border-2 border-background ${
                                                   athlete.status === "going"
                                                     ? "border-emerald-500"
                                                     : "border-red-500"
                                                 }`}
+                                                key={athlete.id}
                                                 style={{ zIndex: 10 - index }}
                                               >
                                                 <AvatarImage
@@ -850,24 +857,24 @@ export function DashboardEventsList({
                                                     undefined
                                                   }
                                                 />
-                                                <AvatarFallback className="text-[9px] bg-muted">
+                                                <AvatarFallback className="bg-muted text-[9px]">
                                                   {getInitials(
                                                     athlete.name,
-                                                    athlete.email,
+                                                    athlete.email
                                                   )}
                                                 </AvatarFallback>
                                               </Avatar>
                                             ))}
                                           {goingAthletes.length +
                                             rsvpData.notGoing.filter(
-                                              (u) => u.role === "athlete",
+                                              (u) => u.role === "athlete"
                                             ).length >
                                             3 && (
-                                            <div className="h-6 w-6 rounded-full border-2 border-background bg-muted flex items-center justify-center shrink-0 text-[9px] font-medium">
+                                            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-background bg-muted font-medium text-[9px]">
                                               +
                                               {goingAthletes.length +
                                                 rsvpData.notGoing.filter(
-                                                  (u) => u.role === "athlete",
+                                                  (u) => u.role === "athlete"
                                                 ).length -
                                                 3}
                                             </div>
@@ -881,15 +888,15 @@ export function DashboardEventsList({
                                         <div className="space-y-3">
                                           {goingAthletes.length > 0 && (
                                             <div>
-                                              <p className="text-xs font-semibold text-muted-foreground mb-2">
+                                              <p className="mb-2 font-semibold text-muted-foreground text-xs">
                                                 Going ({goingAthletes.length})
                                               </p>
                                               <div className="flex flex-wrap gap-2">
                                                 {goingAthletes.map(
                                                   (athlete) => (
                                                     <div
+                                                      className="flex items-center gap-2 rounded-lg bg-emerald-500/10 px-2 py-1.5"
                                                       key={athlete.id}
-                                                      className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-emerald-500/10"
                                                     >
                                                       <Avatar className="h-8 w-8 border-0">
                                                         <AvatarImage
@@ -898,10 +905,10 @@ export function DashboardEventsList({
                                                             undefined
                                                           }
                                                         />
-                                                        <AvatarFallback className="text-xs bg-muted">
+                                                        <AvatarFallback className="bg-muted text-xs">
                                                           {getInitials(
                                                             athlete.name,
-                                                            athlete.email,
+                                                            athlete.email
                                                           )}
                                                         </AvatarFallback>
                                                       </Avatar>
@@ -910,20 +917,20 @@ export function DashboardEventsList({
                                                           athlete.email}
                                                       </span>
                                                     </div>
-                                                  ),
+                                                  )
                                                 )}
                                               </div>
                                             </div>
                                           )}
                                           {rsvpData.notGoing.filter(
-                                            (u) => u.role === "athlete",
+                                            (u) => u.role === "athlete"
                                           ).length > 0 && (
                                             <div>
-                                              <p className="text-xs font-semibold text-muted-foreground mb-2">
+                                              <p className="mb-2 font-semibold text-muted-foreground text-xs">
                                                 Not Going (
                                                 {
                                                   rsvpData.notGoing.filter(
-                                                    (u) => u.role === "athlete",
+                                                    (u) => u.role === "athlete"
                                                   ).length
                                                 }
                                                 )
@@ -931,12 +938,12 @@ export function DashboardEventsList({
                                               <div className="flex flex-wrap gap-2">
                                                 {rsvpData.notGoing
                                                   .filter(
-                                                    (u) => u.role === "athlete",
+                                                    (u) => u.role === "athlete"
                                                   )
                                                   .map((athlete) => (
                                                     <div
+                                                      className="flex items-center gap-2 rounded-lg bg-red-500/10 px-2 py-1.5"
                                                       key={athlete.id}
-                                                      className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-red-500/10"
                                                     >
                                                       <Avatar className="h-8 w-8 border-0">
                                                         <AvatarImage
@@ -945,10 +952,10 @@ export function DashboardEventsList({
                                                             undefined
                                                           }
                                                         />
-                                                        <AvatarFallback className="text-xs bg-muted">
+                                                        <AvatarFallback className="bg-muted text-xs">
                                                           {getInitials(
                                                             athlete.name,
-                                                            athlete.email,
+                                                            athlete.email
                                                           )}
                                                         </AvatarFallback>
                                                       </Avatar>
@@ -969,11 +976,11 @@ export function DashboardEventsList({
                               </div>
                             )}
                           </div>
-                          <div className="flex flex-col items-end gap-2 shrink-0">
+                          <div className="flex shrink-0 flex-col items-end gap-2">
                             {isCanceled && (
                               <Badge
+                                className="rounded-md text-[10px]"
                                 variant="destructive"
-                                className="text-[10px] rounded-md"
                               >
                                 Canceled
                               </Badge>
@@ -983,15 +990,15 @@ export function DashboardEventsList({
                       )}
                     </Link>
                     {isCoachOrOwner && !isMobile && (
-                      <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="opacity-0 transition-opacity group-hover:opacity-100">
                         <EventActionsDropdown
-                          eventId={event.id}
-                          occurrenceId={occurrence.id}
-                          isCanceled={isCanceled}
-                          userRole={userRole}
                           currentRsvpStatus={
                             currentUserRsvpMap.get(occurrence.id) || null
                           }
+                          eventId={event.id}
+                          isCanceled={isCanceled}
+                          occurrenceId={occurrence.id}
+                          userRole={userRole}
                         />
                       </div>
                     )}
@@ -1004,20 +1011,20 @@ export function DashboardEventsList({
       </Card>
       {selectedEvent && (
         <MobileEventActions
-          eventId={selectedEvent.eventId}
-          occurrenceId={selectedEvent.occurrenceId}
-          isCanceled={selectedEvent.isCanceled}
-          userRole={userRole}
           currentRsvpStatus={
             currentUserRsvpMap.get(selectedEvent.occurrenceId) || null
           }
+          eventId={selectedEvent.eventId}
           eventTitle={selectedEvent.eventTitle}
-          open={!!selectedEvent}
+          isCanceled={selectedEvent.isCanceled}
+          occurrenceId={selectedEvent.occurrenceId}
           onOpenChange={(open) => {
             if (!open) {
               setSelectedEvent(null);
             }
           }}
+          open={!!selectedEvent}
+          userRole={userRole}
         />
       )}
     </>

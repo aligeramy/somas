@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
-import { events, eventOccurrences, gyms, users } from "@/drizzle/schema";
+import { eventOccurrences, events, gyms, users } from "@/drizzle/schema";
 import { EventCancellationEmail } from "@/emails/event-cancellation";
 import { EventReminderEmail } from "@/emails/event-reminder";
 import { InvitationEmail } from "@/emails/invitation";
@@ -35,14 +35,14 @@ export async function POST(request: Request) {
     if (!dbUser || dbUser.role !== "owner") {
       return NextResponse.json(
         { error: "Forbidden - Admin only" },
-        { status: 403 },
+        { status: 403 }
       );
     }
 
     if (!dbUser.gymId) {
       return NextResponse.json(
         { error: "User must belong to a club" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -60,10 +60,10 @@ export async function POST(request: Request) {
       inviterName,
     } = body;
 
-    if (!userId || !emailType) {
+    if (!(userId && emailType)) {
       return NextResponse.json(
         { error: "User ID and email type are required" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -82,7 +82,7 @@ export async function POST(request: Request) {
     if (targetUser.gymId !== dbUser.gymId) {
       return NextResponse.json(
         { error: "User must belong to same club" },
-        { status: 403 },
+        { status: 403 }
       );
     }
 
@@ -97,8 +97,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Club not found" }, { status: 404 });
     }
 
-    const appUrl =
-      process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
     // Build recipient list including altEmail
     const recipients = [targetUser.email];
@@ -127,7 +126,7 @@ export async function POST(request: Request) {
         if (!password) {
           return NextResponse.json(
             { error: "Password is required for login credentials email" },
-            { status: 400 },
+            { status: 400 }
           );
         }
         const loginUrl = `${appUrl}/login`;
@@ -144,10 +143,12 @@ export async function POST(request: Request) {
       }
 
       case "invitation": {
-        if (!role || !inviterName) {
+        if (!(role && inviterName)) {
           return NextResponse.json(
-            { error: "Role and inviter name are required for invitation email" },
-            { status: 400 },
+            {
+              error: "Role and inviter name are required for invitation email",
+            },
+            { status: 400 }
           );
         }
         const inviteUrl = `${appUrl}/invite?token=test-token`;
@@ -163,10 +164,13 @@ export async function POST(request: Request) {
       }
 
       case "event-reminder": {
-        if (!eventId || !occurrenceId) {
+        if (!(eventId && occurrenceId)) {
           return NextResponse.json(
-            { error: "Event ID and occurrence ID are required for event reminder" },
-            { status: 400 },
+            {
+              error:
+                "Event ID and occurrence ID are required for event reminder",
+            },
+            { status: 400 }
           );
         }
 
@@ -184,18 +188,31 @@ export async function POST(request: Request) {
         if (!eventData) {
           return NextResponse.json(
             { error: "Event occurrence not found" },
-            { status: 404 },
+            { status: 404 }
           );
         }
 
         // Format date for email - use UTC methods to avoid timezone issues
         const eventDate = new Date(eventData.occurrence.date);
-        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const monthNames = [
+          "Jan",
+          "Feb",
+          "Mar",
+          "Apr",
+          "May",
+          "Jun",
+          "Jul",
+          "Aug",
+          "Sep",
+          "Oct",
+          "Nov",
+          "Dec",
+        ];
         const dateStr = `${eventDate.getUTCDate()} ${monthNames[eventDate.getUTCMonth()]}`;
 
         const formatTime = (time: string) => {
           const [hours, minutes] = time.split(":");
-          const hour = parseInt(hours, 10);
+          const hour = Number.parseInt(hours, 10);
           const ampm = hour >= 12 ? "PM" : "AM";
           const displayHour = hour % 12 || 12;
           return `${displayHour}:${minutes} ${ampm}`;
@@ -220,13 +237,13 @@ export async function POST(request: Request) {
       }
 
       case "event-cancellation": {
-        if (!eventId || !occurrenceId) {
+        if (!(eventId && occurrenceId)) {
           return NextResponse.json(
             {
               error:
                 "Event ID and occurrence ID are required for event cancellation",
             },
-            { status: 400 },
+            { status: 400 }
           );
         }
 
@@ -244,18 +261,31 @@ export async function POST(request: Request) {
         if (!eventData) {
           return NextResponse.json(
             { error: "Event occurrence not found" },
-            { status: 404 },
+            { status: 404 }
           );
         }
 
         // Format date for email - use UTC methods to avoid timezone issues
         const eventDate = new Date(eventData.occurrence.date);
-        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const monthNames = [
+          "Jan",
+          "Feb",
+          "Mar",
+          "Apr",
+          "May",
+          "Jun",
+          "Jul",
+          "Aug",
+          "Sep",
+          "Oct",
+          "Nov",
+          "Dec",
+        ];
         const dateStr = `${eventDate.getUTCDate()} ${monthNames[eventDate.getUTCMonth()]}`;
 
         const formatTime = (time: string) => {
           const [hours, minutes] = time.split(":");
-          const hour = parseInt(hours, 10);
+          const hour = Number.parseInt(hours, 10);
           const ampm = hour >= 12 ? "PM" : "AM";
           const displayHour = hour % 12 || 12;
           return `${displayHour}:${minutes} ${ampm}`;
@@ -279,10 +309,13 @@ export async function POST(request: Request) {
       }
 
       case "rsvp-reminder": {
-        if (!eventId || !occurrenceId) {
+        if (!(eventId && occurrenceId)) {
           return NextResponse.json(
-            { error: "Event ID and occurrence ID are required for RSVP reminder" },
-            { status: 400 },
+            {
+              error:
+                "Event ID and occurrence ID are required for RSVP reminder",
+            },
+            { status: 400 }
           );
         }
 
@@ -300,18 +333,31 @@ export async function POST(request: Request) {
         if (!eventData) {
           return NextResponse.json(
             { error: "Event occurrence not found" },
-            { status: 404 },
+            { status: 404 }
           );
         }
 
         // Format date for email - use UTC methods to avoid timezone issues
         const eventDate = new Date(eventData.occurrence.date);
-        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const monthNames = [
+          "Jan",
+          "Feb",
+          "Mar",
+          "Apr",
+          "May",
+          "Jun",
+          "Jul",
+          "Aug",
+          "Sep",
+          "Oct",
+          "Nov",
+          "Dec",
+        ];
         const dateStr = `${eventDate.getUTCDate()} ${monthNames[eventDate.getUTCMonth()]}`;
 
         const formatTime = (time: string) => {
           const [hours, minutes] = time.split(":");
-          const hour = parseInt(hours, 10);
+          const hour = Number.parseInt(hours, 10);
           const ampm = hour >= 12 ? "PM" : "AM";
           const displayHour = hour % 12 || 12;
           return `${displayHour}:${minutes} ${ampm}`;
@@ -334,10 +380,10 @@ export async function POST(request: Request) {
       }
 
       case "notice": {
-        if (!noticeTitle || !noticeContent) {
+        if (!(noticeTitle && noticeContent)) {
           return NextResponse.json(
             { error: "Notice title and content are required" },
-            { status: 400 },
+            { status: 400 }
           );
         }
         emailSubject = `Notice: ${noticeTitle}`;
@@ -355,7 +401,7 @@ export async function POST(request: Request) {
       default:
         return NextResponse.json(
           { error: "Invalid email type" },
-          { status: 400 },
+          { status: 400 }
         );
     }
 
@@ -370,7 +416,7 @@ export async function POST(request: Request) {
     if (emailResult.error) {
       return NextResponse.json(
         { error: emailResult.error.message },
-        { status: 500 },
+        { status: 500 }
       );
     }
 
@@ -383,7 +429,7 @@ export async function POST(request: Request) {
     console.error("Error sending test email:", error);
     return NextResponse.json(
       { error: "Failed to send test email" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

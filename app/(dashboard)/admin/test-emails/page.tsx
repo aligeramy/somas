@@ -71,7 +71,7 @@ export default function TestEmailsPage() {
   const [inviterName, setInviterName] = useState<string>("");
   const [noticeTitle, setNoticeTitle] = useState<string>("Test Notice");
   const [noticeContent, setNoticeContent] = useState<string>(
-    "This is a test notice to verify the email template.",
+    "This is a test notice to verify the email template."
   );
 
   const fetchData = useCallback(async () => {
@@ -82,7 +82,7 @@ export default function TestEmailsPage() {
         fetch("/api/events"),
       ]);
 
-      if (!usersRes.ok || !eventsRes.ok) {
+      if (!(usersRes.ok && eventsRes.ok)) {
         throw new Error("Failed to fetch data");
       }
 
@@ -103,7 +103,7 @@ export default function TestEmailsPage() {
   }, [fetchData]);
 
   async function sendTestEmail() {
-    if (!selectedUserId || !emailType) {
+    if (!(selectedUserId && emailType)) {
       setResult({
         success: false,
         message: "Please select a user and email type",
@@ -116,7 +116,7 @@ export default function TestEmailsPage() {
       (emailType === "event-reminder" ||
         emailType === "event-cancellation" ||
         emailType === "rsvp-reminder") &&
-      (!eventId || !occurrenceId)
+      !(eventId && occurrenceId)
     ) {
       setResult({
         success: false,
@@ -133,7 +133,7 @@ export default function TestEmailsPage() {
       return;
     }
 
-    if (emailType === "notice" && (!noticeTitle || !noticeContent)) {
+    if (emailType === "notice" && !(noticeTitle && noticeContent)) {
       setResult({
         success: false,
         message: "Please enter notice title and content",
@@ -155,8 +155,7 @@ export default function TestEmailsPage() {
           occurrenceId: occurrenceId || undefined,
           password: emailType === "login-credentials" ? password : undefined,
           role: emailType === "invitation" ? role : undefined,
-          inviterName:
-            emailType === "invitation" ? inviterName : undefined,
+          inviterName: emailType === "invitation" ? inviterName : undefined,
           noticeTitle: emailType === "notice" ? noticeTitle : undefined,
           noticeContent: emailType === "notice" ? noticeContent : undefined,
         }),
@@ -191,7 +190,7 @@ export default function TestEmailsPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col gap-6 p-4 md:p-6 pb-24 lg:pb-6">
+      <div className="flex flex-col gap-6 p-4 pb-24 md:p-6 lg:pb-6">
         <PageHeader title="Test Emails" />
         <Card>
           <CardContent className="p-6">
@@ -205,7 +204,7 @@ export default function TestEmailsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 p-4 md:p-6 pb-24 lg:pb-6">
+    <div className="flex flex-col gap-6 p-4 pb-24 md:p-6 lg:pb-6">
       <PageHeader title="Test Emails" />
 
       <Card>
@@ -223,7 +222,7 @@ export default function TestEmailsPage() {
           {/* User Selection */}
           <div className="space-y-2">
             <Label htmlFor="user">Select User</Label>
-            <Select value={selectedUserId} onValueChange={setSelectedUserId}>
+            <Select onValueChange={setSelectedUserId} value={selectedUserId}>
               <SelectTrigger id="user">
                 <SelectValue placeholder="Choose a user to send test email to" />
               </SelectTrigger>
@@ -240,7 +239,10 @@ export default function TestEmailsPage() {
           {/* Email Type Selection */}
           <div className="space-y-2">
             <Label htmlFor="emailType">Email Type</Label>
-            <Select value={emailType} onValueChange={(v) => setEmailType(v as EmailType)}>
+            <Select
+              onValueChange={(v) => setEmailType(v as EmailType)}
+              value={emailType}
+            >
               <SelectTrigger id="emailType">
                 <SelectValue placeholder="Select email template" />
               </SelectTrigger>
@@ -268,12 +270,12 @@ export default function TestEmailsPage() {
               <div className="space-y-2">
                 <Label htmlFor="event">Select Event</Label>
                 <Select
-                value={eventId}
-                onValueChange={(value) => {
-                  setEventId(value);
-                  setOccurrenceId(""); // Reset occurrence when event changes
-                }}
-              >
+                  onValueChange={(value) => {
+                    setEventId(value);
+                    setOccurrenceId(""); // Reset occurrence when event changes
+                  }}
+                  value={eventId}
+                >
                   <SelectTrigger id="event">
                     <SelectValue placeholder="Choose an event" />
                   </SelectTrigger>
@@ -290,10 +292,7 @@ export default function TestEmailsPage() {
               {eventId && (
                 <div className="space-y-2">
                   <Label htmlFor="occurrence">Select Occurrence</Label>
-                  <Select
-                    value={occurrenceId}
-                    onValueChange={setOccurrenceId}
-                  >
+                  <Select onValueChange={setOccurrenceId} value={occurrenceId}>
                     <SelectTrigger id="occurrence">
                       <SelectValue placeholder="Choose an occurrence" />
                     </SelectTrigger>
@@ -324,10 +323,10 @@ export default function TestEmailsPage() {
               <Label htmlFor="password">Password</Label>
               <Input
                 id="password"
-                type="text"
-                value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="test-password-123"
+                type="text"
+                value={password}
               />
             </div>
           )}
@@ -338,8 +337,8 @@ export default function TestEmailsPage() {
               <div className="space-y-2">
                 <Label htmlFor="role">Role</Label>
                 <Select
-                  value={role}
                   onValueChange={(v) => setRole(v as "coach" | "athlete")}
+                  value={role}
                 >
                   <SelectTrigger id="role">
                     <SelectValue />
@@ -354,9 +353,9 @@ export default function TestEmailsPage() {
                 <Label htmlFor="inviterName">Inviter Name</Label>
                 <Input
                   id="inviterName"
-                  value={inviterName}
                   onChange={(e) => setInviterName(e.target.value)}
                   placeholder="Coach Name"
+                  value={inviterName}
                 />
               </div>
             </>
@@ -369,19 +368,19 @@ export default function TestEmailsPage() {
                 <Label htmlFor="noticeTitle">Notice Title</Label>
                 <Input
                   id="noticeTitle"
-                  value={noticeTitle}
                   onChange={(e) => setNoticeTitle(e.target.value)}
                   placeholder="Test Notice"
+                  value={noticeTitle}
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="noticeContent">Notice Content</Label>
                 <Textarea
                   id="noticeContent"
-                  value={noticeContent}
                   onChange={(e) => setNoticeContent(e.target.value)}
                   placeholder="This is a test notice..."
                   rows={5}
+                  value={noticeContent}
                 />
               </div>
             </>
@@ -390,10 +389,10 @@ export default function TestEmailsPage() {
           {/* Result Message */}
           {result && (
             <div
-              className={`flex items-center gap-2 p-4 rounded-lg ${
+              className={`flex items-center gap-2 rounded-lg p-4 ${
                 result.success
-                  ? "bg-green-50 text-green-900 border border-green-200"
-                  : "bg-red-50 text-red-900 border border-red-200"
+                  ? "border border-green-200 bg-green-50 text-green-900"
+                  : "border border-red-200 bg-red-50 text-red-900"
               }`}
             >
               {result.success ? (
@@ -407,18 +406,18 @@ export default function TestEmailsPage() {
 
           {/* Send Button */}
           <Button
-            onClick={sendTestEmail}
-            disabled={sending || !selectedUserId || !emailType}
             className="w-full"
+            disabled={sending || !selectedUserId || !emailType}
+            onClick={sendTestEmail}
           >
             {sending ? (
               <>
-                <IconLoader2 className="h-4 w-4 mr-2 animate-spin" />
+                <IconLoader2 className="mr-2 h-4 w-4 animate-spin" />
                 Sending...
               </>
             ) : (
               <>
-                <IconMailForward className="h-4 w-4 mr-2" />
+                <IconMailForward className="mr-2 h-4 w-4" />
                 Send Test Email
               </>
             )}
@@ -426,7 +425,7 @@ export default function TestEmailsPage() {
 
           {/* Info */}
           {selectedUser && (
-            <p className="text-sm text-muted-foreground">
+            <p className="text-muted-foreground text-sm">
               Email will be sent to:{" "}
               <strong>
                 {selectedUser.email}

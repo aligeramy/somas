@@ -2,9 +2,9 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Analytics } from "@vercel/analytics/next";
+import { HmrErrorHandler } from "@/components/hmr-error-handler";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
-import { HmrErrorHandler } from "@/components/hmr-error-handler";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

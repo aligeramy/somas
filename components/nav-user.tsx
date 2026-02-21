@@ -45,7 +45,7 @@ export function NavUser({
   userRole?: string;
 }) {
   const { isMobile } = useSidebar();
-  const router = useRouter();
+  const _router = useRouter();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 

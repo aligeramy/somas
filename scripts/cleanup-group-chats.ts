@@ -52,8 +52,8 @@ async function cleanupGroupChats() {
       .where(
         or(
           eq(users.email, "pascal.tyrrell@gmail.com"),
-          eq(users.name, "Pascal Tyrrell"),
-        ),
+          eq(users.name, "Pascal Tyrrell")
+        )
       )
       .limit(1)
       .then((results) => results[0]);
@@ -66,13 +66,13 @@ async function cleanupGroupChats() {
           u.email?.toLowerCase().includes("pascal") ||
           u.email?.toLowerCase().includes("apscal") ||
           u.name?.toLowerCase().includes("pascal") ||
-          u.name?.toLowerCase().includes("apscal"),
+          u.name?.toLowerCase().includes("apscal")
       );
     }
 
     if (!apscalUser) {
       console.error(
-        "Could not find 'apscal' user. Please check the user exists.",
+        "Could not find 'apscal' user. Please check the user exists."
       );
       const allUsers = await db.select().from(users);
       console.log("Available users:");
@@ -83,7 +83,7 @@ async function cleanupGroupChats() {
     }
 
     console.log(
-      `Found apscal user: ${apscalUser.name || apscalUser.email} (${apscalUser.id})`,
+      `Found apscal user: ${apscalUser.name || apscalUser.email} (${apscalUser.id})`
     );
 
     // Find all DM channels involving apscal
@@ -96,9 +96,9 @@ async function cleanupGroupChats() {
           eq(channels.type, "dm"),
           or(
             eq(channels.name, apscalUser.name || ""),
-            eq(channels.name, apscalUser.email || ""),
-          ),
-        ),
+            eq(channels.name, apscalUser.email || "")
+          )
+        )
       );
 
     // Also find channels where apscal has sent messages
@@ -158,7 +158,7 @@ async function cleanupGroupChats() {
       .where(inArray(messages.channelId, channelIdsToDelete));
 
     console.log(
-      `\nDeleted messages from ${groupChannelsToDelete.length} channels`,
+      `\nDeleted messages from ${groupChannelsToDelete.length} channels`
     );
 
     // Delete chat notifications for these channels
@@ -167,14 +167,14 @@ async function cleanupGroupChats() {
       .where(inArray(schema.chatNotifications.channelId, channelIdsToDelete));
 
     console.log(
-      `Deleted notifications for ${groupChannelsToDelete.length} channels`,
+      `Deleted notifications for ${groupChannelsToDelete.length} channels`
     );
 
     // Delete the channels
     await db.delete(channels).where(inArray(channels.id, channelIdsToDelete));
 
     console.log(
-      `\nSuccessfully deleted ${groupChannelsToDelete.length} group channels`,
+      `\nSuccessfully deleted ${groupChannelsToDelete.length} group channels`
     );
     console.log("\nCleanup complete!");
   } catch (error) {

@@ -47,9 +47,7 @@ export function ChatMessageItem({
             })}
           >
             <span className="font-medium">{message.user.name}</span>
-            <span className="text-foreground/50 text-xs">
-              {timeDisplay}
-            </span>
+            <span className="text-foreground/50 text-xs">{timeDisplay}</span>
           </div>
         )}
         <div

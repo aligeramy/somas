@@ -48,13 +48,13 @@ export function AthleteDashboard({
   gymName,
 }: AthleteDashboardProps) {
   const [rsvpStates, setRsvpStates] = useState<Record<string, string | null>>(
-    Object.fromEntries(occurrences.map((o) => [o.id, o.rsvpStatus])),
+    Object.fromEntries(occurrences.map((o) => [o.id, o.rsvpStatus]))
   );
   const [loading, setLoading] = useState<string | null>(null);
 
   async function handleRsvp(
     occurrenceId: string,
-    status: "going" | "not_going",
+    status: "going" | "not_going"
   ) {
     setLoading(occurrenceId);
     try {
@@ -84,9 +84,11 @@ export function AthleteDashboard({
     tomorrow.setDate(tomorrow.getDate() + 1);
 
     let relative = "";
-    if (date.toDateString() === today.toDateString()) relative = "Today";
-    else if (date.toDateString() === tomorrow.toDateString())
+    if (date.toDateString() === today.toDateString()) {
+      relative = "Today";
+    } else if (date.toDateString() === tomorrow.toDateString()) {
       relative = "Tomorrow";
+    }
 
     return {
       day: date.getDate().toString(),
@@ -98,35 +100,35 @@ export function AthleteDashboard({
 
   function formatTime(time: string) {
     const [hours, minutes] = time.split(":");
-    const hour = parseInt(hours, 10);
+    const hour = Number.parseInt(hours, 10);
     const ampm = hour >= 12 ? "PM" : "AM";
     const displayHour = hour % 12 || 12;
     return `${displayHour}:${minutes} ${ampm}`;
   }
 
   return (
-    <div className="flex flex-1 flex-col min-h-0 h-full overflow-hidden">
+    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
       <PageHeader
-        title={`Hey${userName ? `, ${userName.split(" ")[0]}` : ""}! 👋`}
         description="Here's your upcoming schedule"
+        title={`Hey${userName ? `, ${userName.split(" ")[0]}` : ""}! 👋`}
       >
         <PWAInstallButton />
       </PageHeader>
 
       <div
-        className="flex-1 overflow-y-auto overflow-x-hidden min-h-0"
+        className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden"
         style={{ WebkitOverflowScrolling: "touch" }}
       >
-        <div className="p-4 lg:p-6 pb-8 space-y-6 max-w-2xl mx-auto">
+        <div className="mx-auto max-w-2xl space-y-6 p-4 pb-8 lg:p-6">
           {/* Club Logo - Mobile Only */}
           {gymLogo && (
-            <div className="lg:hidden flex justify-center py-4">
+            <div className="flex justify-center py-4 lg:hidden">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               {/* biome-ignore lint/performance/noImgElement: Dynamic logo URL from database */}
               <img
-                src={gymLogo}
                 alt={gymName || "Club"}
                 className="w-[150px]"
+                src={gymLogo}
               />
             </div>
           )}
@@ -135,16 +137,16 @@ export function AthleteDashboard({
           {activeNotice && (
             <Card className="rounded-xl border border-primary/20 bg-primary/5">
               <CardContent className="px-4 py-2">
-                <div className="flex-1 min-w-0 space-y-1">
-                  <div className="flex items-center gap-2 flex-wrap">
+                <div className="min-w-0 flex-1 space-y-1">
+                  <div className="flex flex-wrap items-center gap-2">
                     <h3 className="font-semibold text-sm leading-tight">
                       {activeNotice.title}
                     </h3>
-                    <Badge variant="default" className="rounded-lg text-xs">
+                    <Badge className="rounded-lg text-xs" variant="default">
                       Notice
                     </Badge>
                   </div>
-                  <p className="text-sm text-muted-foreground line-clamp-2">
+                  <p className="line-clamp-2 text-muted-foreground text-sm">
                     {activeNotice.content}
                   </p>
                 </div>
@@ -155,9 +157,9 @@ export function AthleteDashboard({
           {occurrences.length === 0 ? (
             <Card className="rounded-xl border-dashed">
               <CardContent className="py-16 text-center">
-                <IconCalendar className="h-12 w-12 mx-auto mb-4 text-muted-foreground/30" />
+                <IconCalendar className="mx-auto mb-4 h-12 w-12 text-muted-foreground/30" />
                 <p className="text-muted-foreground">No upcoming events</p>
-                <p className="text-sm text-muted-foreground mt-1">
+                <p className="mt-1 text-muted-foreground text-sm">
                   Check back later for new sessions!
                 </p>
               </CardContent>
@@ -167,29 +169,29 @@ export function AthleteDashboard({
               {/* All Events */}
               {occurrences.length > 0 && (
                 <div>
-                  <h3 className="text-sm font-medium text-muted-foreground px-1 mb-3 md:mb-2">
+                  <h3 className="mb-3 px-1 font-medium text-muted-foreground text-sm md:mb-2">
                     Coming Up
                   </h3>
-                  <div className="bg-card md:bg-transparent rounded-lg md:rounded-none border border-border md:border-0 md:shadow-none overflow-hidden">
+                  <div className="overflow-hidden rounded-lg border border-border bg-card md:rounded-none md:border-0 md:bg-transparent md:shadow-none">
                     {occurrences.map((occ, index) => {
                       const dateInfo = formatDate(occ.date);
                       const rsvpStatus = rsvpStates[occ.id];
                       const isLoading = loading === occ.id;
 
                       return (
-                        <div key={occ.id} className="md:mb-3">
+                        <div className="md:mb-3" key={occ.id}>
                           <div
-                            className={`md:rounded-xl transition-all md:border md:shadow-sm md:bg-card md:hover:shadow-md ${
+                            className={`transition-all md:rounded-xl md:border md:bg-card md:shadow-sm md:hover:shadow-md ${
                               rsvpStatus === "not_going"
-                                ? "md:bg-red-50 md:dark:bg-red-950/30 "
+                                ? "md:bg-red-50 md:dark:bg-red-950/30"
                                 : ""
                             }`}
                           >
-                            <div className="px-4 py-3 md:p-4 active:bg-muted/50 md:active:bg-transparent">
+                            <div className="px-4 py-3 active:bg-muted/50 md:p-4 md:active:bg-transparent">
                               <div className="flex items-center gap-3 md:gap-4">
                                 {/* Date - Compact on mobile, bigger on desktop */}
                                 <div
-                                  className={`h-12 w-12 md:h-16 md:w-16 rounded-lg md:rounded-xl flex flex-col items-center justify-center shrink-0 ${
+                                  className={`flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-lg md:h-16 md:w-16 md:rounded-xl ${
                                     rsvpStatus === "going"
                                       ? "bg-emerald-100 dark:bg-emerald-950/50"
                                       : rsvpStatus === "not_going"
@@ -198,7 +200,7 @@ export function AthleteDashboard({
                                   }`}
                                 >
                                   <span
-                                    className={`text-base md:text-xl font-bold leading-none ${
+                                    className={`font-bold text-base leading-none md:text-xl ${
                                       rsvpStatus === "going"
                                         ? "text-emerald-600 dark:text-emerald-400"
                                         : rsvpStatus === "not_going"
@@ -209,7 +211,7 @@ export function AthleteDashboard({
                                     {dateInfo.day}
                                   </span>
                                   <span
-                                    className={`text-[9px] md:text-xs font-medium mt-0.5 ${
+                                    className={`mt-0.5 font-medium text-[9px] md:text-xs ${
                                       rsvpStatus === "going" ||
                                       rsvpStatus === "not_going"
                                         ? "text-muted-foreground"
@@ -221,16 +223,16 @@ export function AthleteDashboard({
                                 </div>
 
                                 {/* Details - List item style on mobile */}
-                                <div className="flex-1 min-w-0">
+                                <div className="min-w-0 flex-1">
                                   <Link
-                                    href={`/events?eventId=${occ.eventId}&occurrenceId=${occ.id}`}
                                     className="block"
+                                    href={`/events?eventId=${occ.eventId}&occurrenceId=${occ.id}`}
                                   >
-                                    <p className="font-semibold text-base md:text-base hover:underline line-clamp-1">
+                                    <p className="line-clamp-1 font-semibold text-base hover:underline md:text-base">
                                       {occ.eventTitle}
                                     </p>
-                                    <div className="flex items-center gap-2 mt-1 flex-wrap">
-                                      <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                    <div className="mt-1 flex flex-wrap items-center gap-2">
+                                      <p className="flex items-center gap-1 text-muted-foreground text-xs">
                                         <IconClock className="h-3 w-3" />
                                         {formatTime(occ.startTime)}
                                       </p>
@@ -240,21 +242,21 @@ export function AthleteDashboard({
                                           <span className="text-muted-foreground">
                                             •
                                           </span>
-                                          <div className="flex items-center gap-1 flex-wrap">
+                                          <div className="flex flex-wrap items-center gap-1">
                                             {occ.goingCoaches
                                               .slice(0, 2)
                                               .map((coach) => (
                                                 <Badge
+                                                  className="h-4 rounded-md bg-muted px-1.5 py-0 text-[9px] md:h-5 md:text-[10px]"
                                                   key={coach.id}
                                                   variant="secondary"
-                                                  className="text-[9px] md:text-[10px] rounded-md px-1.5 py-0 h-4 md:h-5 bg-muted"
                                                 >
                                                   {coach.name?.split(" ")[0] ||
                                                     coach.email.split("@")[0]}
                                                 </Badge>
                                               ))}
                                             {occ.goingCoaches.length > 2 && (
-                                              <span className="text-[9px] md:text-[10px] text-muted-foreground">
+                                              <span className="text-[9px] text-muted-foreground md:text-[10px]">
                                                 +{occ.goingCoaches.length - 2}
                                               </span>
                                             )}
@@ -266,7 +268,7 @@ export function AthleteDashboard({
                                           <span className="text-muted-foreground">
                                             •
                                           </span>
-                                          <span className="text-[10px] md:text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                                          <span className="font-medium text-[10px] text-emerald-600 md:text-xs dark:text-emerald-400">
                                             {occ.goingAthletesCount} going
                                           </span>
                                         </>
@@ -276,42 +278,42 @@ export function AthleteDashboard({
                                 </div>
 
                                 {/* RSVP Buttons - Compact on mobile */}
-                                <div className="flex gap-1.5 shrink-0">
+                                <div className="flex shrink-0 gap-1.5">
                                   <Button
+                                    className={`h-9 w-9 rounded-lg p-0 md:h-9 md:w-9 ${
+                                      rsvpStatus === "going"
+                                        ? "border-0 bg-emerald-600 hover:bg-emerald-700"
+                                        : "border-border"
+                                    }`}
+                                    disabled={isLoading}
+                                    onClick={() => {
+                                      handleRsvp(occ.id, "going");
+                                    }}
                                     size="sm"
                                     variant={
                                       rsvpStatus === "going"
                                         ? "default"
                                         : "outline"
                                     }
-                                    onClick={() => {
-                                      handleRsvp(occ.id, "going");
-                                    }}
-                                    disabled={isLoading}
-                                    className={`h-9 w-9 md:h-9 md:w-9 p-0 rounded-lg ${
-                                      rsvpStatus === "going"
-                                        ? "bg-emerald-600 hover:bg-emerald-700 border-0"
-                                        : "border-border"
-                                    }`}
                                   >
                                     <IconCheck className="h-4 w-4" />
                                   </Button>
                                   <Button
+                                    className={`h-9 w-9 rounded-lg p-0 md:h-9 md:w-9 ${
+                                      rsvpStatus === "not_going"
+                                        ? "border-0 bg-red-500 text-white hover:bg-red-600"
+                                        : "border-border"
+                                    }`}
+                                    disabled={isLoading}
+                                    onClick={() => {
+                                      handleRsvp(occ.id, "not_going");
+                                    }}
                                     size="sm"
                                     variant={
                                       rsvpStatus === "not_going"
                                         ? "secondary"
                                         : "outline"
                                     }
-                                    onClick={() => {
-                                      handleRsvp(occ.id, "not_going");
-                                    }}
-                                    disabled={isLoading}
-                                    className={`h-9 w-9 md:h-9 md:w-9 p-0 rounded-lg ${
-                                      rsvpStatus === "not_going"
-                                        ? "bg-red-500 hover:bg-red-600 text-white border-0"
-                                        : "border-border"
-                                    }`}
                                   >
                                     <IconX className="h-4 w-4" />
                                   </Button>
@@ -321,7 +323,7 @@ export function AthleteDashboard({
                           </div>
                           {/* Divider between items on mobile */}
                           {index < occurrences.length - 1 && (
-                            <div className="h-px bg-border mx-4 md:hidden" />
+                            <div className="mx-4 h-px bg-border md:hidden" />
                           )}
                         </div>
                       );

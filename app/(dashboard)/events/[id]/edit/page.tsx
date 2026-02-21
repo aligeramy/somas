@@ -45,6 +45,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useGooglePlacesAutocomplete } from "@/hooks/use-google-places-autocomplete";
 
+const BYDAY_REGEX = /BYDAY=(\w+)/;
+
 const DAYS_OF_WEEK = [
   { value: "MO", label: "Monday", index: 1 },
   { value: "TU", label: "Tuesday", index: 2 },
@@ -149,7 +151,7 @@ export default function EditEventPage() {
             setRecurrence("daily");
           } else if (event.recurrenceRule.includes("WEEKLY")) {
             setRecurrence("weekly");
-            const bydayMatch = event.recurrenceRule.match(/BYDAY=(\w+)/);
+            const bydayMatch = event.recurrenceRule.match(BYDAY_REGEX);
             if (bydayMatch) {
               setDayOfWeek(bydayMatch[1]);
               prevDayOfWeekRef.current = bydayMatch[1];

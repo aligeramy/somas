@@ -344,18 +344,18 @@ export const chatEmailLogs = pgTable(
   (table) => ({
     userIdChannelIdIdx: index("ChatEmailLog_userId_channelId_idx").on(
       table.userId,
-      table.channelId,
+      table.channelId
     ),
     userIdSentAtIdx: index("ChatEmailLog_userId_sentAt_idx").on(
       table.userId,
-      table.sentAt,
+      table.sentAt
     ),
     channelIdIdx: index("ChatEmailLog_channelId_idx").on(table.channelId),
     uniqueUserChannel: unique("ChatEmailLog_userId_channelId_key").on(
       table.userId,
-      table.channelId,
+      table.channelId
     ),
-  }),
+  })
 );
 
 // Relations
