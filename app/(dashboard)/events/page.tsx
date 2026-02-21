@@ -5501,6 +5501,8 @@ export default function EventsPage() {
                               currentUserRole={currentUserRole}
                               getInitials={getInitials}
                               onEditRsvp={handleEditRsvp}
+                              onSendReminder={handleSendReminderToUser}
+                              remindingUserId={remindingUserId}
                               users={notGoingUsers.map((u) => {
                                 const member = gymMembers.find(
                                   (m) => m.id === u.id
@@ -5519,8 +5521,11 @@ export default function EventsPage() {
                             value="pending"
                           >
                             <UserList
+                              currentUserRole={currentUserRole}
                               getInitials={getInitials}
                               onEditRsvp={handleEditRsvp}
+                              onSendReminder={handleSendReminderToUser}
+                              remindingUserId={remindingUserId}
                               users={notAnsweredUsers.map((u) => ({
                                 ...u,
                                 status: null,
