@@ -82,7 +82,8 @@ async function generateEventOccurrences(
   recurrenceEndDate?: Date | null,
   recurrenceCount?: number | null
 ) {
-  const occurrences: { eventId: string; date: Date; status: "scheduled" }[] = [];
+  const occurrences: { eventId: string; date: Date; status: "scheduled" }[] =
+    [];
   let endDate = new Date(startDate);
 
   // Determine end date based on recurrence settings

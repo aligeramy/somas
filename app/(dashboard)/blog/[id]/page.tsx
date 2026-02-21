@@ -126,7 +126,6 @@ export default async function BlogPostPage({
               {post.imageUrl && (
                 // eslint-disable-next-line @next/next/no-img-element
                 // biome-ignore lint/performance/noImgElement: Dynamic URL from user content
-                // biome-ignore lint/correctness/useImageSize: Dynamic image from CMS
                 <img
                   alt={post.title}
                   className="mb-6 max-h-96 w-full rounded-xl object-cover"

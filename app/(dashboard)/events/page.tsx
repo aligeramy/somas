@@ -6219,6 +6219,24 @@ function UserList({
                       <IconMail className="h-5 w-5" />
                       <span>Email</span>
                     </Button>
+                    {onSendReminder && (
+                      <Button
+                        className="h-12 w-full justify-start gap-3 px-3"
+                        disabled={remindingUserId === selectedUser.id}
+                        onClick={() => {
+                          onSendReminder(selectedUser.id);
+                          setSelectedUserId(null);
+                        }}
+                        variant="ghost"
+                      >
+                        <IconBell className="h-5 w-5" />
+                        <span>
+                          {remindingUserId === selectedUser.id
+                            ? "Sending..."
+                            : "Send reminder email"}
+                        </span>
+                      </Button>
+                    )}
                   </>
                 )}
               {onEditRsvp && (
