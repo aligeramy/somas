@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
-    "build:ci": "next build",
+    "build:ci": "next build --turbopack",
     "start": "next start",
     "lint": "biome check",
     "format": "biome format --write",
