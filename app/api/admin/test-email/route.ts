@@ -10,6 +10,7 @@ import { NoticeEmail } from "@/emails/notice";
 import { RsvpReminderEmail } from "@/emails/rsvp-reminder";
 import { WelcomeEmail } from "@/emails/welcome";
 import { db } from "@/lib/db";
+import { formatOccurrenceDateShort } from "@/lib/date";
 import { createClient } from "@/lib/supabase/server";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -192,23 +193,8 @@ export async function POST(request: Request) {
           );
         }
 
-        // Format date for email - use UTC methods to avoid timezone issues
         const eventDate = new Date(eventData.occurrence.date);
-        const monthNames = [
-          "Jan",
-          "Feb",
-          "Mar",
-          "Apr",
-          "May",
-          "Jun",
-          "Jul",
-          "Aug",
-          "Sep",
-          "Oct",
-          "Nov",
-          "Dec",
-        ];
-        const dateStr = `${eventDate.getUTCDate()} ${monthNames[eventDate.getUTCMonth()]}`;
+        const dateStr = formatOccurrenceDateShort(eventDate);
 
         const formatTime = (time: string) => {
           const [hours, minutes] = time.split(":");
@@ -265,23 +251,8 @@ export async function POST(request: Request) {
           );
         }
 
-        // Format date for email - use UTC methods to avoid timezone issues
         const eventDate = new Date(eventData.occurrence.date);
-        const monthNames = [
-          "Jan",
-          "Feb",
-          "Mar",
-          "Apr",
-          "May",
-          "Jun",
-          "Jul",
-          "Aug",
-          "Sep",
-          "Oct",
-          "Nov",
-          "Dec",
-        ];
-        const dateStr = `${eventDate.getUTCDate()} ${monthNames[eventDate.getUTCMonth()]}`;
+        const dateStr = formatOccurrenceDateShort(eventDate);
 
         const formatTime = (time: string) => {
           const [hours, minutes] = time.split(":");
@@ -337,23 +308,8 @@ export async function POST(request: Request) {
           );
         }
 
-        // Format date for email - use UTC methods to avoid timezone issues
         const eventDate = new Date(eventData.occurrence.date);
-        const monthNames = [
-          "Jan",
-          "Feb",
-          "Mar",
-          "Apr",
-          "May",
-          "Jun",
-          "Jul",
-          "Aug",
-          "Sep",
-          "Oct",
-          "Nov",
-          "Dec",
-        ];
-        const dateStr = `${eventDate.getUTCDate()} ${monthNames[eventDate.getUTCMonth()]}`;
+        const dateStr = formatOccurrenceDateShort(eventDate);
 
         const formatTime = (time: string) => {
           const [hours, minutes] = time.split(":");

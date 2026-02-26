@@ -4,6 +4,10 @@ import { Resend } from "resend";
 import { eventOccurrences, events, gyms, rsvps, users } from "@/drizzle/schema";
 import { EventReminderEmail } from "@/emails/event-reminder";
 import { db } from "@/lib/db";
+import {
+  formatOccurrenceDateLong,
+  formatOccurrenceDateShort,
+} from "@/lib/date";
 import { createClient } from "@/lib/supabase/server";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -309,13 +313,8 @@ export async function POST(request: Request) {
     }
 
     const eventDate = new Date(occurrenceData.occurrence.date);
-    const dateStr = `${eventDate.getDate()} ${eventDate.toLocaleDateString("en-US", { month: "short" })}`;
-    const fullDateStr = eventDate.toLocaleDateString("en-US", {
-      weekday: "long",
-      month: "long",
-      day: "numeric",
-      year: "numeric",
-    });
+    const dateStr = formatOccurrenceDateShort(eventDate);
+    const fullDateStr = formatOccurrenceDateLong(eventDate);
     const timeStr = `${formatTime(occurrenceData.event.startTime)} - ${formatTime(occurrenceData.event.endTime)}`;
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
     const from = `${process.env.RESEND_FROM_NAME || "SOMAS"} <${process.env.RESEND_FROM_EMAIL || "noreply@mail.softx.ca"}>`;

@@ -11,6 +11,7 @@ import {
 } from "@/drizzle/schema";
 import { EventReminderEmail } from "@/emails/event-reminder";
 import { db } from "@/lib/db";
+import { formatOccurrenceDateShort } from "@/lib/date";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -286,20 +287,6 @@ async function processEventReminders(
   results: ProcessResults
 ): Promise<void> {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-  const monthNames = [
-    "Jan",
-    "Feb",
-    "Mar",
-    "Apr",
-    "May",
-    "Jun",
-    "Jul",
-    "Aug",
-    "Sep",
-    "Oct",
-    "Nov",
-    "Dec",
-  ];
   const formatTime = (time: string) => {
     const [hours, minutes] = time.split(":");
     const hour = Number.parseInt(hours, 10);
@@ -354,7 +341,7 @@ async function processEventReminders(
         return hasRemindersEnabled(a.notifPreferences) && hasRsvp;
       });
 
-      const dateStr = `${occurrenceDate.getUTCDate()} ${monthNames[occurrenceDate.getUTCMonth()]}`;
+      const dateStr = formatOccurrenceDateShort(occurrenceDate);
       const timeStr = `${formatTime(event.startTime)} - ${formatTime(event.endTime)}`;
 
       await sendReminderToMembers(
