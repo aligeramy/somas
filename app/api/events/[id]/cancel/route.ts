@@ -4,7 +4,7 @@ import { Resend } from "resend";
 import { eventOccurrences, events, gyms, users } from "@/drizzle/schema";
 import { EventCancellationEmail } from "@/emails/event-cancellation";
 import { db } from "@/lib/db";
-import { formatOccurrenceDateShort } from "@/lib/date";
+import { formatOccurrenceDateLong, formatOccurrenceDateShort } from "@/lib/date";
 import { createClient } from "@/lib/supabase/server";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -123,6 +123,7 @@ export async function POST(
 
           const eventDate = new Date(eventData.occurrence.date);
           const dateStr = formatOccurrenceDateShort(eventDate);
+          const fullDateStr = formatOccurrenceDateLong(eventDate);
 
           const formatTime = (time: string) => {
             const [hours, minutes] = time.split(":");
@@ -163,6 +164,7 @@ export async function POST(
                   athleteName: targetUser.name || "Athlete",
                   eventTitle: eventData.event.title,
                   eventDate: dateStr,
+                  fullDate: fullDateStr,
                   eventTime: timeStr,
                   eventLocation: eventData.event.location || undefined,
                   dashboardUrl,

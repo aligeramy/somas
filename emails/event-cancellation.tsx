@@ -41,30 +41,15 @@ export function EventCancellationEmail({
       </Text>
 
       {/* Big canceled date hero */}
-      <Section className="mb-6 rounded-2xl bg-gray-50 py-8 text-center">
-        <div style={{ position: "relative", display: "inline-block" }}>
-          <Heading
-            className="m-0 font-black text-5xl text-zinc-900 tracking-tight"
-            style={{ lineHeight: "1.1", letterSpacing: "-0.02em" }}
-          >
-            {displayDate}
-          </Heading>
-          {/* Strikethrough line */}
-          <div
-            style={{
-              position: "absolute",
-              top: "50%",
-              left: "-8px",
-              right: "-8px",
-              height: "4px",
-              backgroundColor: "#dc2626",
-              borderRadius: "2px",
-              transform: "translateY(-50%) rotate(-2deg)",
-            }}
-          />
-        </div>
+      <Section className="mb-6 rounded-2xl bg-red-600 py-8 text-center">
+        <Heading
+          className="m-0 font-black text-[15px]! text-white"
+          style={{ lineHeight: "1.1", letterSpacing: "-0.02em" }}
+        >
+          {displayDate}
+        </Heading>
         <Text
-          className="mt-4 mb-0 font-bold text-red-600 text-sm uppercase tracking-widest"
+          className="mt-3 mb-0 font-bold text-white text-sm uppercase"
           style={{ letterSpacing: "0.12em" }}
         >
           CANCELED
